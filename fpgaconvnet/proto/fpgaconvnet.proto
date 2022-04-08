@@ -1,0 +1,80 @@
+syntax = "proto2";
+
+message stream {
+    required string name    = 1;
+    required int32  coarse  = 2;
+}
+
+message parameter {
+    required int32 buffer_depth = 1 [default = 2];
+    required int32 batch_size   = 2;
+    required int32 rows_in      = 3;
+    required int32 cols_in      = 4;
+    required int32 channels_in  = 5;
+    required int32 rows_out     = 6;
+    required int32 cols_out     = 7;
+    required int32 channels_out = 8;
+    required int32 coarse_in    = 9;
+    required int32 coarse_out   = 10;
+    optional int32 coarse       = 11;
+    optional int32 coarse_group = 12;
+    optional int32 groups       = 13;
+    optional int32 fine         = 14;
+    optional int32 filters      = 15;
+    optional int32 pad_top      = 16;
+    optional int32 pad_right    = 17;
+    optional int32 pad_left     = 18;
+    optional int32 pad_bottom   = 19;
+    repeated int32 kernel_size  = 20;
+    repeated int32 stride       = 21;
+    optional int32 data_width   = 22;
+    optional int32 weight_width = 23;
+    optional int32 acc_width    = 24;
+    optional int32 input_width  = 25;
+    optional int32 output_width = 26;
+    optional int32 has_bias     = 27;
+    optional int32 biases_width = 28;
+}
+
+message layer {
+    required string name    = 1;
+    repeated stream streams_in  = 2;
+    repeated stream streams_out = 3;
+    required parameter parameters = 4;
+
+    required string node_in = 5;
+    required string node_out = 6;
+
+    enum layer_type {
+        CONVOLUTION     = 0;
+        POOLING         = 1;
+        RELU            = 2;
+        SQUEEZE         = 3;
+        INNER_PRODUCT   = 4;
+        CONCAT          = 5;
+        BATCH_NORM      = 6;
+        SPLIT           = 7;
+    }
+
+    required layer_type type = 7;
+
+    optional string weights_path = 8;
+    optional string bias_path    = 9;
+}
+
+message partition {
+    required int32  id = 1;
+    required int32  ports = 2;
+    required int32  batch_size = 3;
+    required string input_node  = 4;
+    required string output_node = 5;
+    required int32  weights_reloading_factor = 6;
+    required string weights_reloading_layer  = 7;
+
+    repeated layer layers = 8;
+}
+
+message partitions {
+    repeated partition partition = 1;
+}
+
