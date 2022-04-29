@@ -5,13 +5,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="fpgaconvnet", # Replace with your own username
-    version="0.1.0",
+    version="0.1.1",
     author="Alex Montgomerie",
     author_email="am9215@ic.ac.uk",
-    description="Optimiser for mapping convolutional neural network models to FPGA platforms.",
+    description="Parser and model for Convolutional Neural Network Streaming-Based Accelerator on FPGA devices.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/AlexMontgomerie/fpgaconvnet-optimiser",
+    url="https://github.com/AlexMontgomerie/fpgaconvnet-model",
     include_package_data=True,
     packages=setuptools.find_packages(),
     classifiers=[

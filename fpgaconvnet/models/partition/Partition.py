@@ -1,6 +1,6 @@
 import pydot
-import fpgaconvnet_optimiser.tools.graphs as graphs
-from fpgaconvnet_optimiser.tools.layer_enum import LAYER_TYPE
+import fpgaconvnet.tools.graphs as graphs
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 class Partition():
 
@@ -49,17 +49,21 @@ class Partition():
         self.max_streams_in     = self.ports_in*int(self.port_width/self.data_width)
         self.max_streams_out    = self.ports_out*int(self.port_width/self.data_width)
 
+    # auxiliary layer functions
+    from fpgaconvnet.models.partition.auxiliary import add_squeeze
+    from fpgaconvnet.models.partition.auxiliary import remove_squeeze
+
     # metrics
-    from fpgaconvnet_optimiser.models.partition.metrics import get_pipeline_depth
-    from fpgaconvnet_optimiser.models.partition.metrics import get_interval
-    from fpgaconvnet_optimiser.models.partition.metrics import get_latency
-    from fpgaconvnet_optimiser.models.partition.metrics import get_total_operations
-    from fpgaconvnet_optimiser.models.partition.metrics import get_bandwidth_in
-    from fpgaconvnet_optimiser.models.partition.metrics import get_bandwidth_out
-    from fpgaconvnet_optimiser.models.partition.metrics import get_resource_usage
+    from fpgaconvnet.models.partition.metrics import get_pipeline_depth
+    from fpgaconvnet.models.partition.metrics import get_interval
+    from fpgaconvnet.models.partition.metrics import get_latency
+    from fpgaconvnet.models.partition.metrics import get_total_operations
+    from fpgaconvnet.models.partition.metrics import get_bandwidth_in
+    from fpgaconvnet.models.partition.metrics import get_bandwidth_out
+    from fpgaconvnet.models.partition.metrics import get_resource_usage
 
     # update
-    from fpgaconvnet_optimiser.models.partition.update import update
+    from fpgaconvnet.models.partition.update import update
 
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}")
@@ -123,3 +127,26 @@ class Partition():
 
             if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution:
                 self.graph.nodes[node]["hw"].fine = 1
+
+
+    def get_wr_layer(self):
+        # all transformable layer types
+        transformable_layers = [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
+        # iterative function to find weights reloading layer
+        def _wr_layer(layer):
+            if self.graph.nodes[layer]['type'] == LAYER_TYPE.Concat:
+                return None
+            if self.graph.nodes[layer]['type'] in transformable_layers:
+                return layer
+            if self.graph.in_degree(layer) == 0:
+                return None
+            prev_node = graphs.get_prev_nodes(self.graph,layer)[0]
+            return _wr_layer( prev_node )
+        # start from the end
+        output_node = graphs.get_output_nodes(self.graph)[0]
+        if ( self.graph.in_degree(output_node) == 0 ) and ( self.graph.nodes[output_node]['type'] in transformable_layers ):
+            return output_node
+        else:
+            return _wr_layer( output_node )
+
+

@@ -1,14 +1,16 @@
-import fpgaconvnet_optimiser.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from google.protobuf.text_format import MessageToString
-from google.protobuf.json_format import MessageToJson
-import numpy as np
 import os
 import json
 
-import fpgaconvnet_optimiser.tools.graphs as graphs
-import fpgaconvnet_optimiser.tools.onnx_helper as onnx_helper
-import fpgaconvnet_optimiser.tools.layer_enum
-from fpgaconvnet_optimiser.tools.layer_enum import LAYER_TYPE
+import numpy as np
+from google.protobuf.text_format import MessageToString
+from google.protobuf.json_format import MessageToJson
+
+import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
+
+import fpgaconvnet.tools.graphs as graphs
+import fpgaconvnet.tools.onnx_helper as onnx_helper
+import fpgaconvnet.tools.layer_enum
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def get_model_input_node(self, partition_index):
     input_node = self.partitions[partition_index].input_nodes[0]
@@ -48,7 +50,7 @@ def save_all_partitions(self,filepath,input_output_from_model=True):
             # layer.name = node.replace("/","_")
             layer.name = onnx_helper.gen_layer_name(
                     self.partitions[i].graph, node) # REQUIRED EDIT
-            layer.type = fpgaconvnet_optimiser.tools.layer_enum.to_proto_layer_type(self.partitions[i].graph.nodes[node]['type'])
+            layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(self.partitions[i].graph.nodes[node]['type'])
             # add stream(s) in
             stream_in  = layer.streams_in.add()
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)

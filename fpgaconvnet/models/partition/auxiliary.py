@@ -1,13 +1,13 @@
 import numpy as np
 import copy
 
-import fpgaconvnet_optimiser.tools.graphs as graphs
-import fpgaconvnet_optimiser.tools.matrix as matrix
-import fpgaconvnet_optimiser.tools.onnx_helper as onnx_helper
+import fpgaconvnet.tools.graphs as graphs
+import fpgaconvnet.tools.matrix as matrix
+import fpgaconvnet.tools.onnx_helper as onnx_helper
 
-from fpgaconvnet_optimiser.models.layers import SqueezeLayer
+from fpgaconvnet.models.layers import SqueezeLayer
 
-from fpgaconvnet_optimiser.tools.layer_enum import LAYER_TYPE
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def add_squeeze(self):
     # find mismatching streams

@@ -1,8 +1,8 @@
 import numpy as np
 import copy
 
-import fpgaconvnet_optimiser.tools.graphs as graphs
-import fpgaconvnet_optimiser.tools.matrix as matrix
+import fpgaconvnet.tools.graphs as graphs
+import fpgaconvnet.tools.matrix as matrix
 
 def check_ports(self):
     # check each partition

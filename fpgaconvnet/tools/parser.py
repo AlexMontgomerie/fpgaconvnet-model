@@ -8,18 +8,16 @@ import onnx.utils
 import onnx.numpy_helper
 import networkx as nx
 
-import fpgaconvnet_optimiser.tools.graphs as graphs
-import fpgaconvnet_optimiser.tools.onnx_helper as onnx_helper
+import fpgaconvnet.tools.graphs as graphs
+import fpgaconvnet.tools.onnx_helper as onnx_helper
 
-from fpgaconvnet_optimiser.models.layers import BatchNormLayer
-from fpgaconvnet_optimiser.models.layers import ConvolutionLayer
-from fpgaconvnet_optimiser.models.layers import InnerProductLayer
-from fpgaconvnet_optimiser.models.layers import PoolingLayer
-from fpgaconvnet_optimiser.models.layers import ReLULayer
-# from fpgaconvnet_optimiser.models.layers import LRNLayer
-# from fpgaconvnet_optimiser.models.layers import SoftMaxLayer
+from fpgaconvnet.models.layers import BatchNormLayer
+from fpgaconvnet.models.layers import ConvolutionLayer
+from fpgaconvnet.models.layers import InnerProductLayer
+from fpgaconvnet.models.layers import PoolingLayer
+from fpgaconvnet.models.layers import ReLULayer
 
-from fpgaconvnet_optimiser.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 def remove_node(graph, node): # TODO: move to tools.graphs
     prev_nodes = graphs.get_prev_nodes(graph,node)

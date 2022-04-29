@@ -1,7 +1,7 @@
 import numpy as np
-import fpgaconvnet_optimiser.tools.graphs as graphs
+import fpgaconvnet.tools.graphs as graphs
 
-from fpgaconvnet_optimiser.tools.layer_enum import LAYER_TYPE
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def get_partition_input_dependence(self, partition_index):
     # find input edges

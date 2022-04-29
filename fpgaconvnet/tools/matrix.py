@@ -3,7 +3,7 @@ import scipy
 import copy
 from numpy.linalg import matrix_rank
 
-import fpgaconvnet_optimiser.tools.graphs as graphs
+import fpgaconvnet.tools.graphs as graphs
 
 # turn off invalid NaN division
 np.seterr(divide='ignore', invalid='ignore')
