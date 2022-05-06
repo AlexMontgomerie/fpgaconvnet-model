@@ -9,12 +9,14 @@ on-chip weights storage.
 .. figure:: ../../../figures/conv_diagram.png
 """
 
-import numpy as np
 import math
 import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
@@ -119,6 +121,12 @@ class Conv(Module):
         rsc["BRAM"] = 0
         # return the resource model
         return rsc
+
+    def visualise(self, name):
+        return pydot.Node(name,label="conv", shape="box",
+                height=self.kernel_size[0],
+                width=self.kernel_size[1],
+                style="filled", fillcolor="gold")
 
     def functional_model(self,data,weights):
         # check input dimensionality

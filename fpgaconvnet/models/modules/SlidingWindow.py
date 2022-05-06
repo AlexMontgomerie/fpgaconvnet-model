@@ -9,12 +9,14 @@ and pooling functions.
 .. figure:: ../../../figures/sliding_window_diagram.png
 """
 
-import numpy as np
 import math
 import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 from fpgaconvnet.tools.resource_model import bram_memory_resource_model, bram_stream_resource_model
@@ -168,6 +170,12 @@ class SlidingWindow(Module):
         rsc["BRAM"] = line_buffer_bram + window_buffer_bram
         # return the resource usage
         return rsc
+
+    def visualise(self, name):
+        return pydot.Node(name,label="slwin", shape="box",
+                height=self.kernel_size[0],
+                width=self.cols*self.channels*0.1,
+                style="filled", fillcolor="aquamarine")
 
     def functional_model(self, data):
         # check input dimensionality

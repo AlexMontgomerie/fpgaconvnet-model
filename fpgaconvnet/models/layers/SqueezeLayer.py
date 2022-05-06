@@ -34,14 +34,18 @@ class SqueezeLayer(Layer):
         self.modules["squeeze"].coarse_out = self.coarse_out
 
     def visualise(self,name):
-        cluster = pydot.Cluster(name,label=name)
+
+        # create layer cluster
+        cluster = pydot.Cluster(name, label=name,
+                style="dashed", bgcolor="moccasin")
 
         # add squeeze module
-        cluster.add_node(pydot.Node( "_".join([name,"squeeze"]), label="squeeze" ))
+        squeeze_name = "_".join([name,"squeeze"])
+        cluster.add_node(self.modules["squeeze"].visualise(squeeze_name))
 
         # get nodes in and out
-        nodes_in  = [ "_".join([name,"squeeze"]) for i in range(self.streams_in()) ]
-        nodes_out = [ "_".join([name,"squeeze"]) for i in range(self.streams_out()) ]
+        nodes_in  = [ squeeze_name for i in range(self.streams_in()) ]
+        nodes_out = [ squeeze_name for i in range(self.streams_out()) ]
 
         # return module
         return cluster, nodes_in, nodes_out

@@ -9,11 +9,13 @@ their accumulation across channels.
 
 .. figure:: ../../../figures/accum_diagram.png
 """
-import numpy as np
 import math
 import os
 import sys
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 from fpgaconvnet.tools.resource_model import bram_memory_resource_model
@@ -82,7 +84,12 @@ class Accum(Module):
         # return the resource usage
         return rsc
 
-    def functional_model(self,data):
+    def visualise(self, name):
+        return pydot.Node(name,label="accum", shape="box",
+                height=self.filters/self.groups*0.25,
+                style="filled", fillcolor="coral")
+
+    def functional_model(self, data):
         # check input dimensionality
         assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"

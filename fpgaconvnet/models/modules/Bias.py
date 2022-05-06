@@ -8,11 +8,13 @@ map.
 Figure pending.
 """
 
-import numpy as np
 import math
 import os
 import sys
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 #from fpgaconvnet.tools.resource_model import bram_memory_resource_model
@@ -80,6 +82,11 @@ class Bias(Module):
         rsc["BRAM"] = 0
         # return the resource model
         return rsc
+
+    def visualise(self, name):
+        return pydot.Node(name,label="bias", shape="box",
+                style="filled", fillcolor="chartreuse")
+
 
     def functional_model(self,data,biases):
         # check input dimensionality

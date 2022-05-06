@@ -197,33 +197,45 @@ class InnerProductLayer(Layer):
                       bias_rsc['DSP']*self.coarse_out
         }
 
-    def visualise(self,name): # TODO add bias module to vis
-        cluster = pydot.Cluster(name,label=name)
+    def visualise(self, name):
+
+        cluster = pydot.Cluster(name, label=name,
+                style="dashed", bgcolor="lightyellow")
+
+        # names
+        fork_name = [""]*self.coarse_in
+        conv_name = [[""]*self.coarse_in]*self.coarse_out
+        accum_name = [[""]*self.coarse_in]*self.coarse_out
+        glue_name = [""]*self.coarse_out
+        bias_name = [""]*self.coarse_out
 
         for i in range(self.coarse_in):
-            cluster.add_node(pydot.Node( "_".join([name,"fork",str(i)]), label="fork" ))
+            # define names
+            fork_name[i] = "_".join([name, "fork", str(i)])
+            # add nodes
+            cluster.add_node(self.modules["fork"].visualise(fork_name[i]))
 
-        for i in range(self.coarse_in):
+            # iterate over coarse out
             for j in range(self.coarse_out):
-                cluster.add_node(pydot.Node( "_".join([name,"conv",str(i),str(j)]), label="conv" ))
-                cluster.add_edge(pydot.Edge( "_".join([name,"fork",str(i)]),
-                    "_".join([name,"conv",str(i),str(j)]) ))
+                # define names
+                conv_name[j][i] = "_".join([name, "conv", str(j), str(i)])
+                accum_name[j][i] = "_".join([name, "accum", str(j), str(i)])
+                glue_name[j] = "_".join([name, "glue", str(j)])
+                bias_name[j] = "_".join([name, "bias", str(j)])
 
-        for i in range(self.coarse_in):
-            for j in range(self.coarse_out):
-                cluster.add_node(pydot.Node( "_".join([name,"glue",str(j)]), label="+" ))
-                cluster.add_node(pydot.Node( "_".join([name,"accum",str(i),str(j)]),
-                                            label="accum" ))
-                cluster.add_edge(pydot.Edge( "_".join([name,"conv" ,str(i),str(j)]),
-                    "_".join([name,"accum",str(i),str(j)]) ))
-                cluster.add_edge(pydot.Edge( "_".join([name,"accum",str(i),str(j)]),
-                    "_".join([name,"glue",str(j)]) ))
+                # add nodes
+                cluster.add_node(self.modules["conv"].visualise(conv_name[j][i]))
+                cluster.add_node(self.modules["accum"].visualise(accum_name[j][i]))
+                cluster.add_node(self.modules["glue"].visualise(glue_name[j]))
+                cluster.add_node(self.modules["bias"].visualise(bias_name[j]))
 
-        # get nodes in and out
-        nodes_in  = [ "_".join([name,"fork",str(i)]) for i in range(self.coarse_in) ]
-        nodes_out = [ "_".join([name,"glue",str(i)]) for i in range(self.coarse_out) ]
+                # add edges
+                cluster.add_edge(pydot.Edge(fork_name[i], conv_name[j][i]))
+                cluster.add_edge(pydot.Edge(conv_name[j][i], accum_name[j][i]))
+                cluster.add_edge(pydot.Edge(accum_name[j][i], glue_name[j]))
+                cluster.add_edge(pydot.Edge(glue_name[j], bias_name[j]))
 
-        return cluster, nodes_in, nodes_out
+        return cluster, fork_name, bias_name
 
     def functional_model(self,data,weights,bias,batch_size=1):
 

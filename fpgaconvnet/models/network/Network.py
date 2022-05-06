@@ -26,7 +26,8 @@ from fpgaconvnet.models.partition.Partition import Partition
 
 class Network():
 
-    def __init__(self, name, network_path, batch_size=1, freq=125, reconf_time=0.0, data_width=16, weight_width=8, acc_width=30, fuse_bn=True):
+    def __init__(self, name, network_path, batch_size=1, freq=125, reconf_time=0.0,
+            data_width=16, weight_width=8, acc_width=30, fuse_bn=True):
 
         ## bitwidths
         self.data_width     = data_width
@@ -150,12 +151,13 @@ class Network():
         return float(self.batch_size)/self.get_latency(partition_list)
 
     def visualise(self, output_path):
-        g = pydot.Dot(graph_type='digraph')
+        g = pydot.Dot(graph_type='digraph', splines="ortho")
         for partition in self.partitions:
             partition_cluster = partition.visualise(self.partitions.index(partition))
             g.add_subgraph(partition_cluster)
         # save graph
-        g.write_png(output_path)
+        # g.write_png(output_path)
+        g.write_raw(output_path)
 
     def get_layer_hardware(self, layer_proto):
         # get layer type

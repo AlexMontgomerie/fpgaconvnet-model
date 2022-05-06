@@ -5,11 +5,13 @@ Convolution layer together.
 
 .. figure:: ../../../figures/glue_diagram.png
 """
-import numpy as np
 import math
 import os
 import sys
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 
@@ -61,6 +63,10 @@ class Glue(Module):
         info["coarse_out"] = self.coarse_out
         # return the info
         return info
+
+    def visualise(self, name):
+        return pydot.Node(name,label="glue", shape="box",
+                style="filled", fillcolor="fuchsia")
 
     def functional_model(self,data):
         # check input dimensionality

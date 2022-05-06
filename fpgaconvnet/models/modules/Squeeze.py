@@ -1,8 +1,10 @@
-import numpy as np
 import math
 import os
 import sys
 from dataclasses import dataclass, field
+
+import pydot
+import numpy as np
 
 from fpgaconvnet.models.modules import Module
 
@@ -37,6 +39,16 @@ class Squeeze(Module):
 
     def lcm(a, b):
         return abs(a*b) // math.gcd(a, b)
+
+    def visualise(self, name):
+        distortion = 0
+        if self.coarse_in > self.coarse_out:
+            distortion = self.coarse_in/self.coarse_out
+        else:
+            distortion = -self.coarse_out/self.coarse_in
+        return pydot.Node(name,label="squeeze", shape="polygon",
+                sides=4, distortion=distortion, style="filled",
+                fillcolor="olive")
 
     def functional_model(self, data):
         # check input dimensionality

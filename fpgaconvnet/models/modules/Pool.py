@@ -4,12 +4,14 @@ across a kernel-size window of the feature map.
 
 .. figure:: ../../../figures/pool_max_diagram.png
 """
-import numpy as np
 import math
 import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 
@@ -57,6 +59,12 @@ class Pool(Module):
         info["pool_type"] = 0 if self.pool_type == 'max' else 1
         # return the info
         return info
+
+    def visualise(self, name):
+        return pydot.Node(name,label="pool", shape="box",
+                height=self.kernel_size[0],
+                width=self.kernel_size[1],
+                style="filled", fillcolor="cyan")
 
     def functional_model(self, data):
         # check input dimensionality

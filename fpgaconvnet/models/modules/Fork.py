@@ -8,12 +8,14 @@ layers.
 .. figure:: ../../../figures/fork_diagram.png
 """
 
-import numpy as np
 import math
 import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 
@@ -61,6 +63,10 @@ class Fork(Module):
         info["kernel_size"] = self.kernel_size
         # return the info
         return info
+
+    def visualise(self, name):
+        return pydot.Node(name,label="fork", shape="box",
+                style="filled", fillcolor="azure")
 
     def functional_model(self, data):
         # check input dimensionality

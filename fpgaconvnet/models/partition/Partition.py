@@ -66,7 +66,8 @@ class Partition():
     from fpgaconvnet.models.partition.update import update
 
     def visualise(self, partition_index):
-        cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}")
+        cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}",
+                spline="ortho", bgcolor="azure")
         # add clusters
         edge_labels = {}
         for node in self.graph:

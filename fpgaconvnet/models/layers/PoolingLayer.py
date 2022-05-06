@@ -1,8 +1,9 @@
-import torch
 import math
+from typing import Union, List
+
+import torch
 import numpy as np
 import pydot
-from typing import Union, List
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
@@ -225,21 +226,26 @@ class PoolingLayer(Layer):
                       pool_rsc['DSP']*self.coarse
         }
 
-    def visualise(self,name):
-        cluster = pydot.Cluster(name,label=name)
+    def visualise(self, name):
+
+        cluster = pydot.Cluster(name, label=name,
+                style="dashed", bgcolor="lightskyblue")
+
+        # names
+        slwin_name = [""]*self.coarse
+        pool_name = [""]*self.coarse
 
         for i in range(self.coarse):
-            cluster.add_node(pydot.Node( "_".join([name,"sw",str(i)]), label="sw" ))
+            # define names
+            slwin_name[i] = "_".join([name, "sw", str(i)])
+            pool_name[i] = "_".join([name, "pool", str(i)])
+            # add nodes
+            cluster.add_node(self.modules["sliding_window"].visualise(slwin_name[i]))
+            cluster.add_node(self.modules["pool"].visualise(pool_name[i]))
+            # add edges
+            cluster.add_edge(pydot.Edge(slwin_name[i], pool_name[i]))
 
-        for i in range(self.coarse):
-            cluster.add_node(pydot.Node( "_".join([name,"pool",str(i)]), label="pool" ))
-            cluster.add_edge(pydot.Edge( "_".join([name,"sw",str(i)]) , "_".join([name,"pool",str(i)]) ))
-
-        # get nodes in and out
-        nodes_in  = [ "_".join([name,"sw",str(i)]) for i in range(self.streams_in()) ]
-        nodes_out = [ "_".join([name,"pool",str(i)]) for i in range(self.streams_out()) ]
-
-        return cluster, nodes_in, nodes_out
+        return cluster, np.array(slwin_name).flatten().tolist(), np.array(pool_name).flatten().tolist()
 
     def functional_model(self,data,batch_size=1):
 

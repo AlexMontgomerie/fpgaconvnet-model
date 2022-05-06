@@ -363,55 +363,59 @@ class ConvolutionLayer(Layer):
                       bias_rsc['DSP']*self.coarse_out
         }
 
-    def visualise(self,name): #TODO for biases
-        cluster = pydot.Cluster(name,label=name)
-        nodes_in = []
-        nodes_out = []
+    def visualise(self, name):
+
+        cluster = pydot.Cluster(name, label=name,
+                style="dashed", bgcolor="lightpink")
+
+        # names
+        slwin_name = [[""]*self.coarse_in]*self.coarse_group
+        fork_name = [[""]*self.coarse_in]*self.coarse_group
+        conv_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
+        accum_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
+        glue_name = [[""]*self.coarse_out]*self.coarse_group
+        bias_name = [[""]*self.coarse_out]*self.coarse_group
 
         for g in range(self.coarse_group):
             for i in range(self.coarse_in):
-                cluster.add_node(pydot.Node(
-                    "_".join([name,"sw",str(g*self.coarse_in+i)]), label="sw" ))
+                # define names
+                slwin_name[g][i] = "_".join([name, "sw", str(g), str(i)])
+                fork_name[g][i] = "_".join([name, "fork", str(g), str(i)])
+                # add nodes
+                cluster.add_node(self.modules["sliding_window"].visualise(slwin_name[g][i]))
+                cluster.add_node(self.modules["fork"].visualise(fork_name[g][i]))
+                # add edges
+                cluster.add_edge(pydot.Edge(slwin_name[g][i], fork_name[g][i]))
 
-            for i in range(self.coarse_in):
-                cluster.add_node(pydot.Node(
-                    "_".join([name,"fork",str(g*self.coarse_in+i)]), label="fork" ))
-                cluster.add_edge(pydot.Edge(
-                    "_".join([name,"sw",str(g*self.coarse_in+i)]),
-                    "_".join([name,"fork",str(i)]) ))
-
-            for i in range(self.coarse_in):
+                # iterate over coarse out
                 for j in range(self.coarse_out):
-                    cluster.add_node(pydot.Node(
-                        "_".join([name,"conv",str(g*self.coarse_in+i),
-                            str(g*self.coarse_out+j)]), label="conv" ))
-                    cluster.add_edge(pydot.Edge(
-                        "_".join([name,"fork",str(g*self.coarse_in+i)]),
-                        "_".join([name,"conv",str(g*self.coarse_in+i),str(g*self.coarse_out+j)]) ))
+                    # define names
+                    conv_name[g][j][i] = "_".join([name, "conv", str(g), str(j), str(i)])
+                    accum_name[g][j][i] = "_".join([name, "accum", str(g), str(j), str(i)])
+                    glue_name[g][j] = "_".join([name, "glue", str(g), str(j)])
+                    bias_name[g][j] = "_".join([name, "bias", str(g), str(j)])
 
-            for i in range(self.coarse_in):
-                for j in range(self.coarse_out):
-                    cluster.add_node(pydot.Node(
-                        "_".join([name,"glue",str(g*self.coarse_out+j)]), label="+" ))
-                    cluster.add_node(pydot.Node(
-                        "_".join([name,"accum",str(g*self.coarse_in+i),
-                            str(g*self.coarse_out+j)]), label="accum" ))
-                    cluster.add_edge(pydot.Edge(
-                        "_".join([name,"conv" ,str(g*self.coarse_in+i),str(g*self.coarse_out+j)]),
-                        "_".join([name,"accum",str(g*self.coarse_in+i),str(g*self.coarse_out+j)])
-                        ))
-                    cluster.add_edge(pydot.Edge(
-                        "_".join([name,"accum",str(g*self.coarse_in+i),str(g*self.coarse_out+j)]),
-                        "_".join([name,"glue",str(g*self.coarse_out+j)]) ))
+                    # add nodes
+                    cluster.add_node(self.modules["conv"].visualise(conv_name[g][j][i]))
+                    cluster.add_node(self.modules["accum"].visualise(accum_name[g][j][i]))
 
-            # get nodes in and out
-            for i in range(self.coarse_in):
-                nodes_in.append("_".join([name,"sw",str(g*self.coarse_in+i)]))
+                    # add edges
+                    cluster.add_edge(pydot.Edge(fork_name[g][i], conv_name[g][j][i]))
+                    cluster.add_edge(pydot.Edge(conv_name[g][j][i], accum_name[g][j][i]))
+                    cluster.add_edge(pydot.Edge(accum_name[g][j][i], glue_name[g][j]))
 
+        for g in range(self.coarse_group):
             for j in range(self.coarse_out):
-                nodes_out.append("_".join([name,"glue",str(g*self.coarse_out+j)]))
 
-        return cluster, nodes_in, nodes_out
+                # add nodes
+                cluster.add_node(self.modules["glue"].visualise(glue_name[g][j]))
+                cluster.add_node(self.modules["bias"].visualise(bias_name[g][j]))
+
+                # add edges
+                cluster.add_edge(pydot.Edge(glue_name[g][j], bias_name[g][j]))
+
+
+        return cluster, np.array(slwin_name).flatten().tolist(), np.array(bias_name).flatten().tolist()
 
     def functional_model(self,data,weights,bias,batch_size=1):
 
