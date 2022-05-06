@@ -68,6 +68,15 @@ class Partition():
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}",
                 spline="ortho", bgcolor="azure")
+
+        # add mem read and mem write nodes
+        cluster.add_node(pydot.Node(f"mem_read_{partition_index}", shape="box"))
+        cluster.add_node(pydot.Node(f"mem_write_{partition_index}", shape="box"))
+
+        # get input and output node
+        input_node = graphs.get_input_nodes(self.graph)[0]
+        output_node = graphs.get_output_nodes(self.graph)[0]
+
         # add clusters
         edge_labels = {}
         for node in self.graph:
@@ -77,13 +86,26 @@ class Partition():
                 "nodes_out" : nodes_out
             }
             cluster.add_subgraph(node_cluster)
+            # add mem read and mem write edges
+            if node == input_node:
+                for node_in in nodes_in:
+                    cluster.add_edge(pydot.Edge(f"mem_read_{partition_index}", node_in))
+            if node == output_node:
+                for node_out in nodes_out:
+                    cluster.add_edge(pydot.Edge(node_out, f"mem_write_{partition_index}"))
+
         # create edges
         for node in self.graph:
             for edge in graphs.get_next_nodes(self.graph,node):
                 for i in range(self.graph.nodes[node]['hw'].streams_out()):
                     cluster.add_edge(pydot.Edge(edge_labels[node]["nodes_out"][i] ,edge_labels[edge]["nodes_in"][i]))
-        # return cluster
-        return cluster
+
+
+        _, input_node_vis, _ = self.graph.nodes[input_node]['hw'].visualise(input_node)
+        _, _, output_node_vis = self.graph.nodes[output_node]['hw'].visualise(output_node)
+
+        # return cluster, input_node and output_node
+        return cluster, input_node_vis, output_node_vis
 
     def max_compute_node_latency(self):
         # return max([ self.graph.nodes[node]["hw"].get_latency() for node in

@@ -152,11 +152,29 @@ class Network():
 
     def visualise(self, output_path):
         g = pydot.Dot(graph_type='digraph', splines="ortho")
+        main_cluster = pydot.Cluster("network", label="Network")
+
+        cluster_nodes = []
+
+        # get all partitions
         for partition in self.partitions:
-            partition_cluster = partition.visualise(self.partitions.index(partition))
-            g.add_subgraph(partition_cluster)
+            # add subgraph
+            partition_cluster, input_node, output_node = partition.visualise(self.partitions.index(partition))
+            main_cluster.add_subgraph(partition_cluster)
+
+        # connect each partition with a reconfiguration node
+        for i in range(len(self.partitions)-1):
+            # add reconfiguration node
+            reconf_name = f"reconf_{i}"
+            main_cluster.add_node(pydot.Node(reconf_name, label="RECONFIGURATION", shape="plaintext"))
+            # add edges between reconfiguration nodes
+            main_cluster.add_edge(pydot.Edge(f"mem_write_{i}", reconf_name))
+            main_cluster.add_edge(pydot.Edge(reconf_name, f"mem_read_{i+1}"))
+
+        # add main cluster
+        g.add_subgraph(main_cluster)
+
         # save graph
-        # g.write_png(output_path)
         g.write_raw(output_path)
 
     def get_layer_hardware(self, layer_proto):
