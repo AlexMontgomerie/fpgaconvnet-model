@@ -2,10 +2,12 @@
 .. figure:: ../../../figures/relu_diagram.png
 """
 
-import numpy as np
 import math
 import os
 from dataclasses import dataclass, field
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.modules import Module
 
@@ -34,6 +36,10 @@ class ReLU(Module):
             "DSP"  : np.array([1]),
             "BRAM" : np.array([1])
         }
+
+    def visualise(self, name):
+        return pydot.Node(name,label="relu", shape="box",
+                style="filled", fillcolor="dimgrey")
 
     def functional_model(self, data):
         # check input dimensionality

@@ -71,16 +71,19 @@ class ReLULayer(Layer):
         self.modules['relu'].channels = int(self.channels_in()/self.coarse)
 
     def visualise(self,name):
-        cluster = pydot.Cluster(name,label=name)
+        cluster = pydot.Cluster(name, label=name,
+                style="dashed", bgcolor="lightgrey1")
+
+        # names
+        relu_name = [""]*self.coarse
 
         for i in range(self.coarse):
-            cluster.add_node(pydot.Node( "_".join([name,"relu",str(i)]), label="relu" ))
+            # get the relu name
+            relu_name[i] = "_".join([name, "relu", str(i)])
+            # add nodes
+            cluster.add_node(self.modules["relu"].visualise(relu_name[i]))
 
-        # get nodes in and out
-        nodes_in  = [ "_".join([name,"relu",str(i)]) for i in range(self.streams_in()) ]
-        nodes_out = [ "_".join([name,"relu",str(i)]) for i in range(self.streams_out()) ]
-
-        return cluster, nodes_in, nodes_out
+        return cluster, np.array(relu_name).tolist(), np.array(relu_name).tolist()
 
     def functional_model(self,data,batch_size=1):
 
