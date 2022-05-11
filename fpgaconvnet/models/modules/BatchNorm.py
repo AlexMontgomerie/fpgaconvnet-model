@@ -6,7 +6,7 @@ import math
 import os
 from dataclasses import dataclass, field
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class BatchNorm(Module):

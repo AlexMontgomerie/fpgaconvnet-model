@@ -1,8 +1,5 @@
 # fpgaConvNet Optimiser
 
-![build](https://github.com/AlexMontgomerie/fpgaconvnet-optimiser/actions/workflows/integration-testing.yml/badge.svg)
-[![codecov](https://codecov.io/gh/AlexMontgomerie/fpgaconvnet-optimiser/branch/master/graph/badge.svg?token=AQ3NWNZX04)](https://codecov.io/gh/AlexMontgomerie/fpgaconvnet-optimiser)
-
 This repo contains code for optimising the mapping a Convolutional Neural Network (CNN) model to an FPGA. Hardware-specific transforms are applied to the model, producing a hardware description that can be used by a hardware backend, such as [fpgaConvNet HLS](https://github.com/AlexMontgomerie/fpgaconvnet-hls). The generated architecture is streaming-based, and optimised for the specific hardware platform.
 
 ## Setup

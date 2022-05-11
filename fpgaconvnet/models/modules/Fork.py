@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class Fork(Module):
@@ -66,7 +66,8 @@ class Fork(Module):
 
     def visualise(self, name):
         return pydot.Node(name,label="fork", shape="box",
-                style="filled", fillcolor="azure")
+                style="filled", fillcolor="azure",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

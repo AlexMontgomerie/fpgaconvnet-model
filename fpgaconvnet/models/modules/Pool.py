@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class Pool(Module):
@@ -64,7 +64,8 @@ class Pool(Module):
         return pydot.Node(name,label="pool", shape="box",
                 height=self.kernel_size[0],
                 width=self.kernel_size[1],
-                style="filled", fillcolor="cyan")
+                style="filled", fillcolor="cyan",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

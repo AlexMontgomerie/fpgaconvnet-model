@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_model import bram_memory_resource_model, bram_stream_resource_model
 
 @dataclass
@@ -175,7 +175,8 @@ class SlidingWindow(Module):
         return pydot.Node(name,label="slwin", shape="box",
                 height=self.kernel_size[0],
                 width=self.cols*self.channels*0.1,
-                style="filled", fillcolor="aquamarine")
+                style="filled", fillcolor="aquamarine",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

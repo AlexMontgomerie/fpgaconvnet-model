@@ -151,7 +151,7 @@ class Network():
         return float(self.batch_size)/self.get_latency(partition_list)
 
     def visualise(self, output_path):
-        g = pydot.Dot(graph_type='digraph', splines="ortho")
+        g = pydot.Dot(graph_type='digraph', splines="ortho", fontsize=25)
         main_cluster = pydot.Cluster("network", label="Network")
 
         cluster_nodes = []
@@ -166,7 +166,8 @@ class Network():
         for i in range(len(self.partitions)-1):
             # add reconfiguration node
             reconf_name = f"reconf_{i}"
-            main_cluster.add_node(pydot.Node(reconf_name, label="RECONFIGURATION", shape="plaintext"))
+            main_cluster.add_node(pydot.Node(reconf_name, label="RECONFIGURATION",
+                shape="plaintext", fontsize=50))
             # add edges between reconfiguration nodes
             main_cluster.add_edge(pydot.Edge(f"mem_write_{i}", reconf_name))
             main_cluster.add_edge(pydot.Edge(reconf_name, f"mem_read_{i+1}"))

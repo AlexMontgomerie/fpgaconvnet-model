@@ -72,7 +72,7 @@ class ReLULayer(Layer):
 
     def visualise(self,name):
         cluster = pydot.Cluster(name, label=name,
-                style="dashed", bgcolor="lightgrey1")
+                style="dashed", bgcolor="lightgrey")
 
         # names
         relu_name = [""]*self.coarse

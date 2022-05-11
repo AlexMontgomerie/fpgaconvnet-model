@@ -67,11 +67,13 @@ class Partition():
 
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}",
-                spline="ortho", bgcolor="azure")
+                spline="ortho", bgcolor="azure", fontsize=25)
 
         # add mem read and mem write nodes
-        cluster.add_node(pydot.Node(f"mem_read_{partition_index}", shape="box"))
-        cluster.add_node(pydot.Node(f"mem_write_{partition_index}", shape="box"))
+        cluster.add_node(pydot.Node(f"mem_read_{partition_index}", shape="box",
+            style="filled", fillcolor="crimson"))
+        cluster.add_node(pydot.Node(f"mem_write_{partition_index}", shape="box",
+            style="filled", fillcolor="mediumblue"))
 
         # get input and output node
         input_node = graphs.get_input_nodes(self.graph)[0]

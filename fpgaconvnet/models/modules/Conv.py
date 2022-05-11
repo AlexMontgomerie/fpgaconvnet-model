@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
 
 @dataclass
@@ -126,7 +126,8 @@ class Conv(Module):
         return pydot.Node(name,label="conv", shape="box",
                 height=self.kernel_size[0],
                 width=self.kernel_size[1],
-                style="filled", fillcolor="gold")
+                style="filled", fillcolor="gold",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self,data,weights):
         # check input dimensionality

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class Squeeze(Module):
@@ -48,7 +48,7 @@ class Squeeze(Module):
             distortion = -self.coarse_out/self.coarse_in
         return pydot.Node(name,label="squeeze", shape="polygon",
                 sides=4, distortion=distortion, style="filled",
-                fillcolor="olive")
+                fillcolor="olive", fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

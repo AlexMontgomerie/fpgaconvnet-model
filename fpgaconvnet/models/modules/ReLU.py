@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class ReLU(Module):
@@ -39,7 +39,8 @@ class ReLU(Module):
 
     def visualise(self, name):
         return pydot.Node(name,label="relu", shape="box",
-                style="filled", fillcolor="dimgrey")
+                style="filled", fillcolor="dimgrey",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

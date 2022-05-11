@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class Glue(Module):
@@ -66,7 +66,8 @@ class Glue(Module):
 
     def visualise(self, name):
         return pydot.Node(name,label="glue", shape="box",
-                style="filled", fillcolor="fuchsia")
+                style="filled", fillcolor="fuchsia",
+                fontsize=MODULE_FONTSIZE)
 
     def functional_model(self,data):
         # check input dimensionality

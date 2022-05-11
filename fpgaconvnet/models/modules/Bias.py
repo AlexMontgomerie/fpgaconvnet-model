@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 #from fpgaconvnet.tools.resource_model import bram_memory_resource_model
 from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
 
@@ -85,7 +85,8 @@ class Bias(Module):
 
     def visualise(self, name):
         return pydot.Node(name,label="bias", shape="box",
-                style="filled", fillcolor="chartreuse")
+                style="filled", fillcolor="chartreuse",
+                fontsize=MODULE_FONTSIZE)
 
 
     def functional_model(self,data,biases):
