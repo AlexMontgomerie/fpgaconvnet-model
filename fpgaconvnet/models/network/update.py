@@ -37,16 +37,16 @@ def update_platform(self, platform_path):
     #self.platform['name']           = paltform['name']
     self.platform['ports']          = int(platform['ports'])
     #self.platform['port_width']     = int(platform['port_width'])
-    #self.platform['freq']           = int(platform['freq'])
+    self.platform['freq']           = int(platform['freq'])
     self.platform['reconf_time']    = float(platform['reconf_time'])
-    self.platform['mem_capacity']   = int(platform['mem_capacity'])
-    self.platform['mem_bandwidth']  = float(platform['mem_bandwidth'])
+    # self.platform['mem_capacity']   = int(platform['mem_capacity'])
+    self.platform['mem_bandwidth']  = float(platform['bandwidth'])
 
     # update constraints
-    self.platform['constraints']['FF']   = platform['FF']
-    self.platform['constraints']['DSP']  = platform['DSP']
-    self.platform['constraints']['LUT']  = platform['LUT']
-    self.platform['constraints']['BRAM'] = platform['BRAM']
+    self.platform['constraints']['FF']   = platform['resources']['FF']
+    self.platform['constraints']['DSP']  = platform['resources']['DSP']
+    self.platform['constraints']['LUT']  = platform['resources']['LUT']
+    self.platform['constraints']['BRAM'] = platform['resources']['BRAM']
 
 def update_coarse_in_out_partition(self):
     if len(self.partitions) > 1:

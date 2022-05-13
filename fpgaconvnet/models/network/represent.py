@@ -47,9 +47,8 @@ def save_all_partitions(self,filepath,input_output_from_model=True):
         for node in graphs.ordered_node_list(self.partitions[i].graph):
             # create layer
             layer = partition.layers.add()
-            # layer.name = node.replace("/","_")
             layer.name = onnx_helper.gen_layer_name(
-                    self.partitions[i].graph, node) # REQUIRED EDIT
+                    self.partitions[i].graph, node)
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(self.partitions[i].graph.nodes[node]['type'])
             # add stream(s) in
             stream_in  = layer.streams_in.add()
@@ -59,9 +58,9 @@ def save_all_partitions(self,filepath,input_output_from_model=True):
                 stream_in.name  = "in"
             else :
                 prev_layer_name = onnx_helper.gen_layer_name(
-                    self.partitions[i].graph, prev_nodes[0]) # REQUIRED EDIT
-                layer.node_in   = prev_layer_name #REQUIRED EDIT
-                stream_in.name  = "_".join([prev_layer_name, layer.name]) # REQUIRED EDIT
+                    self.partitions[i].graph, prev_nodes[0])
+                layer.node_in   = prev_layer_name
+                stream_in.name  = "_".join([prev_layer_name, layer.name])
             stream_in.coarse = self.partitions[i].graph.nodes[node]['hw'].coarse_in
             # add stream(s) out
             stream_out = layer.streams_out.add()
@@ -81,10 +80,6 @@ def save_all_partitions(self,filepath,input_output_from_model=True):
             if self.partitions[i].graph.nodes[node]['type'] in [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
                 layer.weights_path = self.partitions[i].graph.nodes[node]['inputs']['weights']
                 layer.bias_path    = self.partitions[i].graph.nodes[node]['inputs']['bias']
-
-    # # save protobuf message
-    # with open(os.path.join(filepath,f"{self.name}.prototxt"),"w") as f:
-    #     f.write(MessageToString(partitions))
 
     # save in JSON format
     with open(os.path.join(filepath,f"{self.name}.json"),"w") as f:

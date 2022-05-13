@@ -150,7 +150,7 @@ class Network():
         # return the frames per second
         return float(self.batch_size)/self.get_latency(partition_list)
 
-    def visualise(self, output_path):
+    def visualise(self, output_path, mode="dot"):
         g = pydot.Dot(graph_type='digraph', splines="ortho", fontsize=25)
         main_cluster = pydot.Cluster("network", label="Network")
 
@@ -176,7 +176,14 @@ class Network():
         g.add_subgraph(main_cluster)
 
         # save graph
-        g.write_raw(output_path)
+        if mode == "dot":
+            g.write_raw(output_path)
+        elif mode == "svg":
+            g.write_svg(output_path)
+        elif mode == "png":
+            g.write_png(output_path)
+        else:
+            raise TypeError
 
     def get_layer_hardware(self, layer_proto):
         # get layer type

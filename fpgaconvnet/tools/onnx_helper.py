@@ -215,7 +215,7 @@ def gen_layer_name(graph, layer_name): # layer in protobuf form
     #FIXME bit of a hacky way to get a good type name
     layer_type_str = str(layer_type)[11:].upper() # remove 'LAYER_TYPE.'
     # replace all invalid characters in the layer name
-    layer_name = layer_name.replace("/","_").replace(":","_")
+    layer_name = layer_name.replace("/","_").replace(":","_").replace(" ","_")
     if layer_name.isnumeric(): # preprend with type to avoid macro issue
         return f'{layer_type_str}{layer_name}'
     else:
