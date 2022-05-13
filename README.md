@@ -16,7 +16,26 @@ python -m pip install fpgaconvnet-model
 
 ## Usage
 
-The 
+This repo can be used to get performance and resource estimates for different hardware configurations. To start, the desired network will need to be parsed into fpgaConvNet's representation. Then a hardware configuration can be loaded, and performance and resource predictions obtained.
+
+```python
+from fpgaconvnet.models.network import Network
+
+# initialise network, and load a configuration
+net = Network("model-name", "model.onnx")
+net.load_network("model-config.json")
+
+# print performance and resource estimates
+print(f"predicted latency (us): {net.get_latency()*1000000}")
+print(f"predicted throughput (img/s): {net.get_throughput()} (batch size={net.batch_size})")
+print(f"predicted resource usage: {net.partitions[0].get_resource_usage()}")
+
+# visualise the network configuration
+net.visualise("image-path.png", mode="png")
+
+# export out the configuration
+net.save_all_partitions("config-path.json")
+```
 
 ## Modelling
 
