@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="fpgaconvnet-model", # Replace with your own username
-    version="0.1.2",
+    version="0.1.3",
     author="Alex Montgomerie",
     author_email="am9215@ic.ac.uk",
     description="Parser and model for Convolutional Neural Network Streaming-Based Accelerator on FPGA devices.",
@@ -22,7 +22,7 @@ setuptools.setup(
     install_requires=[
         "networkx>=2.5",
         "numpy>=1.19.2",
-        "protobuf>=3.13.0",
+        "protobuf>=3.13.0, <=3.17.0",
         "torch>=1.7.1",
         "pyyaml>=5.1.0",
         "scipy>=1.2.1",
