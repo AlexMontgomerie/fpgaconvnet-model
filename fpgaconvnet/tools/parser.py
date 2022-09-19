@@ -3,6 +3,8 @@ import pydot
 import os
 import random
 import copy
+import importlib
+
 import onnx
 import onnx.utils
 import onnx.numpy_helper
@@ -12,7 +14,7 @@ import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.onnx_helper as onnx_helper
 
 from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import ConvolutionLayer
+# from fpgaconvnet.models.layers import ConvolutionLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
@@ -86,7 +88,12 @@ def build_graph(model):
     # return graph
     return graph
 
-def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, acc_width=30):
+def add_hardware(model, graph, data_width=16, weight_width=8,
+        biases_width=16, acc_width=30, backend="hls"):
+
+    # import layers
+    convolution = importlib.import_module(f"fpgaconvnet.models.layers.{backend}")
+
     # iterate over nodes in graph
     for node in model.graph.node:
         # get node name
@@ -112,7 +119,7 @@ def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, a
             if graph.nodes[name]["inputs"]["bias"] != "": # no bias
                 has_bias = 1
             # create convolution layer hardware
-            graph.nodes[name]['hw'] = ConvolutionLayer(
+            graph.nodes[name]['hw'] = convolution.ConvolutionLayer(
                 filters,
                 0, # initialise rows to 0
                 0, # initialise cols to 0
@@ -212,7 +219,8 @@ def add_dimensions(model, graph):
             graph.nodes[node]['hw'].rows     = dim[1]
             graph.nodes[node]['hw'].cols     = dim[2]
 
-def parse_net(filepath,view=True,data_width=16,weight_width=8,biases_width=16,acc_width=30,fuse_bn=True):#TODO add bias width
+def parse_net(filepath, view=True, data_width=16, weight_width=8,
+        biases_width=16, acc_width=30, fuse_bn=True, backend="chisel"):
 
     # load onnx model
     model = onnx_helper.load(filepath,fuse_bn)
@@ -244,7 +252,8 @@ def parse_net(filepath,view=True,data_width=16,weight_width=8,biases_width=16,ac
         filter_node_types(graph, layer_type)
 
     # add hardware to graph
-    add_hardware(model, graph, data_width, weight_width,biases_width, acc_width)
+    add_hardware(model, graph, data_width, weight_width,
+            biases_width, acc_width, backend)
 
     # add layer dimensions
     add_dimensions(model, graph)
