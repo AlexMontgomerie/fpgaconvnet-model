@@ -168,6 +168,7 @@ class ConvolutionLayer(ConvolutionLayerBase):
                                     self.kernel_size[0]* \
                                     self.kernel_size[1]) / \
             float(self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
+
         weights_bram_usage = bram_memory_resource_model(
                     int(weight_memory_depth),self.weight_width) * \
                 self.coarse_in*self.coarse_out*self.coarse_group*self.fine

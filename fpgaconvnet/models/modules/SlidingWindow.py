@@ -112,7 +112,9 @@ class SlidingWindow(Module):
         return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right)/self.stride[1]+1)
 
     def rate_in(self):
-        return 1.0 # TODO: maybe need to reduce for padding effect
+        return (self.rows_in()*self.cols_in())/float(
+                (self.rows_in()+self.pad_top+self.pad_bottom)*\
+                (self.cols_in()+self.pad_left+self.pad_right))
 
     def rate_out(self):
         return (self.rows_out()*self.cols_out())/float(self.rows*self.cols)

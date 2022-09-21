@@ -169,6 +169,17 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
                 pad =attr["pads"],
             )
             continue
+        # Average Pooling layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.AveragePooling:
+            # get node attributes
+            attr = onnx_helper._format_attr(node.attribute)
+            # create pooling layer hardware
+            graph.nodes[name]['hw'] = PoolingLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                0, # initialise channels to 0
+            )
+            continue
         # ReLU Layer
         if graph.nodes[name]['type'] == LAYER_TYPE.ReLU:
             # create relu layer hardware

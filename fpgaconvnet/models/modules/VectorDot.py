@@ -45,7 +45,8 @@ class VectorDot(Module):
         # FF
         ff = self.int2bits(self.filters)
         # DSP
-        dsp = dsp_multiplier_resource_model(self.data_width, self.data_width)
+        dsp = self.fine*dsp_multiplier_resource_model(
+                self.data_width, self.data_width)
 
         # return utilisation
         return {
