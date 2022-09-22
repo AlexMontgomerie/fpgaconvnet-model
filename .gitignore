@@ -28,3 +28,10 @@ dist/
 examples/models
 
 **.dcp
+
+#Debugging dirs
+fpgaconvnet/hls
+test/
+.idea/
+partition_0/
+test.py
