@@ -26,6 +26,7 @@ class LAYER_TYPE(Enum):
     Clip      = 48
     Shape     = 49
     AveragePooling = 50
+    Reshape = 51
 
     @classmethod
     def get_type(cls, t):
@@ -68,7 +69,7 @@ def from_onnx_op_type(op_type):
         "Relu"      : LAYER_TYPE.ReLU,
         "MaxPool"   : LAYER_TYPE.Pooling,
         "LRN"       : LAYER_TYPE.LRN,
-        "Reshape"   : LAYER_TYPE.Transpose,
+        "Reshape"   : LAYER_TYPE.Reshape,
         "Softmax"   : LAYER_TYPE.Softmax,
         "Dropout"   : LAYER_TYPE.Dropout,
         "Flatten"   : LAYER_TYPE.Flatten,
