@@ -176,6 +176,11 @@ def get_model_input(model, name):
         if node.name == name: # exact match
             return node
 
+def get_model_output(model, name):
+    for node in model.graph.output:
+        if node.name == name: # exact match
+            return node
+
 def get_model_initializer(model, name, to_tensor=True):
     for node in model.graph.initializer:
         if node.name == name: # exact match
@@ -244,7 +249,7 @@ def convert_matmul_to_gemm(model):
                     weights.shape)
             # update the graph
             model.graph.initializer.remove(init)
-            model.graph.initializer.insert(init_index,new_init)
+            model.graph.initializer.insert(init_index, new_init)
             model.graph.input.remove(init_value_info)
             model.graph.input.insert(init_value_info_index, new_init_value_info)
             # add an empty bias term
@@ -277,6 +282,50 @@ def convert_matmul_to_gemm(model):
     # return the new model
     return model
 
+def convert_pool_to_global_pool(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+        if node.op_type == "AveragePool":
+            pass
+    # return the new model
+    return model
 
+def remove_transpose_reshape(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+        if node.op_type not in [ "Conv", "ReLU", "MaxPool" ]:
+            continue
+
+        # get the next three nodes
+        next_nodes = []
+        try:
+            next_nodes.append(next(filter(lambda x: x.input[0] == node.output[0], model.graph.node)))
+            next_nodes.append(next(filter(lambda x: x.input[0] == next_nodes[0].output[0], model.graph.node)))
+            next_nodes.append(next(filter(lambda x: x.input[0] == next_nodes[1].output[0], model.graph.node)))
+        except StopIteration:
+            continue
+
+        # check they are the right nodes
+        if next_nodes[0].op_type != "Transpose" or next_nodes[1].op_type != "Reshape" or next_nodes[2].op_type != "Gemm":
+            continue
+
+        # check the attributes of the transpose
+        if next_nodes[0].attribute[0].ints != [0, 2, 3, 1]:
+            continue
+
+        # check reshape input
+        reshape_shape = get_model_initializer(model, next_nodes[1].input[1])
+        if reshape_shape[0] != -1 or reshape_shape.shape != (2,):
+            continue
+
+        # finally, remove transpose and reshape node
+        model.graph.node.remove(next_nodes[0])
+        model.graph.node.remove(next_nodes[1])
+
+        # connect node and Gemm node together
+        next_nodes[-1].input[0] = node.output[0]
+
+    # return the new model
+    return model
 
 
