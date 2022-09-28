@@ -182,12 +182,17 @@ def get_model_output(model, name):
             return node
 
 def get_model_initializer(model, name, to_tensor=True):
-    for node in model.graph.initializer:
-        if node.name == name: # exact match
-            if to_tensor:
-                return onnx.numpy_helper.to_array(node)
-            else:
-                return node
+    init = next(filter(lambda x: x.name == name, model.graph.initializer))
+    if to_tensor:
+        return onnx.numpy_helper.to_array(init)
+    else:
+        return init
+
+def get_input_shape(model, name):
+    # get inputs and outputs
+    all_tensors = [ *model.graph.input, *model.graph.output, *model.graph.value_info ]
+    input = next(filter(lambda x: x.name == name, all_tensors))
+    return [ x.dim_value for x in input.type.tensor_type.shape.dim ]
 
 def _format_attr(attribute):
     attr_out = {}
@@ -324,6 +329,77 @@ def remove_transpose_reshape(model):
 
         # connect node and Gemm node together
         next_nodes[-1].input[0] = node.output[0]
+
+    # return the new model
+    return model
+
+def remove_channel_first_transpose(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find transpose nodes
+        if node.op_type !=  "Transpose":
+            continue
+
+        # get the previous shape
+        input_shape = get_input_shape(model, node.input[0])
+
+        # must be 3d featuremap
+        if len(input_shape) != 4:
+            continue
+
+        # spatial dimensions must be 1
+        if input_shape[2] != 1 or input_shape[3] != 1:
+            continue
+
+        # check the attributes of the transpose
+        if node.attribute[0].ints != [0, 2, 3, 1]:
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # finally, remove transpose and reshape node
+        model.graph.node.remove(node)
+
+        # connect node and Gemm node together
+        next_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
+def remove_channel_first_reshape(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find transpose nodes
+        if node.op_type !=  "Reshape":
+            continue
+
+        # get the previous shape
+        input_shape = get_input_shape(model, node.input[0])
+
+        # must be 3d featuremap
+        if len(input_shape) != 4:
+            continue
+
+        # spatial dimensions must be 1
+        if input_shape[2] != 1 or input_shape[3] != 1:
+            continue
+
+        # check reshape input
+        reshape_shape = get_model_initializer(model, node.input[1])
+        if reshape_shape[0] != -1 or reshape_shape.shape != (2,):
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # finally, remove transpose and reshape node
+        model.graph.node.remove(node)
+
+        # connect node and Gemm node together
+        next_node.input[0] = node.input[0]
 
     # return the new model
     return model

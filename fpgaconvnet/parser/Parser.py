@@ -12,126 +12,15 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import InnerProductLayer
-from fpgaconvnet.models.layers import PoolingLayer
-from fpgaconvnet.models.layers import ReLULayer
-
 import fpgaconvnet.tools.graphs as graphs
-import fpgaconvnet.tools.onnx_helper as onnx_helper
+
+import fpgaconvnet.parser.onnx.helper as onnx_helper
+import fpgaconvnet.parser.onnx.parse as onnx_parse
+import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
-class ParseOnnxNode:
-
-    def __init__(self, graph, n, backend="hls"):
-
-        # backend string
-        self.backend = backend
-
-        # get name of node
-        self.name = onnx_helper._name(n)
-
-        # get the layer type
-        self.layer_type = from_onnx_op_type(n.op_type)
-
-        # get inputs and outputs
-        all_tensors = [ *graph.input, *graph.output, *graph.value_info ]
-        self.inputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.input ]
-        self.outputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.output]
-
-        # input and output shape
-        self.input_shape = [ x.dim_value for x in self.inputs[0].type.tensor_type.shape.dim ]
-        self.output_shape = [ x.dim_value for x in self.outputs[0].type.tensor_type.shape.dim ]
-
-        # get attributes
-        self.attr = onnx_helper._format_attr(n.attribute)
-
-    def get_hardware(self):
-        raise TypeError(f"{self.layer_type} not implemented!")
-
-    def get_node_info(self):
-        return {
-            "type" : self.layer_type,
-            "hw" : self.get_hardware()
-        }
-
-class ParseOnnxConvNode(ParseOnnxNode):
-
-    def get_hardware(self):
-
-        # import layers
-        convolution = importlib.import_module(
-                f"fpgaconvnet.models.layers.{self.backend}")
-
-        # default attributes
-        self.attr.setdefault("group", 1)
-        self.attr.setdefault("strides", [1,1])
-        self.attr.setdefault("pads", [0,0,0,0])
-        self.attr.setdefault("dilations", [1,1])
-
-        # return hardware
-        return convolution.ConvolutionLayer(
-            self.output_shape[1],
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            kernel_size = self.attr["kernel_shape"],
-            stride = self.attr["strides"],
-            pad = self.attr["pads"],
-            groups = self.attr["group"],
-            has_bias = len(self.inputs) == 3
-        )
-
-class ParseOnnxInnerProductNode(ParseOnnxNode):
-
-    def get_hardware(self):
-
-        # default attributes
-        self.attr.setdefault("group", 1)
-        self.attr.setdefault("strides", [1,1])
-        self.attr.setdefault("pads", [0,0,0,0])
-        self.attr.setdefault("dilations", [1,1])
-
-        # return hardware
-        return InnerProductLayer(
-            self.output_shape[1],
-            1, 1,
-            np.prod(self.input_shape),
-            has_bias = len(self.inputs) == 3
-        )
-
-
-class ParseOnnxReLUNode(ParseOnnxNode):
-
-    def get_hardware(self):
-
-        # return hardware
-        return ReLULayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-        )
-
-class ParseOnnxPoolingNode(ParseOnnxNode):
-
-    def get_hardware(self):
-
-        # default attributes
-        self.attr.setdefault("strides", [1,1])
-        self.attr.setdefault("pads", [0,0,0,0])
-        self.attr.setdefault("dilations", [1,1])
-
-        # create pooling layer hardware
-        return PoolingLayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            pool_type = 'max',
-            kernel_size = self.attr["kernel_shape"],
-            stride = self.attr["strides"],
-            pad = self.attr["pads"],
-        )
+from fpgaconvnet.parser.onnx.parse import *
 
 class Parser:
 
@@ -153,6 +42,9 @@ class Parser:
 
         # set the backend string
         self.backend = "hls"
+
+        # quantisation mode [ float, QDQ, BFP, config ]
+        self.quant_mode = "float"
 
     def load_onnx_model(self, onnx_filepath):
 
@@ -176,13 +68,19 @@ class Parser:
                 passes=self.onnxoptimizer_passes)
 
         # manual opt to convert matmul to gemm
-        model_opt = onnx_helper.convert_matmul_to_gemm(model_opt)
+        model_opt = onnx_passes.convert_matmul_to_gemm(model_opt)
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # get rid of transpose and reshape to Gemm layers (but preserve shape info)
-        model_opt = onnx_helper.remove_transpose_reshape(model_opt)
+        # remove transpose when spatial dim is 1
+        model_opt = onnx_passes.remove_channel_first_transpose(model_opt)
+
+        # remove reshape when spatial dim is 1
+        model_opt = onnx_passes.remove_channel_first_reshape(model_opt)
+
+        # remove transpose reshape between last conv layer and first gemm layer
+        model_opt = onnx_passes.remove_transpose_reshape(model_opt)
 
         # check optimized model
         onnx.checker.check_model(model_opt)
@@ -233,13 +131,14 @@ class Parser:
             # add node to graph
             graph.add_node(hardware.name, **hardware.get_node_info())
 
+            # get edges from the hardware
+            for edge in hardware.get_edges_out(onnx_model):
+                graph.add_edge(*edge)
+
         # return the graph
         return graph
 
     def prototxt_to_fpgaconvnet(self, proto_filepath):
-        pass
-
-    def get_layer_hardware(self, layer_type, config={}):
         pass
 
     def rename_graph(self):
@@ -250,6 +149,15 @@ if __name__ == "__main__":
     p = Parser()
 
     print("parsing alexnet")
-    g = p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
-    # g = p.onnx_to_fpgaconvnet("model_opt.onnx")
+    p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
+
+    print("parsing cnv")
+    p.onnx_to_fpgaconvnet("../samo/models/cnv.onnx")
+
+    print("parsing simple")
+    p.onnx_to_fpgaconvnet("../samo/models/simple.onnx")
+
+    print("parsing lfc")
+    p.onnx_to_fpgaconvnet("../samo/models/lfc.onnx")
+
 
