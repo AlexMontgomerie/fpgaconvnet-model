@@ -90,8 +90,6 @@ def remove_transpose_reshape_to_gemm(model):
         model.graph.node.remove(node)
         model.graph.node.remove(next_nodes[0])
 
-        print(node.name, next_nodes[0].name)
-
         # connect node and Gemm node together
         next_nodes[1].input[0] = node.input[0]
 

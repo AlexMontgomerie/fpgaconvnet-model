@@ -155,8 +155,8 @@ if __name__ == "__main__":
 
     p = Parser()
 
-    # print("parsing alexnet")
-    # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
+    print("parsing alexnet")
+    p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
 
     print("parsing cnv")
     p.onnx_to_fpgaconvnet("../samo/models/cnv.onnx")
@@ -173,11 +173,11 @@ if __name__ == "__main__":
     print("parsing mpcnn")
     p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
 
-    # print("parsing vgg11")
-    # p.onnx_to_fpgaconvnet("models/vgg11.onnx")
+    print("parsing vgg11")
+    p.onnx_to_fpgaconvnet("models/vgg11.onnx")
 
-    # print("parsing vgg16")
-    # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
+    print("parsing vgg16")
+    p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
 
     # print("parsing zfnet")
     # p.onnx_to_fpgaconvnet("models/zfnet512-3.onnx")
