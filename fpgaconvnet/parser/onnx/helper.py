@@ -163,7 +163,7 @@ def format_onnx_name(node):
     # replace all invalid characters in the layer name
     name = name.replace("/","_").replace(":","_").replace(" ","_").replace("-","_")
     if name.isnumeric(): # preprend with type to avoid macro issue
-        return f"{node.type}{name}"
+        return f"{node.op_type}{name}"
     else:
         return name
 

@@ -59,18 +59,10 @@ def convert_matmul_to_gemm(model):
     # return the new model
     return model
 
-def convert_pool_to_global_pool(model):
+def remove_transpose_reshape_to_gemm(model):
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
-        if node.op_type == "AveragePool":
-            pass
-    # return the new model
-    return model
-
-def remove_transpose_reshape(model):
-    # iterate over nodes in the graph
-    for index, node in enumerate(model.graph.node):
-        if node.op_type not in [ "Conv", "ReLU", "MaxPool" ]:
+        if node.op_type != "Transpose":
             continue
 
         # get the next three nodes
@@ -78,29 +70,30 @@ def remove_transpose_reshape(model):
         try:
             next_nodes.append(next(filter(lambda x: x.input[0] == node.output[0], model.graph.node)))
             next_nodes.append(next(filter(lambda x: x.input[0] == next_nodes[0].output[0], model.graph.node)))
-            next_nodes.append(next(filter(lambda x: x.input[0] == next_nodes[1].output[0], model.graph.node)))
         except StopIteration:
             continue
 
         # check they are the right nodes
-        if next_nodes[0].op_type != "Transpose" or next_nodes[1].op_type != "Reshape" or next_nodes[2].op_type != "Gemm":
+        if next_nodes[0].op_type != "Reshape" or next_nodes[1].op_type != "Gemm":
             continue
 
         # check the attributes of the transpose
-        if next_nodes[0].attribute[0].ints != [0, 2, 3, 1]:
+        if node.attribute[0].ints != [0, 2, 3, 1]:
             continue
 
         # check reshape input
-        reshape_shape = onnx_helper.get_model_initializer(model, next_nodes[1].input[1])
+        reshape_shape = onnx_helper.get_model_initializer(model, next_nodes[0].input[1])
         if reshape_shape[0] != -1 or reshape_shape.shape != (2,):
             continue
 
         # finally, remove transpose and reshape node
+        model.graph.node.remove(node)
         model.graph.node.remove(next_nodes[0])
-        model.graph.node.remove(next_nodes[1])
+
+        print(node.name, next_nodes[0].name)
 
         # connect node and Gemm node together
-        next_nodes[-1].input[0] = node.output[0]
+        next_nodes[1].input[0] = node.input[0]
 
     # return the new model
     return model
@@ -174,6 +167,219 @@ def remove_channel_first_reshape(model):
         next_node.input[0] = node.input[0]
 
     # return the new model
+    return model
+
+def remove_redundant_flatten(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find transpose nodes
+        if node.op_type !=  "Flatten":
+            continue
+
+        # get shapes in and out
+        input_shape = onnx_helper.get_input_shape(model, node.input[0])
+        output_shape = onnx_helper.get_input_shape(model, node.output[0])
+
+        # see if input and output shape the same
+        if input_shape != output_shape:
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # finally, remove flatten node
+        model.graph.node.remove(node)
+        next_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
+def remove_training_nodes(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find transpose nodes
+        if node.op_type not in ["Dropout"]:
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # remove dropout node
+        model.graph.node.remove(node)
+        next_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
+def remove_flatten_to_gemm(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type != "Flatten":
+            continue
+
+        # get the next three nodes
+        next_node = None
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
+
+        # check if next node is a Gemm node
+        if next_node.op_type != "Gemm":
+            continue
+
+        # TODO: reshape the Gemm initialiser!
+
+        # finally, remove transpose and reshape node
+        model.graph.node.remove(node)
+
+        # connect node and Gemm node together
+        next_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
+def remove_redundant_pooling(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type not in ["MaxPool", "AveragePool"]:
+            continue
+
+        # check kernel size isn't 1
+        attr = onnx_helper.format_attr(node.attribute)
+        if np.prod(attr["kernel_shape"]) != 1:
+            continue
+
+        # finally, remove transpose and reshape node
+        model.graph.node.remove(node)
+
+        # connect node and Gemm node together
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        next_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
+def convert_pool_to_global_pool(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type not in ["MaxPool", "AveragePool"]:
+            continue
+
+        # check kernel size equals spatial dimension
+        input_shape = onnx_helper.get_input_shape(model, node.input[0])
+        kernel_shape = onnx_helper.format_attr(node.attribute)["kernel_shape"]
+        if kernel_shape[0] != input_shape[-2] or kernel_shape[1] != input_shape[-1]:
+            continue
+
+        # convert to Global node
+        if node.op_type == "MaxPool":
+            model.graph.node[index].op_type = "GlobalMaxPool"
+        if node.op_type == "AveragePool":
+            model.graph.node[index].op_type = "GlobalAveragePool"
+
+        # remove attributes
+        model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+        model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+
+    # return the new model
+    return model
+
+def fuse_matmul_add_into_gemm(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type != "MatMul":
+            continue
+
+        # get the next node
+        next_node = None
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
+
+        # check next node is add
+        if next_node.op_type != "Add":
+            continue
+
+        # remove add and matmul node
+        model.graph.node.remove(node)
+        model.graph.node.remove(next_node)
+
+        # create a Gemm node with the matmul weights and add bias
+        new_node = onnx.helper.make_node(
+            "Gemm",
+            name=node.name,
+            inputs=[*node.input, next_node.input[1]],
+            outputs=node.output,
+            alpha=1.0, beta=1.0,
+            transA=0, transB=0
+        )
+
+        # add new one
+        model.graph.node.insert(index, new_node)
+
+        # connect node and Gemm node together
+        next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+        next_next_node.input[0] = new_node.output[0]
+
+    # return the new model
+    return model
+
+def remove_first_transpose(model):
+
+    # check first node
+    if model.graph.node[0].op_type == "Transpose":
+
+        # # check transpose is moving channels back
+        # if model.graph.node[0].ints != [0, 2, 3, 1]:
+        #     return model
+
+        print(f"WARNING: removing first transpose ({model.graph.node[0].name}), as fpgaConvNet is already channel-first")
+
+        # get next node
+        next_node = next(filter(lambda x: x.input[0] == model.graph.node[0].output[0], model.graph.node))
+
+        # remove node
+        next_node.input[0] = model.graph.node[0].input[0]
+        model.graph.node.remove(model.graph.node[0])
+
+        # return modified model
+        return model
+
+    # return un-modified model
+    return model
+
+def remove_last_softmax(model):
+
+    # check first node
+    if model.graph.node[-1].op_type == "Softmax":
+
+        print(f"WARNING: removing last softmax node ({model.graph.node[-1].name}), must be implemented on the CPU instead")
+
+        # get prev node
+        prev_node = next(filter(lambda x: x.output[0] == model.graph.node[-1].input[0], model.graph.node))
+
+        # remove node
+        prev_node.output[0] = model.graph.node[-1].output[0]
+        model.graph.node.remove(model.graph.node[-1])
+
+        # return modified model
+        return model
+
+    # return un-modified model
     return model
 
 
