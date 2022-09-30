@@ -277,6 +277,16 @@ def convert_matmul_to_gemm(model):
     # return the new model
     return model
 
+def fuse_average_pool_transpose_reshape_to_global_average_pool(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+        if node.op_type == "AveragePool":
+            pass
+    # return the new model
+    return model
+
+
+
 
 
 

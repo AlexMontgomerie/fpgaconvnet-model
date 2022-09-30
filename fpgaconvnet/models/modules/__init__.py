@@ -15,3 +15,5 @@ from .ReLU import ReLU
 from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze
 from .Bias import Bias
+from .VectorDot import VectorDot
+from .AveragePool import AveragePool

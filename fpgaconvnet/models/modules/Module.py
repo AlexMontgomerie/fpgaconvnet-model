@@ -3,6 +3,7 @@ Base class for all hardware module models.
 '''
 
 import numpy as np
+import math
 import os
 import copy
 from typing import List
@@ -181,6 +182,12 @@ class Module:
            default is 0.
         """
         return 0
+
+    def int2bits(self, n):
+        """
+        helper function to get number of bits for integer
+        """
+        return math.ceil(math.log(n, 2))
 
     def rsc(self, coef=None):
         """

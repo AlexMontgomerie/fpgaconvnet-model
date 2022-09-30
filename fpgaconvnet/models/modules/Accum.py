@@ -113,7 +113,9 @@ class Accum(Module):
 
         for index,_ in np.ndenumerate(tmp):
             for g in range(self.groups):
-                out[index[0],index[1],g*filters_per_group+index[3]] += data[index[0],index[1],g*channels_per_group+index[2],index[3]]
+                out[index[0],index[1],g*filters_per_group+index[3]] = \
+                        float(out[index[0],index[1],g*filters_per_group+index[3]]) + \
+                        float(data[index[0],index[1],g*channels_per_group+index[2],index[3]])
 
         return out
 
