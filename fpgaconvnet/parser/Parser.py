@@ -46,6 +46,12 @@ class Parser:
         # quantisation mode [ float, QDQ, BFP, config ]
         self.quant_mode = "float"
 
+    def optimize_onnx(self, model, passes):
+        model_opt = model
+        for opt_pass in passes:
+            model_opt = getattr(onnx_passes, opt_pass)(model_opt)
+        return model_opt
+
     def load_onnx_model(self, onnx_filepath):
 
         # load onnx model
@@ -63,29 +69,31 @@ class Parser:
         # add inputs from initializers
         onnx_helper.add_input_from_initializer(model) #Seems to be necessary for conv layers from pytorch (at least)
 
-        # perform optimization passes
+        # perform onnx optimization passes
         model_opt = optimizer.optimize(model,
                 passes=self.onnxoptimizer_passes)
 
-        # manual opt to convert matmul to gemm
-        model_opt = onnx_passes.convert_matmul_to_gemm(model_opt)
+        # perform fpgaconvnet optimization passes (pre shape inference)
+        model_opt = self.optimize_onnx(model_opt,
+                ["fuse_matmul_add_into_gemm", "convert_matmul_to_gemm",
+                    "remove_training_nodes"])
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # remove transpose when spatial dim is 1
-        model_opt = onnx_passes.remove_channel_first_transpose(model_opt)
+        # perform fpgaconvnet optimization passes (post shape inference)
+        model_opt = self.optimize_onnx(model_opt,
+                ["remove_redundant_pooling", "remove_redundant_flatten",
+                    "remove_transpose_reshape_to_gemm", "remove_flatten_to_gemm",
+                    "remove_flatten_to_gemm", "remove_channel_first_transpose",
+                    "remove_channel_first_reshape", "convert_pool_to_global_pool",
+                    "remove_first_transpose", "remove_last_softmax"])
 
-        # remove reshape when spatial dim is 1
-        model_opt = onnx_passes.remove_channel_first_reshape(model_opt)
-
-        # remove transpose reshape between last conv layer and first gemm layer
-        model_opt = onnx_passes.remove_transpose_reshape(model_opt)
+        onnx.save(model_opt, "model_opt.onnx")
 
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        onnx.save(model_opt, "model_opt.onnx")
 
         return model_opt
 
@@ -110,7 +118,6 @@ class Parser:
         except KeyError:
             print(f"ERROR: {node_type} not supported, exiting now")
             exit()
-
 
     def onnx_to_fpgaconvnet(self, onnx_filepath):
 
@@ -148,8 +155,8 @@ if __name__ == "__main__":
 
     p = Parser()
 
-    print("parsing alexnet")
-    p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
+    # print("parsing alexnet")
+    # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
 
     print("parsing cnv")
     p.onnx_to_fpgaconvnet("../samo/models/cnv.onnx")
@@ -160,4 +167,27 @@ if __name__ == "__main__":
     print("parsing lfc")
     p.onnx_to_fpgaconvnet("../samo/models/lfc.onnx")
 
+    # print("parsing mobilenetv2")
+    # p.onnx_to_fpgaconvnet("models/mobilenetv2-7.onnx")
+
+    print("parsing mpcnn")
+    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
+
+    # print("parsing vgg11")
+    # p.onnx_to_fpgaconvnet("models/vgg11.onnx")
+
+    # print("parsing vgg16")
+    # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
+
+    # print("parsing zfnet")
+    # p.onnx_to_fpgaconvnet("models/zfnet512-3.onnx")
+
+    # print("parsing key word spotting network")
+    # p.onnx_to_fpgaconvnet("models/kws.onnx")
+
+    print("parsing mobilenetv1 shrunk")
+    p.onnx_to_fpgaconvnet("models/vww.onnx")
+
+    print("parsing resnet 8")
+    p.onnx_to_fpgaconvnet("models/resnet8.onnx")
 
