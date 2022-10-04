@@ -32,6 +32,7 @@ class Parser:
             "eliminate_unused_initializer",
             "eliminate_nop_transpose",
             "eliminate_nop_pad",
+            "fuse_bn_into_conv",
             "fuse_consecutive_transposes",
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
@@ -44,7 +45,7 @@ class Parser:
         self.backend = "hls"
 
         # quantisation mode [ float, QDQ, BFP, config ]
-        self.quant_mode = "float"
+        self.quant_mode = "fake_float"
 
     def optimize_onnx(self, model, passes):
         model_opt = model
@@ -76,14 +77,14 @@ class Parser:
         # perform fpgaconvnet optimization passes (pre shape inference)
         model_opt = self.optimize_onnx(model_opt,
                 ["fuse_matmul_add_into_gemm", "convert_matmul_to_gemm",
-                    "remove_training_nodes"])
+                    "remove_redundant_pooling", "remove_training_nodes"])
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         # perform fpgaconvnet optimization passes (post shape inference)
         model_opt = self.optimize_onnx(model_opt,
-                ["remove_redundant_pooling", "remove_redundant_flatten",
+                [ "remove_redundant_flatten",
                     "remove_transpose_reshape_to_gemm", "remove_flatten_to_gemm",
                     "remove_flatten_to_gemm", "remove_channel_first_transpose",
                     "remove_channel_first_reshape", "convert_pool_to_global_pool",

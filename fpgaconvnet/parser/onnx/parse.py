@@ -39,14 +39,42 @@ class ParseOnnxNode:
         # get attributes
         self.attr = onnx_helper.format_attr(n.attribute)
 
+        # get hardware
+        self.hw = self.get_hardware()
+
     def get_hardware(self):
         raise TypeError(f"{self.layer_type} not implemented!")
 
     def get_node_info(self):
         return {
             "type" : self.layer_type,
-            "hw" : self.get_hardware()
+            "attr" : self.attr,
+            "hw" : self.hw
         }
+
+    def apply_config_quantisation(self, config):
+        if "layers" in config: # per-layer specification
+            pass # TODO:
+        else:
+            # get the data type configuration
+            width = config["data"]["width"]
+            binary_point = config["data"].get("binary_point", width//2)
+            # update hardware
+            self.hw.data_width = width
+
+    def apply_QDQ_quantisation(self): #TODO
+        """
+        Takes the LinearQuant and Linear DeQuant from the graph, and
+        infers the fixed point widths from this. Might still need to
+        give the widths (bare minimum)
+        """
+        pass
+
+    def apply_QCDQ_quantisation(self): #TODO
+        """
+        same as above, but uses a clipping node aswell to get the width
+        """
+        pass
 
     def get_edges_out(self, model):
         try:
