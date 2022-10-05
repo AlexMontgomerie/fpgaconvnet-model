@@ -304,12 +304,12 @@ class Layer:
         parameters.batch_size   = batch_size
         parameters.data_width   = self.data_width
         parameters.buffer_depth = self.buffer_depth
-        parameters.rows_in      = self.rows_in()
-        parameters.cols_in      = self.cols_in()
-        parameters.channels_in  = self.channels_in()
-        parameters.rows_out     = self.rows_out()
-        parameters.cols_out     = self.cols_out()
-        parameters.channels_out = self.channels_out()
+        parameters.rows_in.extend([self.rows_in()])
+        parameters.cols_in.extend([self.cols_in()])
+        parameters.channels_in.extend([self.channels_in()])
+        parameters.rows_out.extend([self.rows_out()])
+        parameters.cols_out.extend([self.cols_out()])
+        parameters.channels_out.extend([self.channels_out()])
         parameters.coarse_in    = self.streams_in()
         parameters.coarse_out   = self.streams_out()
 

@@ -3,6 +3,7 @@ Layers are comprised of modules. They have the same functionality of the equival
 """
 
 from .Layer             import Layer
+from .MultiPortLayer    import MultiPortLayer
 
 from .BatchNormLayer    import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
@@ -10,3 +11,5 @@ from .PoolingLayer      import PoolingLayer
 from .ReLULayer         import ReLULayer
 from .ConvolutionLayer  import ConvolutionLayerBase
 from .SqueezeLayer      import SqueezeLayer
+from .SplitLayer import SplitLayer
+from .ConcatLayer import ConcatLayer
