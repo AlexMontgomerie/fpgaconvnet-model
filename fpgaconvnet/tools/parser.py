@@ -6,6 +6,8 @@ import copy
 import onnx
 import onnx.utils
 import onnx.numpy_helper
+import importlib
+import inspect
 import networkx as nx
 
 import fpgaconvnet.tools.graphs as graphs
@@ -15,12 +17,12 @@ from fpgaconvnet.models.layers import Layer
 from fpgaconvnet.models.layers import MultiPortLayer
 
 from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import ConvolutionLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SplitLayer
 from fpgaconvnet.models.layers import ConcatLayer
+from fpgaconvnet.models.layers import AveragePoolingLayer
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
@@ -118,7 +120,10 @@ def add_split_nodes(graph):
     # return the modified graph
     return graph
 
-def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, acc_width=30):
+def add_hardware(model, graph, data_width=16, weight_width=8,
+        biases_width=16, acc_width=30, backend="hls"):
+    # import layers
+    convolution = importlib.import_module(f"fpgaconvnet.models.layers.{backend}")
     # iterate over nodes in graph
     for node in model.graph.node:
         # get node name
@@ -144,7 +149,7 @@ def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, a
             if graph.nodes[name]["inputs"]["bias"] != "": # no bias
                 has_bias = 1
             # create convolution layer hardware
-            graph.nodes[name]['hw'] = ConvolutionLayer(
+            graph.nodes[name]['hw'] = convolution.ConvolutionLayer(
                 filters,
                 0, # initialise rows to 0
                 0, # initialise cols to 0
@@ -154,6 +159,17 @@ def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, a
                 pad =attr["pads"],
                 groups =attr["group"],
                 has_bias = has_bias
+            )
+            continue
+        # Average Pooling layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.AveragePooling:
+            # get node attributes
+            attr = onnx_helper._format_attr(node.attribute)
+            # create pooling layer hardware
+            graph.nodes[name]['hw'] = PoolingLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                0, # initialise channels to 0
             )
             continue
         # FC Layer
@@ -221,9 +237,17 @@ def add_hardware(model, graph, data_width=16, weight_width=8, biases_width=16, a
                 0, # initialise channels to 0
             )
             continue
-        # Split Layer
+        # Concat Layer
         if graph.nodes[name]['type'] == LAYER_TYPE.Concat:
             graph.nodes[name]['hw'] = ConcatLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                [0], # initialise channels to 0
+            )
+            continue
+        # Eltwise Layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.Eltwise:
+            graph.nodes[name]['hw'] = EltwiseLayer(
                 0, # initialise rows to 0
                 0, # initialise cols to 0
                 [0], # initialise channels to 0
@@ -251,7 +275,8 @@ def add_dimensions(model, graph):
     nodes.remove(input_node)
     for node in nodes:
         # see if it's a regular or multi-port layer
-        if type(graph.nodes[node]['hw']).__bases__[0] == Layer:
+        node_base_type = inspect.getmro(type(graph.nodes[node]['hw']))[-2]
+        if node_base_type == Layer:
             # find previous node and remove split from node (if there)
             prev_node = graphs.get_prev_nodes(graph, node)[0].replace("_split", "")
             # get previous node output dimensions
@@ -261,7 +286,7 @@ def add_dimensions(model, graph):
             graph.nodes[node]['hw'].rows     = dim[1]
             graph.nodes[node]['hw'].cols     = dim[2]
         # multi-port layer
-        elif type(graph.nodes[node]['hw']).__bases__[0] == MultiPortLayer:
+        elif node_base_type == MultiPortLayer:
             # find previous node
             prev_nodes = graphs.get_prev_nodes(graph, node)
             # find next nodes
@@ -282,10 +307,10 @@ def add_dimensions(model, graph):
         # invalid base class
         else:
             print(type(graph.nodes[node]['hw']))
-            raise TypeError(f"{type(graph.nodes[node]['hw']).__bases__[0]} not a valid base class")
+            raise TypeError(f"{node_base_type} not a valid base class")
 
 def parse_net(filepath, view=True, data_width=16, weight_width=8,
-        biases_width=16, acc_width=30, fuse_bn=True):
+        biases_width=16, acc_width=30, fuse_bn=True, backend="chisel"):
 
     # load onnx model
     model = onnx_helper.load(filepath, fuse_bn)
@@ -320,7 +345,8 @@ def parse_net(filepath, view=True, data_width=16, weight_width=8,
         filter_node_types(graph, layer_type)
 
     # add hardware to graph
-    add_hardware(model, graph, data_width, weight_width,biases_width, acc_width)
+    add_hardware(model, graph, data_width, weight_width,
+            biases_width, acc_width, backend)
 
     # add layer dimensions
     add_dimensions(model, graph)

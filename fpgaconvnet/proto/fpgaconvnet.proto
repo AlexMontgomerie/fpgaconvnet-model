@@ -56,6 +56,8 @@ message layer {
         CONCAT          = 5;
         BATCH_NORM      = 6;
         SPLIT           = 7;
+        ELTWISE         = 8;
+        AVERAGE_POOLING = 9;
     }
 
     required layer_type type = 7;

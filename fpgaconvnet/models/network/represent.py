@@ -1,5 +1,6 @@
 import os
 import json
+import inspect
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
@@ -27,15 +28,17 @@ def get_model_output_node(self, partition_index):
     return onnx_helper.get_model_node(self.model, output_node).output[0]
 
 def get_stream_in_coarse(self, node_hw, index):
-    if type(node_hw).__bases__[0] == Layer:
+    node_base_type = inspect.getmro(type(node_hw))[-2]
+    if node_base_type == Layer:
         return node_hw.coarse_in
-    elif type(node_hw).__bases__[0] == MultiPortLayer:
+    elif node_base_type == MultiPortLayer:
         return node_hw.coarse_in[index]
 
 def get_stream_out_coarse(self, node_hw, index):
-    if type(node_hw).__bases__[0] == Layer:
+    node_base_type = inspect.getmro(type(node_hw))[-2]
+    if node_base_type == Layer:
         return node_hw.coarse_out
-    elif type(node_hw).__bases__[0] == MultiPortLayer:
+    elif node_base_type == MultiPortLayer:
         return node_hw.coarse_out[index]
 
 def save_all_partitions(self, filepath, input_output_from_model=True):

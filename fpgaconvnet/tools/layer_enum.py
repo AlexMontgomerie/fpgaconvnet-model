@@ -25,6 +25,7 @@ class LAYER_TYPE(Enum):
     Cast      = 47
     Clip      = 48
     Shape     = 49
+    AveragePooling = 50
 
     @classmethod
     def get_type(cls, t):
@@ -43,6 +44,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.Concat : fpgaconvnet_pb2.layer.layer_type.CONCAT,
         LAYER_TYPE.BatchNorm : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
         LAYER_TYPE.Split : fpgaconvnet_pb2.layer.layer_type.SPLIT,
+        LAYER_TYPE.AveragePooling : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -56,6 +58,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.CONCAT : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM : LAYER_TYPE.BatchNorm,
         fpgaconvnet_pb2.layer.layer_type.SPLIT : LAYER_TYPE.Split,
+        fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING : LAYER_TYPE.AveragePooling,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -81,5 +84,7 @@ def from_onnx_op_type(op_type):
         "Squeeze" : LAYER_TYPE.Squeeze,
         "Transpose" : LAYER_TYPE.Transpose,
         "Concat" : LAYER_TYPE.Concat,
+        "GlobalAveragePool" : LAYER_TYPE.AveragePooling,
+        "AveragePool" : LAYER_TYPE.AveragePooling,
     }
     return layer_types.get(op_type, lambda: TypeError)
