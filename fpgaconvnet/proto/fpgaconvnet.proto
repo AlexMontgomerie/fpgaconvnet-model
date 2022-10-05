@@ -8,12 +8,12 @@ message stream {
 message parameter {
     required int32 buffer_depth = 1 [default = 2];
     required int32 batch_size   = 2;
-    repeated int32 rows_in      = 3;
-    repeated int32 cols_in      = 4;
-    repeated int32 channels_in  = 5;
-    repeated int32 rows_out     = 6;
-    repeated int32 cols_out     = 7;
-    repeated int32 channels_out = 8;
+    required int32 rows_in      = 3;
+    required int32 cols_in      = 4;
+    optional int32 channels_in  = 5;
+    required int32 rows_out     = 6;
+    required int32 cols_out     = 7;
+    optional int32 channels_out = 8;
     required int32 coarse_in    = 9;
     required int32 coarse_out   = 10;
     optional int32 coarse       = 11;
@@ -36,6 +36,12 @@ message parameter {
     optional int32 biases_width = 28;
     optional int32 ports_in = 29;
     optional int32 ports_out = 30;
+    repeated int32 rows_in_array        = 31;
+    repeated int32 cols_in_array        = 32;
+    repeated int32 channels_in_array    = 33;
+    repeated int32 rows_out_array       = 34;
+    repeated int32 cols_out_array       = 35;
+    repeated int32 channels_out_array   = 36;
 }
 
 message layer {

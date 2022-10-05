@@ -93,5 +93,11 @@ class ConcatLayer(MultiPortLayer):
         self.modules["concat"].ports_in = self.ports_in
         self.modules["concat"].data_width = self.data_width
 
-
+    def layer_info(self,parameters,batch_size=1):
+        MultiPortLayer.layer_info(self, parameters, batch_size)
+        parameters.rows_in      = self.rows_in()
+        parameters.cols_in      = self.cols_in()
+        parameters.rows_out     = self.rows_out()
+        parameters.cols_out     = self.cols_out()
+        parameters.channels_out = self.channels_out()
 

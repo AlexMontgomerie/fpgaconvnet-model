@@ -118,6 +118,11 @@ class SplitLayer(MultiPortLayer):
     def layer_info(self,parameters,batch_size=1):
         MultiPortLayer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        parameters.rows_in      = self.rows_in()
+        parameters.cols_in      = self.cols_in()
+        parameters.channels_in  = self.channels_in()
+        parameters.rows_out     = self.rows_out()
+        parameters.cols_out     = self.cols_out()
 
     def update(self):
         # fork

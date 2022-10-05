@@ -392,12 +392,12 @@ class MultiPortLayer:
     def layer_info(self, parameters, batch_size=1):
         parameters.batch_size   = batch_size
         parameters.buffer_depth = self.buffer_depth
-        parameters.rows_in.extend(map(self.rows_in, range(self.ports_in)))
-        parameters.cols_in.extend(map(self.cols_in, range(self.ports_in)))
-        parameters.channels_in.extend(map(self.channels_in, range(self.ports_in)))
-        parameters.rows_out.extend(map(self.rows_out, range(self.ports_out)))
-        parameters.cols_out.extend(map(self.cols_out, range(self.ports_out)))
-        parameters.channels_out.extend(map(self.channels_out, range(self.ports_out)))
+        parameters.rows_in_array.extend(map(self.rows_in, range(self.ports_in)))
+        parameters.cols_in_array.extend(map(self.cols_in, range(self.ports_in)))
+        parameters.channels_in_array.extend(map(self.channels_in, range(self.ports_in)))
+        parameters.rows_out_array.extend(map(self.rows_out, range(self.ports_out)))
+        parameters.cols_out_array.extend(map(self.cols_out, range(self.ports_out)))
+        parameters.channels_out_array.extend(map(self.channels_out, range(self.ports_out)))
         parameters.coarse_in    = self.streams_in()
         parameters.coarse_out   = self.streams_out()
 
