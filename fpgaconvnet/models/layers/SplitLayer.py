@@ -123,6 +123,7 @@ class SplitLayer(MultiPortLayer):
         parameters.channels_in  = self.channels_in()
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
+        parameters.channels_out = self.channels_out()
 
     def update(self):
         # fork

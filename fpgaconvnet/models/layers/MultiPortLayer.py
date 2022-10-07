@@ -400,6 +400,8 @@ class MultiPortLayer:
         parameters.channels_out_array.extend(map(self.channels_out, range(self.ports_out)))
         parameters.coarse_in    = self.streams_in()
         parameters.coarse_out   = self.streams_out()
+        parameters.ports_in = self.ports_in
+        parameters.ports_out = self.ports_out
 
     def get_operations(self):
         return 0

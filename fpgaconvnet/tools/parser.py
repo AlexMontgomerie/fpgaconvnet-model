@@ -23,6 +23,7 @@ from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SplitLayer
 from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import AveragePoolingLayer
+from fpgaconvnet.models.layers import EltWiseLayer
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
@@ -246,8 +247,8 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
             )
             continue
         # Eltwise Layer
-        if graph.nodes[name]['type'] == LAYER_TYPE.Eltwise:
-            graph.nodes[name]['hw'] = EltwiseLayer(
+        if graph.nodes[name]['type'] == LAYER_TYPE.EltWise:
+            graph.nodes[name]['hw'] = EltWiseLayer(
                 0, # initialise rows to 0
                 0, # initialise cols to 0
                 [0], # initialise channels to 0

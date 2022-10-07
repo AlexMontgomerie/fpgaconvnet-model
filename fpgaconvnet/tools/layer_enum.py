@@ -13,7 +13,7 @@ class LAYER_TYPE(Enum):
     ReLU         =18
     Sigmoid      =19
     Softmax      =20
-    Eltwise      =25
+    EltWise      =25
     # Not Enumerated
     BatchNorm = 40
     Scale     = 41
@@ -45,6 +45,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.BatchNorm : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
         LAYER_TYPE.Split : fpgaconvnet_pb2.layer.layer_type.SPLIT,
         LAYER_TYPE.AveragePooling : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
+        LAYER_TYPE.EltWise: fpgaconvnet_pb2.layer.layer_type.ELTWISE,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -59,6 +60,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM : LAYER_TYPE.BatchNorm,
         fpgaconvnet_pb2.layer.layer_type.SPLIT : LAYER_TYPE.Split,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING : LAYER_TYPE.AveragePooling,
+        fpgaconvnet_pb2.layer.layer_type.ELTWISE: LAYER_TYPE.EltWise,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -77,7 +79,7 @@ def from_onnx_op_type(op_type):
         "BatchNormalization" : LAYER_TYPE.BatchNorm,
         "GlobalAveragePool" : LAYER_TYPE.Pooling,
         "AveragePool" : LAYER_TYPE.Pooling,
-        "Add" : LAYER_TYPE.Eltwise,
+        "Add" : LAYER_TYPE.EltWise,
         "Cast" : LAYER_TYPE.Cast,
         "Clip" : LAYER_TYPE.Clip,
         "Shape" : LAYER_TYPE.Shape,

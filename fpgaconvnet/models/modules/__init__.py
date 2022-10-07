@@ -18,3 +18,4 @@ from .Bias import Bias
 from .VectorDot import VectorDot
 from .AveragePool import AveragePool
 from .Concat import Concat
+from .EltWise import EltWise
