@@ -26,8 +26,15 @@ from fpgaconvnet.models.partition.Partition import Partition
 
 class Network():
 
-    def __init__(self, name, network_path, batch_size=1, freq=125, reconf_time=0.0,
-            data_width=16, weight_width=8, acc_width=30, fuse_bn=True):
+    def __init__(self, name, network_path, batch_size=1, freq=125,
+            reconf_time=0.0, data_width=16, weight_width=8, acc_width=30,
+            fuse_bn=True, rsc_allocation=1.0):
+
+        # empty transforms configuration
+        self.transforms_config = {}
+
+        ## percentage resource allocation
+        self.rsc_allocation = rsc_allocation
 
         ## bitwidths
         self.data_width     = data_width
@@ -84,6 +91,24 @@ class Network():
         # update partitions
         self.update_partitions()
 
+
+    # from fpgaconvnet.transforms.partition import check_parallel_block
+    # from fpgaconvnet.transforms.partition import get_all_horizontal_splits
+    # from fpgaconvnet.transforms.partition import get_all_vertical_splits
+    # from fpgaconvnet.transforms.partition import get_all_horizontal_merges
+    # from fpgaconvnet.transforms.partition import get_all_vertical_merges
+    # from fpgaconvnet.transforms.partition import split_horizontal
+    # from fpgaconvnet.transforms.partition import split_vertical
+    # from fpgaconvnet.transforms.partition import merge_horizontal
+    # from fpgaconvnet.transforms.partition import merge_vertical
+    # from fpgaconvnet.transforms.partition import split_horizontal_complete
+    # from fpgaconvnet.transforms.partition import split_vertical_complete
+    # from fpgaconvnet.transforms.partition import split_complete
+    # from fpgaconvnet.transforms.partition import merge_horizontal_complete
+    # from fpgaconvnet.transforms.partition import merge_vertical_complete
+    # from fpgaconvnet.transforms.partition import merge_complete
+    # from fpgaconvnet.transforms.partition import apply_random_partition
+
     from fpgaconvnet.models.network.report import create_report
 
     from fpgaconvnet.models.network.scheduler import get_partition_order
@@ -101,6 +126,8 @@ class Network():
 
     from fpgaconvnet.models.network.represent import get_model_input_node
     from fpgaconvnet.models.network.represent import get_model_output_node
+    from fpgaconvnet.models.network.represent import get_stream_in_coarse
+    from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import save_all_partitions
 
     from fpgaconvnet.models.network.validate import check_ports

@@ -2,8 +2,7 @@ name: Publish package
 
 on:
   push:
-    branchs:
-      - main
+    branchs: [ main ]
 
 jobs:
   deploy:

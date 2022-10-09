@@ -4,6 +4,10 @@ import numpy as np
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 def convert_matmul_to_gemm(model):
+    """
+    converts standalone matmul nodes to gemm nodes. This unifies the representation
+    of InnerProduct layers
+    """
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
         if node.op_type == "MatMul":
@@ -60,6 +64,11 @@ def convert_matmul_to_gemm(model):
     return model
 
 def remove_transpose_reshape_to_gemm(model):
+    """
+    removes the transpose-reshape layers used to move from NCHW to NC for
+    gemm layers. Results in re-ordering of the Gemm layer to compensate
+    """
+
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
         if node.op_type != "Transpose":
@@ -85,6 +94,10 @@ def remove_transpose_reshape_to_gemm(model):
         reshape_shape = onnx_helper.get_model_initializer(model, next_nodes[0].input[1])
         if reshape_shape[0] != -1 or reshape_shape.shape != (2,):
             continue
+
+        print(f"WARNING: removing transpose node {node.name} and rehape node {next_nodes[0].name} \
+                as the NC ordering is implicit in hardware")
+        print(f"CRITICAL WARNING: weights for gemm node are not re-ordered (WIP)")
 
         # finally, remove transpose and reshape node
         model.graph.node.remove(node)
@@ -168,6 +181,10 @@ def remove_channel_first_reshape(model):
     return model
 
 def remove_redundant_flatten(model):
+    """
+    removes flatten layers where the input shape and output shape are exactly
+    the same.
+    """
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
 
@@ -183,6 +200,9 @@ def remove_redundant_flatten(model):
         if input_shape != output_shape:
             continue
 
+        print(f"WARNING: removing flatten node {node.name}, \
+                as the input and output shapes are the same")
+
         # get the next node
         next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
 
@@ -194,12 +214,18 @@ def remove_redundant_flatten(model):
     return model
 
 def remove_training_nodes(model):
+    """
+    removes nodes used for training (Dropout), as this is only an inference engine
+    """
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
 
         # find transpose nodes
         if node.op_type not in ["Dropout"]:
             continue
+
+        print(f"WARNING: removing dropout node {node.name} \
+                as it is not used for inference")
 
         # get the next node
         next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
@@ -379,5 +405,105 @@ def remove_last_softmax(model):
 
     # return un-modified model
     return model
+
+
+def convert_reshape_to_flatten(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type != "Reshape":
+            continue
+
+        # get input and output shape
+        input_shape = onnx_helper.get_input_shape(model, node.input[0])
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        output_shape = onnx_helper.get_input_shape(model, next_node.input[0])
+
+        # check the output shape is the same as flattened
+        if np.prod(input_shape[1:]) != output_shape[1]:
+            continue
+
+        # create a new Flaten node
+        new_node = onnx.helper.make_node(
+            "Flatten",
+            name=node.name,
+            inputs=[node.input[0]],
+            outputs=node.output,
+        )
+
+        # remove old node and add new one
+        model.graph.node.remove(node)
+        model.graph.node.insert(index, new_node)
+
+    # return the new model
+    return model
+
+def convert_transpose_flatten_gemm_to_flatten_gemm(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a flatten node
+        if node.op_type != "Transpose":
+            continue
+
+        # get the flatten node
+        flatten_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        if flatten_node.op_type != "Flatten":
+            continue
+
+        # get the gemm node
+        gemm_node = next(filter(lambda x: x.input[0] == flatten_node.output[0], model.graph.node))
+        if gemm_node.op_type != "Gemm":
+            continue
+
+        # get shape before and after transpose
+        pre_transpose_shape = onnx_helper.get_input_shape(model, node.input[0])
+        post_transpose_shape = onnx_helper.get_input_shape(model, node.output[0])
+
+        # transpose shape
+        trans = node.attribute[0].ints
+
+        # get weights
+        weights_raw = onnx_helper.get_model_initializer(model, gemm_node.input[1], to_tensor=False)
+        weights_index = list(model.graph.initializer).index(weights_raw)
+        weights_type = weights_raw.data_type
+
+        # perform reshape-transpose-flatten on weights
+        weights = onnx.numpy_helper.to_array(weights_raw)
+        weights = np.reshape(weights, (-1, *pre_transpose_shape[1:]))
+        weights = np.transpose(weights, (0, *trans[1:]))
+        weights = np.reshape(weights, (-1, np.prod(post_transpose_shape[1:])))
+
+        # update the weights
+        new_weights = onnx.helper.make_tensor(
+            name=gemm_node.input[1],
+            data_type=weights_type,
+            dims=weights.shape,
+            vals=weights.flatten().tolist())
+
+        # update weight's value info
+        weights_value_info = onnx_helper.get_model_input(model, gemm_node.input[1])
+        weights_value_info_index = list(model.graph.input).index(weights_value_info)
+        new_weights_value_info = onnx.helper.make_tensor_value_info(
+                gemm_node.input[1],
+                onnx.TensorProto.FLOAT,
+                weights.shape)
+
+        # update the graph with modified weights
+        model.graph.initializer.remove(weights_raw)
+        model.graph.initializer.insert(weights_index, new_weights)
+        model.graph.input.remove(weights_value_info)
+        model.graph.input.insert(weights_value_info_index, new_weights_value_info)
+
+        # remove transpose node
+        model.graph.node.remove(node)
+        flatten_node.input[0] = node.input[0]
+
+    # return the new model
+    return model
+
 
 

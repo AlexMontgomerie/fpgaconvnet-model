@@ -6,6 +6,7 @@ import random
 from graphviz import Digraph
 import networkx as nx
 import onnx
+from onnxsim import simplify
 import onnx.numpy_helper
 import onnx.utils
 import onnxoptimizer as optimizer
@@ -28,14 +29,11 @@ class Parser:
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
-            "extract_constant_to_initializer",
-            "eliminate_unused_initializer",
-            "eliminate_nop_transpose",
-            "eliminate_nop_pad",
             "fuse_bn_into_conv",
             "fuse_consecutive_transposes",
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
+            "set_unique_name_for_nodes",
         ]
 
         # minimum supported opset version
@@ -58,6 +56,10 @@ class Parser:
         # load onnx model
         model = onnx.load(onnx_filepath)
 
+        # simplify model
+        model, _ = simplify(model)
+
+        onnx.save(model, "model_opt.onnx")
         # validate model
         onnx.checker.check_model(model)
 
@@ -74,31 +76,38 @@ class Parser:
         model_opt = optimizer.optimize(model,
                 passes=self.onnxoptimizer_passes)
 
+        # infer shapes of optimised model
+        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+
         # perform fpgaconvnet optimization passes (pre shape inference)
         model_opt = self.optimize_onnx(model_opt,
                 ["fuse_matmul_add_into_gemm", "convert_matmul_to_gemm",
-                    "remove_redundant_pooling", "remove_training_nodes"])
+                    "remove_redundant_pooling", "remove_training_nodes",
+                    "remove_redundant_flatten", "convert_pool_to_global_pool",
+                    "convert_reshape_to_flatten",
+                    "convert_transpose_flatten_gemm_to_flatten_gemm"])
 
         # infer shapes of optimised model
-        model_opt = onnx.shape_inference.infer_shapes(model_opt)
-
-        # perform fpgaconvnet optimization passes (post shape inference)
-        model_opt = self.optimize_onnx(model_opt,
-                [ "remove_redundant_flatten",
-                    "remove_transpose_reshape_to_gemm", "remove_flatten_to_gemm",
-                    "remove_flatten_to_gemm", "remove_channel_first_transpose",
-                    "remove_channel_first_reshape", "convert_pool_to_global_pool",
-                    "remove_first_transpose", "remove_last_softmax"])
-
-        onnx.save(model_opt, "model_opt.onnx")
+        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         # check optimized model
         onnx.checker.check_model(model_opt)
 
+        # perform fpgaconvnet optimization passes (post shape inference)
+        model_hw = self.optimize_onnx(model_opt,
+                ["remove_transpose_reshape_to_gemm",
+                    "remove_flatten_to_gemm",
+                    "remove_last_softmax"])
+                    # "remove_channel_first_transpose", "remove_channel_first_reshape",
+                    # "remove_first_transpose", "remove_last_softmax"])
 
-        return model_opt
+        # validate hardware onnx
+        self.validate_hardware_onnx_model(model_hw)
 
-    def validate_onnx_model(self, onnx_model):
+
+        return model_hw
+
+    def validate_hardware_onnx_model(self, onnx_model):
         pass
 
     def get_hardware_from_onnx_node(self, graph, node):
@@ -159,36 +168,41 @@ if __name__ == "__main__":
     # print("parsing alexnet")
     # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
 
-    print("parsing cnv")
-    p.onnx_to_fpgaconvnet("../samo/models/cnv.onnx")
+    print("Keras-converted models:")
 
-    print("parsing simple")
-    p.onnx_to_fpgaconvnet("../samo/models/simple.onnx")
+    print(" - parsing mpcnn")
+    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
 
-    print("parsing lfc")
-    p.onnx_to_fpgaconvnet("../samo/models/lfc.onnx")
+    print(" - parsing cnv")
+    p.onnx_to_fpgaconvnet("models/cnv.onnx")
+
+    # print(" - parsing simple")
+    # p.onnx_to_fpgaconvnet("models/simple.onnx")
+
+    # print(" - parsing lfc")
+    # p.onnx_to_fpgaconvnet("models/lfc.onnx")
 
     # print("parsing mobilenetv2")
     # p.onnx_to_fpgaconvnet("models/mobilenetv2-7.onnx")
 
-    print("parsing mpcnn")
-    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
+    # print("parsing mpcnn")
+    # p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
 
-    # print("parsing vgg11")
-    # p.onnx_to_fpgaconvnet("models/vgg11.onnx")
+    # # print("parsing vgg11")
+    # # p.onnx_to_fpgaconvnet("models/vgg11.onnx")
 
-    # print("parsing vgg16")
-    # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
+    # # print("parsing vgg16")
+    # # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
 
-    # print("parsing zfnet")
-    # p.onnx_to_fpgaconvnet("models/zfnet512-3.onnx")
+    # # print("parsing zfnet")
+    # # p.onnx_to_fpgaconvnet("models/zfnet512-3.onnx")
 
-    # print("parsing key word spotting network")
-    # p.onnx_to_fpgaconvnet("models/kws.onnx")
+    # # print("parsing key word spotting network")
+    # # p.onnx_to_fpgaconvnet("models/kws.onnx")
 
-    print("parsing mobilenetv1 shrunk")
-    p.onnx_to_fpgaconvnet("models/vww.onnx")
+    # print("parsing mobilenetv1 shrunk")
+    # p.onnx_to_fpgaconvnet("models/vww.onnx")
 
-    print("parsing resnet 8")
-    p.onnx_to_fpgaconvnet("models/resnet8.onnx")
+    # print("parsing resnet 8")
+    # p.onnx_to_fpgaconvnet("models/resnet8.onnx")
 

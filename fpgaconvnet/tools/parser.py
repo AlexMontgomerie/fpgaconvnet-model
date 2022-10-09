@@ -3,21 +3,27 @@ import pydot
 import os
 import random
 import copy
-import importlib
-
 import onnx
 import onnx.utils
 import onnx.numpy_helper
+import importlib
+import inspect
 import networkx as nx
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.onnx_helper as onnx_helper
 
+from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.layers import MultiPortLayer
+
 from fpgaconvnet.models.layers import BatchNormLayer
-# from fpgaconvnet.models.layers import ConvolutionLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
+from fpgaconvnet.models.layers import SplitLayer
+from fpgaconvnet.models.layers import ConcatLayer
+from fpgaconvnet.models.layers import AveragePoolingLayer
+from fpgaconvnet.models.layers import EltWiseLayer
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
@@ -88,12 +94,37 @@ def build_graph(model):
     # return graph
     return graph
 
+def add_split_nodes(graph):
+    # NOTE: from ben's branch
+
+    # get all split module nodes
+    split_nodes = []
+    for node in graph.nodes:
+        # find all nodes with more than 1 output
+        if graph.out_degree(node) > 1:
+            split_nodes.append(node)
+
+    # add split nodes to the graph
+    for node in split_nodes:
+        # add a split node to the graph
+        graph.add_node( node+"_split",
+                type=LAYER_TYPE.Split,
+                hw=SplitLayer(0,0,0), inputs={} )
+        # iterate over nodes after the split node
+        next_nodes = graphs.get_next_nodes(graph, node)
+        for succ in next_nodes:
+            graph.remove_edge(node, succ)
+            graph.add_edge(node+"_split", succ)
+        # add edge between node and split node
+        graph.add_edge(node, node+"_split")
+
+    # return the modified graph
+    return graph
+
 def add_hardware(model, graph, data_width=16, weight_width=8,
         biases_width=16, acc_width=30, backend="hls"):
-
     # import layers
     convolution = importlib.import_module(f"fpgaconvnet.models.layers.{backend}")
-
     # iterate over nodes in graph
     for node in model.graph.node:
         # get node name
@@ -129,6 +160,17 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
                 pad =attr["pads"],
                 groups =attr["group"],
                 has_bias = has_bias
+            )
+            continue
+        # Average Pooling layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.AveragePooling:
+            # get node attributes
+            attr = onnx_helper._format_attr(node.attribute)
+            # create pooling layer hardware
+            graph.nodes[name]['hw'] = PoolingLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                0, # initialise channels to 0
             )
             continue
         # FC Layer
@@ -169,17 +211,6 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
                 pad =attr["pads"],
             )
             continue
-        # Average Pooling layer
-        if graph.nodes[name]['type'] == LAYER_TYPE.AveragePooling:
-            # get node attributes
-            attr = onnx_helper._format_attr(node.attribute)
-            # create pooling layer hardware
-            graph.nodes[name]['hw'] = PoolingLayer(
-                0, # initialise rows to 0
-                0, # initialise cols to 0
-                0, # initialise channels to 0
-            )
-            continue
         # ReLU Layer
         if graph.nodes[name]['type'] == LAYER_TYPE.ReLU:
             # create relu layer hardware
@@ -197,6 +228,30 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
                 0, # initialise channels to 0
                 1, # initialise coarse in to 0
                 1, # initialise coarse out to 0
+            )
+            continue
+        # Split Layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.Split:
+            graph.nodes[name]['hw'] = SplitLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                0, # initialise channels to 0
+            )
+            continue
+        # Concat Layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.Concat:
+            graph.nodes[name]['hw'] = ConcatLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                [0], # initialise channels to 0
+            )
+            continue
+        # Eltwise Layer
+        if graph.nodes[name]['type'] == LAYER_TYPE.EltWise:
+            graph.nodes[name]['hw'] = EltWiseLayer(
+                0, # initialise rows to 0
+                0, # initialise cols to 0
+                [0], # initialise channels to 0
             )
             continue
         raise NameError(f"{name}: type {str(graph.nodes[name]['type'])} does not exist!")
@@ -220,24 +275,52 @@ def add_dimensions(model, graph):
     nodes = list(graph.nodes())
     nodes.remove(input_node)
     for node in nodes:
-        # find previous node
-        prev_nodes = graphs.get_prev_nodes(graph, node)
-        for prev_node in prev_nodes: # TODO: support parallel networks
+        # see if it's a regular or multi-port layer
+        node_base_type = inspect.getmro(type(graph.nodes[node]['hw']))[-2]
+        if node_base_type == Layer:
+            # find previous node and remove split from node (if there)
+            prev_node = graphs.get_prev_nodes(graph, node)[0].replace("_split", "")
             # get previous node output dimensions
             dim = onnx_helper._out_dim(model, prev_node)
             # update input dimensions
             graph.nodes[node]['hw'].channels = dim[0]
             graph.nodes[node]['hw'].rows     = dim[1]
             graph.nodes[node]['hw'].cols     = dim[2]
+        # multi-port layer
+        elif node_base_type == MultiPortLayer:
+            # find previous node
+            prev_nodes = graphs.get_prev_nodes(graph, node)
+            # find next nodes
+            next_nodes = graphs.get_next_nodes(graph, node)
+            # set the number of ports in and out
+            graph.nodes[node]['hw'].ports_in = max(1,len(prev_nodes))
+            graph.nodes[node]['hw'].ports_out = max(1,len(next_nodes))
+            # get dimensions in
+            graph.nodes[node]['hw'].channels = [
+                    onnx_helper._out_dim(model, prev_node)[0]
+                    for prev_node in prev_nodes ]
+            graph.nodes[node]['hw'].rows = [
+                    onnx_helper._out_dim(model, prev_node)[1]
+                    for prev_node in prev_nodes ]
+            graph.nodes[node]['hw'].cols = [
+                    onnx_helper._out_dim(model, prev_node)[2]
+                    for prev_node in prev_nodes ]
+        # invalid base class
+        else:
+            print(type(graph.nodes[node]['hw']))
+            raise TypeError(f"{node_base_type} not a valid base class")
 
 def parse_net(filepath, view=True, data_width=16, weight_width=8,
         biases_width=16, acc_width=30, fuse_bn=True, backend="chisel"):
 
     # load onnx model
-    model = onnx_helper.load(filepath,fuse_bn)
+    model = onnx_helper.load(filepath, fuse_bn)
 
     # get graph
     graph = build_graph(model)
+
+    # add split modules
+    graph = add_split_nodes(graph)
 
     # remove input node
     remove_nodes = []
