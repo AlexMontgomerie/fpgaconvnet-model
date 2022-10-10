@@ -14,3 +14,4 @@ from .SqueezeLayer      import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
+from .AveragePoolingLayer import AveragePoolingLayer

@@ -27,7 +27,7 @@ class LAYER_TYPE(Enum):
     Shape     = 49
     AveragePooling = 50
     Reshape = 51
-    NOP = 52
+    NOP     = 52
 
     @classmethod
     def get_type(cls, t):
@@ -68,27 +68,33 @@ def from_proto_layer_type(layer_type):
 
 def from_onnx_op_type(op_type):
     layer_types = {
+        # operations
         "Conv" : LAYER_TYPE.Convolution,
         "Gemm" : LAYER_TYPE.InnerProduct,
         "MatMul" : LAYER_TYPE.InnerProduct,
-        "Relu" : LAYER_TYPE.ReLU,
         "MaxPool" : LAYER_TYPE.Pooling,
-        "LRN" : LAYER_TYPE.LRN,
-        "Reshape" : LAYER_TYPE.Reshape,
-        # "Softmax" : LAYER_TYPE.Softmax,
-        "Softmax" : LAYER_TYPE.NOP,
-        "Dropout" : LAYER_TYPE.Dropout,
-        # "Flatten" : LAYER_TYPE.Flatten,
-        "Flatten" : LAYER_TYPE.NOP,
-        "BatchNormalization" : LAYER_TYPE.BatchNorm,
-        "Add" : LAYER_TYPE.EltWise,
-        "Cast" : LAYER_TYPE.Cast,
-        "Clip" : LAYER_TYPE.Clip,
-        "Shape" : LAYER_TYPE.Shape,
-        "Squeeze" : LAYER_TYPE.Squeeze,
-        "Transpose" : LAYER_TYPE.Transpose,
-        "Concat" : LAYER_TYPE.Concat,
-        "GlobalAveragePool" : LAYER_TYPE.AveragePooling,
         "AveragePool" : LAYER_TYPE.AveragePooling,
+        "BatchNormalization" : LAYER_TYPE.BatchNorm,
+        "LRN" : LAYER_TYPE.LRN,
+        "GlobalAveragePool" : LAYER_TYPE.AveragePooling,
+        "GlobalMaxPool" : LAYER_TYPE.AveragePooling, # TODO
+        # branching nodes
+        "Add" : LAYER_TYPE.EltWise,
+        "Mul" : LAYER_TYPE.EltWise,
+        "Concat" : LAYER_TYPE.Concat,
+        # Activations
+        "Relu" : LAYER_TYPE.ReLU,
+        "Clip" : LAYER_TYPE.ReLU, # TODO: implement clip properly
+        "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
+        "Softmax" : LAYER_TYPE.NOP, # TODO: move to CPU
+        "Dropout" : LAYER_TYPE.Dropout,
+        # shape operations
+        "Transpose" : LAYER_TYPE.Transpose,
+        "Squeeze" : LAYER_TYPE.Squeeze,
+        "Cast" : LAYER_TYPE.Cast,
+        "Flatten" : LAYER_TYPE.NOP, # NOTE: only "shape" layer supported
+        "Reshape" : LAYER_TYPE.Reshape,
+        "Shape" : LAYER_TYPE.Shape,
     }
+
     return layer_types.get(op_type, lambda: TypeError)

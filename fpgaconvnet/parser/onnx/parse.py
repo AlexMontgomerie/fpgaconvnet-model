@@ -7,6 +7,8 @@ from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer
+from fpgaconvnet.models.layers import AveragePoolingLayer
+from fpgaconvnet.models.layers import EltWiseLayer
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -79,8 +81,11 @@ class ParseOnnxNode:
 
     def get_edges_out(self, model):
         try:
-            next_node = next(filter(lambda x: x.input[0] == self.node.output[0], model.graph.node))
-            return [(self.name, onnx_helper.format_onnx_name(next_node))]
+            edges = []
+            next_nodes = filter(lambda x: x.input[0] in self.node.output, model.graph.node)
+            for next_node in next_nodes:
+                edges.append((self.name, onnx_helper.format_onnx_name(next_node)))
+            return edges
         except StopIteration:
             return []
 
@@ -176,4 +181,35 @@ class ParseOnnxNOPNode(ParseOnnxNode):
             1, 1
         )
 
+class ParseOnnxAveragePoolingNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # create Average pooling layer hardware
+        return AveragePoolingLayer(
+            self.input_shape[2],
+            self.input_shape[3],
+            self.input_shape[1]
+        )
+
+class ParseOnnxEltWiseNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        op_type = None
+        if self.node.op_type == "Add":
+            op_type = "sum"
+        elif self.node.op_type == "Mul":
+            op_type = "mul"
+        else:
+            raise TypeError(f"unsported eltwise type {self.node.op_type}")
+
+        # create Average pooling layer hardware
+        return EltWiseLayer(
+            self.input_shape[2],
+            self.input_shape[3],
+            self.input_shape[1],
+            ports_in=len(self.inputs),
+            op_type=op_type
+        )
 

@@ -1,4 +1,5 @@
 import copy
+import sys
 import importlib
 import os
 import random
@@ -37,13 +38,16 @@ class Parser:
         ]
 
         # minimum supported opset version
-        self.opset_version =  25
+        self.onnx_opset_version = 12
 
         # set the backend string
         self.backend = "hls"
 
         # quantisation mode [ float, QDQ, BFP, config ]
         self.quant_mode = "fake_float"
+
+        # batch size
+        self.batch_size = 1
 
     def optimize_onnx(self, model, passes):
         model_opt = model
@@ -56,37 +60,43 @@ class Parser:
         # load onnx model
         model = onnx.load(onnx_filepath)
 
+        # update model's batch size
+        model = onnx_helper.update_batch_size(model, self.batch_size)
+
         # simplify model
-        model, _ = simplify(model)
+        model_opt, _ = simplify(model)
+        # model_opt, _ = (model, False)
 
         # validate model
-        onnx.checker.check_model(model)
+        onnx.checker.check_model(model_opt)
 
         # # check opset version
         # assert model.opset_import.version >= self.opset_version, f"ONNX Operator version {model.opset_import.version} not supported!"
 
         # remove doc strings
-        onnx.helper.strip_doc_string(model)
+        onnx.helper.strip_doc_string(model_opt)
 
         # add inputs from initializers
-        onnx_helper.add_input_from_initializer(model) #Seems to be necessary for conv layers from pytorch (at least)
+        onnx_helper.add_input_from_initializer(model_opt) #Seems to be necessary for conv layers from pytorch (at least)
 
         # perform onnx optimization passes
-        model_opt = optimizer.optimize(model,
+        model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
 
         # infer shapes before manual optimisations
-        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+        model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         # perform fpgaconvnet-based optimization passes
         model_opt = self.optimize_onnx(model_opt,
-                ["fuse_matmul_add_into_gemm", "convert_matmul_to_gemm",
-                    "remove_redundant_pooling", "remove_training_nodes",
+                ["convert_matmul_to_gemm", "remove_redundant_pooling",
+                    "make_clip_min_max_scalar", "remove_training_nodes",
                     "convert_pool_to_global_pool", "convert_reshape_to_flatten",
                     "convert_transpose_flatten_gemm_to_flatten_gemm"])
 
         # infer shapes of optimised model
         self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+
+        onnx.save(model_opt, "model_opt.onnx")
 
         # check optimized model
         onnx.checker.check_model(model_opt)
@@ -96,9 +106,6 @@ class Parser:
 
         return model_opt
 
-    def validate_hardware_onnx_model(self, onnx_model):
-        pass
-
     def get_hardware_from_onnx_node(self, graph, node):
 
         # register converters
@@ -106,6 +113,8 @@ class Parser:
             LAYER_TYPE.Convolution: ParseOnnxConvNode,
             LAYER_TYPE.InnerProduct: ParseOnnxInnerProductNode,
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
+            LAYER_TYPE.AveragePooling: ParseOnnxAveragePoolingNode,
+            LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
@@ -116,8 +125,7 @@ class Parser:
         try:
             return converter[node_type](graph, node, backend=self.backend)
         except KeyError:
-            print(f"ERROR: {node_type} not supported, exiting now")
-            exit()
+            raise TypeError(f"{node_type} not supported, exiting now")
 
     def onnx_to_fpgaconvnet(self, onnx_filepath):
 
@@ -136,14 +144,15 @@ class Parser:
                     onnx_model.graph, node)
 
             # add node to graph
-            graph.add_node(hardware.name, **hardware.get_node_info())
+            graph.add_node(hardware.name,
+                    **hardware.get_node_info())
 
             # get edges from the hardware
             for edge in hardware.get_edges_out(onnx_model):
                 graph.add_edge(*edge)
 
         # return the graph
-        return graph
+        return onnx_model, graph
 
     def prototxt_to_fpgaconvnet(self, proto_filepath):
         pass
@@ -158,41 +167,55 @@ if __name__ == "__main__":
     # print("parsing alexnet")
     # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
 
-    print("Keras-converted models:")
+    # print("Keras-converted models:")
+    # print(f" - parsing cnv")
+    # p.onnx_to_fpgaconvnet(f"models/from_keras/cnv.onnx")
+    # print(f" - parsing mpcnn")
+    # p.onnx_to_fpgaconvnet(f"models/from_keras/mpcnn.onnx")
+    # print(f" - parsing sfc")
+    # p.onnx_to_fpgaconvnet(f"models/from_keras/sfc.onnx")
+    # print(f" - parsing vgg11")
+    # p.onnx_to_fpgaconvnet(f"models/from_keras/vgg11.onnx")
+    print(f" - parsing resnet18")
+    model, graph = p.onnx_to_fpgaconvnet(f"models/from_keras/resnet18.onnx")
 
-    print(" - parsing mpcnn")
-    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
+    # for model in os.listdir("models/from_keras/"):
+    #     print(f" - parsing {model}")
+    #     p.onnx_to_fpgaconvnet(f"models/from_keras/{model}")
 
-    print(" - parsing cnv")
-    p.onnx_to_fpgaconvnet("models/cnv.onnx")
+    # print("Pytorch-converted models:")
+    # print(f" - parsing alexnet_cifar")
+    # p.onnx_to_fpgaconvnet(f"models/from_pytorch/alexnet_cifar.onnx")
+    # print(f" - parsing vgg16_cifar")
+    # p.onnx_to_fpgaconvnet(f"models/from_pytorch/vgg16_cifar.onnx")
 
-    print(" - parsing simple")
-    p.onnx_to_fpgaconvnet("models/simple.onnx")
+    # print("Pytorch-converted models:")
+    # for model in os.listdir("models/from_pytorch/"):
+    #     print(f" - parsing {model}")
+    #     p.onnx_to_fpgaconvnet(f"models/from_pytorch/{model}")
 
-    print(" - parsing lfc")
-    p.onnx_to_fpgaconvnet("models/lfc.onnx")
+    print("ONNX model zoo models:")
+    # print(f" - parsing vgg16")
+    # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/vgg16-12.onnx")
+    # print(f" - parsing mobilenetv2")
+    # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/mobilenetv2-12.onnx")
+    # print(f" - parsing resnet18")
+    # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/resnet18-12.onnx")
 
-#     print("parsing mobilenetv2")
-#     p.onnx_to_fpgaconvnet("models/mobilenetv2-7.onnx")
+    # print("ONNX model zoo models:")
+    # for model in os.listdir("models/from_onnx_model_zoo/"):
+    #     print(f" - parsing {model}")
+    #     p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/{model}")
 
-    print("parsing mpcnn")
-    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
+    # print("3D models:")
+    # print(f" - parsing x3d_m")
+    # p.onnx_to_fpgaconvnet(f"models/3d/x3d_m.onnx")
+    # print(f" - parsing mobilenetv2")
+    # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/mobilenetv2-12.onnx")
 
-    print("parsing vgg11")
-    p.onnx_to_fpgaconvnet("models/vgg11.onnx")
+    # print("ONNX model zoo models:")
+    # for model in os.listdir("models/from_onnx_model_zoo/"):
+    #     print(f" - parsing {model}")
+    #     p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/{model}")
 
-    # # print("parsing vgg16")
-    # # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
-
-    # # print("parsing zfnet")
-    # # p.onnx_to_fpgaconvnet("models/zfnet512-3.onnx")
-
-    # # print("parsing key word spotting network")
-    # # p.onnx_to_fpgaconvnet("models/kws.onnx")
-
-    # print("parsing mobilenetv1 shrunk")
-    # p.onnx_to_fpgaconvnet("models/vww.onnx")
-
-    print("parsing resnet 8")
-    p.onnx_to_fpgaconvnet("models/resnet8.onnx")
 

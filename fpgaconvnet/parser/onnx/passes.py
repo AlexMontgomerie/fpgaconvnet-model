@@ -308,12 +308,21 @@ def convert_pool_to_global_pool(model):
         # convert to Global node
         if node.op_type == "MaxPool":
             model.graph.node[index].op_type = "GlobalMaxPool"
+            # remove attributes
+            # print(model.graph.node[index].attribute)
+            # model.graph.node[index].attribute = []
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
         if node.op_type == "AveragePool":
             model.graph.node[index].op_type = "GlobalAveragePool"
+            # remove attributes
+            # model.graph.node[index].attribute = []
+            # model.graph.node[index].attribute.remove(model.graph.node[index].attribute)
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
+            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
 
-        # remove attributes
-        model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
-        model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
 
     # return the new model
     return model
@@ -505,5 +514,25 @@ def convert_transpose_flatten_gemm_to_flatten_gemm(model):
     # return the new model
     return model
 
+def make_clip_min_max_scalar(model): #TODO
+
+    # # iterate over nodes in the graph
+    # for index, node in enumerate(model.graph.node):
+
+    #     # find a flatten node
+    #     if node.op_type != "Clip":
+    #         continue
+
+    #     # update min value
+    #     min_value = onnx_helper.get_model_initializer(model, node.input[1], to_tensor=False)
+    #     print(min_value)
+    #     if isinstance(min_value, list):
+    #         print("here")
+
+    #     print(node.input[1])
+    #     print(node.input[2])
+
+    # return the new model
+    return model
 
 

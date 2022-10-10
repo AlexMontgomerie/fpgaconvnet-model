@@ -1,7 +1,12 @@
+import random
+import copy
+
 import onnx
 import onnxruntime
 import onnx.numpy_helper
 import numpy as np
+
+from .onnx_model_utils import *
 
 onnxruntime.set_default_logger_severity(3)
 
@@ -117,14 +122,27 @@ def add_input_from_initializer(model : onnx.ModelProto):
 
     return add_const_value_infos_to_graph(model.graph)
 
-def update_batch_size(model, batch_size): # from https://github.com/microsoft/onnxruntime/issues/1467#issuecomment-514322927
-    # change input batch size
-    model.graph.input[0].type.tensor_type.shape.dim[0].dim_value = batch_size
-    model.graph.output[0].type.tensor_type.shape.dim[0].dim_value = batch_size
-    # clear value info
-    model.graph.ClearField('value_info')
-    # run shape inference
-    return onnx.shape_inference.infer_shapes(model)
+# def update_batch_size(model, batch_size): # from https://github.com/microsoft/onnxruntime/issues/1467#issuecomment-514322927
+#     # change input batch size
+#     model.graph.input[0].type.tensor_type.shape.dim[0].dim_value = batch_size
+#     model.graph.output[0].type.tensor_type.shape.dim[0].dim_value = batch_size
+#     # clear value info
+#     model.graph.ClearField('value_info')
+#     # run shape inference
+#     return onnx.shape_inference.infer_shapes(model)
+
+def update_batch_size(model, batch_size):
+    # get the input shape
+    input_shape = get_input_shape(model, model.graph.input[0].name)
+    batch_size_param = model.graph.input[0].type.tensor_type.shape.dim[0].dim_param
+    if model.graph.input[0].type.tensor_type.shape.dim[0].dim_param == "":
+        print(f"CRITICAL WARNING: batch size dimension already fixed to {input_shape[0]}")
+        return model
+    # new_input_shape = [batch_size, *input_shape[1:]]
+    # make_input_shape_fixed(model.graph, model.graph.input[0].name, new_input_shape)
+    make_dim_param_fixed(model.graph, batch_size_param, batch_size)
+    # fix_output_shapes(model)
+    return model
 
 def get_model_node(model, name):
     return next(filter(lambda x: x.name == name, model.graph.node))
@@ -170,7 +188,21 @@ def format_onnx_name(node):
     else:
         return name
 
-def check_model_equivalence(model_a, model_b, batch_size=32):
+def check_model_equivalence(model_a, model_b, batch_size=32, seed=2342315703):
+
+    # set seeds
+    np.random.seed(seed)
+    random.seed(seed)
+
+    # # add intermediate layers to outputs
+    # for node in model_a.graph.node:
+    #     layer_info = onnx.helper.ValueInfoProto()
+    #     layer_info.name = node.output[0]
+    #     model_a.graph.output.append(layer_info)
+    # for node in model_b.graph.node:
+    #     layer_info = onnx.helper.ValueInfoProto()
+    #     layer_info.name = node.output[0]
+    #     model_b.graph.output.append(layer_info)
 
     # inference sessions
     model_a_ort = onnxruntime.InferenceSession(model_a.SerializeToString())
@@ -184,8 +216,9 @@ def check_model_equivalence(model_a, model_b, batch_size=32):
     assert model_a_input_shape == model_b_input_shape, "ERROR: input shapes are not equivalent"
 
     # generate random data for the input
-    input_data = np.random.uniform(-1, 1,
-            size=(batch_size, *model_a_input_shape[1:])).astype(np.float32)
+    input_data = copy.deepcopy(np.random.uniform(-1, 1,
+        size=model_a_input_shape).astype(np.float32))
+            # size=(batch_size, *model_a_input_shape[1:])).astype(np.float32))
 
     # execute model a
     model_a_input_name = model_a_ort.get_inputs()[0].name

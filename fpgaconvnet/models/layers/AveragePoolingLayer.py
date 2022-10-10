@@ -81,9 +81,9 @@ class AveragePoolingLayer(Layer):
 
     def update(self):
         # pool
-        self.modules['pool'].rows     = self.rows_in()
-        self.modules['pool'].cols     = self.cols_in()
-        self.modules['pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['average_pool'].rows     = self.rows_in()
+        self.modules['average_pool'].cols     = self.cols_in()
+        self.modules['average_pool'].channels = int(self.channels_in()/self.coarse)
 
     def resource(self):
 
