@@ -1,0 +1,11 @@
+{
+    "batch_size": 1,
+    "rows": 10,
+    "cols": 10,
+    "channels": 1,
+    "filters": 1,
+    "group": 1,
+    "fine": 1,
+    "kernel_size": 1,
+    "description": "single channel, single filter"
+}

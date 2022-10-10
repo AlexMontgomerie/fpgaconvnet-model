@@ -1,0 +1,10 @@
+{
+    "rows": 26,
+    "cols": 26,
+    "channels": 32,
+    "coarse": 1,
+    "coarse_in": 1,
+    "coarse_out": 1,
+    "batch_size": 1,
+    "description": "f"
+}

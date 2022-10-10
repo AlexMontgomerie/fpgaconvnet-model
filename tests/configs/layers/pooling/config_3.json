@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 13,
+    "cols": 13,
+    "channels": 256,
+    "kernel_size": 3,
+    "stride": 2,
+    "pad": 0,
+    "coarse": 256,
+    "coarse_in": 256,
+    "coarse_out": 256,
+    "fine": 9,
+    "pool_type": "max",
+    "size_in": 43264,
+    "size_out": 9216,
+    "rows_out": 6,
+    "cols_out": 6,
+    "channels_out": 256,
+    "batch_size": 1,
+    "description": "layer name: pool5, net name: alexnet.prototxt"
+}

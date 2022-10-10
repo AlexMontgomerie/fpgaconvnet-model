@@ -1,0 +1,14 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 8,
+    "cols"        : 8,
+    "channels"    : 20,
+    "pad"         : 0,
+    "pad_top"     : 0,
+    "pad_right"   : 0,
+    "pad_bottom"  : 0,
+    "pad_left"    : 0,
+    "stride"      : 2,
+    "kernel_size" : 2,
+    "description" : "lenet (pool2)"
+}

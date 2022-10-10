@@ -1,0 +1,16 @@
+{
+    "buffer_depth": 0,
+    "rows": 28,
+    "cols": 28,
+    "channels": 16,
+    "filters": 32,
+    "kernel_size": 1,
+    "stride": 1,
+    "groups": 1,
+    "pad": 0,
+    "coarse_in": 1,
+    "coarse_out": 1,
+    "fine": 1,
+    "batch_size": 1,
+    "description": "b, fine=1"
+}

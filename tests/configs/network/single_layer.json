@@ -1,0 +1,165 @@
+{
+  "partition": [
+    {
+      "id": 0,
+      "ports": 1,
+      "batch_size": 512,
+      "input_node": "data",
+      "output_node": "pool1",
+      "weights_reloading_factor": 1,
+      "weights_reloading_layer": "conv1",
+      "layers": [
+        {
+          "name": "conv1",
+          "streams_in": [
+            {
+              "name": "in",
+              "coarse": 1
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "conv1_conv1_squeeze_pool1",
+              "coarse": 10
+            }
+          ],
+          "parameters": {
+            "buffer_depth": 0,
+            "batch_size": 512,
+            "rows_in": 28,
+            "cols_in": 28,
+            "channels_in": 1,
+            "rows_out": 24,
+            "cols_out": 24,
+            "channels_out": 20,
+            "coarse_in": 1,
+            "coarse_out": 10,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 25,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_left": 0,
+            "pad_bottom": 0,
+            "kernel_size": [
+              5,
+              5
+            ],
+            "stride": [
+              1,
+              1
+            ]
+          },
+          "node_in": "conv1",
+          "node_out": "conv1_squeeze_pool1",
+          "type": "CONVOLUTION",
+          "weights_path": "convolution_W",
+          "bias_path": "convolution_B"
+        },
+        {
+          "name": "conv1_squeeze_pool1",
+          "streams_in": [
+            {
+              "name": "conv1_conv1_squeeze_pool1",
+              "coarse": 10
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "conv1_squeeze_pool1_pool1",
+              "coarse": 20
+            }
+          ],
+          "parameters": {
+            "buffer_depth": 0,
+            "batch_size": 512,
+            "rows_in": 24,
+            "cols_in": 24,
+            "channels_in": 20,
+            "rows_out": 24,
+            "cols_out": 24,
+            "channels_out": 20,
+            "coarse_in": 10,
+            "coarse_out": 20
+          },
+          "node_in": "conv1",
+          "node_out": "pool1",
+          "type": "SQUEEZE"
+        },
+        {
+          "name": "pool1",
+          "streams_in": [
+            {
+              "name": "conv1_squeeze_pool1_pool1",
+              "coarse": 20
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "pool1_squeeze_pool1",
+              "coarse": 20
+            }
+          ],
+          "parameters": {
+            "buffer_depth": 0,
+            "batch_size": 512,
+            "rows_in": 24,
+            "cols_in": 24,
+            "channels_in": 20,
+            "rows_out": 12,
+            "cols_out": 12,
+            "channels_out": 20,
+            "coarse_in": 20,
+            "coarse_out": 20,
+            "coarse": 20,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_left": 0,
+            "pad_bottom": 0,
+            "kernel_size": [
+              2,
+              2
+            ],
+            "stride": [
+              2,
+              2
+            ]
+          },
+          "node_in": "conv1_squeeze_pool1",
+          "node_out": "squeeze_pool1",
+          "type": "POOLING"
+        },
+        {
+          "name": "squeeze_pool1",
+          "streams_in": [
+            {
+              "name": "pool1_squeeze_pool1",
+              "coarse": 20
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "out",
+              "coarse": 4
+            }
+          ],
+          "parameters": {
+            "buffer_depth": 0,
+            "batch_size": 512,
+            "rows_in": 20,
+            "cols_in": 12,
+            "channels_in": 12,
+            "rows_out": 20,
+            "cols_out": 12,
+            "channels_out": 12,
+            "coarse_in": 20,
+            "coarse_out": 4
+          },
+          "node_in": "pool1",
+          "node_out": "squeeze_pool1",
+          "type": "SQUEEZE"
+        }
+      ]
+    }
+  ]
+}

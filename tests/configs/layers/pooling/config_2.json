@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 7,
+    "cols": 7,
+    "channels": 2048,
+    "kernel_size": 7,
+    "stride": 1,
+    "pad": 0,
+    "coarse": 512,
+    "coarse_in": 512,
+    "coarse_out": 512,
+    "fine": 49,
+    "pool_type": "max",
+    "size_in": 100352,
+    "size_out": 2048,
+    "rows_out": 1,
+    "cols_out": 1,
+    "channels_out": 2048,
+    "batch_size": 1,
+    "description": "layer name: pool5, net name: resnet.prototxt"
+}

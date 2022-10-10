@@ -1,0 +1,16 @@
+{
+    "type": "POOLING",
+    "rows": 56,
+    "cols": 56,
+    "channels": 192,
+    "kernel_size": 3,
+    "stride": 2,
+    "pad": 0,
+    "coarse": 1,
+    "coarse_in": 1,
+    "coarse_out": 1,
+    "fine": 9,
+    "pool_type": "max",
+    "batch_size": 1,
+    "description": "pool2_3x3_s2"
+}

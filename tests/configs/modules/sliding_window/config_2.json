@@ -1,0 +1,14 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 224,
+    "cols"        : 224,
+    "channels"    : 3,
+    "pad"         : 3,
+    "pad_top"     : 3,
+    "pad_right"   : 3,
+    "pad_bottom"  : 3,
+    "pad_left"    : 3,
+    "stride"      : 2,
+    "kernel_size" : 7,
+    "description" : "resnet (conv1)"
+}

@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 56,
+    "cols": 56,
+    "channels": 192,
+    "kernel_size": 3,
+    "stride": 2,
+    "pad": 0,
+    "coarse": 1,
+    "coarse_in": 1,
+    "coarse_out": 1,
+    "fine": 9,
+    "pool_type": "max",
+    "size_in": 602112,
+    "size_out": 150528,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 192,
+    "batch_size": 1,
+    "description": "layer name: pool2/3x3_s2, net name: googlenet.prototxt"
+}

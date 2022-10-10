@@ -1,0 +1,12 @@
+{
+    "type": "CONV",
+    "rows": 14,
+    "cols": 14,
+    "channels": 64,
+    "filters": 16,
+    "group": 1,
+    "fine": 1,
+    "kernel_size": 1,
+    "batch_size": 1,
+    "description": "1x1"
+}

@@ -1,0 +1,11 @@
+{
+    "rows": 1,
+    "cols": 1,
+    "channels": 4096,
+    "filters": 5,
+    "coarse_in": 1024,
+    "coarse_out": 1,
+    "batch_size": 1,
+    "has_bias": 1,
+    "description": "layer name: fc8, net name: vgg16.prototxt"
+}

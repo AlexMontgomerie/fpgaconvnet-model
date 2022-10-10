@@ -10,3 +10,5 @@ from .PoolingLayer      import PoolingLayer
 from .ReLULayer         import ReLULayer
 from .ConvolutionLayer  import ConvolutionLayerBase
 from .SqueezeLayer      import SqueezeLayer
+from .chisel.ConvolutionLayer import ConvolutionLayer
+# from .hls.ConvolutionLayer import ConvolutionLayer

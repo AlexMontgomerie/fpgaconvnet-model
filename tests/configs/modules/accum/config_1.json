@@ -1,0 +1,10 @@
+{
+    "type": "ACCUM",
+    "rows": 28,
+    "cols": 28,
+    "channels": 8,
+    "filters": 1,
+    "groups": 1,
+    "batch_size": 1,
+    "description": "mutli channel, 1 filter"
+}

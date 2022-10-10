@@ -1,0 +1,9 @@
+{
+    "rows": 1,
+    "cols": 1,
+    "channels": 800,
+    "filters": 500,
+    "groups": 1,
+    "batch_size": 1,
+    "description": "ip1 for lenet"
+}

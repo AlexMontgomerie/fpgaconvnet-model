@@ -1,0 +1,13 @@
+{
+    "type": "POOL",
+    "rows": 4,
+    "cols": 4,
+    "channels": 1,
+    "pool_type": 0,
+    "kernel_size": 2,
+    "rows_out": 4,
+    "cols_out": 4,
+    "channels_out": 1,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: pool2, net name: lenet.prototxt"
+}

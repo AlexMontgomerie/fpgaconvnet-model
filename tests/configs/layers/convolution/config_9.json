@@ -1,0 +1,16 @@
+{
+    "buffer_depth": 0,
+    "rows": 28,
+    "cols": 28,
+    "channels": 128,
+    "filters": 512,
+    "kernel_size": 1,
+    "stride": 1,
+    "groups": 1,
+    "pad": 0,
+    "coarse_in": 8,
+    "coarse_out": 1,
+    "fine": 1,
+    "batch_size": 1,
+    "description": "layer name: res3c_branch2c, net name: resnet.prototxt"
+}

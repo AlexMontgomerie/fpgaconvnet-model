@@ -1,0 +1,17 @@
+{
+    "type": "CONVOLUTION",
+    "buffer_depth": 0,
+    "rows": 224,
+    "cols": 224,
+    "channels": 3,
+    "filters": 64,
+    "kernel_size": 7,
+    "stride": 2,
+    "groups": 1,
+    "pad": 3,
+    "coarse_in": 3,
+    "coarse_out": 8,
+    "fine": 1,
+    "batch_size": 1,
+    "description": "layer name: conv1, net name: resnet.prototxt"
+}

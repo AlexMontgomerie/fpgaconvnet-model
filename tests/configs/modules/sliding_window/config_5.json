@@ -1,0 +1,14 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 227,
+    "cols"        : 227,
+    "channels"    : 3,
+    "pad"         : 0,
+    "pad_top"     : 0,
+    "pad_right"   : 0,
+    "pad_bottom"  : 0,
+    "pad_left"    : 0,
+    "stride"      : 4,
+    "kernel_size" : 11,
+    "description" : "alexnet (conv1)"
+}

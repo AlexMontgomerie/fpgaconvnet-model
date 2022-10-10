@@ -1,0 +1,10 @@
+{
+    "type": "SPLIT",
+    "rows": 12,
+    "cols": 12,
+    "channels": 20,
+    "coarse": 1,
+    "ports_out": 2,
+    "batch_size": 1,
+    "description": ""
+}

@@ -1,0 +1,27 @@
+{
+    "type": "CONVOLUTION",
+    "buffer_depth": 0,
+    "rows": 28,
+    "cols": 28,
+    "channels": 1,
+    "filters": 5,
+    "kernel_size": [5,5],
+    "stride": [1,1],
+    "groups": 1,
+    "coarse_in": 1,
+    "coarse_out": 5,
+    "coarse_group": 1,
+    "fine": 25,
+    "pad": 4,
+    "wr_factor": 1,
+    "batch_size": 1,
+    "input_width": 16,
+    "data_width": 16,
+    "acc_width": 30,
+    "weight_width": 16,
+    "has_bias": 1,
+    "biases_width": 16,
+    "output_width": 16,
+    "description": "layer name: conv1, net name: brchy lenet bb"
+}
+
