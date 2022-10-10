@@ -1,6 +1,9 @@
 import onnx
+import onnxruntime
 import onnx.numpy_helper
 import numpy as np
+
+onnxruntime.set_default_logger_severity(3)
 
 def add_value_info_for_constants(model : onnx.ModelProto):
     """
@@ -167,3 +170,37 @@ def format_onnx_name(node):
     else:
         return name
 
+def check_model_equivalence(model_a, model_b, batch_size=32):
+
+    # inference sessions
+    model_a_ort = onnxruntime.InferenceSession(model_a.SerializeToString())
+    model_b_ort = onnxruntime.InferenceSession(model_b.SerializeToString())
+
+    # get input shapes
+    model_a_input_shape = model_a_ort.get_inputs()[0].shape
+    model_b_input_shape = model_b_ort.get_inputs()[0].shape
+
+    # first check they have the same input shape
+    assert model_a_input_shape == model_b_input_shape, "ERROR: input shapes are not equivalent"
+
+    # generate random data for the input
+    input_data = np.random.uniform(-1, 1,
+            size=(batch_size, *model_a_input_shape[1:])).astype(np.float32)
+
+    # execute model a
+    model_a_input_name = model_a_ort.get_inputs()[0].name
+    model_a_output_name = model_a_ort.get_outputs()[0].name
+    model_a_output = np.array(model_a_ort.run([model_a_output_name],
+        { model_a_input_name: input_data}))
+
+    # execute model b
+    model_b_input_name = model_b_ort.get_inputs()[0].name
+    model_b_output_name = model_b_ort.get_outputs()[0].name
+    model_b_output = np.array(model_b_ort.run([model_b_output_name],
+        { model_b_input_name: input_data}))
+
+    # check that outputs are the same shape
+    assert model_a_output.shape == model_b_output.shape, "ERROR: output shapes are not equivalent"
+
+    # check that the data is (roughly) equivalent
+    assert np.allclose(model_a_output, model_b_output, atol=0.00001), "ERROR: outputs are not equal"

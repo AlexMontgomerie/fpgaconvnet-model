@@ -59,7 +59,6 @@ class Parser:
         # simplify model
         model, _ = simplify(model)
 
-        onnx.save(model, "model_opt.onnx")
         # validate model
         onnx.checker.check_model(model)
 
@@ -76,15 +75,14 @@ class Parser:
         model_opt = optimizer.optimize(model,
                 passes=self.onnxoptimizer_passes)
 
-        # infer shapes of optimised model
+        # infer shapes before manual optimisations
         self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # perform fpgaconvnet optimization passes (pre shape inference)
+        # perform fpgaconvnet-based optimization passes
         model_opt = self.optimize_onnx(model_opt,
                 ["fuse_matmul_add_into_gemm", "convert_matmul_to_gemm",
                     "remove_redundant_pooling", "remove_training_nodes",
-                    "remove_redundant_flatten", "convert_pool_to_global_pool",
-                    "convert_reshape_to_flatten",
+                    "convert_pool_to_global_pool", "convert_reshape_to_flatten",
                     "convert_transpose_flatten_gemm_to_flatten_gemm"])
 
         # infer shapes of optimised model
@@ -93,19 +91,10 @@ class Parser:
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        # perform fpgaconvnet optimization passes (post shape inference)
-        model_hw = self.optimize_onnx(model_opt,
-                ["remove_transpose_reshape_to_gemm",
-                    "remove_flatten_to_gemm",
-                    "remove_last_softmax"])
-                    # "remove_channel_first_transpose", "remove_channel_first_reshape",
-                    # "remove_first_transpose", "remove_last_softmax"])
+        # check that models are equivalent
+        onnx_helper.check_model_equivalence(model, model_opt)
 
-        # validate hardware onnx
-        self.validate_hardware_onnx_model(model_hw)
-
-
-        return model_hw
+        return model_opt
 
     def validate_hardware_onnx_model(self, onnx_model):
         pass
@@ -118,6 +107,7 @@ class Parser:
             LAYER_TYPE.InnerProduct: ParseOnnxInnerProductNode,
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
         # get the node type
@@ -176,20 +166,20 @@ if __name__ == "__main__":
     print(" - parsing cnv")
     p.onnx_to_fpgaconvnet("models/cnv.onnx")
 
-    # print(" - parsing simple")
-    # p.onnx_to_fpgaconvnet("models/simple.onnx")
+    print(" - parsing simple")
+    p.onnx_to_fpgaconvnet("models/simple.onnx")
 
-    # print(" - parsing lfc")
-    # p.onnx_to_fpgaconvnet("models/lfc.onnx")
+    print(" - parsing lfc")
+    p.onnx_to_fpgaconvnet("models/lfc.onnx")
 
-    # print("parsing mobilenetv2")
-    # p.onnx_to_fpgaconvnet("models/mobilenetv2-7.onnx")
+#     print("parsing mobilenetv2")
+#     p.onnx_to_fpgaconvnet("models/mobilenetv2-7.onnx")
 
-    # print("parsing mpcnn")
-    # p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
+    print("parsing mpcnn")
+    p.onnx_to_fpgaconvnet("models/mpcnn.onnx")
 
-    # # print("parsing vgg11")
-    # # p.onnx_to_fpgaconvnet("models/vgg11.onnx")
+    print("parsing vgg11")
+    p.onnx_to_fpgaconvnet("models/vgg11.onnx")
 
     # # print("parsing vgg16")
     # # p.onnx_to_fpgaconvnet("models/vgg16-7.onnx")
@@ -203,6 +193,6 @@ if __name__ == "__main__":
     # print("parsing mobilenetv1 shrunk")
     # p.onnx_to_fpgaconvnet("models/vww.onnx")
 
-    # print("parsing resnet 8")
-    # p.onnx_to_fpgaconvnet("models/resnet8.onnx")
+    print("parsing resnet 8")
+    p.onnx_to_fpgaconvnet("models/resnet8.onnx")
 

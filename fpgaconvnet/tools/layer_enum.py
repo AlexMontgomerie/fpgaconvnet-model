@@ -27,6 +27,7 @@ class LAYER_TYPE(Enum):
     Shape     = 49
     AveragePooling = 50
     Reshape = 51
+    NOP = 52
 
     @classmethod
     def get_type(cls, t):
@@ -73,10 +74,12 @@ def from_onnx_op_type(op_type):
         "Relu" : LAYER_TYPE.ReLU,
         "MaxPool" : LAYER_TYPE.Pooling,
         "LRN" : LAYER_TYPE.LRN,
-        "Reshape" : LAYER_TYPE.Transpose,
-        "Softmax" : LAYER_TYPE.Softmax,
+        "Reshape" : LAYER_TYPE.Reshape,
+        # "Softmax" : LAYER_TYPE.Softmax,
+        "Softmax" : LAYER_TYPE.NOP,
         "Dropout" : LAYER_TYPE.Dropout,
-        "Flatten" : LAYER_TYPE.Flatten,
+        # "Flatten" : LAYER_TYPE.Flatten,
+        "Flatten" : LAYER_TYPE.NOP,
         "BatchNormalization" : LAYER_TYPE.BatchNorm,
         "Add" : LAYER_TYPE.EltWise,
         "Cast" : LAYER_TYPE.Cast,

@@ -473,9 +473,9 @@ def convert_transpose_flatten_gemm_to_flatten_gemm(model):
 
         # perform reshape-transpose-flatten on weights
         weights = onnx.numpy_helper.to_array(weights_raw)
-        weights = np.reshape(weights, (-1, *pre_transpose_shape[1:]))
+        weights = np.reshape(weights, (-1, *pre_transpose_shape[1:]), order="F")
         weights = np.transpose(weights, (0, *trans[1:]))
-        weights = np.reshape(weights, (-1, np.prod(post_transpose_shape[1:])))
+        weights = np.reshape(weights, (-1, np.prod(post_transpose_shape[1:])), order="F")
 
         # update the weights
         new_weights = onnx.helper.make_tensor(

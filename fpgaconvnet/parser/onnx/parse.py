@@ -6,6 +6,7 @@ from fpgaconvnet.models.layers import BatchNormLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
+from fpgaconvnet.models.layers import SqueezeLayer
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -158,6 +159,21 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
             kernel_size = self.attr["kernel_shape"],
             stride = self.attr["strides"],
             pad = self.attr["pads"],
+        )
+
+class ParseOnnxNOPNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+
+        print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
+
+        # create pooling layer hardware
+        return SqueezeLayer(
+            self.input_shape[2] if len(self.input_shape) == 4 else 1,
+            self.input_shape[3] if len(self.input_shape) == 4 else 1,
+            self.input_shape[1],
+            1, 1
         )
 
 
