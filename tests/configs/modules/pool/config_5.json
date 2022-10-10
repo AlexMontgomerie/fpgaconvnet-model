@@ -1,0 +1,13 @@
+{
+    "type": "POOL",
+    "rows": 7,
+    "cols": 7,
+    "channels": 32,
+    "pool_type": 0,
+    "kernel_size": 2,
+    "rows_out": 7,
+    "cols_out": 7,
+    "channels_out": 32,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: pool5, net name: vgg16.prototxt"
+}

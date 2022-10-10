@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 24,
+    "cols": 24,
+    "channels": 20,
+    "kernel_size": 2,
+    "stride": 2,
+    "pad": 0,
+    "coarse": 20,
+    "coarse_in": 20,
+    "coarse_out": 20,
+    "fine": 4,
+    "pool_type": "max",
+    "size_in": 11520,
+    "size_out": 2880,
+    "rows_out": 12,
+    "cols_out": 12,
+    "channels_out": 20,
+    "batch_size": 1,
+    "description": "layer name: pool1, net name: lenet.prototxt"
+}

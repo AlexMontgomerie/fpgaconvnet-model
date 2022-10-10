@@ -1,0 +1,12 @@
+{
+    "type": "CONV",
+    "rows": 56,
+    "cols": 56,
+    "channels": 16,
+    "filters": 16,
+    "group": 1,
+    "fine": 3,
+    "kernel_size": 3,
+    "batch_size": 1,
+    "description": "fine=kernel size"
+}

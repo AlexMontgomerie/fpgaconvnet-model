@@ -9,7 +9,7 @@ from google.protobuf.json_format import MessageToJson
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 
 import fpgaconvnet.tools.graphs as graphs
-import fpgaconvnet.tools.onnx_helper as onnx_helper
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 

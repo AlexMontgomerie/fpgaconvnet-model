@@ -1,0 +1,17 @@
+{
+    "type": "CONVOLUTION",
+    "buffer_depth": 0,
+    "rows": 13,
+    "cols": 13,
+    "channels": 384,
+    "filters": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "groups": 2,
+    "pad": 1,
+    "coarse_in": 8,
+    "coarse_out": 1,
+    "fine": 1,
+    "batch_size": 1,
+    "description": "layer name: conv5, net name: alexnet.prototxt"
+}

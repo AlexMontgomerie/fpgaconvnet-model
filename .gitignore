@@ -27,3 +27,6 @@ dist/
 examples/models
 
 **.dcp
+
+*.egg-info
+*.vscode

@@ -1,0 +1,26 @@
+{
+    "type": "CONVOLUTION",
+    "buffer_depth": 0,
+    "rows": 5,
+    "cols": 5,
+    "channels": 4,
+    "filters": 8,
+    "kernel_size": 3,
+    "stride": 1,
+    "groups": 1,
+    "pad": 0,
+    "coarse_in": 4,
+    "coarse_out": 2,
+    "coarse_group": 1,
+    "fine": 1,
+    "wr_factor": 1,
+    "batch_size": 1,
+    "input_width": 16,
+    "acc_width": 30,
+    "weight_width": 16,
+    "has_bias": 1,
+    "biases_width": 16,
+    "output_width": 16,
+    "description": "bias testing config"
+}
+

@@ -1,0 +1,13 @@
+{
+    "type": "POOL",
+    "rows": 1,
+    "cols": 1,
+    "channels": 4,
+    "pool_type": 0,
+    "kernel_size": 7,
+    "rows_out": 1,
+    "cols_out": 1,
+    "channels_out": 4,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: pool5, net name: resnet.prototxt"
+}

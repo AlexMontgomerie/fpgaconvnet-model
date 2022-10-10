@@ -1,0 +1,13 @@
+{
+    "type": "POOL",
+    "rows": 28,
+    "cols": 28,
+    "channels": 2,
+    "pool_type": 0,
+    "kernel_size": 3,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 2,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: pool2/3x3_s2, net name: googlenet.prototxt"
+}

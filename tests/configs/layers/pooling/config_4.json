@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 28,
+    "cols": 28,
+    "channels": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "pad": 1,
+    "coarse": 1,
+    "coarse_in": 1,
+    "coarse_out": 1,
+    "fine": 9,
+    "pool_type": "max",
+    "size_in": 200704,
+    "size_out": 200704,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 256,
+    "batch_size": 1,
+    "description": "layer name: inception_3b/pool, net name: googlenet.prototxt"
+}

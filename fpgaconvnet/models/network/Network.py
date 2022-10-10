@@ -9,7 +9,6 @@ import networkx as nx
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
 
-import fpgaconvnet.tools.parser as parser
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 import fpgaconvnet.tools.helper as helper
@@ -23,6 +22,8 @@ from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer
 from fpgaconvnet.models.partition.Partition import Partition
+
+from fpgaconvnet.parser import Parser
 
 class Network():
 
@@ -49,9 +50,11 @@ class Network():
         self.fuse_bn = fuse_bn
 
         # load network
-        self.model, self.graph = parser.parse_net(network_path, view=False,
-                data_width=self.data_width, weight_width=self.weight_width,
-                acc_width=self.acc_width, fuse_bn=self.fuse_bn)
+        self.parser = Parser()
+        self.model, self.graph = self.parser.onnx_to_fpgaconvnet(network_path)
+        # self.model, self.graph = parser.parse_net(network_path, view=False,
+        #         data_width=self.data_width, weight_width=self.weight_width,
+        #         acc_width=self.acc_width, fuse_bn=self.fuse_bn)
 
         # node and edge lists
         self.node_list = list(self.graph.nodes())

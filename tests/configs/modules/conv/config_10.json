@@ -1,0 +1,12 @@
+{
+    "type": "CONV",
+    "rows": 1,
+    "cols": 1,
+    "channels": 800,
+    "filters": 500,
+    "group": 1,
+    "fine": 1,
+    "kernel_size": 1,
+    "batch_size": 1,
+    "description": "module name: conv, layer name: ip1 (lenet)"
+}

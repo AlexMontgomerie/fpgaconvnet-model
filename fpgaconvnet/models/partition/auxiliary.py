@@ -3,7 +3,7 @@ import copy
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
-import fpgaconvnet.tools.onnx_helper as onnx_helper
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 from fpgaconvnet.models.layers import SqueezeLayer
 

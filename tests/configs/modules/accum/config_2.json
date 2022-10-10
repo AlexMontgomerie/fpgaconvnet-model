@@ -1,0 +1,9 @@
+{
+    "rows": 10,
+    "cols": 10,
+    "channels": 2,
+    "filters": 64,
+    "groups": 1,
+    "batch_size": 1,
+    "description": "multi filter, 1 channel"
+}

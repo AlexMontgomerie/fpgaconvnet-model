@@ -1,0 +1,13 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 56,
+    "cols"        : 56,
+    "channels"    : 64,
+    "pad_top"     : 1,
+    "pad_right"   : 1,
+    "pad_bottom"  : 1,
+    "pad_left"    : 1,
+    "stride"      : 1,
+    "kernel_size" : 3,
+    "description" : "resnet (first branch)"
+}

@@ -1,0 +1,13 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 56,
+    "cols"        : 56,
+    "channels"    : 2,
+    "pad_top"     : 1,
+    "pad_right"   : 1,
+    "pad_bottom"  : 0,
+    "pad_left"    : 0,
+    "stride"      : 2,
+    "kernel_size" : 3,
+    "description" : "googlenet: pool_3x3_s2 sliding window module"
+}

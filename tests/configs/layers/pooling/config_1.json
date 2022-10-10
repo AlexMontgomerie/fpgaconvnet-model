@@ -1,0 +1,21 @@
+{
+    "type": "POOLING",
+    "rows": 14,
+    "cols": 14,
+    "channels": 512,
+    "kernel_size": 2,
+    "stride": 2,
+    "pad": 0,
+    "coarse": 64,
+    "coarse_in": 64,
+    "coarse_out": 64,
+    "fine": 4,
+    "pool_type": "max",
+    "size_in": 100352,
+    "size_out": 25088,
+    "rows_out": 7,
+    "cols_out": 7,
+    "channels_out": 512,
+    "batch_size": 1,
+    "description": "layer name: pool5, net name: vgg16.prototxt"
+}
