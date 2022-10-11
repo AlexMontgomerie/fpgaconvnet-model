@@ -39,19 +39,19 @@ def split_graph_horizontal(graph,edge):
     next_graph = graph.subgraph(next_nodes).copy()
     return prev_graph, next_graph
 
-def split_graph_vertical(graph,nodes):
+def split_graph_vertical(graph, nodes):
     input_node = get_input_nodes(graph)[0]
     # find left side graph
     left_nodes = []
     for node in nodes[0]:
         left_nodes.extend( get_next_nodes_all(graph,node) )
-    left_nodes.extend(input_node) 
+    left_nodes.extend(input_node)
     left_graph = graph.subgraph(left_nodes).copy()
     # find right side graph
     right_nodes = []
     for node in nodes[1]:
         right_nodes.extend( get_next_nodes_all(graph,node) )
-    right_nodes.extend(input_node) 
+    right_nodes.extend(input_node)
     right_graph = graph.subgraph(right_nodes).copy()
     return left_graph, right_graph
 
@@ -83,16 +83,16 @@ def view_graph(graph,filepath):
     for node in graph:
         if graph.nodes[node]['type'] == LAYER_TYPE.Concat:
             layer_info = graph.nodes[node]['hw'].layer_info()
-            node_type  = layer_info['type']            
-            rows       = layer_info['rows']            
-            cols       = layer_info['cols']            
+            node_type  = layer_info['type']
+            rows       = layer_info['rows']
+            cols       = layer_info['cols']
             channels   = str(layer_info['channels'])
         else:
             layer_info = graph.nodes[node]['hw'].layer_info()
-            node_type  = layer_info['type']            
-            rows       = layer_info['rows']            
-            cols       = layer_info['cols']            
-            channels   = layer_info['channels']            
+            node_type  = layer_info['type']
+            rows       = layer_info['rows']
+            cols       = layer_info['cols']
+            channels   = layer_info['channels']
         g.add_node(pydot.Node(node,
             label="{{ {node}|type: {type} \n dim: [{rows}, {cols}, {channels}]  }}".format(
             node=node,

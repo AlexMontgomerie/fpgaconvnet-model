@@ -6,6 +6,7 @@ import fpgaconvnet.tools.matrix as matrix
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 from fpgaconvnet.models.layers import SqueezeLayer
+from fpgaconvnet.models.layers import SplitLayer
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
@@ -97,4 +98,37 @@ def remove_squeeze(self):
             self.graph.add_edge(prev_node,next_node)
     # remove squeeze nodes
     self.graph.remove_nodes_from(remove_nodes)
+
+def add_split(self):
+    # iterate over nodes in the graph
+    nodes = list(self.graph.nodes())
+    for node in nodes:
+        # get the nodes out
+        nodes_out = graphs.get_next_nodes(self.graph, node)
+        # add a split layer if there are more than 1 nodes out
+        if len(nodes_out) > 1:
+            # create a split node
+            split_node  = f"{node}_split"
+            self.graph.add_node(split_node,
+                type=LAYER_TYPE.Split,
+                hw=SplitLayer(
+                    self.graph.nodes[node]['hw'].rows_out(),
+                    self.graph.nodes[node]['hw'].cols_out(),
+                    self.graph.nodes[node]['hw'].channels_out(),
+                    self.graph.nodes[node]['hw'].streams_out(),
+                    len(nodes_out)
+                )
+            )
+            # iterate over nodes out
+            for node_out in nodes_out:
+                # remove edge from original node
+                self.graph.remove_edge(node, node_out)
+                # add edge to split node
+                self.graph.add_edge(split_node, node_out)
+            # add edge from original node to split node
+            self.graph.add_edge(node, split_node)
+
+def remove_split(self): #TODO
+    pass
+
 

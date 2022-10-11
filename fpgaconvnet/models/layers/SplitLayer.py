@@ -148,7 +148,7 @@ class SplitLayer(MultiPortLayer):
     def visualise(self,name):
         cluster = pydot.Cluster(name,label=name)
 
-        for i in range(self.coarse_in):
+        for i in self.coarse_in:
             cluster.add_node(pydot.Node( "_".join([name,"split",str(i)]), label="split" ))
 
         # get nodes in and out
