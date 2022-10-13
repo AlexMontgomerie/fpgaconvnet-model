@@ -107,9 +107,9 @@ class AveragePoolingLayer(Layer):
 
         for i in range(self.coarse):
             # define names
-            pool_name[i] = "_".join([name, "pool", str(i)])
+            pool_name[i] = "_".join([name, "average_pool", str(i)])
             # add nodes
-            cluster.add_node(self.modules["pool"].visualise(pool_name[i]))
+            cluster.add_node(self.modules["average_pool"].visualise(pool_name[i]))
 
         return cluster, np.array(pool_name).flatten().tolist(), np.array(pool_name).flatten().tolist()
 

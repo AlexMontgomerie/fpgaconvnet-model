@@ -22,8 +22,10 @@ class EltWiseLayer(MultiPortLayer):
         ):
 
         # initialise parent class
-        super().__init__([rows], [cols], [channels], [coarse], [coarse],
-                ports_in=ports_in, data_width=data_width)
+        super().__init__([rows]*ports_in, [cols]*ports_in,
+                [channels]*ports_in, [coarse]*ports_in,
+                [coarse]*ports_in, ports_in=ports_in,
+                data_width=data_width)
 
         # parameters
         self._coarse = coarse
@@ -31,7 +33,8 @@ class EltWiseLayer(MultiPortLayer):
 
         # init modules
         self.modules = {
-            "eltwise" : EltWise(self.rows_in(), self.cols_in(), self.channels_in(), self.ports_in),
+            "eltwise" : EltWise(self.rows_in(), self.cols_in(),
+                self.channels_in(), self.ports_in),
         }
 
         # update the layer

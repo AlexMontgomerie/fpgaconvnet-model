@@ -30,7 +30,7 @@ class Parser:
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
-            "fuse_bn_into_conv",
+            # "fuse_bn_into_conv",
             "fuse_consecutive_transposes",
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
@@ -154,7 +154,7 @@ class Parser:
                     **hardware.get_node_info())
 
             # get edges from the hardware
-            for edge in hardware.get_edges_out(onnx_model):
+            for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
 
         # return the graph

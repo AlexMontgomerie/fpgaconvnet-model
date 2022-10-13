@@ -71,15 +71,14 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
 
             # create layer
             layer = partition.layers.add()
-            layer.name = onnx_helper.gen_layer_name(
-                    self.partitions[i].graph, node)
+            # layer.name = onnx_helper.format_onnx_name(node)
+            layer.name = node
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(
                     self.partitions[i].graph.nodes[node]['type'])
 
             # nodes into layer
-            prev_nodes = list(map(lambda n: onnx_helper.gen_layer_name(
-                    self.partitions[i].graph, n),
-                    graphs.get_prev_nodes(self.partitions[i].graph, node)))
+            # prev_nodes = list(map(lambda n: onnx_helper.format_onnx_name(n),
+            prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
 
             if not prev_nodes:
                 layer.node_in.extend([layer.name])
@@ -96,9 +95,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                             self.partitions[i].graph.nodes[node]['hw'], j)
 
             # nodes out of layer
-            next_nodes = list(map(lambda n: onnx_helper.gen_layer_name(
-                    self.partitions[i].graph, n),
-                    graphs.get_next_nodes(self.partitions[i].graph, node)))
+            next_nodes = graphs.get_next_nodes(self.partitions[i].graph, node)
 
             if not next_nodes:
                 layer.node_out.extend([layer.name])

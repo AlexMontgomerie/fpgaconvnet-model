@@ -79,13 +79,11 @@ class ParseOnnxNode:
         """
         pass
 
-    def get_edges_out(self, model):
+    def get_edges_in(self, model):
         try:
-            edges = []
-            next_nodes = filter(lambda x: x.input[0] in self.node.output, model.graph.node)
-            for next_node in next_nodes:
-                edges.append((self.name, onnx_helper.format_onnx_name(next_node)))
-            return edges
+            prev_node = next(filter(
+                lambda x: x.output[0] in self.node.input[0], model.graph.node))
+            return [(onnx_helper.format_onnx_name(prev_node), self.name)]
         except StopIteration:
             return []
 
@@ -116,6 +114,14 @@ class ParseOnnxConvNode(ParseOnnxNode):
             has_bias = len(self.inputs) == 3
         )
 
+    def get_node_info(self):
+        node_info = ParseOnnxNode.get_node_info(self)
+        node_info["inputs"] = {
+            "weights" : self.node.input[1],
+            "bias" : self.node.input[2],
+        }
+        return node_info
+
 class ParseOnnxInnerProductNode(ParseOnnxNode):
 
     def get_hardware(self):
@@ -134,6 +140,13 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
             has_bias = len(self.inputs) == 3
         )
 
+    def get_node_info(self):
+        node_info = ParseOnnxNode.get_node_info(self)
+        node_info["inputs"] = {
+            "weights" : self.node.input[1],
+            "bias" : self.node.input[2],
+        }
+        return node_info
 
 class ParseOnnxReLUNode(ParseOnnxNode):
 
@@ -212,4 +225,14 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
             ports_in=len(self.inputs),
             op_type=op_type
         )
+
+    def get_edges_in(self, model):
+        try:
+            edges = []
+            prev_nodes = filter(lambda x: x.output[0] in self.node.input, model.graph.node)
+            for prev_node in prev_nodes:
+                edges.append((onnx_helper.format_onnx_name(prev_node), self.name))
+            return edges
+        except StopIteration:
+            return []
 
