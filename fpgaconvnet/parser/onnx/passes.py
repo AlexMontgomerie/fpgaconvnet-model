@@ -535,4 +535,76 @@ def make_clip_min_max_scalar(model): #TODO
     # return the new model
     return model
 
+def absorb_quantise(model):
+    model_was_changed = True
+    while model_was_changed:   # todo: move model_was_changed to Parser.py?
+        model_was_changed = False
+        for index, node in enumerate(model.graph.node):
+            tensor_raw = onnx_helper.get_model_initializer(model, node.input[0], to_tensor=False)
 
+            if node.op_type == "DequantizeLinear":
+                scale = onnx_helper.get_model_initializer(model, node.input[1], to_tensor=True)
+                zero_point = onnx_helper.get_model_initializer(model, node.input[2], to_tensor=True)
+                scale = np.atleast_1d(scale)
+                zero_point = np.atleast_1d(zero_point)
+                if tensor_raw is None:
+                    # activation
+                    quan_obj = "input"
+                else:
+                    tensor = onnx.numpy_helper.to_array(tensor_raw)
+                    tensor_index = list(model.graph.initializer).index(tensor_raw)
+                    size = scale.shape + (1,) * (tensor.ndim - scale.ndim)
+                    dequant_tensor = (tensor-zero_point.reshape(size))*scale.reshape(size)
+
+                    new_tensor = onnx.helper.make_tensor(
+                        name=node.input[0],
+                        data_type=onnx.TensorProto.FLOAT,
+                        dims=tensor.shape,
+                        vals=dequant_tensor.flatten().tolist())
+                                        
+                    tensor_value_info = onnx_helper.get_model_input(model, node.input[0])
+                    tensor_value_info_index = list(model.graph.input).index(tensor_value_info)
+                    new_tensor_value_info = onnx.helper.make_tensor_value_info(
+                            node.input[0],
+                            onnx.TensorProto.FLOAT,
+                            tensor.shape)
+
+                    model.graph.initializer.remove(tensor_raw)
+                    model.graph.initializer.insert(tensor_index, new_tensor)
+                    model.graph.input.remove(tensor_value_info)
+                    model.graph.input.insert(tensor_value_info_index, new_tensor_value_info)
+
+                    if tensor.ndim == 1:
+                        # bias
+                        quan_obj = "bias"
+                    else:
+                        # weight
+                        quan_obj = "weight"
+
+                next_node, input_index = onnx_helper.find_consumers(model, node.output[0])[0]
+                next_node.input[input_index] = node.input[0]
+                model.graph.node.remove(node)
+                model_was_changed = True
+
+                scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
+                next_node.attribute.append(scale_attr)
+                zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
+                next_node.attribute.append(zero_point_attr)
+                
+            if node.op_type == "QuantizeLinear":
+                assert tensor_raw is None
+
+                prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+
+                prev_node.output[0] = node.output[0]
+                model.graph.node.remove(node)
+                model_was_changed = True
+
+                quan_obj = "input"
+                
+                scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
+                prev_node.attribute.append(scale_attr)
+                zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
+                prev_node.attribute.append(zero_point_attr)
+
+    return model

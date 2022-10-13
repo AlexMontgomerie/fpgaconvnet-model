@@ -88,13 +88,19 @@ class Parser:
 
         # perform fpgaconvnet-based optimization passes
         model_opt = self.optimize_onnx(model_opt,
-                ["convert_matmul_to_gemm", "remove_redundant_pooling",
-                    "make_clip_min_max_scalar", "remove_training_nodes",
-                    "convert_pool_to_global_pool", "convert_reshape_to_flatten",
-                    "convert_transpose_flatten_gemm_to_flatten_gemm"])
+                ["absorb_quantise",
+                 "convert_matmul_to_gemm", "remove_redundant_pooling",
+                 "make_clip_min_max_scalar", "remove_training_nodes",
+                 "convert_pool_to_global_pool", "convert_reshape_to_flatten",
+                 "convert_transpose_flatten_gemm_to_flatten_gemm"
+                ])
 
         # infer shapes of optimised model
-        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+        try:
+            self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+        except onnx.onnx_cpp2py_export.shape_inference.InferenceError:
+            # "absorb_quantise" may convert int8 to float
+            pass
 
         onnx.save(model_opt, "model_opt.onnx")
 
@@ -177,7 +183,7 @@ if __name__ == "__main__":
     # print(f" - parsing vgg11")
     # p.onnx_to_fpgaconvnet(f"models/from_keras/vgg11.onnx")
     print(f" - parsing resnet18")
-    model, graph = p.onnx_to_fpgaconvnet(f"models/from_keras/resnet18.onnx")
+    model, graph = p.onnx_to_fpgaconvnet(f"models/dscnn_quant.onnx")
 
     # for model in os.listdir("models/from_keras/"):
     #     print(f" - parsing {model}")
