@@ -6,9 +6,6 @@ import math
 import numpy as np
 import networkx as nx
 
-from google.protobuf import json_format
-import fpgaconvnet.proto.fpgaconvnet_pb2
-
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 import fpgaconvnet.tools.helper as helper
@@ -21,7 +18,8 @@ from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer
-from fpgaconvnet.models.partition.Partition import Partition
+
+from fpgaconvnet.models.partition import Partition
 
 from fpgaconvnet.parser import Parser
 
@@ -215,105 +213,9 @@ class Network():
         else:
             raise TypeError
 
-    def get_layer_hardware(self, layer_proto):
-        # get layer type
-        layer_type = fpgaconvnet.tools.layer_enum.from_proto_layer_type(layer_proto.type)
-        # Convolution layer
-        if layer_type == LAYER_TYPE.Convolution:
-            return ConvolutionLayer(
-                layer_proto.parameters.channels_out,
-                layer_proto.parameters.rows_in,
-                layer_proto.parameters.cols_in,
-                layer_proto.parameters.channels_in,
-                kernel_size =list(layer_proto.parameters.kernel_size),
-                stride      =list(layer_proto.parameters.stride),
-                pad         = [
-                    layer_proto.parameters.pad_top,
-                    layer_proto.parameters.pad_right,
-                    layer_proto.parameters.pad_bottom,
-                    layer_proto.parameters.pad_left],
-                groups      =layer_proto.parameters.groups,
-                fine        =layer_proto.parameters.fine,
-                coarse_in   =layer_proto.parameters.coarse_in,
-                coarse_out  =layer_proto.parameters.coarse_out
-            )
-
-        # Inner Product Layer
-        if layer_type == LAYER_TYPE.InnerProduct:
-            return InnerProductLayer(
-                layer_proto.parameters.channels_out,
-                layer_proto.parameters.rows_in,
-                layer_proto.parameters.cols_in,
-                layer_proto.parameters.channels_in,
-                coarse_in   =layer_proto.parameters.coarse_in,
-                coarse_out  =layer_proto.parameters.coarse_out
-            )
-
-        # Pooling layer
-        if layer_type == LAYER_TYPE.Pooling:
-            return PoolingLayer(
-                layer_proto.parameters.rows_in,
-                layer_proto.parameters.cols_in,
-                layer_proto.parameters.channels_in,
-                pool_type   = 'max',
-                kernel_size =list(layer_proto.parameters.kernel_size),
-                stride      =list(layer_proto.parameters.stride),
-                pad         = [
-                    layer_proto.parameters.pad_top,
-                    layer_proto.parameters.pad_right,
-                    layer_proto.parameters.pad_bottom,
-                    layer_proto.parameters.pad_left],
-                coarse      =layer_proto.parameters.coarse
-            )
-
-        # ReLU Layer
-        if layer_type == LAYER_TYPE.ReLU:
-            # create relu layer hardware
-            return ReLULayer(
-                layer_proto.parameters.rows_in,
-                layer_proto.parameters.cols_in,
-                layer_proto.parameters.channels_in,
-                coarse      =layer_proto.parameters.coarse
-            )
-
-        # Squeeze Layer
-        if layer_type == LAYER_TYPE.Squeeze:
-            # create relu layer hardware
-            return SqueezeLayer(
-                layer_proto.parameters.rows_in,
-                layer_proto.parameters.cols_in,
-                layer_proto.parameters.channels_in,
-                coarse_in   =layer_proto.parameters.coarse_in,
-                coarse_out  =layer_proto.parameters.coarse_out
-            )
-
     def load_network(self, network_path):
-        # load the prototxt file
-        partitions = fpgaconvnet.proto.fpgaconvnet_pb2.partitions()
-        with open(network_path, "r") as f:
-            json_format.Parse(f.read(), partitions)
-        # delete current partitions
-        self.partitions = []
-        # iterate over partitions
-        for i, partition in enumerate(partitions.partition):
-            # add all layers to partition
-            graph = nx.DiGraph()
-            for layer in partition.layers:
-                # get layer type and hardware
-                layer_type = fpgaconvnet.tools.layer_enum.from_proto_layer_type(layer.type)
-                layer_hw = self.get_layer_hardware(layer)
-                # add layer
-                graph.add_node( layer.name, type=layer_type, hw=layer_hw, inputs={} )
-            # add all connections to graph
-            for layer in partition.layers:
-                if layer.node_in != layer.name:
-                    graph.add_edge(layer.node_in, layer.name)
-                if layer.node_out != layer.name:
-                    graph.add_edge(layer.name, layer.node_out)
-            # add partition
-            new_partition = Partition(graph)
-            # update partition attributes
-            new_partition.wr_factor = int(partition.weights_reloading_factor)
-            new_partition.wr_layer  = partition.weights_reloading_layer
-            self.partitions.append(new_partition)
+        # use parser to load configuration
+        self.parser.prototxt_to_fpgaconvnet(self, network_path)
+        # update partitions
+        self.update_partitions()
 

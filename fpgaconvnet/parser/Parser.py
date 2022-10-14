@@ -14,15 +14,21 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
+from fpgaconvnet.models.partition import Partition
+
 import fpgaconvnet.tools.graphs as graphs
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.parser.onnx.parse as onnx_parse
 import fpgaconvnet.parser.onnx.passes as onnx_passes
 
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
 from fpgaconvnet.parser.onnx.parse import *
+from fpgaconvnet.parser.prototxt.parse import *
+
+from google.protobuf import json_format
+import fpgaconvnet.proto.fpgaconvnet_pb2
 
 class Parser:
 
@@ -167,11 +173,67 @@ class Parser:
         # return the graph
         return onnx_model, graph
 
-    def prototxt_to_fpgaconvnet(self, proto_filepath):
-        pass
+    def get_hardware_from_prototxt_node(self, node):
 
-    def rename_graph(self):
-        pass
+        # register converters
+        converter = {
+            LAYER_TYPE.Convolution: ParsePrototxtConvNode,
+            LAYER_TYPE.InnerProduct: ParsePrototxtInnerProductNode,
+            LAYER_TYPE.Pooling: ParsePrototxtPoolingNode,
+            LAYER_TYPE.AveragePooling: ParsePrototxtAveragePoolingNode,
+            LAYER_TYPE.EltWise: ParsePrototxtEltWiseNode,
+            LAYER_TYPE.ReLU: ParsePrototxtReLUNode,
+            LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
+            LAYER_TYPE.Split: ParsePrototxtSplitNode,
+        }
+
+        # get the node type
+        node_type = from_proto_layer_type(node.type)
+
+        # try converter
+        try:
+            return converter[node_type](node, backend=self.backend)
+        except KeyError:
+            raise TypeError(f"{node_type} not supported, exiting now")
+
+
+    def prototxt_to_fpgaconvnet(self, net, proto_filepath):
+
+        # load the prototxt file
+        partitions = fpgaconvnet.proto.fpgaconvnet_pb2.partitions()
+        with open(proto_filepath, "r") as f:
+            json_format.Parse(f.read(), partitions)
+
+        # delete current partitions
+        net.partitions = []
+
+        # iterate over partitions
+        for i, partition in enumerate(partitions.partition):
+
+            # add all layers to partition
+            graph = nx.DiGraph()
+            for layer in partition.layers:
+
+                # get the hardware for the node
+                hardware = self.get_hardware_from_prototxt_node(layer)
+
+                # add node to graph
+                graph.add_node( layer.name, **hardware.get_node_info() )
+
+                # get edges from the hardware
+                for edge in hardware.get_edges_in():
+                    graph.add_edge(*edge)
+
+            # add partition
+            new_partition = Partition.Partition(graph)
+
+            # update partition attributes
+            new_partition.wr_factor = int(partition.weights_reloading_factor)
+            new_partition.wr_layer  = partition.weights_reloading_layer
+            net.partitions.append(new_partition)
+
+        # return updated network
+        return net
 
 if __name__ == "__main__":
 

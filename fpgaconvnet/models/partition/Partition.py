@@ -22,6 +22,9 @@ class Partition():
         ## graph for partition
         self.graph = graph
 
+        ## batch size
+        self.batch_size = batch_size
+
         ## ports
         self.ports_in   = ports_in
         self.ports_out  = ports_out
