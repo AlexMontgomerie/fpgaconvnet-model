@@ -157,11 +157,14 @@ def get_model_output(model, name):
     return next(filter(lambda x: x.name == name, model.graph.output))
 
 def get_model_initializer(model, name, to_tensor=True):
-    init = next(filter(lambda x: x.name == name, model.graph.initializer))
-    if to_tensor:
-        return onnx.numpy_helper.to_array(init)
-    else:
-        return init
+    try:
+        init = next(filter(lambda x: x.name == name, model.graph.initializer))
+        if to_tensor:
+            return onnx.numpy_helper.to_array(init)
+        else:
+            return init
+    except StopIteration:
+        return None
 
 def get_input_shape(model, name):
     # get inputs and outputs
@@ -240,3 +243,12 @@ def check_model_equivalence(model_a, model_b, batch_size=32, seed=2342315703):
 
     # check that the data is (roughly) equivalent
     assert np.allclose(model_a_output, model_b_output, atol=0.00001), "ERROR: outputs are not equal"
+
+# https://github.com/Xilinx/finn-base/blob/beae9785f2e29ef021541a3499832f3754e1026d/src/finn/core/modelwrapper.py#L370
+def find_consumers(model, tensor_name):
+    consumers = []
+    for node in model.graph.node:
+        for input_index, input_tensor in enumerate(node.input):
+            if input_tensor == tensor_name:
+                consumers.append((node, input_index))
+    return consumers
