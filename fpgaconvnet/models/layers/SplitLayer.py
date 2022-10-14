@@ -163,3 +163,4 @@ class SplitLayer(MultiPortLayer):
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"
         assert data.shape[2] == self.channels_in(), "ERROR (data): invalid channel dimension"
 
+        return [data for _ in range(self.ports_out)]

@@ -18,14 +18,18 @@ from fpgaconvnet.models.layers import Layer, MultiPortLayer
 def get_model_input_node(self, partition_index):
     input_node = self.partitions[partition_index].input_nodes[0]
     while not onnx_helper.get_model_node(self.model, input_node):
-        input_node = graphs.get_next_nodes(self.partitions[partition_index].graph,input_node)[0]
+        input_node = graphs.get_next_nodes(
+                self.partitions[partition_index].graph,input_node)[0]
     return onnx_helper.get_model_node(self.model, input_node).input[0]
+    # return self.model.graph.input[0]
 
 def get_model_output_node(self, partition_index):
     output_node = self.partitions[partition_index].output_nodes[0]
     while not onnx_helper.get_model_node(self.model, output_node):
-        output_node = graphs.get_prev_nodes(self.partitions[partition_index].graph,output_node)[0]
+        output_node = graphs.get_prev_nodes(
+                self.partitions[partition_index].graph,output_node)[0]
     return onnx_helper.get_model_node(self.model, output_node).output[0]
+    # return self.model.graph.output[0]
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
@@ -93,6 +97,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                     stream_in.name  = "_".join([prev_node, layer.name])
                     stream_in.coarse = self.get_stream_in_coarse(
                             self.partitions[i].graph.nodes[node]['hw'], j)
+                    stream_in.node = prev_node
 
             # nodes out of layer
             next_nodes = graphs.get_next_nodes(self.partitions[i].graph, node)
@@ -110,6 +115,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                     stream_out.name = "_".join([layer.name, next_node])
                     stream_out.coarse = self.get_stream_out_coarse(
                             self.partitions[i].graph.nodes[node]['hw'], j)
+                    stream_in.node = next_node
 
             # add parameters
             self.partitions[i].graph.nodes[node]['hw'].layer_info(

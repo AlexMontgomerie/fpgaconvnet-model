@@ -118,8 +118,10 @@ class ParseOnnxConvNode(ParseOnnxNode):
         node_info = ParseOnnxNode.get_node_info(self)
         node_info["inputs"] = {
             "weights" : self.node.input[1],
-            "bias" : self.node.input[2],
-        }
+            "bias" : "" }
+        if len(self.node.input) == 3:
+            node_info["inputs"]["bias"] = self.node.input[2]
+            node_info["hw"].has_bias = True
         return node_info
 
 class ParseOnnxInnerProductNode(ParseOnnxNode):
@@ -144,8 +146,10 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
         node_info = ParseOnnxNode.get_node_info(self)
         node_info["inputs"] = {
             "weights" : self.node.input[1],
-            "bias" : self.node.input[2],
-        }
+            "bias" : "" }
+        if len(self.node.input) == 3:
+            node_info["inputs"]["bias"] = self.node.input[2]
+            node_info["hw"].has_bias = True
         return node_info
 
 class ParseOnnxReLUNode(ParseOnnxNode):

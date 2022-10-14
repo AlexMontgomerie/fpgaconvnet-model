@@ -308,21 +308,11 @@ def convert_pool_to_global_pool(model):
         # convert to Global node
         if node.op_type == "MaxPool":
             model.graph.node[index].op_type = "GlobalMaxPool"
-            # remove attributes
-            # print(model.graph.node[index].attribute)
-            # model.graph.node[index].attribute = []
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
         if node.op_type == "AveragePool":
             model.graph.node[index].op_type = "GlobalAveragePool"
-            # remove attributes
-            # model.graph.node[index].attribute = []
-            # model.graph.node[index].attribute.remove(model.graph.node[index].attribute)
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
-            model.graph.node[index].attribute.remove(model.graph.node[index].attribute[0])
 
+        # remove attributes
+        del model.graph.node[index].attribute[:]
 
     # return the new model
     return model
@@ -531,6 +521,15 @@ def make_clip_min_max_scalar(model): #TODO
 
     #     print(node.input[1])
     #     print(node.input[2])
+
+    # return the new model
+    return model
+
+def rename_all_nodes(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+        model.graph.node[index].name = onnx_helper.format_onnx_name(node)
 
     # return the new model
     return model

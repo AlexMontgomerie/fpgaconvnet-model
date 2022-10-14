@@ -91,12 +91,13 @@ class Parser:
                 ["convert_matmul_to_gemm", "remove_redundant_pooling",
                     "make_clip_min_max_scalar", "remove_training_nodes",
                     "convert_pool_to_global_pool", "convert_reshape_to_flatten",
-                    "convert_transpose_flatten_gemm_to_flatten_gemm"])
+                    "convert_transpose_flatten_gemm_to_flatten_gemm",
+                    "rename_all_nodes"])
 
         # infer shapes of optimised model
         self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        onnx.save(model_opt, "model_opt.onnx")
+        # onnx.save(model_opt, "model_opt.onnx")
 
         # check optimized model
         onnx.checker.check_model(model_opt)

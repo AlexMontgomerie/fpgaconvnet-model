@@ -3,6 +3,8 @@ syntax = "proto2";
 message stream {
     required string name = 1;
     required int32  coarse = 2;
+    required int32  buffer_depth = 3 [default = 2];
+    optional string node = 4;
 }
 
 message parameter {
@@ -34,8 +36,8 @@ message parameter {
     optional int32 output_width = 26;
     optional int32 has_bias     = 27;
     optional int32 biases_width = 28;
-    optional int32 ports_in = 29;
-    optional int32 ports_out = 30;
+    optional int32 ports_in     = 29;
+    optional int32 ports_out    = 30;
     repeated int32 rows_in_array        = 31;
     repeated int32 cols_in_array        = 32;
     repeated int32 channels_in_array    = 33;
@@ -45,7 +47,7 @@ message parameter {
 }
 
 message layer {
-    required string name    = 1;
+    required string name = 1;
     repeated stream streams_in  = 2;
     repeated stream streams_out = 3;
     required parameter parameters = 4;
