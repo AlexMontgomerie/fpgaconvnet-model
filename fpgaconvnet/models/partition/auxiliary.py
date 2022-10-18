@@ -20,11 +20,12 @@ def add_squeeze(self):
         # mismatch
         if err[edge] != 0:
             # add node to graph
-            start_name = onnx_helper.gen_layer_name(self.graph, edge_list[edge][0])
-            end_name   = onnx_helper.gen_layer_name(self.graph, edge_list[edge][1])
+            # start_name = onnx_helper.format_onnx_name(edge_list[edge][0])
+            # end_name   = onnx_helper.format_onnx_name(edge_list[edge][1])
             start_node = edge_list[edge][0]
             end_node   = edge_list[edge][1]
-            new_node   = "_".join([start_name,"squeeze",end_name])
+            # new_node   = "_".join([start_name,"squeeze",end_name])
+            new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info
             self.graph.add_node(new_node,type=LAYER_TYPE.Squeeze,
                 hw=SqueezeLayer(

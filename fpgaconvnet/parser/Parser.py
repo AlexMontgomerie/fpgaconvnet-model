@@ -15,6 +15,7 @@ import pydot
 import numpy as np
 
 from fpgaconvnet.models.partition import Partition
+from fpgaconvnet.models.network import Network
 
 import fpgaconvnet.tools.graphs as graphs
 
@@ -113,7 +114,7 @@ class Parser:
             self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
         except onnx.onnx_cpp2py_export.shape_inference.InferenceError:
             # "absorb_quantise" may convert int8 to float
-            pass
+            print("WARNING: unable to infer shapes")
 
         # onnx.save(model_opt, "model_opt.onnx")
 
@@ -171,7 +172,7 @@ class Parser:
                 graph.add_edge(*edge)
 
         # return the graph
-        return onnx_model, graph
+        return Network("from_onnx", onnx_model, graph)
 
     def get_hardware_from_prototxt_node(self, node):
 
@@ -225,7 +226,7 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition.Partition(graph)
+            new_partition = Partition(graph)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)
@@ -252,7 +253,7 @@ if __name__ == "__main__":
     # print(f" - parsing vgg11")
     # p.onnx_to_fpgaconvnet(f"models/from_keras/vgg11.onnx")
     print(f" - parsing resnet18")
-    model, graph = p.onnx_to_fpgaconvnet(f"models/dscnn_quant.onnx")
+    net = p.onnx_to_fpgaconvnet(f"models/from_keras/lenet.onnx")
 
     # for model in os.listdir("models/from_keras/"):
     #     print(f" - parsing {model}")
