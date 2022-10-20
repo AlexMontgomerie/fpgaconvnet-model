@@ -91,6 +91,7 @@ class InnerProductLayer(Layer):
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
+        parameters.data_t.Clear()
 
     def update(self): # TODO: update all parameters
         # fork

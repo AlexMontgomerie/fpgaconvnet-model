@@ -20,6 +20,9 @@ class AveragePoolingLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
         ):
 
+        # save acc_t
+        self.acc_t = acc_t
+
         # initialise parent class
         super().__init__(rows, cols, channels, coarse, coarse)
 
@@ -78,6 +81,7 @@ class AveragePoolingLayer(Layer):
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        self.acc_t.to_protobuf(parameters.acc_t)
 
     def update(self):
         # pool

@@ -28,6 +28,8 @@ class EltWiseLayer(MultiPortLayer):
                 [channels]*ports_in, [coarse]*ports_in,
                 [coarse]*ports_in, ports_in=ports_in)
 
+        self.acc_t = acc_t
+
         # parameters
         self._coarse = coarse
         self._op_type = op_type
@@ -85,6 +87,7 @@ class EltWiseLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        self.acc_t.to_protobuf(parameters.acc_t)
         # remove the repeated rows, cols and channels
         del parameters.rows_in_array[:]
         del parameters.cols_in_array[:]

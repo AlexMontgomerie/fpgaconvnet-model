@@ -20,7 +20,8 @@ def quantise(graph, model, data_width=16, weight_width=16, acc_width=32):
             weights_max = np.amax(np.absolute(weights))
 
             # get the weight binary point
-            weight_binary_point = weight_width - max(2, math.log(weights_max, 2)+2)
+            weight_binary_point = weight_width - max(2,
+                    int(math.ceil(math.log(weights_max, 2)))+2)
 
             # get the accumulation binary point
             acc_binary_point = weight_binary_point + data_width//2

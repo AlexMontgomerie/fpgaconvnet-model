@@ -4,6 +4,8 @@ import pydot
 import torch
 from typing import Union, List
 
+import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
+
 from fpgaconvnet.models.layers.utils import get_factors
 
 from fpgaconvnet.models.layers import Layer
@@ -152,6 +154,7 @@ class ConvolutionLayerBase(Layer):
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
+        parameters.data_t.Clear()
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
