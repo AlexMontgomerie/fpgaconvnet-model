@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='fpgaconvnet.proto',
   package='',
   syntax='proto2',
-  serialized_pb=_b('\n\x11\x66pgaconvnet.proto\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\xde\x05\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x02(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x02(\x05\x12\x0f\n\x07rows_in\x18\x03 \x02(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x02(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x02(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x02(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x01(\x05\x12\x11\n\tcoarse_in\x18\t \x02(\x05\x12\x12\n\ncoarse_out\x18\n \x02(\x05\x12\x0e\n\x06\x63oarse\x18\x0b \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0c \x01(\x05\x12\x0e\n\x06groups\x18\r \x01(\x05\x12\x0c\n\x04\x66ine\x18\x0e \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x0f \x01(\x05\x12\x0f\n\x07pad_top\x18\x10 \x01(\x05\x12\x11\n\tpad_right\x18\x11 \x01(\x05\x12\x10\n\x08pad_left\x18\x12 \x01(\x05\x12\x12\n\npad_bottom\x18\x13 \x01(\x05\x12\x13\n\x0bkernel_size\x18\x14 \x03(\x05\x12\x0e\n\x06stride\x18\x15 \x03(\x05\x12\x12\n\ndata_width\x18\x16 \x01(\x05\x12\x14\n\x0cweight_width\x18\x17 \x01(\x05\x12\x11\n\tacc_width\x18\x18 \x01(\x05\x12\x13\n\x0binput_width\x18\x19 \x01(\x05\x12\x14\n\x0coutput_width\x18\x1a \x01(\x05\x12\x10\n\x08has_bias\x18\x1b \x01(\x05\x12\x14\n\x0c\x62iases_width\x18\x1c \x01(\x05\x12\x10\n\x08ports_in\x18\x1d \x01(\x05\x12\x11\n\tports_out\x18\x1e \x01(\x05\x12\x15\n\rrows_in_array\x18\x1f \x03(\x05\x12\x15\n\rcols_in_array\x18  \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18! \x03(\x05\x12\x16\n\x0erows_out_array\x18\" \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18# \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18$ \x03(\x05\"\xfd\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x1b\n\nstreams_in\x18\x02 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x03 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x04 \x02(\x0b\x32\n.parameter\x12\x0f\n\x07node_in\x18\x05 \x03(\t\x12\x10\n\x08node_out\x18\x06 \x03(\t\x12\x1f\n\x04type\x18\x07 \x02(\x0e\x32\x11.layer.layer_type\x12\x14\n\x0cweights_path\x18\x08 \x01(\t\x12\x11\n\tbias_path\x18\t \x01(\t\"\x9d\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x08\n\x04RELU\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x0b\n\x07\x45LTWISE\x10\x08\x12\x13\n\x0f\x41VERAGE_POOLING\x10\t\"\xbe\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x12\n\ninput_node\x18\x04 \x02(\t\x12\x13\n\x0boutput_node\x18\x05 \x02(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition')
+  serialized_pb=_b('\n\x11\x66pgaconvnet.proto\"2\n\x0b\x66ixed_point\x12\r\n\x05width\x18\x01 \x02(\x05\x12\x14\n\x0c\x62inary_point\x18\x02 \x02(\x05\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\x90\x06\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x01(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x01(\x05\x12\x0f\n\x07rows_in\x18\x03 \x01(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x01(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x01(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x01(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x01(\x05\x12\x11\n\tcoarse_in\x18\t \x01(\x05\x12\x12\n\ncoarse_out\x18\n \x01(\x05\x12\x0e\n\x06\x63oarse\x18\x0b \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0c \x01(\x05\x12\x0e\n\x06groups\x18\r \x01(\x05\x12\x0c\n\x04\x66ine\x18\x0e \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x0f \x01(\x05\x12\x0f\n\x07pad_top\x18\x10 \x01(\x05\x12\x11\n\tpad_right\x18\x11 \x01(\x05\x12\x10\n\x08pad_left\x18\x12 \x01(\x05\x12\x12\n\npad_bottom\x18\x13 \x01(\x05\x12\x13\n\x0bkernel_size\x18\x14 \x03(\x05\x12\x0e\n\x06stride\x18\x15 \x03(\x05\x12\x1c\n\x06\x64\x61ta_t\x18\x16 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08weight_t\x18\x17 \x01(\x0b\x32\x0c.fixed_point\x12\x1b\n\x05\x61\x63\x63_t\x18\x18 \x01(\x0b\x32\x0c.fixed_point\x12\x1d\n\x07input_t\x18\x19 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08output_t\x18\x1a \x01(\x0b\x32\x0c.fixed_point\x12\x10\n\x08has_bias\x18\x1b \x01(\x05\x12\x14\n\x0c\x62iases_width\x18\x1c \x01(\x05\x12\x10\n\x08ports_in\x18\x1d \x01(\x05\x12\x11\n\tports_out\x18\x1e \x01(\x05\x12\x15\n\rrows_in_array\x18\x1f \x03(\x05\x12\x15\n\rcols_in_array\x18  \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18! \x03(\x05\x12\x16\n\x0erows_out_array\x18\" \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18# \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18$ \x03(\x05\"\xda\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x1f\n\x04type\x18\x02 \x02(\x0e\x32\x11.layer.layer_type\x12\x1b\n\nstreams_in\x18\x03 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x04 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x05 \x02(\x0b\x32\n.parameter\x12\x14\n\x0cweights_path\x18\x06 \x01(\t\x12\x11\n\tbias_path\x18\x07 \x01(\t\"\x9d\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x08\n\x04RELU\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x0b\n\x07\x45LTWISE\x10\x08\x12\x13\n\x0f\x41VERAGE_POOLING\x10\t\"\xbe\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x12\n\ninput_node\x18\x04 \x02(\t\x12\x13\n\x0boutput_node\x18\x05 \x02(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -74,10 +74,48 @@ _LAYER_LAYER_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1062,
-  serialized_end=1219,
+  serialized_start=1129,
+  serialized_end=1286,
 )
 _sym_db.RegisterEnumDescriptor(_LAYER_LAYER_TYPE)
+
+
+_FIXED_POINT = _descriptor.Descriptor(
+  name='fixed_point',
+  full_name='fixed_point',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='width', full_name='fixed_point.width', index=0,
+      number=1, type=5, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='binary_point', full_name='fixed_point.binary_point', index=1,
+      number=2, type=5, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto2',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=21,
+  serialized_end=71,
+)
 
 
 _STREAM = _descriptor.Descriptor(
@@ -127,8 +165,8 @@ _STREAM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=21,
-  serialized_end=98,
+  serialized_start=73,
+  serialized_end=150,
 )
 
 
@@ -141,28 +179,28 @@ _PARAMETER = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='buffer_depth', full_name='parameter.buffer_depth', index=0,
-      number=1, type=5, cpp_type=1, label=2,
+      number=1, type=5, cpp_type=1, label=1,
       has_default_value=True, default_value=2,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='batch_size', full_name='parameter.batch_size', index=1,
-      number=2, type=5, cpp_type=1, label=2,
+      number=2, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='rows_in', full_name='parameter.rows_in', index=2,
-      number=3, type=5, cpp_type=1, label=2,
+      number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='cols_in', full_name='parameter.cols_in', index=3,
-      number=4, type=5, cpp_type=1, label=2,
+      number=4, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -176,14 +214,14 @@ _PARAMETER = _descriptor.Descriptor(
       options=None),
     _descriptor.FieldDescriptor(
       name='rows_out', full_name='parameter.rows_out', index=5,
-      number=6, type=5, cpp_type=1, label=2,
+      number=6, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='cols_out', full_name='parameter.cols_out', index=6,
-      number=7, type=5, cpp_type=1, label=2,
+      number=7, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -197,14 +235,14 @@ _PARAMETER = _descriptor.Descriptor(
       options=None),
     _descriptor.FieldDescriptor(
       name='coarse_in', full_name='parameter.coarse_in', index=8,
-      number=9, type=5, cpp_type=1, label=2,
+      number=9, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='coarse_out', full_name='parameter.coarse_out', index=9,
-      number=10, type=5, cpp_type=1, label=2,
+      number=10, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -287,37 +325,37 @@ _PARAMETER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='data_width', full_name='parameter.data_width', index=21,
-      number=22, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='data_t', full_name='parameter.data_t', index=21,
+      number=22, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='weight_width', full_name='parameter.weight_width', index=22,
-      number=23, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='weight_t', full_name='parameter.weight_t', index=22,
+      number=23, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='acc_width', full_name='parameter.acc_width', index=23,
-      number=24, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='acc_t', full_name='parameter.acc_t', index=23,
+      number=24, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='input_width', full_name='parameter.input_width', index=24,
-      number=25, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='input_t', full_name='parameter.input_t', index=24,
+      number=25, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='output_width', full_name='parameter.output_width', index=25,
-      number=26, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='output_t', full_name='parameter.output_t', index=25,
+      number=26, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -403,8 +441,8 @@ _PARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=101,
-  serialized_end=835,
+  serialized_start=153,
+  serialized_end=937,
 )
 
 
@@ -423,57 +461,43 @@ _LAYER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='streams_in', full_name='layer.streams_in', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      name='type', full_name='layer.type', index=1,
+      number=2, type=14, cpp_type=8, label=2,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='streams_out', full_name='layer.streams_out', index=2,
+      name='streams_in', full_name='layer.streams_in', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='layer.parameters', index=3,
-      number=4, type=11, cpp_type=10, label=2,
+      name='streams_out', full_name='layer.streams_out', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='parameters', full_name='layer.parameters', index=4,
+      number=5, type=11, cpp_type=10, label=2,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='node_in', full_name='layer.node_in', index=4,
-      number=5, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='node_out', full_name='layer.node_out', index=5,
-      number=6, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='type', full_name='layer.type', index=6,
-      number=7, type=14, cpp_type=8, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='weights_path', full_name='layer.weights_path', index=7,
-      number=8, type=9, cpp_type=9, label=1,
+      name='weights_path', full_name='layer.weights_path', index=5,
+      number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='bias_path', full_name='layer.bias_path', index=8,
-      number=9, type=9, cpp_type=9, label=1,
+      name='bias_path', full_name='layer.bias_path', index=6,
+      number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -491,8 +515,8 @@ _LAYER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=838,
-  serialized_end=1219,
+  serialized_start=940,
+  serialized_end=1286,
 )
 
 
@@ -571,8 +595,8 @@ _PARTITION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1222,
-  serialized_end=1412,
+  serialized_start=1289,
+  serialized_end=1479,
 )
 
 
@@ -602,22 +626,35 @@ _PARTITIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1414,
-  serialized_end=1457,
+  serialized_start=1481,
+  serialized_end=1524,
 )
 
+_PARAMETER.fields_by_name['data_t'].message_type = _FIXED_POINT
+_PARAMETER.fields_by_name['weight_t'].message_type = _FIXED_POINT
+_PARAMETER.fields_by_name['acc_t'].message_type = _FIXED_POINT
+_PARAMETER.fields_by_name['input_t'].message_type = _FIXED_POINT
+_PARAMETER.fields_by_name['output_t'].message_type = _FIXED_POINT
+_LAYER.fields_by_name['type'].enum_type = _LAYER_LAYER_TYPE
 _LAYER.fields_by_name['streams_in'].message_type = _STREAM
 _LAYER.fields_by_name['streams_out'].message_type = _STREAM
 _LAYER.fields_by_name['parameters'].message_type = _PARAMETER
-_LAYER.fields_by_name['type'].enum_type = _LAYER_LAYER_TYPE
 _LAYER_LAYER_TYPE.containing_type = _LAYER
 _PARTITION.fields_by_name['layers'].message_type = _LAYER
 _PARTITIONS.fields_by_name['partition'].message_type = _PARTITION
+DESCRIPTOR.message_types_by_name['fixed_point'] = _FIXED_POINT
 DESCRIPTOR.message_types_by_name['stream'] = _STREAM
 DESCRIPTOR.message_types_by_name['parameter'] = _PARAMETER
 DESCRIPTOR.message_types_by_name['layer'] = _LAYER
 DESCRIPTOR.message_types_by_name['partition'] = _PARTITION
 DESCRIPTOR.message_types_by_name['partitions'] = _PARTITIONS
+
+fixed_point = _reflection.GeneratedProtocolMessageType('fixed_point', (_message.Message,), dict(
+  DESCRIPTOR = _FIXED_POINT,
+  __module__ = 'fpgaconvnet_pb2'
+  # @@protoc_insertion_point(class_scope:fixed_point)
+  ))
+_sym_db.RegisterMessage(fixed_point)
 
 stream = _reflection.GeneratedProtocolMessageType('stream', (_message.Message,), dict(
   DESCRIPTOR = _STREAM,

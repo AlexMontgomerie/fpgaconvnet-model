@@ -17,12 +17,11 @@ class ConcatLayer(MultiPortLayer):
             channels: List[int],
             ports_in: int = 1,
             coarse: int = 1,
-            data_width: int = 16
         ):
 
         # initialise parent class
         super().__init__([rows], [cols], channels, [coarse], [coarse],
-                ports_in=ports_in, data_width=data_width)
+                ports_in=ports_in)
 
         # parameters
         self._coarse = coarse
@@ -91,7 +90,6 @@ class ConcatLayer(MultiPortLayer):
         self.modules["concat"].cols     = self.cols_in()
         self.modules["concat"].channels = self.channels
         self.modules["concat"].ports_in = self.ports_in
-        self.modules["concat"].data_width = self.data_width
 
     def layer_info(self,parameters,batch_size=1):
         MultiPortLayer.layer_info(self, parameters, batch_size)
@@ -100,4 +98,10 @@ class ConcatLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+       # remove the repeated rows, cols and channels
+        del parameters.rows_in_array[:]
+        del parameters.cols_in_array[:]
+        del parameters.rows_out_array[:]
+        del parameters.cols_out_array[:]
+        del parameters.channels_out_array[:]
 

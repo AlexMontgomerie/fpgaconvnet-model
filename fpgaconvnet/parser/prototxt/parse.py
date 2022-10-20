@@ -33,8 +33,8 @@ class ParsePrototxtNode:
         self.layer_type = layer_enum.from_proto_layer_type(n.type)
 
         # get inputs and outputs
-        self.inputs = n.node_in
-        self.outputs = n.node_out
+        self.inputs = [ stream.node for stream in self.node.streams_in ]
+        self.outputs = [ stream.node for stream in self.node.streams_out ]
 
         # input and output shape
         self.input_shape = [ n.parameters.rows_in,

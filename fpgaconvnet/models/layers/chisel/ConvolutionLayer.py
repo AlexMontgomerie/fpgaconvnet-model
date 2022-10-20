@@ -5,8 +5,8 @@ import torch
 from typing import Union, List
 
 from fpgaconvnet.models.layers.utils import get_factors
-
 from fpgaconvnet.tools.resource_model import bram_memory_resource_model
+from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import VectorDot
@@ -34,24 +34,23 @@ class ConvolutionLayer(ConvolutionLayerBase):
             groups: int = 1,
             pad: Union[List[int], int] = 0,
             fine: int  = 1,
-            input_width: int = 16,
-            output_width: int = 16,
-            weight_width: int = 16,
-            acc_width: int = 16,
-            biases_width: int = 16,
+            input_t: FixedPoint = FixedPoint(16,8),
+            output_t: FixedPoint = FixedPoint(16,8),
+            weight_t: FixedPoint = FixedPoint(16,8),
+            acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0 # default to no bias for old configs
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse_in,
-                coarse_out, data_width=input_width)
+        super().__init__(rows, cols, channels,
+                coarse_in, coarse_out)
 
-        # save the widths
-        self.input_width = input_width
-        self.output_width = output_width
-        self.weight_width = weight_width
-        self.acc_width = acc_width
-        self.biases_width = biases_width
+        # save data types
+        self.input_t = input_t
+        self.output_t = output_t
+        self.weight_t = weight_t
+        self.acc_t = acc_t
+
         # save bias flag
         self.has_bias = has_bias
 
@@ -95,19 +94,19 @@ class ConvolutionLayer(ConvolutionLayerBase):
         self.modules['sliding_window'].rows     = self.rows
         self.modules['sliding_window'].cols     = self.cols
         self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
-        self.modules['sliding_window'].data_width   = self.input_width
+        self.modules['sliding_window'].data_width   = self.input_t.width
         # squeeze
         self.modules['squeeze'].rows     = self.rows_out()
         self.modules['squeeze'].cols     = self.cols_out()
         self.modules['squeeze'].channels = self.channels//(self.coarse_in*self.coarse_group)
         self.modules['squeeze'].coarse_out = self.fine
-        self.modules['squeeze'].data_width = self.input_width
+        self.modules['squeeze'].data_width = self.input_t.width
         # fork
         self.modules['fork'].rows     = self.rows_out()
         self.modules['fork'].cols     = self.cols_out()
         self.modules['fork'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
         self.modules['fork'].coarse   = self.coarse_out
-        self.modules['fork'].data_width     = self.input_width
+        self.modules['fork'].data_width     = self.input_t.width
         # kernel dot
         self.modules['vector_dot'].rows     = self.rows_out()
         self.modules['vector_dot'].cols     = self.cols_out()
@@ -115,9 +114,9 @@ class ConvolutionLayer(ConvolutionLayerBase):
                 self.fine*self.coarse_in*self.coarse_group)
         self.modules['vector_dot'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['vector_dot'].fine     = self.fine
-        self.modules['vector_dot'].data_width     = self.input_width
-        self.modules['vector_dot'].weight_width   = self.weight_width
-        self.modules['vector_dot'].acc_width      = self.acc_width
+        self.modules['vector_dot'].data_width     = self.input_t.width
+        self.modules['vector_dot'].weight_width   = self.weight_t.width
+        self.modules['vector_dot'].acc_width      = self.acc_t.width
         # accum
         self.modules['accum'].rows     = self.rows_out()
         self.modules['accum'].cols     = self.cols_out()
@@ -125,21 +124,20 @@ class ConvolutionLayer(ConvolutionLayerBase):
                 self.fine*self.coarse_in*self.coarse_group)
         self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum'].groups   = self.groups//self.coarse_group
-        self.modules['accum'].data_width    = self.acc_width
+        self.modules['accum'].data_width    = self.acc_t.width
         # glue
         self.modules['glue'].rows       = self.rows_out()
         self.modules['glue'].cols       = self.cols_out()
         self.modules['glue'].filters    = self.filters//self.coarse_group
         self.modules['glue'].coarse_in  = self.coarse_in
         self.modules['glue'].coarse_out = self.coarse_out
-        self.modules['glue'].data_width = self.output_width
-        self.modules['glue'].acc_width  = self.acc_width
+        self.modules['glue'].data_width = self.acc_t.width
         # bias
         self.modules['bias'].rows           = self.rows_out()
         self.modules['bias'].cols           = self.cols_out()
         self.modules['bias'].filters        = self.filters
-        self.modules['bias'].data_width     = self.output_width
-        self.modules['bias'].biases_width   = self.biases_width
+        self.modules['bias'].data_width     = self.output_t.width
+        self.modules['bias'].biases_width   = self.acc_t.width
 
     def resource(self):
 
@@ -170,13 +168,13 @@ class ConvolutionLayer(ConvolutionLayerBase):
             float(self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
 
         weights_bram_usage = bram_memory_resource_model(
-                    int(weight_memory_depth),self.weight_width) * \
+                    int(weight_memory_depth),self.weight_t.width) * \
                 self.coarse_in*self.coarse_out*self.coarse_group*self.fine
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)
         biases_bram_usage = bram_memory_resource_model(
-                    int(bias_memory_depth),self.biases_width) * self.coarse_out
+                    int(bias_memory_depth),self.acc_t.width) * self.coarse_out
 
         # Total
         return {

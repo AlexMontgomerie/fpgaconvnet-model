@@ -4,6 +4,8 @@ import pydot
 import torch
 from typing import Union, List
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import EltWise
 from fpgaconvnet.models.layers import MultiPortLayer
 
@@ -18,14 +20,13 @@ class EltWiseLayer(MultiPortLayer):
             ports_in: int = 1,
             coarse: int = 1,
             op_type: str = "sum",
-            data_width: int = 16
+            acc_t: FixedPoint = FixedPoint(32,16),
         ):
 
         # initialise parent class
         super().__init__([rows]*ports_in, [cols]*ports_in,
                 [channels]*ports_in, [coarse]*ports_in,
-                [coarse]*ports_in, ports_in=ports_in,
-                data_width=data_width)
+                [coarse]*ports_in, ports_in=ports_in)
 
         # parameters
         self._coarse = coarse
@@ -73,7 +74,7 @@ class EltWiseLayer(MultiPortLayer):
         self.modules["eltwise"].cols     = self.cols_in()
         self.modules["eltwise"].channels = self.channels_in()
         self.modules["eltwise"].ports_in = self.ports_in
-        self.modules["eltwise"].data_width = self.data_width
+        self.modules["eltwise"].data_width = self.data_t.width
 
     def layer_info(self,parameters,batch_size=1):
         MultiPortLayer.layer_info(self, parameters, batch_size)
@@ -84,6 +85,13 @@ class EltWiseLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        # remove the repeated rows, cols and channels
+        del parameters.rows_in_array[:]
+        del parameters.cols_in_array[:]
+        del parameters.channels_in_array[:]
+        del parameters.rows_out_array[:]
+        del parameters.cols_out_array[:]
+        del parameters.channels_out_array[:]
 
     def functional_model(self, data, batch_size=1):
 

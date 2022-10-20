@@ -1,5 +1,10 @@
 syntax = "proto2";
 
+message fixed_point {
+    required int32 width = 1;
+    required int32 binary_point = 2;
+}
+
 message stream {
     required string name = 1;
     required int32  coarse = 2;
@@ -8,16 +13,16 @@ message stream {
 }
 
 message parameter {
-    required int32 buffer_depth = 1 [default = 2];
-    required int32 batch_size   = 2;
-    required int32 rows_in      = 3;
-    required int32 cols_in      = 4;
+    optional int32 buffer_depth = 1 [default = 2];
+    optional int32 batch_size   = 2;
+    optional int32 rows_in      = 3;
+    optional int32 cols_in      = 4;
     optional int32 channels_in  = 5;
-    required int32 rows_out     = 6;
-    required int32 cols_out     = 7;
+    optional int32 rows_out     = 6;
+    optional int32 cols_out     = 7;
     optional int32 channels_out = 8;
-    required int32 coarse_in    = 9;
-    required int32 coarse_out   = 10;
+    optional int32 coarse_in    = 9;
+    optional int32 coarse_out   = 10;
     optional int32 coarse       = 11;
     optional int32 coarse_group = 12;
     optional int32 groups       = 13;
@@ -29,11 +34,11 @@ message parameter {
     optional int32 pad_bottom   = 19;
     repeated int32 kernel_size  = 20;
     repeated int32 stride       = 21;
-    optional int32 data_width   = 22;
-    optional int32 weight_width = 23;
-    optional int32 acc_width    = 24;
-    optional int32 input_width  = 25;
-    optional int32 output_width = 26;
+    optional fixed_point data_t     = 22;
+    optional fixed_point weight_t   = 23;
+    optional fixed_point acc_t      = 24;
+    optional fixed_point input_t    = 25;
+    optional fixed_point output_t   = 26;
     optional int32 has_bias     = 27;
     optional int32 biases_width = 28;
     optional int32 ports_in     = 29;
@@ -48,12 +53,10 @@ message parameter {
 
 message layer {
     required string name = 1;
-    repeated stream streams_in  = 2;
-    repeated stream streams_out = 3;
-    required parameter parameters = 4;
-
-    repeated string node_in = 5;
-    repeated string node_out = 6;
+    required layer_type type = 2;
+    repeated stream streams_in  = 3;
+    repeated stream streams_out = 4;
+    required parameter parameters = 5;
 
     enum layer_type {
         CONVOLUTION     = 0;
@@ -68,10 +71,8 @@ message layer {
         AVERAGE_POOLING = 9;
     }
 
-    required layer_type type = 7;
-
-    optional string weights_path = 8;
-    optional string bias_path    = 9;
+    optional string weights_path = 6;
+    optional string bias_path    = 7;
 }
 
 message partition {

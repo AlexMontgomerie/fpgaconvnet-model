@@ -89,7 +89,7 @@ class Bias(Module):
                 fontsize=MODULE_FONTSIZE)
 
 
-    def functional_model(self,data,biases):
+    def functional_model(self, data, biases):
         # check input dimensionality
         assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
@@ -106,18 +106,18 @@ class Bias(Module):
         for index,_ in np.ndenumerate(out):
             out[index] = data[index] + biases[index[2]]
 
-        # sanity check because numpy indexing confuses me
-        for f_i in range(self.filters):
-            # create copy of input and output filter
-            cf = np.empty_like(data[:,:,0])
-            cfo = np.empty_like(data[:,:,0])
-            # set values of input and output
-            cf[:] = data[:,:,f_i]
-            cfo[:] = out[:,:,f_i]
-            # subtraction should give bias
-            v = cfo - cf
-            for _,val in np.ndenumerate(v):
-                # check each filter result has been added correctly to the bias
-                assert np.allclose(biases[f_i],val,
-                        rtol=1.e-8,atol=1.e-8), "ERROR: the biases don't match!"
+        # # sanity check because numpy indexing confuses me
+        # for f_i in range(self.filters):
+        #     # create copy of input and output filter
+        #     cf = np.empty_like(data[:,:,0])
+        #     cfo = np.empty_like(data[:,:,0])
+        #     # set values of input and output
+        #     cf[:] = data[:,:,f_i]
+        #     cfo[:] = out[:,:,f_i]
+        #     # subtraction should give bias
+        #     v = cfo - cf
+        #     for _,val in np.ndenumerate(v):
+        #         # check each filter result has been added correctly to the bias
+        #         assert np.allclose(biases[f_i],val,
+        #                 rtol=1.e-8,atol=1.e-8), "ERROR: the biases don't match!"
         return out

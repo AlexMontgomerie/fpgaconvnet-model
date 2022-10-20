@@ -22,13 +22,14 @@ class TestConnectionMatrix(unittest.TestCase):
     # @ddt.data(*NETWORKS)
     @ddt.data(*glob.glob("tests/models/*.onnx"))
     def test_net(self,model_path):
+
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes             = len(matrix.get_node_list_matrix(graph))
-        n_edges             = len(matrix.get_edge_list_matrix(graph))
-        connections_matrix  = matrix.get_connections_matrix(graph)
+        n_nodes             = len(matrix.get_node_list_matrix(net.graph))
+        n_edges             = len(matrix.get_edge_list_matrix(net.graph))
+        connections_matrix  = matrix.get_connections_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(connections_matrix.shape[0],n_edges)
@@ -50,12 +51,12 @@ class TestStreamsMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes         = len(matrix.get_node_list_matrix(graph))
-        n_edges         = len(matrix.get_edge_list_matrix(graph))
-        streams_matrix  = matrix.get_streams_matrix(graph)
+        n_nodes         = len(matrix.get_node_list_matrix(net.graph))
+        n_edges         = len(matrix.get_edge_list_matrix(net.graph))
+        streams_matrix  = matrix.get_streams_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(streams_matrix.shape[0],n_edges)
@@ -76,12 +77,12 @@ class TestRatesMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes         = len(matrix.get_node_list_matrix(graph))
-        n_edges         = len(matrix.get_edge_list_matrix(graph))
-        rates_matrix    = matrix.get_rates_matrix(graph)
+        n_nodes         = len(matrix.get_node_list_matrix(net.graph))
+        n_edges         = len(matrix.get_edge_list_matrix(net.graph))
+        rates_matrix    = matrix.get_rates_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(rates_matrix.shape[0],n_edges)
@@ -148,12 +149,12 @@ class TestWorkloadMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes         = len(matrix.get_node_list_matrix(graph))
-        n_edges         = len(matrix.get_edge_list_matrix(graph))
-        workload_matrix = matrix.get_workload_matrix(graph)
+        n_nodes         = len(matrix.get_node_list_matrix(net.graph))
+        n_edges         = len(matrix.get_edge_list_matrix(net.graph))
+        workload_matrix = matrix.get_workload_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(workload_matrix.shape[0],n_edges)
@@ -165,7 +166,7 @@ class TestWorkloadMatrix(unittest.TestCase):
         # check edges all have the same workload
         for i in range(workload_matrix.shape[0]):
             self.assertEqual(np.sum(workload_matrix[i,:]), 0,
-                    f"Mismatching workload for edge: {matrix.get_edge_list_matrix(graph)[i]}")
+                    f"Mismatching workload for edge: {matrix.get_edge_list_matrix(net.graph)[i]}")
 
 """
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,12 +181,12 @@ class TestTopologyMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes         = len(matrix.get_node_list_matrix(graph))
-        n_edges         = len(matrix.get_edge_list_matrix(graph))
-        topology_matrix = matrix.get_topology_matrix(graph)
+        n_nodes         = len(matrix.get_node_list_matrix(net.graph))
+        n_edges         = len(matrix.get_edge_list_matrix(net.graph))
+        topology_matrix = matrix.get_topology_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(topology_matrix.shape[0],n_edges)
@@ -207,12 +208,12 @@ class TestIntervalMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        _, graph = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser().onnx_to_fpgaconvnet(model_path)
 
         # get matrix and expected dimensions
-        n_nodes         = len(matrix.get_node_list_matrix(graph))
-        n_edges         = len(matrix.get_edge_list_matrix(graph))
-        interval_matrix = matrix.get_interval_matrix(graph)
+        n_nodes         = len(matrix.get_node_list_matrix(net.graph))
+        n_edges         = len(matrix.get_edge_list_matrix(net.graph))
+        interval_matrix = matrix.get_interval_matrix(net.graph)
 
         # check dimension of matrix
         self.assertEqual(interval_matrix.shape[0],n_edges)

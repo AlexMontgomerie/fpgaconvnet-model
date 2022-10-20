@@ -9,6 +9,8 @@ import numpy as np
 import os
 import math
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.layers import MultiPortLayer
 
@@ -20,7 +22,7 @@ class SplitLayer(MultiPortLayer):
             channels: int,
             coarse: int = 1,
             ports_out: int = 1,
-            data_width: int = 16
+            data_t: FixedPoint = FixedPoint(16,8),
         ):
         """
         Parameters
@@ -60,7 +62,7 @@ class SplitLayer(MultiPortLayer):
 
         # initialise parent class
         super().__init__([rows], [cols], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_width=data_width)
+                ports_out=ports_out, data_t=data_t)
 
         # parameters
         self._coarse = coarse
@@ -124,6 +126,13 @@ class SplitLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        # remove the repeated rows, cols and channels
+        del parameters.rows_in_array[:]
+        del parameters.cols_in_array[:]
+        del parameters.channels_in_array[:]
+        del parameters.rows_out_array[:]
+        del parameters.cols_out_array[:]
+        del parameters.channels_out_array[:]
 
     def update(self):
         # fork

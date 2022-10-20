@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import pydot
 
+from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import AveragePool
 from fpgaconvnet.models.layers import Layer
 
@@ -16,12 +17,11 @@ class AveragePoolingLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_width: int = 16
+            acc_t: FixedPoint = FixedPoint(32,16),
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse,
-                coarse, data_width=data_width)
+        super().__init__(rows, cols, channels, coarse, coarse)
 
         # update flags
         # self.flags['transformable'] = True

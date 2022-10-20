@@ -21,7 +21,6 @@ def get_model_input_node(self, partition_index):
         input_node = graphs.get_next_nodes(
                 self.partitions[partition_index].graph,input_node)[0]
     return onnx_helper.get_model_node(self.model, input_node).input[0]
-    # return self.model.graph.input[0]
 
 def get_model_output_node(self, partition_index):
     output_node = self.partitions[partition_index].output_nodes[0]
@@ -29,7 +28,6 @@ def get_model_output_node(self, partition_index):
         output_node = graphs.get_prev_nodes(
                 self.partitions[partition_index].graph,output_node)[0]
     return onnx_helper.get_model_node(self.model, output_node).output[0]
-    # return self.model.graph.output[0]
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
@@ -44,6 +42,13 @@ def get_stream_out_coarse(self, node_hw, index):
         return node_hw.coarse_out
     elif node_base_type == MultiPortLayer:
         return node_hw.coarse_out[index]
+
+def get_buffer_depth_in(self, node_hw, index):
+    node_base_type = inspect.getmro(type(node_hw))[-2]
+    if node_base_type == Layer:
+        return node_hw.buffer_depth
+    elif node_base_type == MultiPortLayer:
+        return node_hw.buffer_depth[index]
 
 def save_all_partitions(self, filepath, input_output_from_model=True):
 
@@ -81,52 +86,53 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                     self.partitions[i].graph.nodes[node]['type'])
 
             # nodes into layer
-            # prev_nodes = list(map(lambda n: onnx_helper.format_onnx_name(n),
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
 
             if not prev_nodes:
-                layer.node_in.extend([layer.name])
                 stream_in = layer.streams_in.add()
                 stream_in.name  = "in"
                 stream_in.coarse = self.get_stream_in_coarse(
                         self.partitions[i].graph.nodes[node]['hw'], 0)
+                stream_in.node = node
+                stream_in.buffer_depth = self.get_buffer_depth_in(
+                        self.partitions[i].graph.nodes[node]['hw'], 0)
             else :
-                layer.node_in.extend(prev_nodes)
                 for j, prev_node in enumerate(prev_nodes):
                     stream_in = layer.streams_in.add()
                     stream_in.name  = "_".join([prev_node, layer.name])
                     stream_in.coarse = self.get_stream_in_coarse(
                             self.partitions[i].graph.nodes[node]['hw'], j)
                     stream_in.node = prev_node
+                    stream_in.buffer_depth = self.get_buffer_depth_in(
+                            self.partitions[i].graph.nodes[node]['hw'], j)
 
             # nodes out of layer
             next_nodes = graphs.get_next_nodes(self.partitions[i].graph, node)
 
             if not next_nodes:
-                layer.node_out.extend([layer.name])
                 stream_out = layer.streams_out.add()
                 stream_out.name  = "out"
                 stream_out.coarse = self.get_stream_out_coarse(
                         self.partitions[i].graph.nodes[node]['hw'], 0)
+                stream_out.node = node
             else:
-                layer.node_out.extend(next_nodes)
                 for j, next_node in enumerate(next_nodes):
                     stream_out = layer.streams_out.add()
                     stream_out.name = "_".join([layer.name, next_node])
                     stream_out.coarse = self.get_stream_out_coarse(
                             self.partitions[i].graph.nodes[node]['hw'], j)
-                    stream_in.node = next_node
+                    stream_out.node = next_node
 
             # add parameters
             self.partitions[i].graph.nodes[node]['hw'].layer_info(
                     layer.parameters, batch_size=self.partitions[i].batch_size)
 
             # add weights key
-            if self.partitions[i].graph.nodes[node]['type'] in [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
+            if self.partitions[i].graph.nodes[node]['type'] in \
+                    [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
                 layer.weights_path = self.partitions[i].graph.nodes[node]['inputs']['weights']
                 layer.bias_path    = self.partitions[i].graph.nodes[node]['inputs']['bias']
 
     # save in JSON format
     with open(filepath,"w") as f:
-        f.write(MessageToJson(partitions,preserving_proto_field_name=True))
-        #json.dump(MessageToJson(partitions),f)
+        f.write(MessageToJson(partitions, preserving_proto_field_name=True))

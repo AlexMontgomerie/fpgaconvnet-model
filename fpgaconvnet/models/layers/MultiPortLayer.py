@@ -10,6 +10,7 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
+from fpgaconvnet.data_types import FixedPoint
 
 @dataclass
 class MultiPortLayer:
@@ -49,9 +50,11 @@ class MultiPortLayer:
     _coarse_out: List[int]
     ports_in: int = field(default=1, init=True)
     ports_out: int = field(default=1, init=True)
-    data_width: int = field(default=16, init=True)
-    buffer_depth: int = field(default=0, init=False)
+    data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
+
+    def __post_init__(self):
+        self.buffer_depth = [2]*self.ports_in
 
     """
     properties
@@ -340,7 +343,7 @@ class MultiPortLayer:
         int
             data width in
         """
-        return self.data_width
+        return self.data_t.width
 
     def width_out(self):
         """
@@ -349,7 +352,7 @@ class MultiPortLayer:
         int
             data width out
         """
-        return self.data_width
+        return self.data_t.width
 
     def latency_in(self):
         return max([
@@ -374,7 +377,7 @@ class MultiPortLayer:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : math.ceil(self.buffer_depth*self.data_width/18000)*self.streams_in(),
+            "BRAM"  : math.ceil(self.buffer_depth*self.data_t.width/18000)*self.streams_in(),
             "DSP"   : 0
         }
 
@@ -391,7 +394,6 @@ class MultiPortLayer:
 
     def layer_info(self, parameters, batch_size=1):
         parameters.batch_size   = batch_size
-        parameters.buffer_depth = self.buffer_depth
         parameters.rows_in_array.extend(map(self.rows_in, range(self.ports_in)))
         parameters.cols_in_array.extend(map(self.cols_in, range(self.ports_in)))
         parameters.channels_in_array.extend(map(self.channels_in, range(self.ports_in)))
@@ -400,8 +402,9 @@ class MultiPortLayer:
         parameters.channels_out_array.extend(map(self.channels_out, range(self.ports_out)))
         parameters.coarse_in    = self.streams_in()
         parameters.coarse_out   = self.streams_out()
-        parameters.ports_in = self.ports_in
-        parameters.ports_out = self.ports_out
+        parameters.ports_in     = self.ports_in
+        parameters.ports_out    = self.ports_out
+        self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
         return 0

@@ -63,8 +63,8 @@ class Parser:
         # set the backend string
         self.backend = "hls"
 
-        # quantisation mode [ float, QDQ, BFP, config ]
-        self.quant_mode = "fake_float"
+        # quantisation mode [ auto, float, QDQ, BFP, config ]
+        self.quant_mode = "auto"
 
         # batch size
         self.batch_size = 1
@@ -147,6 +147,14 @@ class Parser:
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 
+    def apply_quantisation(self, graph, model):
+
+        # get the quantisation method
+        quant = importlib.import_module(f"fpgaconvnet.parser.quant.{self.quant_mode}")
+
+        # apply quantisation
+        quant.quantise(graph, model)
+
     def onnx_to_fpgaconvnet(self, onnx_filepath):
 
         # load the onnx model
@@ -167,9 +175,13 @@ class Parser:
             graph.add_node(hardware.name,
                     **hardware.get_node_info())
 
+
             # get edges from the hardware
             for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
+
+        # apply quantisation to the graph
+        self.apply_quantisation(graph, onnx_model)
 
         # return the graph
         return Network("from_onnx", onnx_model, graph)

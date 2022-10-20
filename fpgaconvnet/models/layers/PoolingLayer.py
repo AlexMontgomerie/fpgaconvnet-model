@@ -5,6 +5,8 @@ import torch
 import numpy as np
 import pydot
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
 from fpgaconvnet.models.layers import Layer
@@ -54,12 +56,12 @@ class PoolingLayer(Layer):
             stride: Union[List[int], int] = 2,
             pad: Union[List[int], int] = 0,
             fine: int = 1,
-            data_width: int = 16
+            data_t: FixedPoint = FixedPoint(16,8),
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse, coarse,
-                data_width=data_width)
+        super().__init__(rows, cols, channels,
+                coarse, coarse, data_t=data_t)
 
         # update flags
         # self.flags['transformable'] = True

@@ -4,6 +4,8 @@ import math
 import onnx
 import pydot
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import ReLU
 from fpgaconvnet.models.layers import Layer
 
@@ -14,12 +16,12 @@ class ReLULayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_width: int = 16
+            data_t: FixedPoint = FixedPoint(16,8),
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse, coarse,
-                data_width=data_width)
+        super().__init__(rows, cols, channels,
+                coarse, coarse, data_t=data_t)
 
         # save parameters
         self._coarse = coarse

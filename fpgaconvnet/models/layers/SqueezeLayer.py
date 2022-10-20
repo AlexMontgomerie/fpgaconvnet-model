@@ -1,6 +1,8 @@
 import pydot
 import numpy as np
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.layers import Layer
 from fpgaconvnet.models.modules import Squeeze
 
@@ -12,16 +14,16 @@ class SqueezeLayer(Layer):
             channels: int,
             coarse_in: int,
             coarse_out: int,
-            data_width: int = 16,
+            data_t: FixedPoint = FixedPoint(16,8),
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse_in, coarse_out,
-                data_width=data_width)
+        super().__init__(rows, cols, channels,
+                coarse_in, coarse_out,data_t=data_t)
 
         # initialise modules
-        self.modules["squeeze"] = Squeeze(self.rows, self.cols, self.channels, self.coarse_in,
-                                          self.coarse_out)
+        self.modules["squeeze"] = Squeeze(self.rows, self.cols,
+                self.channels, self.coarse_in, self.coarse_out)
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)

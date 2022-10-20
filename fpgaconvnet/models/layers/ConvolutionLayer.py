@@ -147,12 +147,11 @@ class ConvolutionLayerBase(Layer):
         parameters.pad_right    = self.pad_right
         parameters.pad_bottom   = self.pad_bottom
         parameters.pad_left     = self.pad_left
-        parameters.input_width  = self.input_width
-        parameters.output_width = self.output_width
-        parameters.weight_width = self.weight_width
-        parameters.acc_width    = self.acc_width
-        parameters.biases_width = self.biases_width
         parameters.has_bias     = self.has_bias
+        self.input_t.to_protobuf(parameters.input_t)
+        self.output_t.to_protobuf(parameters.output_t)
+        self.weight_t.to_protobuf(parameters.weight_t)
+        self.acc_t.to_protobuf(parameters.acc_t)
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
