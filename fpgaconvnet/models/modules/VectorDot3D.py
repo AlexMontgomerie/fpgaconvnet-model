@@ -7,7 +7,7 @@ from fpgaconvnet.models.modules import Module3D
 from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
 
 @dataclass
-class VectorDot(Module3D):
+class VectorDot3D(Module3D):
     filters: int
     fine: int
 
