@@ -22,7 +22,7 @@ setuptools.setup(
     install_requires=[
         "networkx>=2.5",
         "numpy>=1.19.2",
-        "protobuf>=3.13.0, <=3.17.0",
+        "protobuf>=3.12.2, <=3.20.1",
         "torch>=1.7.1",
         "pyyaml>=5.1.0",
         "scipy>=1.2.1",
@@ -31,7 +31,6 @@ setuptools.setup(
         "onnxruntime>=1.12.0",
         "graphviz>=0.16",
         "pydot>=1.4.2",
-        # "onnxoptimizer>=0.2.6, <=0.2.7",
         "onnxoptimizer==0.3.0",
         "ddt>=1.4.2",
         "sklearn",
