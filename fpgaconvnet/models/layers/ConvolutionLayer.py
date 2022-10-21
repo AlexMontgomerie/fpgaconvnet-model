@@ -198,7 +198,7 @@ class ConvolutionLayerBase(Layer):
 
         # instantiate convolution layer
         convolution_layer = torch.nn.Conv2d(self.channels_in(), self.filters, self.kernel_size,
-                stride=self.stride, padding=self.pad[0], groups=self.groups)
+                stride=self.stride, padding=0, groups=self.groups)
 
         # update weights
         convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
@@ -206,8 +206,17 @@ class ConvolutionLayerBase(Layer):
         # update bias
         convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
+        # get the padding
+        padding = [
+            self.pad_top,
+            self.pad_bottom,
+            self.pad_left,
+            self.pad_right
+        ]
+
         # return output featuremap
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
-        return convolution_layer(torch.from_numpy(data)).detach().numpy()
+        data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
+        return convolution_layer(data).detach().numpy()
 
