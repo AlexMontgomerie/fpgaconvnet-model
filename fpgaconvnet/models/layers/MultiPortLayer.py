@@ -387,13 +387,13 @@ class MultiPortLayer:
             "DSP"   : 0
         }
 
-    def get_coarse_in_feasible(self, port_index=0, wr_factor=1):
+    def get_coarse_in_feasible(self, port_index=0):
         assert(port_index < self.ports_in)
-        return get_factors(int(self.channels_in(port_index)/wr_factor))
+        return get_factors(self.channels_in(port_index))
 
-    def get_coarse_out_feasible(self, port_index=0, wr_factor=1):
+    def get_coarse_out_feasible(self, port_index=0):
         assert(port_index < self.ports_out)
-        return get_factors(int(self.channels_out(port_index)/wr_factor))
+        return get_factors(self.channels_out(port_index))
 
     def update(self):
         pass

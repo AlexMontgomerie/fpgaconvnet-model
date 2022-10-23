@@ -29,16 +29,16 @@ class Platform:
             return self.name
 
     def get_dsp(self):
-        self.resources.get("DSP", 0)
+        return self.resources.get("DSP", 0)
 
     def get_bram(self):
-        self.resources.get("BRAM", 0)
+        return self.resources.get("BRAM", 0)
 
     def get_lut(self):
-        self.resources.get("LUT", 0)
+        return self.resources.get("LUT", 0)
 
     def get_ff(self):
-        self.resources.get("FF", 0)
+        return self.resources.get("FF", 0)
 
     def update(self, platform_path):
 
