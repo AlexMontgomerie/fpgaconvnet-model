@@ -12,7 +12,7 @@ import scipy
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
-PLATFORM = "examples/platforms/zedboard.json"
+PLATFORM = "examples/platforms/zedboard.toml"
 
 class TestNetworkTemplate():
 
@@ -49,7 +49,7 @@ class TestNetwork(TestNetworkTemplate, unittest.TestCase):
         # initialise network
         net = Parser().onnx_to_fpgaconvnet(network_path)
         # load platform
-        net.update_platform(PLATFORM)
+        net.platform.update(PLATFORM)
         # run all tests
         self.run_test_validation(net)
         # self.run_test_partition_transform_split(net)

@@ -10,7 +10,7 @@ def create_report(self, output_path):
         "name" : self.name,
         "date_created" : str(datetime.datetime.now()),
         "total_iterations" : 0, # TODO
-        "platform" : self.platform,
+        "platform" : asdict(self.platform),
         "total_operations" : total_operations,
         "network" : {
             "memory_usage" : self.get_memory_usage_estimate(),
@@ -22,7 +22,7 @@ def create_report(self, output_path):
             "num_partitions" : len(self.partitions),
             "max_resource_usage" : {
                 "LUT" : max([ partition.get_resource_usage()["LUT"] for partition in self.partitions ]),
-                "FF" : max([ partition.get_resource_usage()["FF"] for partition in self.partitions ]),                 
+                "FF" : max([ partition.get_resource_usage()["FF"] for partition in self.partitions ]),
                 "BRAM" : max([ partition.get_resource_usage()["BRAM"] for partition in self.partitions ]),
                 "DSP" : max([ partition.get_resource_usage()["DSP"] for partition in self.partitions ])
             }
@@ -33,7 +33,7 @@ def create_report(self, output_path):
     for i in range(len(self.partitions)):
         # get some information on the partition
         resource_usage = self.partitions[i].get_resource_usage()
-        latency = self.partitions[i].get_latency(self.platform["freq"])
+        latency = self.partitions[i].get_latency(self.platform.board_freq)
         # add partition information
         report["partitions"][i] = {
             "partition_index" : i,
@@ -44,13 +44,13 @@ def create_report(self, output_path):
             "weights_reloading_layer" : self.partitions[i].wr_layer,
             "resource_usage" : {
                 "LUT" : resource_usage["LUT"],
-                "FF" : resource_usage["FF"],            
+                "FF" : resource_usage["FF"],
                 "BRAM" : resource_usage["BRAM"],
                 "DSP" : resource_usage["DSP"]
             },
             "bandwidth" : {
-                "in" : self.partitions[i].get_bandwidth_in(self.platform["freq"]),
-                "out" : self.partitions[i].get_bandwidth_out(self.platform["freq"])
+                "in" : self.partitions[i].get_bandwidth_in(self.platform.board_freq),
+                "out" : self.partitions[i].get_bandwidth_out(self.platform.board_freq)
             }
         }
         # add information for each layer of the partition
@@ -64,7 +64,7 @@ def create_report(self, output_path):
                 "latency" : hw.latency(),
                 "resource_usage" : {
                     "LUT" : resource_usage["LUT"],
-                    "FF" : resource_usage["FF"],            
+                    "FF" : resource_usage["FF"],
                     "BRAM" : resource_usage["BRAM"],
                     "DSP" : resource_usage["DSP"]
                 }

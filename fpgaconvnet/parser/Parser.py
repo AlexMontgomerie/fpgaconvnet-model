@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import copy
 import sys
 import importlib
@@ -14,8 +16,11 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.partition import Partition
-from fpgaconvnet.models.network import Network
+# from fpgaconvnet.models.partition import Partition
+# from fpgaconvnet.models.network import Network
+from ..models.partition.Partition import Partition
+from ..models.network.Network import Network
+
 
 import fpgaconvnet.tools.graphs as graphs
 
