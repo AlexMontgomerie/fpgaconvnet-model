@@ -2,6 +2,8 @@ import json
 import datetime
 import numpy as np
 
+from dataclasses import asdict
+
 def create_report(self, output_path):
     # create report dictionary
     total_operations = sum([partition.get_total_operations() for partition in self.partitions])
