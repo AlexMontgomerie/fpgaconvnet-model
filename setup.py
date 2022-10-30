@@ -37,6 +37,8 @@ setuptools.setup(
         "sklearn",
         "matplotlib",
         "coverage==5.5",
+        "onnxsim>=0.4.8",
+        "fpbinary>=1.5.3",
         "pyparsing<3"
     ]
 )

@@ -21,6 +21,8 @@ from fpgaconvnet.models.layers import SqueezeLayer
 
 from fpgaconvnet.models.partition import Partition
 
+from fpgaconvnet.platform import Platform
+
 class Network():
 
     def __init__(self, name, model, graph, batch_size=1, freq=125,
@@ -63,22 +65,7 @@ class Network():
                 acc_width=self.acc_width) ]
 
         # platform
-        self.platform = {
-            'name'          : 'platform',
-            'freq'          : freq,
-            'reconf_time'   : 0.0,
-            'wr_time'       : 0.0,
-            'ports'         : 4,
-            'port_width'    : 64,
-            'mem_bandwidth' : 0,
-            'mem_capacity'  : 0,
-            'constraints'   : {
-                'FF'    : 0,
-                'LUT'   : 0,
-                'DSP'   : 0,
-                'BRAM'  : 0
-            }
-        }
+        self.platform = Platform()
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)
@@ -86,24 +73,6 @@ class Network():
 
         # update partitions
         self.update_partitions()
-
-
-    # from fpgaconvnet.transforms.partition import check_parallel_block
-    # from fpgaconvnet.transforms.partition import get_all_horizontal_splits
-    # from fpgaconvnet.transforms.partition import get_all_vertical_splits
-    # from fpgaconvnet.transforms.partition import get_all_horizontal_merges
-    # from fpgaconvnet.transforms.partition import get_all_vertical_merges
-    # from fpgaconvnet.transforms.partition import split_horizontal
-    # from fpgaconvnet.transforms.partition import split_vertical
-    # from fpgaconvnet.transforms.partition import merge_horizontal
-    # from fpgaconvnet.transforms.partition import merge_vertical
-    # from fpgaconvnet.transforms.partition import split_horizontal_complete
-    # from fpgaconvnet.transforms.partition import split_vertical_complete
-    # from fpgaconvnet.transforms.partition import split_complete
-    # from fpgaconvnet.transforms.partition import merge_horizontal_complete
-    # from fpgaconvnet.transforms.partition import merge_vertical_complete
-    # from fpgaconvnet.transforms.partition import merge_complete
-    # from fpgaconvnet.transforms.partition import apply_random_partition
 
     from fpgaconvnet.models.network.report import create_report
 
@@ -117,7 +86,6 @@ class Network():
     from fpgaconvnet.models.network.scheduler import check_scheduler
 
     from fpgaconvnet.models.network.update import update_partitions
-    from fpgaconvnet.models.network.update import update_platform
     from fpgaconvnet.models.network.update import update_coarse_in_out_partition
 
     from fpgaconvnet.models.network.represent import get_model_input_node
@@ -129,7 +97,7 @@ class Network():
 
     from fpgaconvnet.models.network.validate import check_ports
     from fpgaconvnet.models.network.validate import check_resources
-    from fpgaconvnet.models.network.validate import get_resources_bad_partitions
+    # from fpgaconvnet.models.network.validate import get_resources_bad_partitions
     from fpgaconvnet.models.network.validate import check_workload
     from fpgaconvnet.models.network.validate import check_streams
     from fpgaconvnet.models.network.validate import check_partitions
@@ -164,9 +132,9 @@ class Network():
             if partition_index not in partition_list:
                 continue
             # accumulate latency for each partition
-            latency += partition.get_latency(self.platform["freq"])
+            latency += partition.get_latency(self.platform.board_freq)
         # return the total latency as well as reconfiguration time
-        return latency + (len(partition_list)-1)*self.platform["reconf_time"]
+        return latency + (len(partition_list)-1)*self.platform.reconf_time
 
     def get_throughput(self, partition_list=None):
         if partition_list == None:
