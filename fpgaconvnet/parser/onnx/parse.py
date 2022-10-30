@@ -51,6 +51,7 @@ class ParseOnnxNode:
     def get_node_info(self):
         return {
             "type" : self.layer_type,
+            "onnx_node": self.node.name,
             "attr" : self.attr,
             "hw" : self.hw
         }

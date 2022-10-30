@@ -53,10 +53,11 @@ message parameter {
 
 message layer {
     required string name = 1;
-    required layer_type type = 2;
-    repeated stream streams_in  = 3;
-    repeated stream streams_out = 4;
-    required parameter parameters = 5;
+    required string onnx_node = 2;
+    required layer_type type = 3;
+    repeated stream streams_in  = 4;
+    repeated stream streams_out = 5;
+    required parameter parameters = 6;
 
     enum layer_type {
         CONVOLUTION     = 0;
@@ -71,8 +72,8 @@ message layer {
         AVERAGE_POOLING = 9;
     }
 
-    optional string weights_path = 6;
-    optional string bias_path    = 7;
+    optional string weights_path = 7;
+    optional string bias_path    = 8;
 }
 
 message partition {
