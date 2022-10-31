@@ -145,16 +145,28 @@ def update_batch_size(model, batch_size):
     return model
 
 def get_model_node(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.node))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.node))
+    except StopIteration:
+        raise StopIteration(f"{name} does not exist in model")
 
 def get_model_value_info(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.value_info))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.value_info))
+    except StopIteration:
+        raise StopIteration(f"value info for {name} does not exist in model")
 
 def get_model_input(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.input))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.input))
+    except StopIteration:
+        raise StopIteration(f"input for {name} does not exist in model")
 
 def get_model_output(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.output))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.output))
+    except StopIteration:
+        raise StopIteration(f"output for {name} does not exist in model")
 
 def get_model_initializer(model, name, to_tensor=True):
     try:
