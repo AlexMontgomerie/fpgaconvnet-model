@@ -206,12 +206,7 @@ class Module:
             coef = self.rsc_coef
 
         # return the linear model estimation
-        return {
-          "LUT"  : int(np.dot(utilisation_model["LUT"], coef["LUT"])),
-          "BRAM" : int(np.dot(utilisation_model["BRAM"], coef["BRAM"])),
-          "DSP"  : int(np.dot(utilisation_model["DSP"], coef["DSP"])),
-          "FF"   : int(np.dot(utilisation_model["FF"], coef["FF"])),
-        }
+        return { rsc_type: int(np.dot(utilisation_model[rsc_type], coef[rsc_type])) for rsc_type in coef.keys()}
 
     def functional_model(self,data):
         """

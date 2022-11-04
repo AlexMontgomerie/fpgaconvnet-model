@@ -4,7 +4,7 @@ import pydot
 import torch
 
 from fpgaconvnet.models.layers.utils import get_factors
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow

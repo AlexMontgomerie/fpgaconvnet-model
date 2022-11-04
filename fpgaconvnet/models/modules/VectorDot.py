@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass, field
 
 from fpgaconvnet.models.modules import Module
-from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
+from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class VectorDot(Module):

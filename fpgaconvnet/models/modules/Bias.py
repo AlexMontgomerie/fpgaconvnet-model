@@ -17,8 +17,8 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
-#from fpgaconvnet.tools.resource_model import bram_memory_resource_model
-from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
+#from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class Bias(Module):
