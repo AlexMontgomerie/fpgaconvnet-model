@@ -183,6 +183,17 @@ class Module:
         """
         return 0
 
+    def memory_usage(self):
+        """
+        Returns
+        -------
+        int
+            number of memory bits required by the module.
+
+            default is 0.
+        """
+        return 0
+
     def int2bits(self, n):
         """
         helper function to get number of bits for integer

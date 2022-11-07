@@ -1,7 +1,11 @@
 import onnx
 import numpy as np
 
+from onnxsim import simplify
+
 import fpgaconvnet.parser.onnx.helper as onnx_helper
+
+ADD_QUANT_ATTR=False
 
 def convert_matmul_to_gemm(model):
     """
@@ -536,31 +540,41 @@ def rename_all_nodes(model):
 
 def absorb_quantise(model):
     model_was_changed = True
+
+    zero_point_scale_inputs = []
+
     while model_was_changed:   # todo: move model_was_changed to Parser.py?
         model_was_changed = False
         for index, node in enumerate(model.graph.node):
             tensor_raw = onnx_helper.get_model_initializer(model, node.input[0], to_tensor=False)
 
             if node.op_type == "DequantizeLinear":
+
+                # get scale and zero point parameters
                 scale = onnx_helper.get_model_initializer(model, node.input[1], to_tensor=True)
                 zero_point = onnx_helper.get_model_initializer(model, node.input[2], to_tensor=True)
                 scale = np.atleast_1d(scale)
                 zero_point = np.atleast_1d(zero_point)
+
                 if tensor_raw is None:
                     # activation
                     quan_obj = "input"
                 else:
+
+                    # chenge initializers to floating point
                     tensor = onnx.numpy_helper.to_array(tensor_raw)
                     tensor_index = list(model.graph.initializer).index(tensor_raw)
                     size = scale.shape + (1,) * (tensor.ndim - scale.ndim)
                     dequant_tensor = (tensor-zero_point.reshape(size))*scale.reshape(size)
 
+                    # create a new tensor
                     new_tensor = onnx.helper.make_tensor(
                         name=node.input[0],
                         data_type=onnx.TensorProto.FLOAT,
                         dims=tensor.shape,
                         vals=dequant_tensor.flatten().tolist())
 
+                    # create new value info
                     tensor_value_info = onnx_helper.get_model_input(model, node.input[0])
                     tensor_value_info_index = list(model.graph.input).index(tensor_value_info)
                     new_tensor_value_info = onnx.helper.make_tensor_value_info(
@@ -568,6 +582,7 @@ def absorb_quantise(model):
                             onnx.TensorProto.FLOAT,
                             tensor.shape)
 
+                    # remove the old initializer, and insert the new one
                     model.graph.initializer.remove(tensor_raw)
                     model.graph.initializer.insert(tensor_index, new_tensor)
                     model.graph.input.remove(tensor_value_info)
@@ -580,20 +595,30 @@ def absorb_quantise(model):
                         # weight
                         quan_obj = "weight"
 
-                next_node, input_index = onnx_helper.find_consumers(model, node.output[0])[0]
-                next_node.input[input_index] = node.input[0]
-                model.graph.node.remove(node)
-                model_was_changed = True
+                # remove the zero point and scale inputs (if in inputs)
+                zero_point_scale_inputs.extend(node.input[1:])
 
-                scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
-                next_node.attribute.append(scale_attr)
-                zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
-                next_node.attribute.append(zero_point_attr)
+                #  move quant node input to the next node
+                for next_node, input_index in onnx_helper.find_consumers(model, node.output[0]):
+                    next_node.input[input_index] = node.input[0]
+                    model_was_changed = True
+
+                # remove quant node
+                model.graph.node.remove(node)
+
+                if ADD_QUANT_ATTR:
+                    scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
+                    next_node.attribute.append(scale_attr)
+                    zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
+                    next_node.attribute.append(zero_point_attr)
 
             if node.op_type == "QuantizeLinear":
                 assert tensor_raw is None
 
                 prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+
+                # remove the zero point and scale inputs (if in inputs)
+                zero_point_scale_inputs.extend(node.input[1:])
 
                 prev_node.output[0] = node.output[0]
                 model.graph.node.remove(node)
@@ -601,9 +626,177 @@ def absorb_quantise(model):
 
                 quan_obj = "input"
 
-                scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
-                prev_node.attribute.append(scale_attr)
-                zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
-                prev_node.attribute.append(zero_point_attr)
+                if ADD_QUANT_ATTR:
+                    scale_attr = onnx.helper.make_attribute("{}_scale".format(quan_obj), scale)
+                    prev_node.attribute.append(scale_attr)
+                    zero_point_attr = onnx.helper.make_attribute("{}_zero_point".format(quan_obj), zero_point)
+                    prev_node.attribute.append(zero_point_attr)
+
+    # remove zero_point and scale nodes
+    for input in list(set(zero_point_scale_inputs)):
+        model.graph.input.remove(onnx_helper.get_model_input(model, input))
+        model.graph.initializer.remove(onnx_helper.get_model_initializer(model, input, to_tensor=False))
+
+    # change input and output types
+    model.graph.input[0].type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+    model.graph.output[-1].type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+
+    # change all value info types
+    for vi in model.graph.value_info:
+        vi.type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+
+    # simplify model (again)
+    model, _ = simplify(model)
 
     return model
+
+
+def fuse_mul_add_into_bn(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "Mul":
+            continue
+
+        # get the next node
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
+
+        # check noext node is add
+        if next_node.op_type != "Add":
+            continue
+
+        # get the channels
+        channels = onnx_helper.get_model_initializer(
+                model, node.input[1], to_tensor=False).dims[0]
+
+        # create zero mean
+        zero_mean = onnx.helper.make_tensor(
+            name="_".join([node.input[0],"zero_mean"]),
+            data_type=onnx.TensorProto.FLOAT,
+            dims=(channels,),
+            vals=np.zeros((channels), dtype=np.float32))
+        zero_mean_vi = onnx.helper.make_tensor_value_info(
+                zero_mean.name,
+                onnx.TensorProto.FLOAT,
+                [channels])
+
+        # update the graph
+        model.graph.initializer.insert(-1,zero_mean)
+        model.graph.input.insert(-1, zero_mean_vi)
+
+        # create ones var
+        one_var = onnx.helper.make_tensor(
+            name="_".join([node.input[0],"one_var"]),
+            data_type=onnx.TensorProto.FLOAT,
+            dims=(channels,),
+            vals=np.ones((channels), dtype=np.float32))
+        one_var_vi = onnx.helper.make_tensor_value_info(
+                one_var.name,
+                onnx.TensorProto.FLOAT,
+                [channels])
+
+        # update the graph
+        model.graph.initializer.insert(-1, one_var)
+        model.graph.input.insert(-1, one_var_vi)
+
+        # create a batch norm layer
+        new_node = onnx.helper.make_node(
+            "BatchNormalization",
+            name=node.name+"_bn",
+            inputs=[node.input[0], node.input[1],
+                next_node.input[1], zero_mean_vi.name,
+                one_var_vi.name], # TODO: add zero mean and var values
+            outputs=next_node.output,
+        )
+
+        # remove old nodes and add new one
+        model.graph.node.remove(node)
+        model.graph.node.remove(next_node)
+        model.graph.node.insert(index, new_node)
+
+    return model
+
+def fuse_bn_into_gemm(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "Gemm":
+            continue
+
+        # get the next node
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
+
+        # check noext node is add
+        if next_node.op_type != "BatchNormalization":
+            continue
+
+        # get B and C from GEMM
+        B_raw = onnx_helper.get_model_initializer(model, node.input[1], to_tensor=False)
+        C_raw = onnx_helper.get_model_initializer(model, node.input[2], to_tensor=False)
+
+        # get the scale and bias terms from BN
+        scale_raw = onnx_helper.get_model_initializer(model,
+                next_node.input[1], to_tensor=False)
+        bias_raw = onnx_helper.get_model_initializer(model,
+                next_node.input[2], to_tensor=False)
+
+        # get the new GEMM values
+        B_new_val = np.multiply(onnx.numpy_helper.to_array(scale_raw),
+                onnx.numpy_helper.to_array(B_raw))
+        C_new_val = np.multiply(onnx.numpy_helper.to_array(scale_raw),
+                onnx.numpy_helper.to_array(C_raw)) + onnx.numpy_helper.to_array(bias_raw)
+
+        # update the initializer values for B
+        B_index = list(model.graph.initializer).index(B_raw)
+        new_B = onnx.helper.make_tensor(
+            name=node.input[1],
+            data_type=onnx.TensorProto.FLOAT,
+            dims=B_new_val.shape, vals=B_new_val)
+        # update weight's value info
+        B_vi = onnx_helper.get_model_input(model, node.input[1])
+        new_B_vi = onnx.helper.make_tensor_value_info(
+                node.input[1],
+                onnx.TensorProto.FLOAT,
+                B_new_val.shape)
+        # update the graph
+        model.graph.initializer.remove(B_raw)
+        model.graph.initializer.insert(B_index, new_B)
+        model.graph.input.remove(B_vi)
+        model.graph.input.insert(1, new_B_vi)
+
+        # update the initializer values for C
+        C_index = list(model.graph.initializer).index(C_raw)
+        new_C = onnx.helper.make_tensor(
+            name=node.input[2],
+            data_type=onnx.TensorProto.FLOAT,
+            dims=C_new_val.shape, vals=C_new_val)
+        # update weight's value info
+        C_vi = onnx_helper.get_model_input(model, node.input[2])
+        new_C_vi = onnx.helper.make_tensor_value_info(
+                node.input[2],
+                onnx.TensorProto.FLOAT,
+                C_new_val.shape)
+        # update the graph
+        model.graph.initializer.remove(C_raw)
+        model.graph.initializer.insert(C_index, new_C)
+        model.graph.input.remove(C_vi)
+        model.graph.input.insert(2, new_C_vi)
+
+        # update the output for Gemm
+        node.output[0] = next_node.output[0]
+
+        # remove old nodes and add new one
+        model.graph.node.remove(next_node)
+
+    return model
+

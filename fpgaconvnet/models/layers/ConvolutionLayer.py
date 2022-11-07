@@ -208,15 +208,18 @@ class ConvolutionLayerBase(Layer):
 
         # get the padding
         padding = [
-            self.pad_top,
-            self.pad_bottom,
             self.pad_left,
-            self.pad_right
+            self.pad_right,
+            self.pad_top,
+            self.pad_bottom
         ]
 
         # return output featuremap
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
         data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
-        return convolution_layer(data).detach().numpy()
+        data = convolution_layer(data).detach().numpy()
+        print(data.shape)
+        return data
+        # return convolution_layer(data).detach().numpy()
 

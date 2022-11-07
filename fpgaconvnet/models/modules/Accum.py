@@ -71,6 +71,9 @@ class Accum(Module):
         # return the info
         return info
 
+    def memory_usage(self):
+        return int(self.filters/self.groups)*self.data_width
+
     def rsc(self,coef=None):
         # use module resource coefficients if none are given
         if coef == None:

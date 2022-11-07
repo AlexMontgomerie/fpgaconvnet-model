@@ -106,10 +106,10 @@ class SlidingWindow(Module):
         }
 
     def rows_out(self):
-        return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom)/self.stride[0]+1)
+        return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom+1)/self.stride[0])
 
     def cols_out(self):
-        return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right)/self.stride[1]+1)
+        return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right+1)/self.stride[1])
 
     def rate_in(self):
         padded_size = (self.rows_in()+self.pad_top+self.pad_bottom)*(self.cols_in()+self.pad_left+self.pad_right)
@@ -145,6 +145,12 @@ class SlidingWindow(Module):
         info["pad_left"] = self.pad_left
         # return the info
         return info
+
+    def memory_usage(self):
+        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
+        window_buffer_depth = self.channels+1
+        return (self.kernel_size[0]-1)*line_buffer_depth*self.data_width + \
+            self.kernel_size[0]*(self.kernel_size[1]-1)*window_buffer_depth*self.data_width
 
     def rsc(self, coef=None):
         """
