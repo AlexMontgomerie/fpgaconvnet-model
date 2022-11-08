@@ -25,29 +25,6 @@ class Accum(Module):
     filters: int
     groups: int
 
-    def __post_init__(self):
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_dsp.npy"))
-
-    def utilisation_model(self):
-        return {
-            "LUT"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "FF"    : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "DSP"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "BRAM"  : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-        }
-
     def channels_in(self):
         return (self.channels*self.filters)//self.groups
 

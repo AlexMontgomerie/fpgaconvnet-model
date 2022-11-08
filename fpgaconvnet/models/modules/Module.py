@@ -9,7 +9,11 @@ import copy
 from typing import List
 from dataclasses import dataclass, field
 
+from fpgaconvnet.tools.resource_regression_model import ModuleModel
+
 RSC_TYPES = ["FF","LUT","DSP","BRAM"]
+
+SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
 @dataclass
 class Module:
@@ -42,11 +46,24 @@ class Module:
         so the `rows`, `cols` and `channels` attributes are representative
         of the tensor if it was flattened to three dimensions.
     """
+
     rows: int
     cols: int
     channels: int
     data_width: int = field(default=16, init=False)
-    rsc_coef: dict = field(default_factory=lambda: {"FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
+    rsc_coef: dict = field(default_factory=lambda: {
+        "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
+    backend: str = field(default="chisel", init=False)
+
+    def __post_init__(self):
+        # get the resource model
+        module_name = self.__class__.__name__.capitalize()
+        self.rsc_model = ModuleModel(module_name, self.backend)
+
+    def fit_resource_model(self):
+        # fit the model
+        self.rsc_model.fit_model()
+        self.rsc_coef = self.rsc_model.coef
 
     def module_info(self):
         """
@@ -218,3 +235,4 @@ class Module:
         np.array
         """
         return data
+
