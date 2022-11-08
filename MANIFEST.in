@@ -1,1 +1,2 @@
 include fpgaconvnet/coefficients/*.npy
+include fpgaconvnet/tools/fpgaconvnet-mongodb.pem

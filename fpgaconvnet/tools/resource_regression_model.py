@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from fpgaconvnet.models.modules import Module
 
-RSC_TYPES=["LUT"]
+RSC_TYPES=["LUT", "FF", "DSP"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
@@ -77,37 +77,23 @@ class ModuleModel:
         assert len(self.parameters) > 0
 
     def fit_model(self):
-        module = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.name}"), self.name)
 
-        # hack: set default for missing fields
-        attrs = inspect.getmembers(module, lambda x:not(inspect.isroutine(x)))
-        attrs = [x for x in attrs if (x[0] == "__dataclass_fields__")]
-        attrs = {k : 1 for k, v in attrs[0][1].items() if v.init}
-        m = module(**attrs)
+        # get the utilisation model
+        utilisation_model = getattr(importlib.import_module(
+            f"fpgaconvnet.models.modules.{self.backend}.{self.name.lower()}"),
+            "utilisation_model")
 
+        # iterate over design points
         for point in self.parameters:
-            for k, v in point.items():
-                if hasattr(m, k):
-                    setattr(m,k,v)
-                # hack: ignore fields if module doesn't care
-
             for rsc_type in RSC_TYPES:
-                self.model[rsc_type].append(m.utilisation_model()[rsc_type])
+                self.model[rsc_type].append(utilisation_model(point)[rsc_type])
 
+        # fit coefficients
         for rsc_type in RSC_TYPES:
             self.coef[rsc_type] = self.get_nnls_coef(
                     np.array(self.model[rsc_type]),
                     np.array(self.actual[rsc_type]))
 
-        for point in self.parameters:
-            for k, v in point.items():
-                if hasattr(m, k):
-                    setattr(m,k,v)
-                # hack: ignore fields if module doesn't care
-
-            for rsc_type in RSC_TYPES:
-                self.predict[rsc_type].append(Module.rsc(m, self.coef)[rsc_type])
 
     def get_nnls_coef(self, model, rsc):
         """
@@ -124,6 +110,8 @@ class ModuleModel:
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.npy".lower())
             with open(filepath, "wb") as f:
                 np.save(f,self.coef[rsc_type])
+
+    # TODO: move below to Module class
 
     def get_model_error(self):
         for rsc_type in RSC_TYPES:

@@ -1,15 +1,17 @@
+import math
 import numpy as np
 
-def utilisation_model(self):
+def int2bits(n):
+  return math.ceil(math.log(n, 2))
+
+def utilisation_model(param: dict):
     return {
-        "LUT"   : np.array([self.filters,self.groups,
-            self.data_width,self.cols,self.rows,self.channels]),
-        "FF"    : np.array([self.filters,self.groups,
-            self.data_width,self.cols,self.rows,self.channels]),
-        "DSP"   : np.array([self.filters,self.groups,
-            self.data_width,self.cols,self.rows,self.channels]),
-        "BRAM"  : np.array([self.filters,self.groups,
-            self.data_width,self.cols,self.rows,self.channels]),
+        "LUT"   : np.array([param["filters"], param["channels"],
+            param["data_width"], int2bits(param["channels"])]),
+        "FF"    : np.array([param["data_width"], int2bits(param["channels"]),
+            int2bits(param["filters"])]),
+        "DSP"   : np.array([1]),
+        "BRAM"  : np.array([1]),
     }
 
 

@@ -2,6 +2,8 @@
 Base class for all hardware module models.
 '''
 
+import re
+import importlib
 import numpy as np
 import math
 import os
@@ -55,9 +57,28 @@ class Module:
         "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
     backend: str = field(default="chisel", init=False)
 
+    def camel_to_snake(self, name):
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
     def __post_init__(self):
-        # get the resource model
-        module_name = self.__class__.__name__.capitalize()
+
+        self.load_utilisation_model()
+        self.load_resource_model()
+        self.fit_resource_model()
+
+    def load_utilisation_model(self):
+        # get the utilisation model
+        module_name = self.camel_to_snake(self.__class__.__name__)
+        self.utilisation_model_fn = getattr(importlib.import_module(
+            f"fpgaconvnet.models.modules.{self.backend}.{module_name}"),
+            "utilisation_model")
+
+    def utilisation_model(self):
+        return self.utilisation_model_fn(self.__dict__)
+
+    def load_resource_model(self):
+        module_name = self.__class__.__name__
         self.rsc_model = ModuleModel(module_name, self.backend)
 
     def fit_resource_model(self):
