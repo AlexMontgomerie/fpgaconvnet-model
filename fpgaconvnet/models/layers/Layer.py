@@ -292,11 +292,11 @@ class Layer:
             "DSP"   : 0
         }
 
-    def get_coarse_in_feasible(self, wr_factor=1):
-        return get_factors(int(self.channels_in()/wr_factor))
+    def get_coarse_in_feasible(self):
+        return get_factors(int(self.channels_in()))
 
-    def get_coarse_out_feasible(self, wr_factor=1):
-        return get_factors(int(self.channels_out()/wr_factor))
+    def get_coarse_out_feasible(self):
+        return get_factors(int(self.channels_out()))
 
     def update(self):
         pass

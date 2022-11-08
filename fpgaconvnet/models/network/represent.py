@@ -15,19 +15,23 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import Layer, MultiPortLayer
 
-def get_model_input_node(self, partition_index):
-    input_node = self.partitions[partition_index].input_nodes[0]
-    while not onnx_helper.get_model_node(self.model, input_node):
+def get_model_input_node(self, i):
+    input_node = self.partitions[i].input_nodes[0]
+    onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
+    while not onnx_helper.get_model_node(self.model, onnx_input_node):
         input_node = graphs.get_next_nodes(
-                self.partitions[partition_index].graph,input_node)[0]
-    return onnx_helper.get_model_node(self.model, input_node).input[0]
+                self.partitions[i].graph,input_node)[0]
+        onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
+    return onnx_helper.get_model_node(self.model, onnx_input_node).input[0]
 
-def get_model_output_node(self, partition_index):
-    output_node = self.partitions[partition_index].output_nodes[0]
-    while not onnx_helper.get_model_node(self.model, output_node):
+def get_model_output_node(self, i):
+    output_node = self.partitions[i].output_nodes[0]
+    onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
+    while not onnx_helper.get_model_node(self.model, onnx_output_node):
         output_node = graphs.get_prev_nodes(
-                self.partitions[partition_index].graph,output_node)[0]
-    return onnx_helper.get_model_node(self.model, output_node).output[0]
+                self.partitions[i].graph,output_node)[0]
+        onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
+    return onnx_helper.get_model_node(self.model, onnx_output_node).output[0]
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
@@ -84,6 +88,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
             layer.name = node
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(
                     self.partitions[i].graph.nodes[node]['type'])
+            layer.onnx_node = self.partitions[i].graph.nodes[node]['onnx_node']
 
             # nodes into layer
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
@@ -136,3 +141,4 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
     # save in JSON format
     with open(filepath,"w") as f:
         f.write(MessageToJson(partitions, preserving_proto_field_name=True))
+

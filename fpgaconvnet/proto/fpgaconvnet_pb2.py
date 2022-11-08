@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='fpgaconvnet.proto',
   package='',
   syntax='proto2',
-  serialized_pb=_b('\n\x11\x66pgaconvnet.proto\"2\n\x0b\x66ixed_point\x12\r\n\x05width\x18\x01 \x02(\x05\x12\x14\n\x0c\x62inary_point\x18\x02 \x02(\x05\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\x90\x06\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x01(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x01(\x05\x12\x0f\n\x07rows_in\x18\x03 \x01(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x01(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x01(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x01(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x01(\x05\x12\x11\n\tcoarse_in\x18\t \x01(\x05\x12\x12\n\ncoarse_out\x18\n \x01(\x05\x12\x0e\n\x06\x63oarse\x18\x0b \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0c \x01(\x05\x12\x0e\n\x06groups\x18\r \x01(\x05\x12\x0c\n\x04\x66ine\x18\x0e \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x0f \x01(\x05\x12\x0f\n\x07pad_top\x18\x10 \x01(\x05\x12\x11\n\tpad_right\x18\x11 \x01(\x05\x12\x10\n\x08pad_left\x18\x12 \x01(\x05\x12\x12\n\npad_bottom\x18\x13 \x01(\x05\x12\x13\n\x0bkernel_size\x18\x14 \x03(\x05\x12\x0e\n\x06stride\x18\x15 \x03(\x05\x12\x1c\n\x06\x64\x61ta_t\x18\x16 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08weight_t\x18\x17 \x01(\x0b\x32\x0c.fixed_point\x12\x1b\n\x05\x61\x63\x63_t\x18\x18 \x01(\x0b\x32\x0c.fixed_point\x12\x1d\n\x07input_t\x18\x19 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08output_t\x18\x1a \x01(\x0b\x32\x0c.fixed_point\x12\x10\n\x08has_bias\x18\x1b \x01(\x05\x12\x14\n\x0c\x62iases_width\x18\x1c \x01(\x05\x12\x10\n\x08ports_in\x18\x1d \x01(\x05\x12\x11\n\tports_out\x18\x1e \x01(\x05\x12\x15\n\rrows_in_array\x18\x1f \x03(\x05\x12\x15\n\rcols_in_array\x18  \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18! \x03(\x05\x12\x16\n\x0erows_out_array\x18\" \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18# \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18$ \x03(\x05\"\xda\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x1f\n\x04type\x18\x02 \x02(\x0e\x32\x11.layer.layer_type\x12\x1b\n\nstreams_in\x18\x03 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x04 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x05 \x02(\x0b\x32\n.parameter\x12\x14\n\x0cweights_path\x18\x06 \x01(\t\x12\x11\n\tbias_path\x18\x07 \x01(\t\"\x9d\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x08\n\x04RELU\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x0b\n\x07\x45LTWISE\x10\x08\x12\x13\n\x0f\x41VERAGE_POOLING\x10\t\"\xbe\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x12\n\ninput_node\x18\x04 \x02(\t\x12\x13\n\x0boutput_node\x18\x05 \x02(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition')
+  serialized_pb=_b('\n\x11\x66pgaconvnet.proto\"2\n\x0b\x66ixed_point\x12\r\n\x05width\x18\x01 \x02(\x05\x12\x14\n\x0c\x62inary_point\x18\x02 \x02(\x05\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\x90\x06\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x01(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x01(\x05\x12\x0f\n\x07rows_in\x18\x03 \x01(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x01(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x01(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x01(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x01(\x05\x12\x11\n\tcoarse_in\x18\t \x01(\x05\x12\x12\n\ncoarse_out\x18\n \x01(\x05\x12\x0e\n\x06\x63oarse\x18\x0b \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0c \x01(\x05\x12\x0e\n\x06groups\x18\r \x01(\x05\x12\x0c\n\x04\x66ine\x18\x0e \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x0f \x01(\x05\x12\x0f\n\x07pad_top\x18\x10 \x01(\x05\x12\x11\n\tpad_right\x18\x11 \x01(\x05\x12\x10\n\x08pad_left\x18\x12 \x01(\x05\x12\x12\n\npad_bottom\x18\x13 \x01(\x05\x12\x13\n\x0bkernel_size\x18\x14 \x03(\x05\x12\x0e\n\x06stride\x18\x15 \x03(\x05\x12\x1c\n\x06\x64\x61ta_t\x18\x16 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08weight_t\x18\x17 \x01(\x0b\x32\x0c.fixed_point\x12\x1b\n\x05\x61\x63\x63_t\x18\x18 \x01(\x0b\x32\x0c.fixed_point\x12\x1d\n\x07input_t\x18\x19 \x01(\x0b\x32\x0c.fixed_point\x12\x1e\n\x08output_t\x18\x1a \x01(\x0b\x32\x0c.fixed_point\x12\x10\n\x08has_bias\x18\x1b \x01(\x05\x12\x14\n\x0c\x62iases_width\x18\x1c \x01(\x05\x12\x10\n\x08ports_in\x18\x1d \x01(\x05\x12\x11\n\tports_out\x18\x1e \x01(\x05\x12\x15\n\rrows_in_array\x18\x1f \x03(\x05\x12\x15\n\rcols_in_array\x18  \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18! \x03(\x05\x12\x16\n\x0erows_out_array\x18\" \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18# \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18$ \x03(\x05\"\xed\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x11\n\tonnx_node\x18\x02 \x02(\t\x12\x1f\n\x04type\x18\x03 \x02(\x0e\x32\x11.layer.layer_type\x12\x1b\n\nstreams_in\x18\x04 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x05 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x06 \x02(\x0b\x32\n.parameter\x12\x14\n\x0cweights_path\x18\x07 \x01(\t\x12\x11\n\tbias_path\x18\x08 \x01(\t\"\x9d\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x08\n\x04RELU\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x0b\n\x07\x45LTWISE\x10\x08\x12\x13\n\x0f\x41VERAGE_POOLING\x10\t\"\xbe\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x12\n\ninput_node\x18\x04 \x02(\t\x12\x13\n\x0boutput_node\x18\x05 \x02(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -74,8 +74,8 @@ _LAYER_LAYER_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1129,
-  serialized_end=1286,
+  serialized_start=1148,
+  serialized_end=1305,
 )
 _sym_db.RegisterEnumDescriptor(_LAYER_LAYER_TYPE)
 
@@ -461,43 +461,50 @@ _LAYER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='type', full_name='layer.type', index=1,
-      number=2, type=14, cpp_type=8, label=2,
+      name='onnx_node', full_name='layer.onnx_node', index=1,
+      number=2, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='layer.type', index=2,
+      number=3, type=14, cpp_type=8, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='streams_in', full_name='layer.streams_in', index=2,
-      number=3, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='streams_out', full_name='layer.streams_out', index=3,
+      name='streams_in', full_name='layer.streams_in', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='layer.parameters', index=4,
-      number=5, type=11, cpp_type=10, label=2,
+      name='streams_out', full_name='layer.streams_out', index=4,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='parameters', full_name='layer.parameters', index=5,
+      number=6, type=11, cpp_type=10, label=2,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='weights_path', full_name='layer.weights_path', index=5,
-      number=6, type=9, cpp_type=9, label=1,
+      name='weights_path', full_name='layer.weights_path', index=6,
+      number=7, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='bias_path', full_name='layer.bias_path', index=6,
-      number=7, type=9, cpp_type=9, label=1,
+      name='bias_path', full_name='layer.bias_path', index=7,
+      number=8, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -516,7 +523,7 @@ _LAYER = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=940,
-  serialized_end=1286,
+  serialized_end=1305,
 )
 
 
@@ -595,8 +602,8 @@ _PARTITION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1289,
-  serialized_end=1479,
+  serialized_start=1308,
+  serialized_end=1498,
 )
 
 
@@ -626,8 +633,8 @@ _PARTITIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1481,
-  serialized_end=1524,
+  serialized_start=1500,
+  serialized_end=1543,
 )
 
 _PARAMETER.fields_by_name['data_t'].message_type = _FIXED_POINT

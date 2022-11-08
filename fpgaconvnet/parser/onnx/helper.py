@@ -145,16 +145,28 @@ def update_batch_size(model, batch_size):
     return model
 
 def get_model_node(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.node))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.node))
+    except StopIteration:
+        raise StopIteration(f"{name} does not exist in model")
 
 def get_model_value_info(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.value_info))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.value_info))
+    except StopIteration:
+        raise StopIteration(f"value info for {name} does not exist in model")
 
 def get_model_input(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.input))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.input))
+    except StopIteration:
+        raise StopIteration(f"input for {name} does not exist in model")
 
 def get_model_output(model, name):
-    return next(filter(lambda x: x.name == name, model.graph.output))
+    try:
+        return next(filter(lambda x: x.name == name, model.graph.output))
+    except StopIteration:
+        raise StopIteration(f"output for {name} does not exist in model")
 
 def get_model_initializer(model, name, to_tensor=True):
     try:
@@ -196,6 +208,13 @@ def format_onnx_name(node):
 
 def check_model_equivalence(model_a, model_b, batch_size=32, seed=2342315703):
 
+
+    # type lookup
+    ort_type_to_np = {
+        "tensor(int8)" : np.int8,
+        "tensor(float)" : np.float32
+    }
+
     # set seeds
     np.random.seed(seed)
     random.seed(seed)
@@ -224,25 +243,29 @@ def check_model_equivalence(model_a, model_b, batch_size=32, seed=2342315703):
     # generate random data for the input
     input_data = copy.deepcopy(np.random.uniform(-1, 1,
         size=model_a_input_shape).astype(np.float32))
-            # size=(batch_size, *model_a_input_shape[1:])).astype(np.float32))
+    # input_data = copy.deepcopy(np.random.randint(-128, 127,
+    #     size=model_a_input_shape).astype(np.float32))
 
     # execute model a
+    model_a_input_type = model_a_ort.get_inputs()[0].type
     model_a_input_name = model_a_ort.get_inputs()[0].name
     model_a_output_name = model_a_ort.get_outputs()[0].name
     model_a_output = np.array(model_a_ort.run([model_a_output_name],
-        { model_a_input_name: input_data}))
+        { model_a_input_name: input_data.astype(ort_type_to_np[model_a_input_type]) }))
 
     # execute model b
+    model_b_input_type = model_b_ort.get_inputs()[0].type
     model_b_input_name = model_b_ort.get_inputs()[0].name
     model_b_output_name = model_b_ort.get_outputs()[0].name
     model_b_output = np.array(model_b_ort.run([model_b_output_name],
-        { model_b_input_name: input_data}))
+        { model_b_input_name: input_data.astype(ort_type_to_np[model_b_input_type]) }))
 
     # check that outputs are the same shape
     assert model_a_output.shape == model_b_output.shape, "ERROR: output shapes are not equivalent"
 
     # check that the data is (roughly) equivalent
-    assert np.allclose(model_a_output, model_b_output, atol=0.00001), "ERROR: outputs are not equal"
+    assert np.allclose(model_a_output, model_b_output, atol=0.00001), \
+            f"ERROR: outputs are not equal ({model_a_output} != {model_b_output})"
 
 # https://github.com/Xilinx/finn-base/blob/beae9785f2e29ef021541a3499832f3754e1026d/src/finn/core/modelwrapper.py#L370
 def find_consumers(model, tensor_name):

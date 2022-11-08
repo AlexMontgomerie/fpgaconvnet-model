@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import copy
 import sys
 import importlib
@@ -14,8 +16,11 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.partition import Partition
-from fpgaconvnet.models.network import Network
+# from fpgaconvnet.models.partition import Partition
+# from fpgaconvnet.models.network import Network
+from ..models.partition.Partition import Partition
+from ..models.network.Network import Network
+
 
 import fpgaconvnet.tools.graphs as graphs
 
@@ -37,7 +42,7 @@ class Parser:
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
-            # "fuse_bn_into_conv",
+            "fuse_bn_into_conv",
             "fuse_consecutive_transposes",
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
@@ -45,9 +50,14 @@ class Parser:
         ]
 
         # passes for fpgaconvnet onnx optimizer
-        self.fpgaconvnet_onnx_passes = [
+        self.fpgaconvnet_pre_onnx_passes = [
             "absorb_quantise",
+            "fuse_mul_add_into_bn",
+        ]
+
+        self.fpgaconvnet_post_onnx_passes = [
             "convert_matmul_to_gemm",
+            "fuse_bn_into_gemm",
             "remove_redundant_pooling",
             "make_clip_min_max_scalar",
             "remove_training_nodes",
@@ -99,6 +109,9 @@ class Parser:
         # add inputs from initializers
         onnx_helper.add_input_from_initializer(model_opt) #Seems to be necessary for conv layers from pytorch (at least)
 
+        # perform fpgaconvnet-based optimization passes (pre onnx optimizations)
+        model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_pre_onnx_passes)
+
         # perform onnx optimization passes
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
@@ -106,23 +119,17 @@ class Parser:
         # infer shapes before manual optimisations
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # perform fpgaconvnet-based optimization passes
-        model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_onnx_passes)
+        # perform fpgaconvnet-based optimization passes (post onnx optimizations)
+        model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_post_onnx_passes)
 
         # infer shapes of optimised model
-        try:
-            self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
-        except onnx.onnx_cpp2py_export.shape_inference.InferenceError:
-            # "absorb_quantise" may convert int8 to float
-            print("WARNING: unable to infer shapes")
-
-        # onnx.save(model_opt, "model_opt.onnx")
+        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        # check that models are equivalent
-        onnx_helper.check_model_equivalence(model, model_opt)
+        # # check that models are equivalent
+        # onnx_helper.check_model_equivalence(model, model_opt)
 
         return model_opt
 

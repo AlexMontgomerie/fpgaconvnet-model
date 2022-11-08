@@ -27,7 +27,9 @@ def add_squeeze(self):
             # new_node   = "_".join([start_name,"squeeze",end_name])
             new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info
-            self.graph.add_node(new_node,type=LAYER_TYPE.Squeeze,
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[start_node]["onnx_node"],
                 hw=SqueezeLayer(
                     self.graph.nodes[start_node]['hw'].rows_out(),
                     self.graph.nodes[start_node]['hw'].cols_out(),
@@ -47,7 +49,9 @@ def add_squeeze(self):
         # add node to graph
         new_node  = "_".join([input_node,"squeeze"])
         # add node to node info
-        self.graph.add_node(new_node, type=LAYER_TYPE.Squeeze,
+        self.graph.add_node(new_node,
+            type=LAYER_TYPE.Squeeze,
+            onnx_node=self.graph.nodes[input_node]["onnx_node"],
             hw=SqueezeLayer(
                 self.graph.nodes[input_node]['hw'].rows_in(),
                 self.graph.nodes[input_node]['hw'].cols_in(),
@@ -64,7 +68,9 @@ def add_squeeze(self):
         # add node to graph
         new_node  = "_".join(["squeeze",output_node])
         # add node to node info
-        self.graph.add_node(new_node,type=LAYER_TYPE.Squeeze,
+        self.graph.add_node(new_node,
+            type=LAYER_TYPE.Squeeze,
+            onnx_node=self.graph.nodes[output_node]["onnx_node"],
             hw=SqueezeLayer(
                 self.graph.nodes[output_node]['hw'].rows_out(),
                 self.graph.nodes[output_node]['hw'].cols_out(),
@@ -112,6 +118,7 @@ def add_split(self):
             split_node  = f"{node}_split"
             self.graph.add_node(split_node,
                 type=LAYER_TYPE.Split,
+                onnx_node=self.graph.nodes[node]["onnx_node"],
                 hw=SplitLayer(
                     self.graph.nodes[node]['hw'].rows_out(),
                     self.graph.nodes[node]['hw'].cols_out(),
