@@ -18,7 +18,7 @@ import importlib
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
 @dataclass
@@ -52,16 +52,70 @@ class Accum(Module):
     def memory_usage(self):
         return int(self.filters/self.groups)*self.data_width
 
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            return {
+                "LUT"   : np.array([
+                    self.filters,self.groups,self.data_width,
+                    self.cols,self.rows,self.channels
+                ]),
+                "FF"    : np.array([
+                    self.filters,self.groups,self.data_width,
+                    self.cols,self.rows,self.channels
+                ]),
+                "DSP"   : np.array([
+                    self.filters,self.groups,self.data_width,
+                    self.cols,self.rows,self.channels
+                ]),
+                "BRAM"  : np.array([
+                    self.filters,self.groups,self.data_width,
+                    self.cols,self.rows,self.channels
+                ]),
+            }
+
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.filters, self.channels,
+                    self.data_width, int2bits(self.channels)
+                ]),
+                "LUT_RAM"   : np.array([
+                     self.filters, self.channels,
+                    self.data_width, int2bits(self.channels)
+                ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                    self.data_width, int2bits(self.channels),
+                    int2bits(self.filters)
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
     def rsc(self,coef=None):
+
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
+
         # get the accumulation buffer BRAM estimate
-        acc_buffer_bram = bram_memory_resource_model(int(self.filters/self.groups), self.data_width)
+        acc_buffer_bram = bram_memory_resource_model(
+                int(self.filters/self.groups), self.data_width)
+
         # get the linear model estimation
         rsc = Module.rsc(self, coef)
+
         # add the bram estimation
         rsc["BRAM"] = acc_buffer_bram
+
+        # ensure zero DSPs
+        rsc["DSP"] = 0
+
         # return the resource usage
         return rsc
 

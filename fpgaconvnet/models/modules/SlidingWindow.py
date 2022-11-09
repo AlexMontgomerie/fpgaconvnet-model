@@ -123,6 +123,55 @@ class SlidingWindow(Module):
         # return the info
         return info
 
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.data_width,
+                    (self.kernel_size[0]-1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1),
+                    (self.kernel_size[0]-1)*(self.cols*self.channels+1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels+1),
+                ]),
+                "LUT_RAM"   : np.array([1]),
+                "LUT_SR"    : np.array([1]),
+                "FF"        : np.array([1]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+    def rsc(self,coef=None):
+
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
+
+        # get the linear model estimation
+        rsc = Module.rsc(self, coef)
+
+        # get the line buffer BRAM estimate
+        line_buffer_depth = self.cols*self.channels+1
+        line_buffer_bram = (self.kernel_size[0]-1) * \
+                bram_stream_resource_model(line_buffer_depth, self.data_width)
+
+        # get the window buffer BRAM estimate
+        window_buffer_depth = self.channels+1
+        window_buffer_bram = self.kernel_size[0]*(self.kernel_size[0]-1) * \
+                bram_stream_resource_model(window_buffer_depth, self.data_width)
+
+        # add the bram estimation
+        rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+
+        # ensure zero DSPs
+        rsc["DSP"] = 0
+
+        # return the resource usage
+        return rsc
+
+
     def memory_usage(self):
         line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
         window_buffer_depth = self.channels+1

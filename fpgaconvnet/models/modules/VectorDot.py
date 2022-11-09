@@ -3,13 +3,16 @@ import math
 import os
 from dataclasses import dataclass, field
 
-from fpgaconvnet.models.modules import Module
+from fpgaconvnet.models.modules import int2bits, Module
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class VectorDot(Module):
     filters: int
     fine: int
+
+    def rate_in(self):
+        return 1.0/float(self.filters)
 
     def module_info(self):
         return {
@@ -24,8 +27,41 @@ class VectorDot(Module):
             'channels_out'  : self.channels_out()
         }
 
-    def rate_in(self):
-        return 1.0/float(self.filters)
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.fine, self.data_width,
+                ]),
+                "LUT_RAM"   : np.array([0]),
+                "LUT_SR"    : np.array([0]),
+                "FF"    : np.array([
+                    int2bits(self.filters),
+                ]),
+                "DSP"       : np.array([self.fine]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
+    def rsc(self,coef=None):
+
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
+
+        # get the linear model estimation
+        rsc = Module.rsc(self, coef)
+
+        # get the dsp usage
+        dsp = self.fine*dsp_multiplier_resource_model(
+                self.data_width, self.data_width)
+        rsc["DSP"] = dsp
+
+        return rsc
 
     '''
     FUNCTIONAL MODEL

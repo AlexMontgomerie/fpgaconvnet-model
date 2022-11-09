@@ -1,11 +1,12 @@
 import os
-import re
 import numpy as np
-import sklearn.linear_model
-import matplotlib.pyplot as plt
 import importlib
 import inspect
 import dataclasses
+from collections import namedtuple
+
+import sklearn.linear_model
+import matplotlib.pyplot as plt
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from fpgaconvnet.models.modules import Module
@@ -30,7 +31,6 @@ class ModuleModel:
         self.coef = {k: [] for k in self.rsc_types}
         self.predict = {k: [] for k in self.rsc_types}
         self.actual = {k: [] for k in self.rsc_types}
-
 
         if filepath.endswith(".pem"):
             self.load_data_from_db(filepath)
@@ -87,20 +87,22 @@ class ModuleModel:
 
         # get the utilisation model
         utilisation_model = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.backend}.{self.camel_to_snake(self.name)}"),
-            "utilisation_model")
+            f"fpgaconvnet.models.modules.{self.name}"),
+            self.name).utilisation_model
+        utilisation_model = staticmethod(utilisation_model)
 
         # iterate over design points
         for point in self.parameters:
+            point["backend"] = self.backend
+            point_obj = namedtuple('Struct', point.keys())(*point.values())
             for rsc_type in self.rsc_types:
-                self.model[rsc_type].append(utilisation_model(point)[rsc_type])
+                self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
 
         # fit coefficients
         for rsc_type in self.rsc_types:
             self.coef[rsc_type] = self.get_nnls_coef(
                     np.array(self.model[rsc_type]),
                     np.array(self.actual[rsc_type]))
-
 
     def get_nnls_coef(self, model, rsc):
         """
@@ -145,12 +147,4 @@ class ModuleModel:
 
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.jpg".lower())
             fig.savefig(filepath)
-
-    def camel_to_snake(self, name):
-        """
-        camel to snake method
-        """
-        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
 

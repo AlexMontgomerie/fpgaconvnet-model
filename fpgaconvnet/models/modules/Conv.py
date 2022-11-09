@@ -54,6 +54,7 @@ class Conv(Module):
     acc_width: int = field(default=16, init=False)
 
     def __post_init__(self):
+
         # format kernel size as a 2 element list
         if isinstance(self.kernel_size, int):
             self.kernel_size = [self.kernel_size, self.kernel_size]
@@ -62,27 +63,8 @@ class Conv(Module):
         else:
             raise TypeError
 
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_dsp.npy"))
-
-    def utilisation_model(self):
-        return {
-            "LUT"  : np.array([math.log(self.filters,2),math.log(self.cols*self.rows,2),math.log(self.channels,2)]),
-            "FF"   : np.array([math.log(self.filters,2),math.log(self.cols*self.rows,2),math.log(self.channels,2)]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
-        }
+        # perform basic module initialisation
+        Module.__post_init__(self)
 
     def channels_out(self):
         return int(self.filters/float(self.groups))
@@ -106,6 +88,25 @@ class Conv(Module):
         info["fine"] = self.fine
         # return the info
         return info
+
+    def utilisation_model(self):
+        if self.backend == "hls":
+            return {
+                "LUT"  : np.array([
+                    self.int2bits(self.filters),
+                    self.int2bits(self.cols*self.rows),
+                    self.int2bits(self.channels)
+                ]),
+                "FF"   : np.array([
+                    self.int2bits(self.filters),
+                    self.int2bits(self.cols*self.rows),
+                    self.int2bits(self.channels)
+                ]),
+                "DSP"  : np.array([1]),
+                "BRAM" : np.array([1])
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def rsc(self,coef=None):
         # use module resource coefficients if none are given

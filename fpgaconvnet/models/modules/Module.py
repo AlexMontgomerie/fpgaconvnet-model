@@ -59,34 +59,12 @@ class Module:
 
     def __post_init__(self):
 
-        self.load_utilisation_model()
+        # load and fit resource model
         self.load_resource_model()
         self.fit_resource_model()
 
-    def camel_to_snake(self, name):
-        """
-        camel to snake method
-        """
-        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
-    def load_utilisation_model(self):
-        # get the utilisation model
-        module_name = self.camel_to_snake(self.__class__.__name__)
-        self.utilisation_model_fn = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.backend}.{module_name}"),
-            "utilisation_model")
-
-    def utilisation_model(self):
-        """
-        Returns
-        -------
-        dict
-            utilisation of resources model.
-        """
-        return self.utilisation_model_fn(self.__dict__)
-
     def load_resource_model(self):
+        # load the resource model
         module_name = self.__class__.__name__
         self.rsc_model = ModuleModel(module_name, self.backend)
 
@@ -94,6 +72,9 @@ class Module:
         # fit the model
         self.rsc_model.fit_model()
         self.rsc_coef = self.rsc_model.coef
+
+    def utilisation_model(self):
+        raise ValueError(f"{self.backend} backend not supported")
 
     def rsc(self, coef=None):
         """
@@ -108,14 +89,17 @@ class Module:
         if coef == None:
             coef = self.rsc_coef
 
-        # get the resource model method
-        module_name = self.camel_to_snake(self.__class__.__name__)
-        self.rsc_fn = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.backend}.{module_name}"),
-            "rsc")
+        # return the linear model estimation
+        rsc = { rsc_type: int(np.dot(utilisation_model[rsc_type],
+            coef[rsc_type])) for rsc_type in coef.keys()}
 
-        # return the resource model
-        return self.rsc_fn(self.__dict__, coef)
+        if self.backend == "chisel":
+            # update the resources for sum of LUT and BRAM types
+            rsc["LUT"] = rsc["Logic_LUT"] + rsc["LUT_RAM"] + rsc["LUT_SR"]
+            rsc["BRAM"] = 2*rsc["BRAM36"] + rsc["BRAM"]
+
+        # return updated resources
+        return rsc
 
     def module_info(self):
         """
@@ -247,12 +231,6 @@ class Module:
             default is 0.
         """
         return 0
-
-    def int2bits(self, n):
-        """
-        helper function to get number of bits for integer
-        """
-        return math.ceil(math.log(n, 2))
 
 
     def functional_model(self,data):

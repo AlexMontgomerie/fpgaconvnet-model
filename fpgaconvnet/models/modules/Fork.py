@@ -46,6 +46,30 @@ class Fork(Module):
         # return the info
         return info
 
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    pow(self.kernel_size[0]*self.kernel_size[1], 2),
+                    self.kernel_size[0]*self.kernel_size[1],
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse,
+                ]),
+                "LUT_RAM"   : np.array([0]),
+                "LUT_SR"    : np.array([0]),
+                "FF"    : np.array([
+                    self.data_width,
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1],
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
     def visualise(self, name):
         return pydot.Node(name,label="fork", shape="box",
                 style="filled", fillcolor="azure",

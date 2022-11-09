@@ -39,6 +39,30 @@ class Bias(Module):
         # return the info
         return info
 
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            return {
+                "LUT"   : np.array([1]),
+                "FF"    : np.array([1]),
+                "DSP"   : np.array([0]),
+                "BRAM"  : np.array([0]),
+            }
+
+        if self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([1]),
+                "LUT_RAM"   : np.array([1]),
+                "LUT_SR"    : np.array([1]),
+                "FF"        : np.array([1]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
     def visualise(self, name):
         return pydot.Node(name,label="bias", shape="box",
                 style="filled", fillcolor="chartreuse",
