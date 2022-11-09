@@ -16,6 +16,7 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Stride(Module):
     kernel_size: Union[List[int],int]
     stride: Union[List[int],int]
+    backend: str = "chisel"
 
     def __post_init__(self):
 

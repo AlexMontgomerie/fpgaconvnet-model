@@ -14,6 +14,7 @@ from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_
 
 @dataclass
 class AveragePool(Module):
+    backend: str = "chisel"
 
     def __post_init__(self):
         return

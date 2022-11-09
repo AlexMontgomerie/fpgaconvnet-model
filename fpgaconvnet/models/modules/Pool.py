@@ -15,10 +15,12 @@ import pydot
 
 from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
+
 @dataclass
 class Pool(Module):
     kernel_size: Union[List[int],int]
     pool_type: str = "max"
+    backend: str = "chisel"
 
     def __name__(self):
         return f"{self.pool_type.capitalize()}Pool"
@@ -32,27 +34,25 @@ class Pool(Module):
         else:
             raise TypeError
 
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_dsp.npy"))
-
     def utilisation_model(self):
-        return {
-            "LUT"  : np.array([self.kernel_size[0],self.kernel_size[1],self.cols,self.rows,self.channels,self.data_width]),
-            "FF"   : np.array([self.kernel_size[0],self.kernel_size[1],self.cols,self.rows,self.channels,self.data_width]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1]),
-        }
+        if self.backend == "hls":
+            pass
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT"  : np.array([
+                    self.kernel_size[0],self.kernel_size[1],
+                ]),
+                "LUT_RAM"  : np.array([1]),
+                "LUT_SR"  : np.array([1]),
+                "FF"   : np.array([
+                    self.kernel_size[0],self.kernel_size[1],
+                ]),
+                "DSP"  : np.array([1]),
+                "BRAM36" : np.array([1]),
+                "BRAM18" : np.array([1]),
+            }
+        else:
+            raise ValueError()
 
     def module_info(self):
         # get the base module fields

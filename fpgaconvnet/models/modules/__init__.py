@@ -20,6 +20,8 @@ from .Conv import Conv
 from .Fork import Fork
 from .Glue import Glue
 from .Pool import Pool
+from .MaxPool import MaxPool
+# from .Pool import AvgPool
 from .ReLU import ReLU
 from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze

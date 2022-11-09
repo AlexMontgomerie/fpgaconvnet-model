@@ -52,6 +52,7 @@ class Conv(Module):
     groups: int
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=16, init=False)
+    backend: str = "hls"
 
     def __post_init__(self):
 

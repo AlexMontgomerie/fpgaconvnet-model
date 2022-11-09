@@ -23,6 +23,7 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Fork(Module):
     kernel_size: Union[List[int],int]
     coarse: int
+    backend: str = "chisel"
 
     def __post_init__(self):
 

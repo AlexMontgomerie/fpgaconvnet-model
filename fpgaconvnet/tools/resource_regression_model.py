@@ -17,7 +17,8 @@ CHISEL_RSC_TYPES=["Logic_LUT", "LUT_RAM", "LUT_SR", "FF", "DSP", "BRAM36", "BRAM
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
 class ModuleModel:
-    def __init__(self, name, backend, filepath=".pem"):
+    def __init__(self, name, backend):
+
         self.name = name
         self.backend = backend
 
@@ -32,12 +33,7 @@ class ModuleModel:
         self.predict = {k: [] for k in self.rsc_types}
         self.actual = {k: [] for k in self.rsc_types}
 
-        if filepath.endswith(".pem"):
-            self.load_data_from_db(filepath)
-        else:
-            self.load_data_from_dir(filepath)
-
-    def load_data_from_db(self, filepath):
+    def load_data_from_db(self):
         """
         loads a set of parameter-resource pairs for
         many different configurations and runs of the
@@ -68,7 +64,7 @@ class ModuleModel:
 
         assert len(self.parameters) > 0
 
-    def load_data_from_dir(self, filepath):
+    def load_data_from_cache(self, filepath):
         folders = [f for f in os.listdir(filepath) if not f]
         for folder in folders:
             filename = os.path.join(filepath, folder, "results.json")
@@ -83,26 +79,46 @@ class ModuleModel:
 
         assert len(self.parameters) > 0
 
-    def fit_model(self):
+    def fit_model(self, from_cache=False):
 
-        # get the utilisation model
-        utilisation_model = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.name}"),
-            self.name).utilisation_model
-        utilisation_model = staticmethod(utilisation_model)
+        if from_cache:
 
-        # iterate over design points
-        for point in self.parameters:
-            point["backend"] = self.backend
-            point_obj = namedtuple('Struct', point.keys())(*point.values())
+            # get the cache path
+            cache_path = os.path.dirname(__file__) + f"../coefficients/{self.backend}"
+
+            # iterate over resource types
+            self.coef = {}
             for rsc_type in self.rsc_types:
-                self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
+                with open(f"{cache_path}/{self.name}_{rsc_type}.npy", "wb") as f:
+                    self.coef[rsc_type] = np.save(f)
 
-        # fit coefficients
-        for rsc_type in self.rsc_types:
-            self.coef[rsc_type] = self.get_nnls_coef(
-                    np.array(self.model[rsc_type]),
-                    np.array(self.actual[rsc_type]))
+        else:
+
+            # get the utilisation model
+            utilisation_model = getattr(importlib.import_module(
+                f"fpgaconvnet.models.modules.{self.name}"),
+                self.name).utilisation_model
+            utilisation_model = staticmethod(utilisation_model)
+
+            # iterate over design points
+            for point in self.parameters:
+                point["backend"] = self.backend
+                point_obj = namedtuple('ParameterPoint', point.keys())(*point.values())
+                for rsc_type in self.rsc_types:
+                    self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
+
+            # fit coefficients
+            for rsc_type in self.rsc_types:
+                self.coef[rsc_type] = self.get_nnls_coef(
+                        np.array(self.model[rsc_type]),
+                        np.array(self.actual[rsc_type]))
+
+            # iterate over design points
+            for point in self.parameters:
+                point["backend"] = self.backend
+                point_obj = namedtuple('ParameterPoint', point.keys())(*point.values())
+                for rsc_type in self.rsc_types:
+                    self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
 
     def get_nnls_coef(self, model, rsc):
         """
@@ -117,10 +133,7 @@ class ModuleModel:
     def save_coef(self, outpath):
         for rsc_type in self.rsc_types:
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.npy".lower())
-            with open(filepath, "wb") as f:
-                np.save(f,self.coef[rsc_type])
-
-    # TODO: move below to Module class
+            np.save(filepath, self.coef[rsc_type])
 
     def get_model_error(self):
         for rsc_type in self.rsc_types:

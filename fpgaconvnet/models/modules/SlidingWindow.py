@@ -59,6 +59,7 @@ class SlidingWindow(Module):
     pad_right: int
     pad_bottom: int
     pad_left: int
+    backend: str = "chisel"
 
     def __post_init__(self):
 

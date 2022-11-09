@@ -16,6 +16,7 @@ from fpgaconvnet.models.modules import Module
 class EltWise(Module):
     ports_in: int
     biases_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def module_info(self):
         return {

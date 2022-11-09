@@ -11,7 +11,7 @@ import copy
 from typing import List
 from dataclasses import dataclass, field
 
-from fpgaconvnet.tools.resource_regression_model import ModuleModel
+# from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
 RSC_TYPES = ["FF","LUT","DSP","BRAM"]
 
@@ -55,23 +55,18 @@ class Module:
     data_width: int = field(default=16, init=False)
     rsc_coef: dict = field(default_factory=lambda: {
         "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
-    backend: str = field(default="chisel", init=False)
 
     def __post_init__(self):
 
-        # load and fit resource model
-        self.load_resource_model()
-        self.fit_resource_model()
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-    def load_resource_model(self):
-        # load the resource model
-        module_name = self.__class__.__name__
-        self.rsc_model = ModuleModel(module_name, self.backend)
-
-    def fit_resource_model(self):
-        # fit the model
-        self.rsc_model.fit_model()
-        self.rsc_coef = self.rsc_model.coef
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            coef_path =f"{rsc_cache_path}/{self.__class__.__name__}_{rsc_type}.npy".lower()
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def utilisation_model(self):
         raise ValueError(f"{self.backend} backend not supported")
@@ -89,14 +84,17 @@ class Module:
         if coef == None:
             coef = self.rsc_coef
 
+        # get the utilisation_model
+        util_model = self.utilisation_model()
+
         # return the linear model estimation
-        rsc = { rsc_type: int(np.dot(utilisation_model[rsc_type],
+        rsc = { rsc_type: int(np.dot(util_model[rsc_type],
             coef[rsc_type])) for rsc_type in coef.keys()}
 
         if self.backend == "chisel":
             # update the resources for sum of LUT and BRAM types
             rsc["LUT"] = rsc["Logic_LUT"] + rsc["LUT_RAM"] + rsc["LUT_SR"]
-            rsc["BRAM"] = 2*rsc["BRAM36"] + rsc["BRAM"]
+            rsc["BRAM"] = 2*rsc["BRAM36"] + rsc["BRAM18"]
 
         # return updated resources
         return rsc

@@ -21,6 +21,7 @@ class Glue(Module):
     coarse_in: int
     coarse_out: int
     acc_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def channels_in(self):
         return self.filters

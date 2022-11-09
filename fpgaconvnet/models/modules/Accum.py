@@ -25,6 +25,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_mod
 class Accum(Module):
     filters: int
     groups: int
+    backend: str = "chisel"
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups

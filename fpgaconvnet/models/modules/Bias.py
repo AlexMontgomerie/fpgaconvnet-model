@@ -24,6 +24,7 @@ from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_
 class Bias(Module):
     filters: int
     biases_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def channels_in(self):
         return self.filters

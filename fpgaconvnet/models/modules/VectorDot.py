@@ -10,6 +10,7 @@ from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_
 class VectorDot(Module):
     filters: int
     fine: int
+    backend: str = "chisel"
 
     def rate_in(self):
         return 1.0/float(self.filters)

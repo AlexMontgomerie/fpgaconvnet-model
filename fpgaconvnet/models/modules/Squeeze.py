@@ -12,21 +12,7 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Squeeze(Module):
     coarse_in: int
     coarse_out: int
-
-    def __post_init__(self):
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze_dsp.npy"))
+    backend: str = "chisel"
 
     def module_info(self):
         # get the base module fields
@@ -36,6 +22,27 @@ class Squeeze(Module):
         info["coarse_out"] = self.coarse_out
         # return the info
         return info
+
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([1]),
+                "LUT_RAM"   : np.array([
+                     self.coarse_in, self.coarse_out,
+                ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                    self.coarse_in, self.coarse_out,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def lcm(a, b):
         return abs(a*b) // math.gcd(a, b)
