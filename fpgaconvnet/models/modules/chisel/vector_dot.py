@@ -1,19 +1,19 @@
 import numpy as np
 
 from fpgaconvnet.models.modules.chisel import int2bits
-
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 def utilisation_model(param: dict):
     return {
-        "Logic_LUT" : np.array([param["filters"], param["channels"],
-            param["data_width"], int2bits(param["channels"])]),
-        "LUT_RAM"   : np.array([param["filters"], param["channels"],
-            param["data_width"], int2bits(param["channels"])]),
+        "Logic_LUT" : np.array([
+            param["fine"], param["data_width"],
+        ]),
+        "LUT_RAM"   : np.array([0]),
         "LUT_SR"    : np.array([0]),
-        "FF"        : np.array([param["data_width"], int2bits(param["channels"]),
-            int2bits(param["filters"])]),
-        "DSP"       : np.array([0]),
+        "FF"    : np.array([
+            int2bits(param["filters"]),
+        ]),
+        "DSP"       : np.array([param["fine"]]),
         "BRAM36"    : np.array([0]),
         "BRAM18"    : np.array([0]),
     }
@@ -27,11 +27,15 @@ def rsc(param: dict, coef: dict):
         rsc = { rsc_type: int(np.dot(util_model[rsc_type],
             coef[rsc_type])) for rsc_type in coef.keys()}
 
+        # get the dsp usage
+        dsp = param["fine"]*dsp_multiplier_resource_model(
+                param["data_width"], param["data_width"])
+
         # return the resource usage
         return {
-            "LUT"   : rsc["Logic_LUT"] + rsc["LUT_RAM"],
+            "LUT"   : rsc["Logic_LUT"],
             "FF"    : rsc["FF"],
-            "DSP"   : 0,
+            "DSP"   : dsp,
             "BRAM"  : 0
         }
 

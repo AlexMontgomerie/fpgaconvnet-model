@@ -1,16 +1,103 @@
-import numpy as np
+import importlib
 import math
-import pydot
-import torch
 from typing import Union, List
+
+import pydot
+import numpy as np
+import torch
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 
 from fpgaconvnet.models.layers.utils import get_factors
 
+from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import Layer
 
-class ConvolutionLayerBase(Layer):
+class ConvolutionLayer(Layer):
+
+    def __init__(
+            self,
+            filters: int,
+            rows: int,
+            cols: int,
+            channels: int,
+            coarse_in: int = 1,
+            coarse_out: int = 1,
+            coarse_group: int = 1,
+            kernel_size: Union[List[int], int] = 3,
+            stride: Union[List[int], int] = 1,
+            groups: int = 1,
+            pad: Union[List[int], int] = 0,
+            fine: int  = 1,
+            input_t: FixedPoint = FixedPoint(16,8),
+            output_t: FixedPoint = FixedPoint(16,8),
+            weight_t: FixedPoint = FixedPoint(16,8),
+            acc_t: FixedPoint = FixedPoint(32,16),
+            has_bias: int = 0, # default to no bias for old configs
+            backend: str = "chisel", # default to no bias for old configs
+        ):
+
+        # initialise parent class
+        super().__init__(rows, cols, channels,
+                coarse_in, coarse_out)
+
+        # save data types
+        self.input_t = input_t
+        self.output_t = output_t
+        self.weight_t = weight_t
+        self.acc_t = acc_t
+
+        # save bias flag
+        self.has_bias = has_bias
+
+        # init variables
+        self._kernel_size = self.format_kernel_size(kernel_size)
+        self._stride = self.format_stride(stride)
+        self._pad = self.format_pad(pad)
+        self._groups = groups
+        self._coarse_group = coarse_group
+        self._fine = fine
+        self._filters = filters
+
+        self._pad_top = self._pad[0]
+        self._pad_right = self._pad[3]
+        self._pad_bottom = self._pad[2]
+        self._pad_left = self._pad[1]
+
+
+        self.backend = backend
+
+        # initialise modules and update
+        self.initialise_modules()
+        self.update()
+
+    def initialise_modules(self):
+        initialise_modules_fn = getattr(
+                importlib.import_module(
+                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
+                "initialise_modules")
+        initialise_modules_fn(self)
+
+    def update(self):
+        update_fn = getattr(
+                importlib.import_module(
+                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
+                "update")
+        update_fn(self)
+
+    def resource(self):
+        update_fn = getattr(
+                importlib.import_module(
+                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
+                "resource")
+        return update_fn(self)
+
+    def visualise(self, name):
+        visualise_fn = getattr(
+                importlib.import_module(
+                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
+                "visualise")
+        return visualise_fn(self, name)
 
     def format_kernel_size(self, kernel_size):
         if isinstance(kernel_size, int):

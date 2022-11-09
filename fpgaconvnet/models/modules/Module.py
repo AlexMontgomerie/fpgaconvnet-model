@@ -57,15 +57,18 @@ class Module:
         "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
     backend: str = field(default="chisel", init=False)
 
-    def camel_to_snake(self, name):
-        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
     def __post_init__(self):
 
         self.load_utilisation_model()
         self.load_resource_model()
         self.fit_resource_model()
+
+    def camel_to_snake(self, name):
+        """
+        camel to snake method
+        """
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
     def load_utilisation_model(self):
         # get the utilisation model
@@ -75,6 +78,12 @@ class Module:
             "utilisation_model")
 
     def utilisation_model(self):
+        """
+        Returns
+        -------
+        dict
+            utilisation of resources model.
+        """
         return self.utilisation_model_fn(self.__dict__)
 
     def load_resource_model(self):
@@ -85,6 +94,28 @@ class Module:
         # fit the model
         self.rsc_model.fit_model()
         self.rsc_coef = self.rsc_model.coef
+
+    def rsc(self, coef=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
+
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
+
+        # get the resource model method
+        module_name = self.camel_to_snake(self.__class__.__name__)
+        self.rsc_fn = getattr(importlib.import_module(
+            f"fpgaconvnet.models.modules.{self.backend}.{module_name}"),
+            "rsc")
+
+        # return the resource model
+        return self.rsc_fn(self.__dict__, coef)
 
     def module_info(self):
         """
@@ -99,21 +130,6 @@ class Module:
             'rows_out'      : self.rows_out(),
             'cols_out'      : self.cols_out(),
             'channels_out'  : self.channels_out()
-        }
-
-    def utilisation_model(self):
-        """
-        Returns
-        -------
-        dict
-            utilisation of resources model. Defaults
-            to zero resources.
-        """
-        return {
-            "LUT"  : np.array([0]),
-            "DSP"  : np.array([0]),
-            "BRAM" : np.array([0]),
-            "FF"   : np.array([0]),
         }
 
     def rows_in(self):
@@ -238,24 +254,6 @@ class Module:
         """
         return math.ceil(math.log(n, 2))
 
-    def rsc(self, coef=None):
-        """
-        Returns
-        -------
-        dict
-            estimated resource usage of the module. Uses the
-            resource coefficients for the estimate.
-        """
-
-        # get the utilisation model
-        utilisation_model = self.utilisation_model()
-
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-
-        # return the linear model estimation
-        return { rsc_type: int(np.dot(utilisation_model[rsc_type], coef[rsc_type])) for rsc_type in coef.keys()}
 
     def functional_model(self,data):
         """

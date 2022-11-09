@@ -11,11 +11,9 @@ from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
 from .PoolingLayer import PoolingLayer
 from .ReLULayer import ReLULayer
-from .ConvolutionLayer import ConvolutionLayerBase
+from .ConvolutionLayer import ConvolutionLayer
 from .SqueezeLayer import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
 from .AveragePoolingLayer import AveragePoolingLayer
-from .chisel.ConvolutionLayer import ConvolutionLayer
-# from .hls.ConvolutionLayer import ConvolutionLayer

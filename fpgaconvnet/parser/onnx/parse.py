@@ -9,6 +9,7 @@ from fpgaconvnet.models.layers import ReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer
 from fpgaconvnet.models.layers import AveragePoolingLayer
 from fpgaconvnet.models.layers import EltWiseLayer
+from fpgaconvnet.models.layers import ConvolutionLayer
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -92,10 +93,6 @@ class ParseOnnxConvNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # import layers
-        convolution = importlib.import_module(
-                f"fpgaconvnet.models.layers.{self.backend}")
-
         # default attributes
         self.attr.setdefault("group", 1)
         self.attr.setdefault("strides", [1,1])
@@ -103,7 +100,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
         self.attr.setdefault("dilations", [1,1])
 
         # return hardware
-        return convolution.ConvolutionLayer(
+        return ConvolutionLayer(
             self.output_shape[1],
             self.input_shape[2],
             self.input_shape[3],

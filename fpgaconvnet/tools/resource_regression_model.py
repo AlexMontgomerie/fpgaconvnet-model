@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import sklearn.linear_model
 import matplotlib.pyplot as plt
@@ -9,7 +10,8 @@ from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from fpgaconvnet.models.modules import Module
 
-RSC_TYPES=["LUT", "FF", "DSP"]
+HLS_RSC_TYPES=["LUT", "FF", "DSP", "BRAM"]
+CHISEL_RSC_TYPES=["Logic_LUT", "LUT_RAM", "LUT_SR", "FF", "DSP", "BRAM36", "BRAM18"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
@@ -18,11 +20,16 @@ class ModuleModel:
         self.name = name
         self.backend = backend
 
+        if self.backend == "chisel":
+            self.rsc_types = CHISEL_RSC_TYPES
+        elif self.backend == "hls":
+            self.rsc_types = HLS_RSC_TYPES
+
         self.parameters = []
-        self.model = {k: [] for k in RSC_TYPES}
-        self.coef = {k: [] for k in RSC_TYPES}
-        self.predict = {k: [] for k in RSC_TYPES}
-        self.actual = {k: [] for k in RSC_TYPES}
+        self.model = {k: [] for k in self.rsc_types}
+        self.coef = {k: [] for k in self.rsc_types}
+        self.predict = {k: [] for k in self.rsc_types}
+        self.actual = {k: [] for k in self.rsc_types}
 
 
         if filepath.endswith(".pem"):
@@ -56,7 +63,7 @@ class ModuleModel:
 
         for document in collection.find(filter):
             self.parameters.append(document["parameters"])
-            for rsc in RSC_TYPES:
+            for rsc in self.rsc_types:
                 self.actual[rsc].append(document["resources"][rsc])
 
         assert len(self.parameters) > 0
@@ -69,7 +76,7 @@ class ModuleModel:
                 with open(filename,"r") as jsonfile:
                     oneDict = json.load(jsonfile)
                     self.parameters.append(oneDict["parameters"])
-                    for rsc in RSC_TYPES:
+                    for rsc in self.rsc_types:
                         self.actual[rsc].append(oneDict["resources"][rsc])
             except:
                 pass
@@ -80,16 +87,16 @@ class ModuleModel:
 
         # get the utilisation model
         utilisation_model = getattr(importlib.import_module(
-            f"fpgaconvnet.models.modules.{self.backend}.{self.name.lower()}"),
+            f"fpgaconvnet.models.modules.{self.backend}.{self.camel_to_snake(self.name)}"),
             "utilisation_model")
 
         # iterate over design points
         for point in self.parameters:
-            for rsc_type in RSC_TYPES:
+            for rsc_type in self.rsc_types:
                 self.model[rsc_type].append(utilisation_model(point)[rsc_type])
 
         # fit coefficients
-        for rsc_type in RSC_TYPES:
+        for rsc_type in self.rsc_types:
             self.coef[rsc_type] = self.get_nnls_coef(
                     np.array(self.model[rsc_type]),
                     np.array(self.actual[rsc_type]))
@@ -106,7 +113,7 @@ class ModuleModel:
         return nnls.fit(model, rsc).coef_
 
     def save_coef(self, outpath):
-        for rsc_type in RSC_TYPES:
+        for rsc_type in self.rsc_types:
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.npy".lower())
             with open(filepath, "wb") as f:
                 np.save(f,self.coef[rsc_type])
@@ -114,7 +121,7 @@ class ModuleModel:
     # TODO: move below to Module class
 
     def get_model_error(self):
-        for rsc_type in RSC_TYPES:
+        for rsc_type in self.rsc_types:
             diff = np.array(self.predict[rsc_type]) - np.array(self.actual[rsc_type])
             mean_err = diff.mean()
             mse = (diff*diff).mean()
@@ -125,7 +132,7 @@ class ModuleModel:
             print("\n")
 
     def plot_results(self, outpath):
-        for rsc_type in RSC_TYPES:
+        for rsc_type in self.rsc_types:
             fig, ax = plt.subplots(figsize=(10, 6))
             x = self.actual[rsc_type]
             y = self.predict[rsc_type]
@@ -138,4 +145,12 @@ class ModuleModel:
 
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.jpg".lower())
             fig.savefig(filepath)
+
+    def camel_to_snake(self, name):
+        """
+        camel to snake method
+        """
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
 

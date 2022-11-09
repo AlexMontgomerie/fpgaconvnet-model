@@ -20,6 +20,9 @@ class Pool(Module):
     kernel_size: Union[List[int],int]
     pool_type: str = "max"
 
+    def __name__(self):
+        return f"{self.pool_type.capitalize()}Pool"
+
     def __post_init__(self):
         # format kernel size as a 2 element list
         if isinstance(self.kernel_size, int):

@@ -11,12 +11,6 @@ class VectorDot(Module):
     filters: int
     fine: int
 
-    def __post_init__(self):
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/vector_dot_lutlogic.npy"))
-
     def module_info(self):
         return {
             'type'      : self.__class__.__name__.upper(),
@@ -32,29 +26,6 @@ class VectorDot(Module):
 
     def rate_in(self):
         return 1.0/float(self.filters)
-
-
-    def rsc(self, coef=None):
-
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-
-        # LUT
-        lut_model = np.array([self.fine, self.filters])
-        # FF
-        ff = self.int2bits(self.filters)
-        # DSP
-        dsp = self.fine*dsp_multiplier_resource_model(
-                self.data_width, self.data_width)
-
-        # return utilisation
-        return {
-          "LUT"  : int(np.dot(lut_model, self.rsc_coef["LUT"])),
-          "BRAM" : 0,
-          "DSP"  : dsp,
-          "FF"   : ff,
-        }
 
     '''
     FUNCTIONAL MODEL

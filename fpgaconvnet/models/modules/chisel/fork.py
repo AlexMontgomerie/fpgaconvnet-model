@@ -2,17 +2,20 @@ import numpy as np
 
 from fpgaconvnet.models.modules.chisel import int2bits
 
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
-
 def utilisation_model(param: dict):
     return {
-        "Logic_LUT" : np.array([param["filters"], param["channels"],
-            param["data_width"], int2bits(param["channels"])]),
-        "LUT_RAM"   : np.array([param["filters"], param["channels"],
-            param["data_width"], int2bits(param["channels"])]),
+        "Logic_LUT" : np.array([
+            pow(param["kernel_size"][0]*param["kernel_size"][1], 2),
+            param["kernel_size"][0]*param["kernel_size"][1],
+            param["kernel_size"][0]*param["kernel_size"][1]*param["coarse"],
+        ]),
+        "LUT_RAM"   : np.array([0]),
         "LUT_SR"    : np.array([0]),
-        "FF"        : np.array([param["data_width"], int2bits(param["channels"]),
-            int2bits(param["filters"])]),
+        "FF"    : np.array([
+            param["data_width"],
+            param["data_width"]*param["kernel_size"][0]*param["kernel_size"][1],
+            param["data_width"]*param["kernel_size"][0]*param["kernel_size"][1]*param["coarse"],
+        ]),
         "DSP"       : np.array([0]),
         "BRAM36"    : np.array([0]),
         "BRAM18"    : np.array([0]),
@@ -29,7 +32,7 @@ def rsc(param: dict, coef: dict):
 
         # return the resource usage
         return {
-            "LUT"   : rsc["Logic_LUT"] + rsc["LUT_RAM"],
+            "LUT"   : rsc["Logic_LUT"],
             "FF"    : rsc["FF"],
             "DSP"   : 0,
             "BRAM"  : 0
