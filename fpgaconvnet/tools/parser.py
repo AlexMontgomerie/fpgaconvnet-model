@@ -55,22 +55,22 @@ def build_graph(model):
         # get node from model
         node = onnx_helper.get_model_node(model, name)
         # add edges into node
-        for input_node in node.input:
+        for idx, input_node in enumerate(node.input):
             # add initializers
             if onnx_helper.get_model_initializer(model, input_node) is not None:
                 # get input details
                 input_details = onnx_helper.get_model_input(model, input_node)
                 # convolution inputs
                 if graph.nodes[name]["type"] == LAYER_TYPE.Convolution:
-                    if len(input_details.type.tensor_type.shape.dim) == 4:
+                    if idx == 1:
                         graph.nodes[name]['inputs']['weights'] = input_node
-                    if len(input_details.type.tensor_type.shape.dim) == 1:
+                    elif idx == 2:
                         graph.nodes[name]['inputs']['bias'] = input_node
                 # inner product inputs
                 if graph.nodes[name]["type"] == LAYER_TYPE.InnerProduct:
-                    if len(input_details.type.tensor_type.shape.dim) == 2:
+                    if idx == 1:
                         graph.nodes[name]['inputs']['weights'] = input_node
-                    if len(input_details.type.tensor_type.shape.dim) == 1:
+                    elif idx == 2:
                         graph.nodes[name]['inputs']['bias'] = input_node
                 continue
             input_node = onnx_helper._format_name(input_node)
@@ -136,7 +136,7 @@ def add_hardware(model, graph, data_width=16, weight_width=8,
             # get number of filters
             weights_input = graph.nodes[name]["inputs"]["weights"]
             weights_dim = onnx_helper.get_model_input(model,weights_input)
-            filters = int(weights_dim.type.tensor_type.shape.dim[0].dim_value)
+            filters = int(weights_dim.type.tensor_type.shape.dim[-1].dim_value)
             # check for bias
             has_bias = 0
             if graph.nodes[name]["inputs"]["bias"] != "": # no bias
