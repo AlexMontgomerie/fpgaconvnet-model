@@ -17,7 +17,7 @@ import fpgaconvnet.tools.helper as helper
 import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.models.layers import ConvolutionLayer
+from fpgaconvnet.models.layers.hls import ConvolutionLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
