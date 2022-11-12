@@ -1,9 +1,8 @@
 import os
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
-# CHISEL_MODULES = [ "Accum", "AveragePool", "Bias", "Fork", "Glue",
-CHISEL_MODULES = [ "Accum", "Bias", "Fork", "Glue", "SlidingWindow", "Squeeze", "VectorDot" ] # averagepool, pool, relu
-CHISEL_MODULES = [ "MaxPool" ] # averagepool, pool, relu
+CHISEL_MODULES = [ "Accum", "Bias", "Fork", "Glue", "SlidingWindow",
+    "Squeeze", "VectorDot", "MaxPool" ]
 HLS_MODULES = []
 
 # iterate over modules
