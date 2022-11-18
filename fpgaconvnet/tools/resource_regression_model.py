@@ -4,6 +4,7 @@ import importlib
 import inspect
 import dataclasses
 from collections import namedtuple
+from tqdm import tqdm
 
 import sklearn.linear_model
 import matplotlib.pyplot as plt
@@ -57,7 +58,7 @@ class ModuleModel:
         if self.backend == "chisel":
             filter = {"name":self.name+"Fixed"}
 
-        for document in collection.find(filter):
+        for document in tqdm(collection.find(filter), desc="loading points from database"):
             self.parameters.append(document["parameters"])
             for rsc in self.rsc_types:
                 self.actual[rsc].append(document["resources"][rsc])
@@ -135,29 +136,29 @@ class ModuleModel:
             filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.npy".lower())
             np.save(filepath, self.coef[rsc_type])
 
-    def get_model_error(self):
-        for rsc_type in self.rsc_types:
-            diff = np.array(self.predict[rsc_type]) - np.array(self.actual[rsc_type])
-            mean_err = diff.mean()
-            mse = (diff*diff).mean()
-            std = diff.std()
+    # def get_model_error(self):
+    #     for rsc_type in self.rsc_types:
+    #         diff = np.array(self.predict[rsc_type]) - np.array(self.actual[rsc_type])
+    #         mean_err = diff.mean()
+    #         mse = (diff*diff).mean()
+    #         std = diff.std()
 
-            print("="*5 + "{}_model".format(rsc_type) + "="*5)
-            print("Base: mean_err={0}, mse={1}, std={2}".format(mean_err, mse, std))
-            print("\n")
+    #         print("="*5 + "{}_model".format(rsc_type) + "="*5)
+    #         print("Base: mean_err={0}, mse={1}, std={2}".format(mean_err, mse, std))
+    #         print("\n")
 
-    def plot_results(self, outpath):
-        for rsc_type in self.rsc_types:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            x = self.actual[rsc_type]
-            y = self.predict[rsc_type]
-            ax.plot(x, x, label="actual")
-            ax.scatter(x, y, label="predict", marker="x", color="r")
-            ax.set_title(rsc_type)
-            ax.set_xlabel("actual")
-            ax.set_ylabel("predicted")
-            ax.legend()
+    # def plot_results(self, outpath):
+    #     for rsc_type in self.rsc_types:
+    #         fig, ax = plt.subplots(figsize=(10, 6))
+    #         x = self.actual[rsc_type]
+    #         y = self.predict[rsc_type]
+    #         ax.plot(x, x, label="actual")
+    #         ax.scatter(x, y, label="predict", marker="x", color="r")
+    #         ax.set_title(rsc_type)
+    #         ax.set_xlabel("actual")
+    #         ax.set_ylabel("predicted")
+    #         ax.legend()
 
-            filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.jpg".lower())
-            fig.savefig(filepath)
+    #         filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.jpg".lower())
+    #         fig.savefig(filepath)
 

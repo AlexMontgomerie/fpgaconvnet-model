@@ -15,15 +15,21 @@ class SqueezeLayer(Layer):
             coarse_in: int,
             coarse_out: int,
             data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel"
         ):
 
         # initialise parent class
         super().__init__(rows, cols, channels,
                 coarse_in, coarse_out,data_t=data_t)
 
+        # backend flag
+        assert backend in ["chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # initialise modules
         self.modules["squeeze"] = Squeeze(self.rows, self.cols,
-                self.channels, self.coarse_in, self.coarse_out)
+                self.channels, self.coarse_in, self.coarse_out,
+                backend=self.backend)
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)

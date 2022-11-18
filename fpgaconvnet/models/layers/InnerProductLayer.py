@@ -59,21 +59,21 @@ class InnerProductLayer(Layer):
 
         # init modules
         self.modules["fork"] = Fork(self.rows_in(), self.cols_in(),
-                self.channels_in(), 1, self.coarse_out)
+                self.channels_in(), 1, self.coarse_out, backend=self.backend)
         if self.backend == "hls":
             self.modules["conv"] = Conv(1,1,
                     self.channels_in()*self.rows_in()*self.cols_in(),
-                    self.filters, 1, 1, 1)
+                    self.filters, 1, 1, 1, backend=self.backend)
         elif self.backend == "chisel":
             self.modules["vector_dot"] = VectorDot(1, 1,
                     self.channels_in()*self.rows_in()*self.cols_in(),
-                    self.filters, 1)
+                    self.filters, 1, backend=self.backend)
         self.modules["accum"] = Accum(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, 1)
+                self.filters, 1, backend=self.backend)
         self.modules["glue"] = Glue(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, self.coarse_in, self.coarse_out)
+                self.filters, self.coarse_in, self.coarse_out, backend=self.backend)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters)
+                self.filters, backend=self.backend)
 
         self.update()
 

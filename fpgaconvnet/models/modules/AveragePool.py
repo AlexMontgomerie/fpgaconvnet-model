@@ -18,21 +18,6 @@ class AveragePool(Module):
 
     def __post_init__(self):
         return
-        # load the resource model coefficients
-        #TODO add model coefs FOR BIAS - currently using conv to approx.
-        # load the resource model coefficients
-        # self.rsc_coef["LUT"] = np.load(
-        #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/accum_lut.npy"))
-        # self.rsc_coef["FF"] = np.load(
-        #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/accum_ff.npy"))
-        # self.rsc_coef["BRAM"] = np.load(
-        #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/accum_bram.npy"))
-        # self.rsc_coef["DSP"] = np.load(
-        #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/accum_dsp.npy"))
 
     def utilisation_model(self):#TODO - copied from acum, FIXME
         return {
@@ -48,13 +33,13 @@ class AveragePool(Module):
     def cols_out(self):
         return 1
 
-    def module_info(self):#TODO
+    def module_info(self):
         # get the base module fields
         info = Module.module_info(self)
         # return the info
         return info
 
-    def rsc(self,coef=None):#TODO replace conv version of func
+    def rsc(self,coef=None):
         # get the linear model estimation
         # rsc = Module.rsc(self, coef)
         # # return the resource model

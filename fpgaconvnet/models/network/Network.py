@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import json
 import pydot
@@ -26,8 +28,7 @@ from fpgaconvnet.platform import Platform
 class Network():
 
     def __init__(self, name, model, graph, batch_size=1, freq=125,
-            reconf_time=0.0, data_width=16, weight_width=8, acc_width=30,
-            fuse_bn=True, rsc_allocation=1.0):
+            rsc_allocation=1.0, backend="hls"):
 
         # empty transforms configuration
         self.transforms_config = {}
@@ -35,17 +36,11 @@ class Network():
         ## percentage resource allocation
         self.rsc_allocation = rsc_allocation
 
-        ## bitwidths
-        self.data_width     = data_width
-        self.weight_width   = weight_width
-        self.acc_width      = acc_width
-
         # network name
         self.name = name
 
         # initialise variables
         self.batch_size = batch_size
-        self.fuse_bn = fuse_bn
 
         # get the graph and model
         self.model = model
@@ -60,9 +55,7 @@ class Network():
         self.workload_matrix    = matrix.get_workload_matrix(self.graph)
 
         # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph),
-                data_width=self.data_width, weight_width=self.weight_width,
-                acc_width=self.acc_width) ]
+        self.partitions = [ Partition(copy.deepcopy(self.graph)) ]
 
         # platform
         self.platform = Platform()

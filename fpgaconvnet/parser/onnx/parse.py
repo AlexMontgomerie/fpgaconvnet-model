@@ -109,7 +109,8 @@ class ParseOnnxConvNode(ParseOnnxNode):
             stride = self.attr["strides"],
             pad = self.attr["pads"],
             groups = self.attr["group"],
-            has_bias = len(self.inputs) == 3
+            has_bias = len(self.inputs) == 3,
+            backend=self.backend
         )
 
     def get_node_info(self):
@@ -137,7 +138,8 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
             self.output_shape[1],
             1, 1,
             np.prod(self.input_shape),
-            has_bias = len(self.inputs) == 3
+            has_bias = len(self.inputs) == 3,
+            backend=self.backend
         )
 
     def get_node_info(self):
@@ -179,6 +181,7 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
             kernel_size = self.attr["kernel_shape"],
             stride = self.attr["strides"],
             pad = self.attr["pads"],
+            backend=self.backend
         )
 
 class ParseOnnxNOPNode(ParseOnnxNode):
@@ -193,7 +196,8 @@ class ParseOnnxNOPNode(ParseOnnxNode):
             self.input_shape[2] if len(self.input_shape) == 4 else 1,
             self.input_shape[3] if len(self.input_shape) == 4 else 1,
             self.input_shape[1],
-            1, 1
+            1, 1,
+            backend=self.backend
         )
 
 class ParseOnnxAveragePoolingNode(ParseOnnxNode):
@@ -204,7 +208,8 @@ class ParseOnnxAveragePoolingNode(ParseOnnxNode):
         return AveragePoolingLayer(
             self.input_shape[2],
             self.input_shape[3],
-            self.input_shape[1]
+            self.input_shape[1],
+            backend=self.backend
         )
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
@@ -225,7 +230,8 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
             self.input_shape[3],
             self.input_shape[1],
             ports_in=len(self.inputs),
-            op_type=op_type
+            op_type=op_type,
+            backend=self.backend
         )
 
     def get_edges_in(self, model):

@@ -89,9 +89,9 @@ class PoolingLayer(Layer):
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(),
                 self.cols_in(), self.channels_in()//self.coarse,
                 self.kernel_size, self.stride, self.pad_top,
-                self.pad_right, self.pad_bottom, self.pad_left, self.backend)
+                self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend)
         self.modules["pool"] = MaxPool(self.rows_out(), self.cols_out(),
-                self.channels_out()//self.coarse, kernel_size, self.backend)
+                self.channels_out()//self.coarse, kernel_size, backend=self.backend)
 
         self.update()
 

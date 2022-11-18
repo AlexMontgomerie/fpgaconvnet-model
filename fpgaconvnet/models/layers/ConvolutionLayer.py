@@ -79,62 +79,56 @@ class ConvolutionLayer(Layer):
 
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
                 self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
-                self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left)
+                self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
+                backend=self.backend)
 
         if self.backend == "hls":
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.kernel_size, self.coarse_out)
+                    self.kernel_size, self.coarse_out, backend=self.backend)
 
             self.modules["Conv"] = Conv(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.groups), self.kernel_size)
+                    self.filters//(self.coarse_out*self.groups), self.kernel_size,
+                    backend=self.backend)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1)
+                    self.filters//(self.coarse_out*self.groups), 1,
+                    backend=self.backend)
 
         elif self.backend == "chisel":
 
             self.modules["squeeze"] = Squeeze(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.kernel_size[0]*self.kernel_size[1], self.fine)
+                    self.kernel_size[0]*self.kernel_size[1], self.fine,
+                    backend=self.backend)
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    [self.fine, 1], self.coarse_out)
+                    [self.fine, 1], self.coarse_out, backend=self.backend)
 
             self.modules["vector_dot"] = VectorDot(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.groups), self.fine)
+                    self.filters//(self.coarse_out*self.groups), self.fine,
+                    backend=self.backend)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                     (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
                         self.fine*self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1)
+                    self.filters//(self.coarse_out*self.groups), 1,
+                    backend=self.backend)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
-                int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out) # TODO
+                int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out,
+                backend=self.backend) # TODO
 
-        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters) # TODO
+        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters,
+                backend=self.backend) # TODO
 
         # update modules
         self.update()
-
-    def resource(self):
-        update_fn = getattr(
-                importlib.import_module(
-                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
-                "resource")
-        return update_fn(self)
-
-    def visualise(self, name):
-        visualise_fn = getattr(
-                importlib.import_module(
-                    f"fpgaconvnet.models.layers.{self.backend}.convolution"),
-                "visualise")
-        return visualise_fn(self, name)
 
     def format_kernel_size(self, kernel_size):
         if isinstance(kernel_size, int):

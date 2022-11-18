@@ -148,6 +148,7 @@ class Parser:
 
         # get the node type
         node_type = from_onnx_op_type(node.op_type)
+
         # try converter
         try:
             return converter[node_type](graph, node, backend=self.backend)
