@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
+
+def lcm(a, b):
+    return abs(a*b) // math.gcd(a, b)
+
 
 @dataclass
 class Squeeze(Module):
@@ -28,14 +32,28 @@ class Squeeze(Module):
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
+            buffer_size = lcm(self.coarse_in, self.coarse_out)
             return {
-                "Logic_LUT" : np.array([1]),
+                "Logic_LUT" : np.array([
+                    (buffer_size//self.coarse_in), # buffer ready
+                    self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
+                    (buffer_size//self.coarse_in),
+                    (buffer_size//self.coarse_out),
+                    self.coarse_in,
+                    self.coarse_out,
+                    1,
+                ]),
                 "LUT_RAM"   : np.array([
-                     self.coarse_in, self.coarse_out,
+                    self.data_width*buffer_size*((buffer_size//self.coarse_in)+1), # buffer
+                    self.data_width*self.coarse_out, # output buffer
+                    # 1,
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
-                    self.coarse_in, self.coarse_out,
+                    (buffer_size//self.coarse_in), # cntr_in
+                    self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
+                    1,
+
                 ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),
@@ -43,9 +61,6 @@ class Squeeze(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
-
-    def lcm(a, b):
-        return abs(a*b) // math.gcd(a, b)
 
     def visualise(self, name):
         distortion = 0

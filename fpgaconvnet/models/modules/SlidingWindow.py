@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model
 
 @dataclass
@@ -136,12 +136,33 @@ class SlidingWindow(Module):
                     (self.kernel_size[0]-1)*(self.cols*self.channels+1),
                     self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels+1),
                 ]),
-                "LUT_RAM"   : np.array([1]),
+                "LUT_RAM"   : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
                 "LUT_SR"    : np.array([1]),
-                "FF"        : np.array([1]),
+                "FF"        : np.array([
+                    int2bits(self.rows), # row_cntr
+                    int2bits(self.cols), # col_cntr
+                    int2bits(self.channels), # channel_cntr
+                    self.data_width, # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer
+                    (self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
                 "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                "BRAM36"    : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
+                "BRAM18"    : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
             }
 
     def rsc(self,coef=None):
@@ -153,18 +174,18 @@ class SlidingWindow(Module):
         # get the linear model estimation
         rsc = Module.rsc(self, coef)
 
-        # get the line buffer BRAM estimate
-        line_buffer_depth = self.cols*self.channels+1
-        line_buffer_bram = (self.kernel_size[0]-1) * \
-                bram_stream_resource_model(line_buffer_depth, self.data_width)
+        # # get the line buffer BRAM estimate
+        # line_buffer_depth = self.cols*self.channels+1
+        # line_buffer_bram = (self.kernel_size[0]-1) * \
+        #         bram_stream_resource_model(line_buffer_depth, self.data_width)
 
-        # get the window buffer BRAM estimate
-        window_buffer_depth = self.channels+1
-        window_buffer_bram = self.kernel_size[0]*(self.kernel_size[0]-1) * \
-                bram_stream_resource_model(window_buffer_depth, self.data_width)
+        # # get the window buffer BRAM estimate
+        # window_buffer_depth = self.channels+1
+        # window_buffer_bram = self.kernel_size[0]*(self.kernel_size[0]-1) * \
+        #         bram_stream_resource_model(window_buffer_depth, self.data_width)
 
-        # add the bram estimation
-        rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+        # # add the bram estimation
+        # rsc["BRAM"] = line_buffer_bram + window_buffer_bram
 
         # ensure zero DSPs
         rsc["DSP"] = 0

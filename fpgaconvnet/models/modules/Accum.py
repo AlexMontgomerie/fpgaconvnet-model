@@ -79,16 +79,21 @@ class Accum(Module):
             return {
                 "Logic_LUT" : np.array([
                     self.filters, self.channels,
-                    self.data_width, int2bits(self.channels)
+                    self.data_width, int2bits(self.channels),
+                    int2bits(self.filters), 1,
                 ]),
                 "LUT_RAM"   : np.array([
-                     self.filters, self.channels,
-                    self.data_width, int2bits(self.channels)
+                    self.data_width*self.filters, # output queue and memory
+                    self.data_width, # acc buffer
+                    1,
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
-                    self.data_width, int2bits(self.channels),
-                    int2bits(self.filters)
+                    self.data_width,  # input val cache
+                    int2bits(self.channels), # channel_cntr
+                    int2bits(self.filters), # filter cntr
+                    self.filters, # output queue and memory
+                    1, # other registers
                 ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),
@@ -104,15 +109,15 @@ class Accum(Module):
         if coef == None:
             coef = self.rsc_coef
 
-        # get the accumulation buffer BRAM estimate
-        acc_buffer_bram = bram_memory_resource_model(
-                int(self.filters/self.groups), self.data_width)
+        # # get the accumulation buffer BRAM estimate
+        # acc_buffer_bram = bram_memory_resource_model(
+        #         int(self.filters/self.groups), self.data_width)
 
         # get the linear model estimation
         rsc = Module.rsc(self, coef)
 
         # add the bram estimation
-        rsc["BRAM"] = acc_buffer_bram
+        rsc["BRAM"] = 0
 
         # ensure zero DSPs
         rsc["DSP"] = 0

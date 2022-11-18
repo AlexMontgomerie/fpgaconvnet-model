@@ -35,11 +35,23 @@ class VectorDot(Module):
             return {
                 "Logic_LUT" : np.array([
                     self.fine, self.data_width,
+                    self.data_width*int2bits(self.fine), # adder tree TODO
+                    self.filters, # ready logic
+                    int2bits(self.filters), # filter counter
+                    1,
                 ]),
-                "LUT_RAM"   : np.array([0]),
-                "LUT_SR"    : np.array([0]),
+                "LUT_RAM"   : np.array([
+                    self.data_width*int2bits(self.fine)+3, # acc_buffer
+                ]),
+                "LUT_SR"    : np.array([
+                    int2bits(self.fine)+1, # tree buffer valid
+                ]),
                 "FF"    : np.array([
-                    int2bits(self.filters),
+                    self.data_width, # output buffer TODO
+                    int2bits(self.filters), # filter counter
+                    self.fine*self.data_width, # product TODO
+                    int2bits(self.fine)+1, # tree buffer valid
+                    1,
                 ]),
                 "DSP"       : np.array([self.fine]),
                 "BRAM36"    : np.array([0]),

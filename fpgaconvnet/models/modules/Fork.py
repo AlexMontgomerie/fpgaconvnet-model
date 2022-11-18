@@ -53,16 +53,22 @@ class Fork(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    pow(self.kernel_size[0]*self.kernel_size[1], 2),
-                    self.kernel_size[0]*self.kernel_size[1],
-                    self.kernel_size[0]*self.kernel_size[1]*self.coarse,
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer ready
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    1,
                 ]),
                 "LUT_RAM"   : np.array([0]),
                 "LUT_SR"    : np.array([0]),
                 "FF"    : np.array([
-                    self.data_width,
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1],
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse,
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    1,
                 ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),

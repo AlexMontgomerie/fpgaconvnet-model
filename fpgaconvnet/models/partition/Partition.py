@@ -99,7 +99,9 @@ class Partition():
         for node in self.graph:
             for edge in graphs.get_next_nodes(self.graph,node):
                 for i in range(self.graph.nodes[node]['hw'].streams_out()):
-                    cluster.add_edge(pydot.Edge(edge_labels[node]["nodes_out"][i] ,edge_labels[edge]["nodes_in"][i]))
+                    cluster.add_edge(pydot.Edge(
+                        edge_labels[node]["nodes_out"][i],
+                        edge_labels[edge]["nodes_in"][i]))
 
 
         _, input_node_vis, _ = self.graph.nodes[input_node]['hw'].visualise(input_node)
@@ -128,7 +130,8 @@ class Partition():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and self.graph.nodes[input_node]["hw"].get_latency() > max_compute_latency
+        return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[input_node]["hw"].get_latency() > max_compute_latency
 
     def is_output_memory_bound(self):
         output_node  = graphs.get_output_nodes(self.graph)[0]
@@ -138,7 +141,8 @@ class Partition():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and self.graph.nodes[output_node]["hw"].get_latency() > max_compute_latency
+        return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[output_node]["hw"].get_latency() > max_compute_latency
 
     def reset(self):
         self.remove_squeeze()
@@ -168,7 +172,8 @@ class Partition():
             return _wr_layer( prev_node )
         # start from the end
         output_node = graphs.get_output_nodes(self.graph)[0]
-        if ( self.graph.in_degree(output_node) == 0 ) and ( self.graph.nodes[output_node]['type'] in transformable_layers ):
+        if ( self.graph.in_degree(output_node) == 0 ) and \
+                ( self.graph.nodes[output_node]['type'] in transformable_layers ):
             return output_node
         else:
             return _wr_layer( output_node )

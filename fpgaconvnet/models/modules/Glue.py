@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 
 @dataclass
 class Glue(Module):
@@ -47,10 +47,24 @@ class Glue(Module):
             pass
         elif self.backend == "chisel":
             return {
-                "Logic_LUT" : np.array([1]),
-                "LUT_RAM"   : np.array([1]),
-                "LUT_SR"    : np.array([1]),
-                "FF"        : np.array([1]),
+                "Logic_LUT" : np.array([
+                    self.data_width*int2bits(self.coarse_in), # tree buffer
+                    self.coarse_in, # input ready
+                    1,
+                ]),
+                "LUT_RAM" : np.array([
+                    self.data_width*(int2bits(self.coarse_in)+1), # tree buffer
+                    1,
+                ]),
+                "LUT_SR" : np.array([
+                    int2bits(self.coarse_in), # tree buffer valid
+                    1,
+                ]),
+                "FF" : np.array([
+                    self.data_width, # tree buffer valid
+                    int2bits(self.coarse_in), # tree buffer valid
+                    1,
+                ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),
                 "BRAM18"    : np.array([0]),

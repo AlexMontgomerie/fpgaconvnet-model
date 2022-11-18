@@ -56,7 +56,8 @@ class ModuleModel:
 
         filter = {"name":self.name}
         if self.backend == "chisel":
-            filter = {"name":self.name+"Fixed"}
+            # filter = {"name":self.name+"Fixed"}
+            filter = {"name":self.name+"Fixed", "parameters.data_width": 16}
 
         for document in tqdm(collection.find(filter), desc="loading points from database"):
             self.parameters.append(document["parameters"])
@@ -127,8 +128,21 @@ class ModuleModel:
         non-negative least squares. This ensures all
         coefficients are positive.
         """
+
+        # find indicies where resources are zero
+        idx = np.where(rsc == 0.0)[0]
+        if idx.shape[0] == model.shape[0]:
+            idx = idx[1:] # make sure there's at least one element
+
+        # remove all zero resources from model and rsc
+        model = np.delete(model, idx, axis=0)
+        rsc = np.delete(rsc, idx, axis=0)
+
+        # fit model
         nnls = sklearn.linear_model.LinearRegression(
                 positive=True, fit_intercept=False)
+
+        # return coefficients
         return nnls.fit(model, rsc).coef_
 
     def save_coef(self, outpath):
