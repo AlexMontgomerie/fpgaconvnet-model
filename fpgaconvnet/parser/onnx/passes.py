@@ -800,3 +800,42 @@ def fuse_bn_into_gemm(model):
 
     return model
 
+def remove_quant_nodes(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a quant node
+        if node.op_type not in ["DequantizeLinear", "QuantizeLinear"]:
+            continue
+
+        # remove dequantize node
+        if node.op_type == "DequantizeLinear":
+
+            # get the next node
+            next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+            input_idx = list(next_node.input).index(node.output[0])
+
+            # remove dequant node
+            model.graph.node.remove(node)
+
+            # copy input over
+            next_node.input.remove(node.output[0])
+            next_node.input.insert(input_idx, node.input[0])
+
+        # remove quantize node
+        if node.op_type == "QuantizeLinear":
+
+            # get the next node
+            prev_node = next(filter(lambda x: node.input[0] in x.output, model.graph.node))
+            output_idx = list(prev_node.output).index(node.input[0])
+
+            # remove dequant node
+            model.graph.node.remove(node)
+
+            # copy input over
+            prev_node.output.remove(node.input[0])
+            prev_node.output.insert(output_idx, node.output[0])
+
+    return model
+

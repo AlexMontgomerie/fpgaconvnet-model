@@ -51,7 +51,7 @@ class Parser:
 
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
-            "absorb_quantise",
+            # "absorb_quantise",
             "fuse_mul_add_into_bn",
         ]
 
@@ -96,6 +96,9 @@ class Parser:
         # simplify model
         model_opt, _ = simplify(model)
         # model_opt, _ = (model, False)
+
+        quant = importlib.import_module(f"fpgaconvnet.parser.quant.int")
+        quant.get_quant_param(model_opt)
 
         # validate model
         onnx.checker.check_model(model_opt)

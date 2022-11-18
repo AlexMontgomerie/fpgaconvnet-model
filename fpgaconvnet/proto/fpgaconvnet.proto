@@ -5,6 +5,11 @@ message fixed_point {
     required int32 binary_point = 2;
 }
 
+message quant_format {
+    required float scale = 1;
+    required int32 zero_point = 2;
+}
+
 message stream {
     required string name = 1;
     required int32  coarse = 2;
@@ -49,6 +54,11 @@ message parameter {
     repeated int32 rows_out_array       = 34;
     repeated int32 cols_out_array       = 35;
     repeated int32 channels_out_array   = 36;
+    optional quant_format input_quant   = 37;
+    optional quant_format outnput_quant = 38;
+    optional quant_format weight_quant  = 39;
+    optional quant_format bias_quant    = 40;
+
 }
 
 message layer {
