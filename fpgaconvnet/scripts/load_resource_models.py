@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
-# CHISEL_MODULES = [ "Accum", "Fork", "Glue", "SlidingWindow",
-#     "Squeeze", "VectorDot" , "MaxPool", "AveragePool" ]
-CHISEL_MODULES = [ "AveragePool" ]
+CHISEL_MODULES = [ "Accum", "Fork", "Glue", "SlidingWindow",
+    "Squeeze", "VectorDot" , "MaxPool", "AveragePool" , "Bias" ]
+# CHISEL_MODULES = [ "AveragePool" ]
 HLS_MODULES = []
 
 # iterate over chisel modules
@@ -92,7 +92,7 @@ for module in CHISEL_MODULES:
         plt.xlabel("actual")
         plt.ylabel("predicted")
         plt.legend()
-        plt.show()
+        # plt.show()
 
 #     for rsc_type in self.rsc_types:
     #         fig, ax = plt.subplots(figsize=(10, 6))
