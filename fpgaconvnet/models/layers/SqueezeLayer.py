@@ -40,6 +40,7 @@ class SqueezeLayer(Layer):
         self.modules["squeeze"].channels = self.channels
         self.modules["squeeze"].coarse_in = self.coarse_in
         self.modules["squeeze"].coarse_out = self.coarse_out
+        self.modules["squeeze"].data_width = self.data_t.width
 
     def visualise(self,name):
 

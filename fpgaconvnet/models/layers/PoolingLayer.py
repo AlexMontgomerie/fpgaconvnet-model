@@ -212,10 +212,12 @@ class PoolingLayer(Layer):
         self.modules['sliding_window'].rows     = self.rows_in()
         self.modules['sliding_window'].cols     = self.cols_in()
         self.modules['sliding_window'].channels = int(self.channels_in()/self.coarse)
+        self.modules['sliding_window'].data_width = self.data_t.width
         # pool
         self.modules['pool'].rows     = self.rows_out()
         self.modules['pool'].cols     = self.cols_out()
         self.modules['pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['pool'].data_width = self.data_t.width
 
     def get_fine_feasible(self):
         return [1]

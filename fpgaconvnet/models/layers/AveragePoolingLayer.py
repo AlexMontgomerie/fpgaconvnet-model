@@ -94,6 +94,8 @@ class AveragePoolingLayer(Layer):
         self.modules['average_pool'].rows     = self.rows_in()
         self.modules['average_pool'].cols     = self.cols_in()
         self.modules['average_pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['average_pool'].data_width = self.data_t.width
+        self.modules['average_pool'].acc_width = self.acc_t.width
 
     def resource(self):
 

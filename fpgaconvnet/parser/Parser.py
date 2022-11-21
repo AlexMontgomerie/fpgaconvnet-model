@@ -38,7 +38,16 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 
 class Parser:
 
-    def __init__(self):
+    def __init__(self, backend="chisel", quant_mode="auto", batch_size=1):
+
+        # set the backend string
+        self.backend = backend
+
+        # quantisation mode [ auto, float, QDQ, BFP, config ]
+        self.quant_mode = quant_mode
+
+        # batch size
+        self.batch_size = batch_size
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
@@ -70,15 +79,6 @@ class Parser:
         # minimum supported opset version
         self.onnx_opset_version = 12
 
-        # set the backend string
-        self.backend = "hls"
-
-        # quantisation mode [ auto, float, QDQ, BFP, config ]
-        self.quant_mode = "auto"
-
-        # batch size
-        self.batch_size = 1
-
     def optimize_onnx(self, model, passes):
         model_opt = model
         for opt_pass in passes:
@@ -95,7 +95,6 @@ class Parser:
 
         # simplify model
         model_opt, _ = simplify(model)
-        # model_opt, _ = (model, False)
 
         # validate model
         onnx.checker.check_model(model_opt)
