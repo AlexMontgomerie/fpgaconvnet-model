@@ -3,6 +3,7 @@ import numpy as np
 import importlib
 
 from fpgaconvnet.models.layers import BatchNormLayer
+from fpgaconvnet.models.layers import ConvolutionLayer
 from fpgaconvnet.models.layers import InnerProductLayer
 from fpgaconvnet.models.layers import PoolingLayer
 from fpgaconvnet.models.layers import ReLULayer
@@ -90,12 +91,8 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
-        # import layers
-        convolution = importlib.import_module(
-                f"fpgaconvnet.models.layers.{self.backend}")
-
         # return hardware
-        return convolution.ConvolutionLayer(
+        return ConvolutionLayer(
             self.node.parameters.channels_out,
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
@@ -112,7 +109,8 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
             coarse_in   =self.node.parameters.coarse_in,
             coarse_out  =self.node.parameters.coarse_out,
             coarse_group=self.node.parameters.coarse_group,
-            has_bias    =self.node.parameters.has_bias
+            has_bias    =self.node.parameters.has_bias,
+            backend =self.backend,
         )
 
     def get_node_info(self):
@@ -135,7 +133,8 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
             self.node.parameters.channels_in,
             coarse_in   =self.node.parameters.coarse_in,
             coarse_out  =self.node.parameters.coarse_out,
-            has_bias    =self.node.parameters.has_bias
+            has_bias    =self.node.parameters.has_bias,
+            backend =self.backend,
         )
 
     def get_node_info(self):
@@ -174,7 +173,8 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 self.node.parameters.pad_right,
                 self.node.parameters.pad_bottom,
                 self.node.parameters.pad_left],
-            coarse  =self.node.parameters.coarse
+            coarse  =self.node.parameters.coarse,
+            backend =self.backend,
         )
 
 class ParsePrototxtSqueezeNode(ParsePrototxtNode):
@@ -187,7 +187,8 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             coarse_in   =self.node.parameters.coarse_in,
-            coarse_out  =self.node.parameters.coarse_out
+            coarse_out  =self.node.parameters.coarse_out,
+            backend =self.backend,
         )
 
 class ParsePrototxtAveragePoolingNode(ParsePrototxtNode):
@@ -199,6 +200,7 @@ class ParsePrototxtAveragePoolingNode(ParsePrototxtNode):
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
+            backend =self.backend,
         )
 
 class ParsePrototxtEltWiseNode(ParsePrototxtNode):
@@ -211,7 +213,8 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_in=self.node.parameters.ports_in,
-            op_type="sum" # TODO
+            op_type="sum", # TODO
+            backend =self.backend,
         )
 
 class ParsePrototxtSplitNode(ParsePrototxtNode):
@@ -224,6 +227,7 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_out=self.node.parameters.ports_out,
+            backend =self.backend,
         )
 
 

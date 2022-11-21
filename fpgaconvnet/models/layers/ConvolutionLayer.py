@@ -400,7 +400,7 @@ class ConvolutionLayer(Layer):
                 fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_group +
+                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
                 bias_rsc[rsc_type]*self.coarse_out
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 

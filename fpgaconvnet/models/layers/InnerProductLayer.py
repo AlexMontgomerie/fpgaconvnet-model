@@ -190,7 +190,7 @@ class InnerProductLayer(Layer):
                 fork_rsc[rsc_type]*self.coarse_in +
                 vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
-                glue_rsc[rsc_type] +
+                glue_rsc[rsc_type]*self.coarse_out +
                 bias_rsc[rsc_type]*self.coarse_out
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 

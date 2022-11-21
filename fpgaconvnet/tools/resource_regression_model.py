@@ -57,7 +57,11 @@ class ModuleModel:
         filter = {"name":self.name}
         if self.backend == "chisel":
             # filter = {"name":self.name+"Fixed"}
-            filter = {"name":self.name+"Fixed", "parameters.data_width": 16}
+            filter = {
+                "name":self.name+"Fixed", # specific module
+                # "parameters.data_width": 16, # only 16-bit input shapes
+                "time_stamp.commit_hash": "a77e3454350e87a5165ae977ba54f3347cd699ae", # specific commit hash
+            }
 
         for document in tqdm(collection.find(filter), desc="loading points from database"):
             self.parameters.append(document["parameters"])

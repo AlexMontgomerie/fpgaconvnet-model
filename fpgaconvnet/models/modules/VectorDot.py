@@ -11,6 +11,8 @@ class VectorDot(Module):
     filters: int
     fine: int
     backend: str = "chisel"
+    weight_width: int = field(default=16, init=False)
+    acc_width: int = field(default=32, init=False)
 
     def rate_in(self):
         return 1.0/float(self.filters)
@@ -34,23 +36,29 @@ class VectorDot(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    self.fine, self.data_width,
-                    self.data_width*int2bits(self.fine), # adder tree TODO
+                    self.fine, self.data_width, self.weight_width,
+                    self.data_width*self.fine,
+                    self.weight_width*self.fine,
+                    self.acc_width*self.fine, # adder tree
                     self.filters, # ready logic
                     int2bits(self.filters), # filter counter
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width*int2bits(self.fine)+3, # acc_buffer
+                    self.acc_width*(int2bits(self.fine)+3), # tree buffer
+                    # self.acc_width*self.fine, # tree buffer
+                    self.acc_width, # output buffer
                 ]),
                 "LUT_SR"    : np.array([
                     int2bits(self.fine)+1, # tree buffer valid
                 ]),
                 "FF"    : np.array([
-                    self.data_width, # output buffer TODO
+                    self.acc_width, # output buffer TODO
                     int2bits(self.filters), # filter counter
-                    self.fine*self.data_width, # product TODO
                     int2bits(self.fine)+1, # tree buffer valid
+                    self.acc_width*self.fine, # adder tree reg
+                    self.data_width*self.fine, # adder tree reg
+                    self.weight_width*self.fine, # adder tree reg
                     1,
                 ]),
                 "DSP"       : np.array([self.fine]),
@@ -59,6 +67,12 @@ class VectorDot(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def memory_usage(self):
+        if self.backend == "chisel":
+            return self.data_width*(int2bits(self.fine)+3)
+        else:
+            raise NotImplementedError
 
     def rsc(self,coef=None):
 

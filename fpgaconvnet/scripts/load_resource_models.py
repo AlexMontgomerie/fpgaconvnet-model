@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
-# CHISEL_MODULES = [ "Accum", "Bias", "Fork", "Glue", "SlidingWindow",
-#     "Squeeze", "VectorDot" ] #, "MaxPool", "AveragePool" ]
-CHISEL_MODULES = [ "VectorDot" ]
+# CHISEL_MODULES = [ "Accum", "Fork", "Glue", "SlidingWindow",
+#     "Squeeze", "VectorDot" , "MaxPool", "AveragePool" ]
+CHISEL_MODULES = [ "AveragePool" ]
 HLS_MODULES = []
 
 # iterate over chisel modules
@@ -25,6 +25,12 @@ for module in CHISEL_MODULES:
     # fit model
     rsc_model.fit_model(from_cache=False)
 
+    # save coefficeints
+    cache_path = os.path.join(
+            os.path.dirname(__file__),
+            f"../coefficients/chisel")
+    rsc_model.save_coef(cache_path)
+
     # get modelled resources
     hw_model = getattr(importlib.import_module(
         f"fpgaconvnet.models.modules.{module}"), module)
@@ -34,6 +40,7 @@ for module in CHISEL_MODULES:
     attrs = [x for x in attrs if (x[0] == "__dataclass_fields__")]
     attrs = {k : 1 for k, v in attrs[0][1].items() if v.init}
     attrs["backend"] = "chisel"
+    attrs.pop("pool_type", None) # bug fix for Pool
     m = hw_model(**attrs)
 
     # get actual resource cost
@@ -101,8 +108,4 @@ for module in CHISEL_MODULES:
     #         filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.jpg".lower())
     #         fig.savefig(filepath)
 
-    # save coefficeints
-    cache_path = os.path.join(
-            os.path.dirname(__file__),
-            f"../coefficients/chisel")
-    rsc_model.save_coef(cache_path)
+

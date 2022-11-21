@@ -20,7 +20,6 @@ class Glue(Module):
     filters: int
     coarse_in: int
     coarse_out: int
-    acc_width: int = field(default=16, init=False)
     backend: str = "chisel"
 
     def channels_in(self):
@@ -48,6 +47,7 @@ class Glue(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
+                    self.data_width*self.coarse_in, # tree buffer
                     self.data_width*int2bits(self.coarse_in), # tree buffer
                     self.coarse_in, # input ready
                     1,
@@ -61,8 +61,11 @@ class Glue(Module):
                     1,
                 ]),
                 "FF" : np.array([
-                    self.data_width, # tree buffer valid
+                    self.data_width, # output buffer
                     int2bits(self.coarse_in), # tree buffer valid
+                    int2bits(max(1,int2bits(self.coarse_in))), # tree buffer queue buffer
+                    # self.coarse_in, # ready signal
+                    self.data_width*(self.coarse_in + math.floor((self.coarse_in-5)/2)), # adder tree reg
                     1,
                 ]),
                 "DSP"       : np.array([0]),

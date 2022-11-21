@@ -9,23 +9,51 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class AveragePool(Module):
     backend: str = "chisel"
+    acc_width: int = field(default=32, init=False)
 
-    def __post_init__(self):
-        return
+    # def __post_init__(self):
+    #     return
 
-    def utilisation_model(self):#TODO - copied from acum, FIXME
-        return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([1]),
-            "BRAM"  : np.array([1]),
-        }
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            raise NotImplementedError
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.acc_width, # adder
+                    self.data_width, # adder
+                    int2bits(self.channels), # channel_cntr
+                    int2bits(self.rows*self.cols), # spatial cntr
+                    self.channels, # acc logic
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([
+                    self.data_width, # output queue
+                    self.acc_width*self.channels,
+                ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                    self.data_width, # input cache
+                    int2bits(self.channels), # channel_cntr
+                    int2bits(self.rows*self.cols), # spatial cntr
+                    self.acc_width*self.channels, # accumulation reg
+                    1, # other registers
+                ]),
+                "DSP"       : np.array([1]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise NotImplementedError(f"{self.backend} backend not supported")
+
 
     def rows_out(self):
         return 1
@@ -40,16 +68,13 @@ class AveragePool(Module):
         return info
 
     def rsc(self,coef=None):
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
         # get the linear model estimation
-        # rsc = Module.rsc(self, coef)
-        # # return the resource model
-        # return rsc
-        return {
-            "LUT"   : 1,
-            "FF"    : 1,
-            "DSP"   : 0,
-            "BRAM"  : 0,
-        }
+        rsc = Module.rsc(self, coef)
+        # return the resource model
+        return rsc
 
     def visualise(self, name):
         return pydot.Node(name, label="average_pool", shape="box",

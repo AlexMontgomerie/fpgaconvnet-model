@@ -27,6 +27,12 @@ class Squeeze(Module):
         # return the info
         return info
 
+    def memory_usage(self):
+        if self.backend == "chisel":
+            return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
+        else:
+            raise NotImplementedError
+
     def utilisation_model(self):
 
         if self.backend == "hls":

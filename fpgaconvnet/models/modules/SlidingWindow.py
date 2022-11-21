@@ -124,6 +124,14 @@ class SlidingWindow(Module):
         # return the info
         return info
 
+    def memory_usage(self):
+        if self.backend == "chisel":
+            return self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels) + \
+                self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels) + \
+                self.data_width*self.kernel_size[0]*self.kernel_size[1]
+        else:
+            raise NotImplementedError
+
     def utilisation_model(self):
         if self.backend == "hls":
             pass # TODO
