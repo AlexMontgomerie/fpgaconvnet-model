@@ -30,3 +30,5 @@ examples/models
 
 *.egg-info
 *.vscode
+
+fpgaconvnet/__init__.py

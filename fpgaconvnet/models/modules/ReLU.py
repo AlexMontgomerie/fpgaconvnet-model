@@ -13,28 +13,24 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class ReLU(Module):
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu_dsp.npy"))
+        pass
 
-    def utilisation_model(self):
+    def rsc(self, coef=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
         return {
-            "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols,2))]),
-            "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols,2))]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
+            "LUT"   : 16,
+            "FF"    : 35,
+            "BRAM"  : 0,
+            "DSP"   : 0
         }
 
     def visualise(self, name):

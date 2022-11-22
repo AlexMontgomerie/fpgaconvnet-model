@@ -23,8 +23,10 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Fork(Module):
     kernel_size: Union[List[int],int]
     coarse: int
+    backend: str = "chisel"
 
     def __post_init__(self):
+
         # format kernel size as a 2 element list
         if isinstance(self.kernel_size, int):
             self.kernel_size = [self.kernel_size, self.kernel_size]
@@ -33,27 +35,8 @@ class Fork(Module):
         else:
             raise TypeError
 
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork_dsp.npy"))
-
-    def utilisation_model(self):
-        return {
-            "LUT"  : np.array([math.ceil(math.log(self.channels*self.rows*self.cols,2))]),
-            "FF"   : np.array([math.ceil(math.log(self.channels*self.rows*self.cols,2))]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1]),
-        }
+        # perform basic module initialisation
+        Module.__post_init__(self)
 
     def module_info(self):
         # get the base module fields
@@ -63,6 +46,36 @@ class Fork(Module):
         info["kernel_size"] = self.kernel_size
         # return the info
         return info
+
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer ready
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([0]),
+                "LUT_SR"    : np.array([0]),
+                "FF"    : np.array([
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    1,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def visualise(self, name):
         return pydot.Node(name,label="fork", shape="box",

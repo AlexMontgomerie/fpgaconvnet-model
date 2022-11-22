@@ -21,6 +21,7 @@ class EltWiseLayer(MultiPortLayer):
             coarse: int = 1,
             op_type: str = "sum",
             acc_t: FixedPoint = FixedPoint(32,16),
+            backend: str = "chisel", # default to no bias for old configs
         ):
 
         # initialise parent class
@@ -34,10 +35,14 @@ class EltWiseLayer(MultiPortLayer):
         self._coarse = coarse
         self._op_type = op_type
 
+        # backend flag
+        assert backend in ["chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # init modules
         self.modules = {
             "eltwise" : EltWise(self.rows_in(), self.cols_in(),
-                self.channels_in(), self.ports_in),
+                self.channels_in(), self.ports_in, backend=self.backend),
         }
 
         # update the layer

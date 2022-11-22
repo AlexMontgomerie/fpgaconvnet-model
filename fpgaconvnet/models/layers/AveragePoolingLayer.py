@@ -18,6 +18,7 @@ class AveragePoolingLayer(Layer):
             channels: int,
             coarse: int = 1,
             acc_t: FixedPoint = FixedPoint(32,16),
+            backend: str = "chisel",
         ):
 
         # save acc_t
@@ -29,13 +30,18 @@ class AveragePoolingLayer(Layer):
         # update flags
         # self.flags['transformable'] = True
 
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # update parameters
         self._coarse = coarse
 
         # init modules
         self.modules["average_pool"] = AveragePool(
                 self.rows_in(), self.cols_in(),
-                int(self.channels_in()/self.coarse))
+                self.channels_in()//self.coarse,
+                backend=self.backend)
 
         self.update()
 
@@ -88,6 +94,8 @@ class AveragePoolingLayer(Layer):
         self.modules['average_pool'].rows     = self.rows_in()
         self.modules['average_pool'].cols     = self.cols_in()
         self.modules['average_pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['average_pool'].data_width = self.data_t.width
+        self.modules['average_pool'].acc_width = self.acc_t.width
 
     def resource(self):
 

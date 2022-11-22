@@ -9,6 +9,7 @@ from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
+from fpgaconvnet.models.modules import MaxPool
 from fpgaconvnet.models.layers import Layer
 
 class PoolingLayer(Layer):
@@ -57,6 +58,7 @@ class PoolingLayer(Layer):
             pad: Union[List[int], int] = 0,
             fine: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel"
         ):
 
         # initialise parent class
@@ -79,10 +81,17 @@ class PoolingLayer(Layer):
         self._pad_bottom = self._pad[2]
         self._pad_left = self._pad[1]
 
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # init modules
-        self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(), int(self.channels_in()/self.coarse),
-                self.kernel_size, self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left)
-        self.modules["pool"] = Pool(self.rows_out(), self.cols_out(), int(self.channels_out()/self.coarse), kernel_size)
+        self.modules["sliding_window"] = SlidingWindow(self.rows_in(),
+                self.cols_in(), self.channels_in()//self.coarse,
+                self.kernel_size, self.stride, self.pad_top,
+                self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend)
+        self.modules["pool"] = MaxPool(self.rows_out(), self.cols_out(),
+                self.channels_out()//self.coarse, kernel_size, backend=self.backend)
 
         self.update()
 
@@ -203,10 +212,12 @@ class PoolingLayer(Layer):
         self.modules['sliding_window'].rows     = self.rows_in()
         self.modules['sliding_window'].cols     = self.cols_in()
         self.modules['sliding_window'].channels = int(self.channels_in()/self.coarse)
+        self.modules['sliding_window'].data_width = self.data_t.width
         # pool
         self.modules['pool'].rows     = self.rows_out()
         self.modules['pool'].cols     = self.cols_out()
         self.modules['pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['pool'].data_width = self.data_t.width
 
     def get_fine_feasible(self):
         return [1]

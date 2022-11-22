@@ -18,21 +18,6 @@ class Concat(Module):
     ports_in: int
     biases_width: int = field(default=16, init=False)
 
-    def __post_init__(self):
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_dsp.npy"))
-
     def channels_in(self, port_index=0):
         return self.channels[port_index]
 
@@ -52,16 +37,6 @@ class Concat(Module):
             'rows_out'      : self.rows_out(),
             'cols_out'      : self.cols_out(),
             'channels_out'  : self.channels_out()
-        }
-
-    def rsc(self,coef=None):
-        if coef == None:
-            coef = self.rsc_coef
-        return {
-          "LUT"  : 0,
-          "BRAM" : 0,
-          "DSP"  : 0,
-          "FF"   : 0,
         }
 
     def functional_model(self, data):

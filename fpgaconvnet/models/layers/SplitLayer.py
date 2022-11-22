@@ -23,6 +23,7 @@ class SplitLayer(MultiPortLayer):
             coarse: int = 1,
             ports_out: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel",
         ):
         """
         Parameters
@@ -64,13 +65,17 @@ class SplitLayer(MultiPortLayer):
         super().__init__([rows], [cols], [channels], [coarse], [coarse],
                 ports_out=ports_out, data_t=data_t)
 
+        # backend flag
+        assert backend in ["chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # parameters
         self._coarse = coarse
 
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
         self.modules["fork"] = Fork( self.rows_in(), self.cols_in(),
-                self.channels_in(), 1, self.ports_out)
+                self.channels_in(), 1, self.ports_out, backend=self.backend)
 
         # update the modules
         self.update()

@@ -17,6 +17,7 @@ class ReLULayer(Layer):
             channels: int,
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel", # default to no bias for old configs
         ):
 
         # initialise parent class
@@ -26,8 +27,14 @@ class ReLULayer(Layer):
         # save parameters
         self._coarse = coarse
 
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # init modules
-        self.modules["relu"] = ReLU(self.rows_in(), self.cols_in(), self.channels_in()/self.coarse)
+        self.modules["relu"] = ReLU(self.rows_in(), self.cols_in(),
+                self.channels_in()//self.coarse, backend=self.backend)
+
         self.update()
 
     @property
