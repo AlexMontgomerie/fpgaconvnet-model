@@ -114,7 +114,7 @@ class Network():
             if partition_output_size > max_output_size:
                 max_output_size = partition_output_size
 
-        return math.ceil(((max_input_size + max_output_size)*self.data_width)/8)
+        return math.ceil(((max_input_size + max_output_size)*2)) # TODO *self.data_width)/8)
 
     def get_latency(self, partition_list=None):
         if partition_list == None:

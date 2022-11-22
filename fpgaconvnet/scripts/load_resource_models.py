@@ -92,7 +92,7 @@ for module in CHISEL_MODULES:
         plt.xlabel("actual")
         plt.ylabel("predicted")
         plt.legend()
-        # plt.show()
+        plt.show()
 
 #     for rsc_type in self.rsc_types:
     #         fig, ax = plt.subplots(figsize=(10, 6))

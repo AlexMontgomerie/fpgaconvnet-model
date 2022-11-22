@@ -79,6 +79,20 @@ class ReLULayer(Layer):
         self.modules['relu'].cols     = self.cols_in()
         self.modules['relu'].channels = int(self.channels_in()/self.coarse)
 
+    def resource(self):
+
+        # get relu resources
+        relu_rsc = self.modules['relu'].rsc()
+
+        # Total
+        return {
+            "LUT"  :  relu_rsc['LUT']*self.coarse,
+            "FF"   :  relu_rsc['FF']*self.coarse,
+            "BRAM" :  relu_rsc['BRAM']*self.coarse,
+            "DSP" :   relu_rsc['DSP']*self.coarse,
+        }
+
+
     def visualise(self,name):
         cluster = pydot.Cluster(name, label=name,
                 style="dashed", bgcolor="lightgrey")
