@@ -255,6 +255,25 @@ class ConvolutionLayer(Layer):
     def channels_out(self) -> int:
         return self.filters
 
+    def streams_in(self) -> int:
+        """
+        Returns
+        -------
+        int
+            number of parallel streams into the layer.
+        """
+        return self.coarse_in*self.coarse_group
+
+    def streams_out(self) -> int:
+        """
+        Returns
+        -------
+        int
+            number of parallel streams out of the layer.
+        """
+        return self.coarse_out*self.coarse_group
+
+
     def update(self):
 
         # sliding window
