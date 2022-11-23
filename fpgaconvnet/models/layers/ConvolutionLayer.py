@@ -345,12 +345,21 @@ class ConvolutionLayer(Layer):
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
 
+    def get_coarse_in_feasible(self):
+        return get_factors(int(self.channels_in())//self.groups)
+
+    def get_coarse_out_feasible(self):
+        return get_factors(int(self.channels_out())//self.groups)
+
     def get_fine_feasible(self):
-        if self.kernel_size[0] != self.kernel_size[1]:
-            assert(self.kernel_size[0] == 1 or self.kernel_size[1] == 1)
-            return [ 1, max(self.kernel_size[0],self.kernel_size[1])]
-        else:
-            return [ 1, self.kernel_size[0], self.kernel_size[0]*self.kernel_size[1] ]
+        if self.backend == "chisel":
+            return get_factors(self.kernel_size[0]*self.kernel_size[1])
+        elif self.backend == "hls":
+            if self.kernel_size[0] != self.kernel_size[1]:
+                # assert(self.kernel_size[0] == 1 or self.kernel_size[1] == 1)
+                return [ 1, max(self.kernel_size[0],self.kernel_size[1])]
+            else:
+                return [ 1, self.kernel_size[0], self.kernel_size[0]*self.kernel_size[1] ]
 
     def get_weights_reloading_feasible(self):
         return get_factors(self.filters//(self.groups*self.coarse_out))
