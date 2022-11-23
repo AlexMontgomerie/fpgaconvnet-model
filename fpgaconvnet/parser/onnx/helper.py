@@ -195,7 +195,8 @@ def format_attr(attribute):
 
 def format_onnx_name(node):
     # get baseline name
-    name = node.output[0].rstrip(":0").rstrip("_Y")
+    # name = node.output[0].rstrip(":0").rstrip("_Y")
+    name = node.name.rstrip(":0").rstrip("_Y")
     # replace all invalid characters in the layer name
     invalid_char = "/: -;"
     for c in invalid_char:

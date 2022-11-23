@@ -62,7 +62,7 @@ class Parser:
 
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
-            "absorb_quantise",
+            # "absorb_quantise",
             "fuse_mul_add_into_bn",
         ]
 
@@ -161,7 +161,10 @@ class Parser:
     def get_quantisation(self, model, **kwargs):
 
         # get the quantisation method
-        quant = importlib.import_module(f"fpgaconvnet.parser.quant.{self.quant_mode}")
+        try:
+            quant = importlib.import_module(f"fpgaconvnet.parser.quant.{self.quant_mode}")
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(f"quantisation mode {self.quant_mode} not supported")
 
         # get the quantisation format
         quant_format = quant.get_quant_param(model)
@@ -179,7 +182,6 @@ class Parser:
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)
-        onnx.save(onnx_model, "model_opt.onnx")
 
         # create a networkx graph
         graph = nx.DiGraph()

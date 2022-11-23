@@ -59,7 +59,7 @@ def get_quant_param(model):
                 }
 
         except StopIteration:
-            continue
+            pass
 
         try:
 
@@ -82,7 +82,7 @@ def get_quant_param(model):
                 }
 
         except StopIteration:
-            continue
+            pass
 
         # special case for convolution and inner product
         if node.op_type in [ "Conv", "Gemm" ]:
@@ -98,20 +98,16 @@ def get_quant_param(model):
             weight_width = int(math.ceil(math.log(weights_max, 2)))+1
 
             # update the quantisation parameters
-            quant_param[node_name] = {
-                "weight_t" : {
-                    "width" : weight_width,
-                    "binary_point": 0,
-                },
-                "acc_t" : {
-                    "width" : 32,
-                    "binary_point": 0,
-                },
+            quant_param[node_name]["weight_t"] = {
+                "width" : weight_width,
+                "binary_point": 0,
+            }
+            quant_param[node_name]["acc_t"] = {
+                "width" : 32,
+                "binary_point": 0,
             }
 
-    # remove quantisation nodes
-    onnx_passes.remove_quant_nodes(model)
-
+    # return quantisation parameters
     return quant_param
 
 

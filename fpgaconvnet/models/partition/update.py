@@ -39,3 +39,6 @@ def update(self):
     else:
         self.size_wr = 0
 
+    ## update the modules
+    for node in self.graph.nodes:
+        self.graph.nodes[node]["hw"].update()
