@@ -92,7 +92,6 @@ class ReLULayer(Layer):
             "DSP" :   relu_rsc['DSP']*self.coarse,
         }
 
-
     def visualise(self,name):
         cluster = pydot.Cluster(name, label=name,
                 style="dashed", bgcolor="lightgrey")

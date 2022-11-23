@@ -288,7 +288,7 @@ class Layer:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : bram_stream_resource_model(self.buffer_depth,self.data_t.width)*self.streams_in(),
+            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_t.width)*self.streams_in(),
             "DSP"   : 0
         }
 

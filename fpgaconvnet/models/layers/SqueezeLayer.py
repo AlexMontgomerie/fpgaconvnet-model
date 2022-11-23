@@ -42,6 +42,19 @@ class SqueezeLayer(Layer):
         self.modules["squeeze"].coarse_out = self.coarse_out
         self.modules["squeeze"].data_width = self.data_t.width
 
+    def resource(self):
+
+        # get squeeze resources
+        squeeze_rsc = self.modules['squeeze'].rsc()
+
+        # Total
+        return {
+            "LUT"  :  squeeze_rsc['LUT'],
+            "FF"   :  squeeze_rsc['FF'],
+            "BRAM" :  squeeze_rsc['BRAM'],
+            "DSP" :   squeeze_rsc['DSP'],
+        }
+
     def visualise(self,name):
 
         # create layer cluster
