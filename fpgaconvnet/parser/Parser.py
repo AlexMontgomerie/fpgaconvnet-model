@@ -33,6 +33,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_pro
 from fpgaconvnet.parser.onnx.parse import *
 from fpgaconvnet.parser.prototxt.parse import *
 
+from fpgaconvnet.parser.quant import quantise
+
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
 
@@ -60,11 +62,12 @@ class Parser:
 
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
-            # "absorb_quantise",
+            "absorb_quantise",
             "fuse_mul_add_into_bn",
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
+            "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
             "remove_redundant_pooling",
@@ -74,6 +77,10 @@ class Parser:
             "convert_reshape_to_flatten",
             "convert_transpose_flatten_gemm_to_flatten_gemm",
             "rename_all_nodes"
+        ]
+
+        self.fpgaconvnet_post_quant_passes = [
+            "remove_quant_nodes",
         ]
 
         # minimum supported opset version
@@ -95,9 +102,6 @@ class Parser:
 
         # simplify model
         model_opt, _ = simplify(model)
-
-        quant = importlib.import_module(f"fpgaconvnet.parser.quant.int")
-        quant.get_quant_param(model_opt)
 
         # validate model
         onnx.checker.check_model(model_opt)
@@ -130,9 +134,6 @@ class Parser:
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        # # check that models are equivalent
-        # onnx_helper.check_model_equivalence(model, model_opt)
-
         return model_opt
 
     def get_hardware_from_onnx_node(self, graph, node):
@@ -155,21 +156,30 @@ class Parser:
         try:
             return converter[node_type](graph, node, backend=self.backend)
         except KeyError:
-            raise TypeError(f"{node_type} not supported, exiting now")
+            raise TypeError(f"{node.op_type} not supported, exiting now")
 
-    def apply_quantisation(self, graph, model):
+    def get_quantisation(self, model, **kwargs):
 
         # get the quantisation method
         quant = importlib.import_module(f"fpgaconvnet.parser.quant.{self.quant_mode}")
 
-        # apply quantisation
-        quant.quantise(graph, model)
+        # get the quantisation format
+        quant_format = quant.get_quant_param(model)
+
+        # perform fpgaconvnet-based optimization passes (post quantisation)
+        model_opt = self.optimize_onnx(model, self.fpgaconvnet_post_quant_passes)
+
+        # return model and quantisation
+        return model_opt, quant_format
 
     def onnx_to_fpgaconvnet(self, onnx_filepath):
 
         # load the onnx model
         onnx_model = self.load_onnx_model(onnx_filepath)
-        # onnx_model = onnx.load(onnx_filepath)
+
+        # get the quantisation parameters
+        onnx_model, quant_format = self.get_quantisation(onnx_model)
+        onnx.save(onnx_model, "model_opt.onnx")
 
         # create a networkx graph
         graph = nx.DiGraph()
@@ -185,13 +195,12 @@ class Parser:
             graph.add_node(hardware.name,
                     **hardware.get_node_info())
 
-
             # get edges from the hardware
             for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
 
         # apply quantisation to the graph
-        self.apply_quantisation(graph, onnx_model)
+        quantise(graph, quant_format)
 
         # return the graph
         return Network("from_onnx", onnx_model, graph)

@@ -5,18 +5,38 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
-def quantise(graph, model, data_width=16, weight_width=16, acc_width=32):
+def get_quant_param(model, data_width=16, weight_width=16, acc_width=32):
 
-    # iterate over nodes
-    for node in graph.nodes:
+    # dictionary of quantisation parameters
+    quant_param = {}
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # get the formatted name for the node
+        node_name = onnx_helper.format_onnx_name(node)
+
+        # default quant param
+        quant_param[node_name] = {
+            "input_t" : {
+                "width" : data_width,
+                "binary_point": data_width//2,
+            },
+            "output_t" : {
+                "width" : data_width,
+                "binary_point": data_width//2,
+            },
+            "data_t" : {
+                "width" : data_width,
+                "binary_point": data_width//2,
+            },
+        }
 
         # special case for convolution and inner product
-        if graph.nodes[node]["type"] in [ \
-                LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
+        if node.op_type in [ "Conv", "Gemm" ]:
 
             # get the max abs value from the weights
-            weights = onnx_helper.get_model_initializer(
-                    model, graph.nodes[node]["inputs"]["weights"])
+            weights = onnx_helper.get_model_initializer(model, node.input[1])
             weights_max = np.amax(np.absolute(weights))
 
             # get the weight binary point
@@ -27,19 +47,14 @@ def quantise(graph, model, data_width=16, weight_width=16, acc_width=32):
             acc_binary_point = weight_binary_point + data_width//2
 
             # adjust data types
-            graph.nodes[node]["hw"].input_t.width = data_width
-            graph.nodes[node]["hw"].input_t.binary_point = data_width//2
-            graph.nodes[node]["hw"].weight_t.width = weight_width
-            graph.nodes[node]["hw"].weight_t.binary_point = weight_binary_point
-            graph.nodes[node]["hw"].acc_t.width = acc_width
-            graph.nodes[node]["hw"].acc_t.binary_point = acc_binary_point
-            graph.nodes[node]["hw"].output_t.width = data_width
-            graph.nodes[node]["hw"].output_t.binary_point = data_width//2
+            quant_param[node_name]["weight_t"] = {
+                "width" : weight_width,
+                "binary_point": weight_binary_point,
+            }
+            quant_param[node_name]["acc_t"] = {
+                "width" : acc_width,
+                "binary_point": acc_binary_point,
+            }
 
-        # for all others, just set the data type
-        else:
-
-            # adjust data types
-            graph.nodes[node]["hw"].data_t.width = data_width
-            graph.nodes[node]["hw"].data_t.binary_point = data_width//2
-
+    # return the quant format
+    return quant_param

@@ -32,6 +32,10 @@ def get_quant_param(model):
                 "width" : 8,
                 "binary_point": 0,
             },
+            "data_t" : {
+                "width" : 8,
+                "binary_point": 0,
+            },
         }
 
         try:

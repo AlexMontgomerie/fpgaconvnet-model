@@ -823,6 +823,8 @@ def remove_quant_nodes(model):
             next_node.input.remove(node.output[0])
             next_node.input.insert(input_idx, node.input[0])
 
+            return remove_quant_nodes(model)
+
         # remove quantize node
         if node.op_type == "QuantizeLinear":
 
@@ -836,6 +838,46 @@ def remove_quant_nodes(model):
             # copy input over
             prev_node.output.remove(node.input[0])
             prev_node.output.insert(output_idx, node.output[0])
+
+            return remove_quant_nodes(model)
+
+    return model
+
+def fuse_matmul_add_into_gemm(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "MatMul":
+            continue
+
+        # get the next node
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
+
+        # check noext node is add
+        if next_node.op_type != "Add":
+            continue
+
+        # create a Gemm node from these initialisers
+        new_node = onnx.helper.make_node(
+            "Gemm",
+            name=node.name,
+            inputs=[*node.input, next_node.input[1]],
+            outputs=next_node.output,
+            alpha=1.0,
+            beta=1.0,
+            transA=0,
+            transB=0
+        )
+
+        # remove old nodes and add new one
+        model.graph.node.remove(node)
+        model.graph.node.remove(next_node)
+        model.graph.node.insert(index, new_node)
 
     return model
 
