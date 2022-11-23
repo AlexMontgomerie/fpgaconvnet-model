@@ -309,8 +309,8 @@ class Layer:
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
-        parameters.coarse_in    = self.streams_in()
-        parameters.coarse_out   = self.streams_out()
+        parameters.coarse_in    = self.coarse_in
+        parameters.coarse_out   = self.coarse_out
         self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
