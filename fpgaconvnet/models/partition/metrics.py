@@ -71,7 +71,8 @@ def get_bandwidth_in(self,freq):
     # calculate rate from interval
     rate = workload / (interval*streams)
     # get bandwidth (GB/s)
-    return (rate*streams*self.data_width*freq)/8000
+    # return (rate*streams*self.data_width*freq)/8000
+    return (rate*streams*16*freq)/8000
 
 def get_bandwidth_out(self,freq):
     # get the interval for the partition
@@ -83,7 +84,8 @@ def get_bandwidth_out(self,freq):
     # calculate rate from interval
     rate = workload / (interval*streams)
     # get bandwidth (GB/s)
-    return (rate*streams*self.data_width*freq)/8000
+    # return (rate*streams*self.data_width*freq)/8000
+    return (rate*streams*16*freq)/8000
 
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])
