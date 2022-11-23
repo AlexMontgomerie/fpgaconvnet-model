@@ -1,7 +1,7 @@
 import bisect
 import math
 
-BRAM_CONF_WIDTH={1:16000,2:8000,4:4000,9:2000,18:1000,36:512}
+BRAM_CONF_WIDTH={1:16000,2:8000,4:4000,9:2000,18:1000,36:512,72:256}
 BRAM_CONF_DEPTH={16000:1,8000:2,4000:4,2000:9,1000:18,512:36}
 
 def bram_stream_resource_model(depth, width):
@@ -31,7 +31,12 @@ def bram_stream_resource_model(depth, width):
 
 def bram_memory_resource_model(depth, width):
     assert width > 0, "width must be greater than zero"
-    assert width <= 36, "width must be less than 36"
+    # assert width <= 36, "width must be less than 36"
+
+    # get the number of widths to repeat if greater than max width
+    max_width = max(BRAM_CONF_WIDTH.keys())
+    repeated_bram = math.ceil(width/max_width)
+    width = min(max_width, width)
 
     # if there is zero depth, return no BRAM usage
     if depth == 0:
@@ -48,7 +53,7 @@ def bram_memory_resource_model(depth, width):
     bram_depth = BRAM_CONF_WIDTH[bram_width]
 
     # return the ceiling
-    return math.ceil(depth/bram_depth)
+    return repeated_bram*math.ceil(depth/bram_depth)
 
 
 def dsp_multiplier_resource_model(multiplicand_width, multiplier_width, dsp_type="DSP48E1"):
