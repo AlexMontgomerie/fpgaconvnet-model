@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11\x66pgaconvnet.proto\"&\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\"\xc9\x05\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x02(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x02(\x05\x12\x0f\n\x07rows_in\x18\x03 \x02(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x02(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x02(\x05\x12\x10\n\x08rows_out\x18\x06 \x02(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x02(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x02(\x05\x12\x11\n\tcoarse_in\x18\t \x02(\x05\x12\x12\n\ncoarse_out\x18\n \x02(\x05\x12\x10\n\x08\x64\x65pth_in\x18\x0b \x01(\x05\x12\x11\n\tdepth_out\x18\x0c \x01(\x05\x12\x0e\n\x06\x63oarse\x18\r \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0e \x01(\x05\x12\x0e\n\x06groups\x18\x0f \x01(\x05\x12\x0c\n\x04\x66ine\x18\x10 \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x11 \x01(\x05\x12\x0f\n\x07pad_top\x18\x12 \x01(\x05\x12\x11\n\tpad_right\x18\x13 \x01(\x05\x12\x11\n\tpad_front\x18\x14 \x01(\x05\x12\x12\n\npad_bottom\x18\x15 \x01(\x05\x12\x10\n\x08pad_left\x18\x16 \x01(\x05\x12\x10\n\x08pad_back\x18\x17 \x01(\x05\x12\x13\n\x0bkernel_rows\x18\x18 \x01(\x05\x12\x13\n\x0bkernel_cols\x18\x19 \x01(\x05\x12\x14\n\x0ckernel_depth\x18\x1a \x01(\x05\x12\x13\n\x0bstride_rows\x18\x1b \x01(\x05\x12\x13\n\x0bstride_cols\x18\x1c \x01(\x05\x12\x14\n\x0cstride_depth\x18\x1d \x01(\x05\x12\x12\n\ndata_width\x18\x1e \x01(\x05\x12\x14\n\x0cweight_width\x18\x1f \x01(\x05\x12\x11\n\tacc_width\x18  \x01(\x05\x12\x13\n\x0binput_width\x18! \x01(\x05\x12\x14\n\x0coutput_width\x18\" \x01(\x05\x12\x10\n\x08has_bias\x18# \x01(\x05\x12\x14\n\x0c\x62iases_width\x18$ \x01(\x05\"\xf0\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x1b\n\nstreams_in\x18\x02 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x03 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x04 \x02(\x0b\x32\n.parameter\x12\x0f\n\x07node_in\x18\x05 \x02(\t\x12\x10\n\x08node_out\x18\x06 \x02(\t\x12\x1f\n\x04type\x18\x07 \x02(\x0e\x32\x11.layer.layer_type\x12\x14\n\x0cweights_path\x18\x08 \x01(\t\x12\x11\n\tbias_path\x18\t \x01(\t\"\x90\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x08\n\x04RELU\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x13\n\x0f\x41VERAGE_POOLING\x10\x08\"\xbe\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x12\n\ninput_node\x18\x04 \x03(\t\x12\x13\n\x0boutput_node\x18\x05 \x03(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition'
+  serialized_pb=b'\n\x11\x66pgaconvnet.proto\"&\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\"\xc9\x05\n\tparameter\x12\x17\n\x0c\x62uffer_depth\x18\x01 \x02(\x05:\x01\x32\x12\x12\n\nbatch_size\x18\x02 \x02(\x05\x12\x0f\n\x07rows_in\x18\x03 \x02(\x05\x12\x0f\n\x07\x63ols_in\x18\x04 \x02(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x02(\x05\x12\x10\n\x08rows_out\x18\x06 \x02(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x02(\x05\x12\x14\n\x0c\x63hannels_out\x18\x08 \x02(\x05\x12\x11\n\tcoarse_in\x18\t \x02(\x05\x12\x12\n\ncoarse_out\x18\n \x02(\x05\x12\x10\n\x08\x64\x65pth_in\x18\x0b \x01(\x05\x12\x11\n\tdepth_out\x18\x0c \x01(\x05\x12\x0e\n\x06\x63oarse\x18\r \x01(\x05\x12\x14\n\x0c\x63oarse_group\x18\x0e \x01(\x05\x12\x0e\n\x06groups\x18\x0f \x01(\x05\x12\x0c\n\x04\x66ine\x18\x10 \x01(\x05\x12\x0f\n\x07\x66ilters\x18\x11 \x01(\x05\x12\x0f\n\x07pad_top\x18\x12 \x01(\x05\x12\x11\n\tpad_right\x18\x13 \x01(\x05\x12\x11\n\tpad_front\x18\x14 \x01(\x05\x12\x12\n\npad_bottom\x18\x15 \x01(\x05\x12\x10\n\x08pad_left\x18\x16 \x01(\x05\x12\x10\n\x08pad_back\x18\x17 \x01(\x05\x12\x13\n\x0bkernel_rows\x18\x18 \x01(\x05\x12\x13\n\x0bkernel_cols\x18\x19 \x01(\x05\x12\x14\n\x0ckernel_depth\x18\x1a \x01(\x05\x12\x13\n\x0bstride_rows\x18\x1b \x01(\x05\x12\x13\n\x0bstride_cols\x18\x1c \x01(\x05\x12\x14\n\x0cstride_depth\x18\x1d \x01(\x05\x12\x12\n\ndata_width\x18\x1e \x01(\x05\x12\x14\n\x0cweight_width\x18\x1f \x01(\x05\x12\x11\n\tacc_width\x18  \x01(\x05\x12\x13\n\x0binput_width\x18! \x01(\x05\x12\x14\n\x0coutput_width\x18\" \x01(\x05\x12\x10\n\x08has_bias\x18# \x01(\x05\x12\x14\n\x0c\x62iases_width\x18$ \x01(\x05\"\x85\x03\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x1b\n\nstreams_in\x18\x02 \x03(\x0b\x32\x07.stream\x12\x1c\n\x0bstreams_out\x18\x03 \x03(\x0b\x32\x07.stream\x12\x1e\n\nparameters\x18\x04 \x02(\x0b\x32\n.parameter\x12\x10\n\x08nodes_in\x18\x05 \x03(\t\x12\x11\n\tnodes_out\x18\x06 \x03(\t\x12\x1f\n\x04type\x18\x07 \x02(\x0e\x32\x11.layer.layer_type\x12\x14\n\x0cweights_path\x18\x08 \x01(\t\x12\x11\n\tbias_path\x18\t \x01(\t\"\xa3\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x0e\n\nACTIVATION\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x13\n\x0f\x41VERAGE_POOLING\x10\x08\x12\x0b\n\x07\x45LTWISE\x10\t\"\xc0\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x13\n\x0binput_nodes\x18\x04 \x03(\t\x12\x14\n\x0coutput_nodes\x18\x05 \x03(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x06layers\x18\x08 \x03(\x0b\x32\x06.layer\"+\n\npartitions\x12\x1d\n\tpartition\x18\x01 \x03(\x0b\x32\n.partition'
 )
 
 
@@ -42,7 +42,7 @@ _LAYER_LAYER_TYPE = _descriptor.EnumDescriptor(
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RELU', index=2, number=2,
+      name='ACTIVATION', index=2, number=2,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
@@ -76,11 +76,16 @@ _LAYER_LAYER_TYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='ELTWISE', index=9, number=9,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1002,
-  serialized_end=1146,
+  serialized_start=1004,
+  serialized_end=1167,
 )
 _sym_db.RegisterEnumDescriptor(_LAYER_LAYER_TYPE)
 
@@ -438,16 +443,16 @@ _LAYER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='node_in', full_name='layer.node_in', index=4,
-      number=5, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='nodes_in', full_name='layer.nodes_in', index=4,
+      number=5, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='node_out', full_name='layer.node_out', index=5,
-      number=6, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='nodes_out', full_name='layer.nodes_out', index=5,
+      number=6, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -486,7 +491,7 @@ _LAYER = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=778,
-  serialized_end=1146,
+  serialized_end=1167,
 )
 
 
@@ -520,14 +525,14 @@ _PARTITION = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='input_node', full_name='partition.input_node', index=3,
+      name='input_nodes', full_name='partition.input_nodes', index=3,
       number=4, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='output_node', full_name='partition.output_node', index=4,
+      name='output_nodes', full_name='partition.output_nodes', index=4,
       number=5, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -566,8 +571,8 @@ _PARTITION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1149,
-  serialized_end=1339,
+  serialized_start=1170,
+  serialized_end=1362,
 )
 
 
@@ -598,8 +603,8 @@ _PARTITIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1341,
-  serialized_end=1384,
+  serialized_start=1364,
+  serialized_end=1407,
 )
 
 _LAYER.fields_by_name['streams_in'].message_type = _STREAM

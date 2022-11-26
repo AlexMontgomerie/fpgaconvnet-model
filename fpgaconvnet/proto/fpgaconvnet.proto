@@ -50,19 +50,20 @@ message layer {
     repeated stream streams_out = 3;
     required parameter parameters = 4;
 
-    required string node_in = 5;
-    required string node_out = 6;
+    repeated string nodes_in = 5;
+    repeated string nodes_out = 6;
 
     enum layer_type {
         CONVOLUTION     = 0;
         POOLING         = 1;
-        RELU            = 2;
+        ACTIVATION      = 2;
         SQUEEZE         = 3;
         INNER_PRODUCT   = 4;
         CONCAT          = 5;
         BATCH_NORM      = 6;
         SPLIT           = 7;
         AVERAGE_POOLING = 8;
+        ELTWISE         = 9;
     }
 
     required layer_type type = 7;
@@ -75,8 +76,8 @@ message partition {
     required int32  id = 1;
     required int32  ports = 2;
     required int32  batch_size = 3;
-    repeated string input_node  = 4;
-    repeated string output_node = 5;
+    repeated string input_nodes = 4;
+    repeated string output_nodes = 5;
     required int32  weights_reloading_factor = 6;
     required string weights_reloading_layer  = 7;
 
