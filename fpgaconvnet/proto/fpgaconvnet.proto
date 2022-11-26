@@ -16,24 +16,32 @@ message parameter {
     required int32 channels_out = 8;
     required int32 coarse_in    = 9;
     required int32 coarse_out   = 10;
-    optional int32 coarse       = 11;
-    optional int32 coarse_group = 12;
-    optional int32 groups       = 13;
-    optional int32 fine         = 14;
-    optional int32 filters      = 15;
-    optional int32 pad_top      = 16;
-    optional int32 pad_right    = 17;
-    optional int32 pad_left     = 18;
-    optional int32 pad_bottom   = 19;
-    repeated int32 kernel_size  = 20;
-    repeated int32 stride       = 21;
-    optional int32 data_width   = 22;
-    optional int32 weight_width = 23;
-    optional int32 acc_width    = 24;
-    optional int32 input_width  = 25;
-    optional int32 output_width = 26;
-    optional int32 has_bias     = 27;
-    optional int32 biases_width = 28;
+    optional int32 depth_in     = 11;
+    optional int32 depth_out    = 12;
+    optional int32 coarse       = 13;
+    optional int32 coarse_group = 14;
+    optional int32 groups       = 15;
+    optional int32 fine         = 16;
+    optional int32 filters      = 17;
+    optional int32 pad_top      = 18;
+    optional int32 pad_right    = 19;
+    optional int32 pad_front    = 20;
+    optional int32 pad_bottom   = 21;
+    optional int32 pad_left     = 22;
+    optional int32 pad_back     = 23;
+    optional int32 kernel_rows  = 24;
+    optional int32 kernel_cols  = 25;
+    optional int32 kernel_depth = 26;
+    optional int32 stride_rows  = 27;
+    optional int32 stride_cols  = 28;
+    optional int32 stride_depth = 29;
+    optional int32 data_width   = 30;
+    optional int32 weight_width = 31;
+    optional int32 acc_width    = 32;
+    optional int32 input_width  = 33;
+    optional int32 output_width = 34;
+    optional int32 has_bias     = 35;
+    optional int32 biases_width = 36;
 }
 
 message layer {
@@ -67,8 +75,8 @@ message partition {
     required int32  id = 1;
     required int32  ports = 2;
     required int32  batch_size = 3;
-    required string input_node  = 4;
-    required string output_node = 5;
+    repeated string input_node  = 4;
+    repeated string output_node = 5;
     required int32  weights_reloading_factor = 6;
     required string weights_reloading_layer  = 7;
 
