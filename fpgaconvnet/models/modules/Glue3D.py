@@ -23,44 +23,40 @@ class Glue3D(Module3D):
     acc_width: int = field(default=16, init=False)
 
     def __post_init__(self):
-        pass
         # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_lut.npy"))
+                "../../coefficients/glue3d_lut.npy"))
         self.rsc_coef["FF"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_ff.npy"))
+                "../../coefficients/glue3d_ff.npy"))
         self.rsc_coef["BRAM"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_bram.npy"))
+                "../../coefficients/glue3d_bram.npy"))
         self.rsc_coef["DSP"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_dsp.npy"))
+                "../../coefficients/glue3d_dsp.npy"))
 
     def utilisation_model(self):
-        pass
+        # TODO: Update utilisation model FIXME
         return {
-            "LUT"   : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "FF"    : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "DSP"   : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "BRAM"  : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
+            "LUT"   : np.array([self.cols,self.rows,self.depth,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
+            "FF"    : np.array([self.cols,self.rows,self.depth,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
+            "DSP"   : np.array([self.cols,self.rows,self.depth,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
+            "BRAM"  : np.array([self.cols,self.rows,self.depth,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
         }
 
     def channels_in(self):
-        pass
         return self.filters
 
     def channels_out(self):
-        pass
         return self.filters
 
     def get_latency(self):
-        pass
-        return self.rows *self.cols *self.filters / self.coarse_out
+        return self.rows * self.cols * self.depth * self.filters / self.coarse_out
 
     def module_info(self):
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
@@ -71,8 +67,7 @@ class Glue3D(Module3D):
         return info
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="glue", shape="box",
+        return pydot.Node(name,label="glue3d", shape="box",
                 style="filled", fillcolor="fuchsia",
                 fontsize=MODULE_3D_FONTSIZE)
 
