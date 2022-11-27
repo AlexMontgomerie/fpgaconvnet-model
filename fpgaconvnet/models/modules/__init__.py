@@ -20,11 +20,14 @@ from .Pool import Pool
 from .Pool3D import Pool3D
 from .ReLU import ReLU
 from .ReLU3D import ReLU3D
+from .Activation3D import Activation3D
 from .SlidingWindow import SlidingWindow
 from .SlidingWindow3D import SlidingWindow3D
 from .Squeeze import Squeeze
+from .Squeeze3D import Squeeze3D
 from .Bias import Bias
 from .Bias3D import Bias3D
 from .VectorDot import VectorDot
 from .VectorDot3D import VectorDot3D
 from .AveragePool import AveragePool
+from .AveragePool3D import AveragePool3D

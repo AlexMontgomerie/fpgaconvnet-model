@@ -26,7 +26,7 @@ class LAYER_TYPE(Enum):
     Clip      = 47
     Shape     = 48
     AveragePooling = 49
-    # Swish = 50
+    SiLU = 50 # i.e. Swish
 
     @classmethod
     def get_type(cls, t):
@@ -43,7 +43,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.AveragePooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
         LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
-        # LAYER_TYPE.Swish            : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.SiLU            : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.Squeeze          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
         LAYER_TYPE.Concat           : fpgaconvnet_pb2.layer.layer_type.CONCAT,
         LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
@@ -58,7 +58,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.AveragePooling,
-        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid],
+        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU],
         fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
