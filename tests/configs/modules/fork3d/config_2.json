@@ -1,0 +1,16 @@
+{
+    "type": "FORK",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 1,
+    "coarse": 16,
+    "kernel_rows": 1,
+    "kernel_cols": 1,
+    "kernel_depth": 3,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 1,
+    "batch_size": 1,
+    "description": "module name: fork, layer name: res3a_branch2c, net name: resnet.prototxt"
+}
