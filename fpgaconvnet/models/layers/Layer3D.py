@@ -12,7 +12,7 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from fpgaconvnet.tools.resource_model import bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
 
 @dataclass
 class Layer3D:
