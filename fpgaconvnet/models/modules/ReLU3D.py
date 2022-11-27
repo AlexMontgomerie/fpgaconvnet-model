@@ -16,6 +16,7 @@ class ReLU3D(Module3D):
 
     def __post_init__(self):
         # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
                 "../../coefficients/relu3d_lut.npy"))
@@ -30,6 +31,7 @@ class ReLU3D(Module3D):
                 "../../coefficients/relu3d_dsp.npy"))
 
     def utilisation_model(self):
+        # TODO: Update utilisation model FIXME
         return {
             "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
             "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
