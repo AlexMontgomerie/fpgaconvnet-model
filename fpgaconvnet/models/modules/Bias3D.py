@@ -26,44 +26,39 @@ class Bias3D(Module3D):
     biases_width: int = field(default=16, init=False)
 
     def __post_init__(self):
-        pass
         # load the resource model coefficients
-        #TODO add model coefs FOR BIAS - currently using conv to approx.
-        # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_lut.npy"))
+                "../../coefficients/accum3d_lut.npy"))
         self.rsc_coef["FF"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_ff.npy"))
+                "../../coefficients/accum3d_ff.npy"))
         self.rsc_coef["BRAM"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_bram.npy"))
+                "../../coefficients/accum3d_bram.npy"))
         self.rsc_coef["DSP"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_dsp.npy"))
+                "../../coefficients/accum3d_dsp.npy"))
 
 
 
-    def utilisation_model(self):#TODO - copied from acum, FIXME
-        pass
+    def utilisation_model(self):
+        # TODO: Update utilisation model FIXME
         return {
-            "LUT"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "FF"    : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "DSP"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "BRAM"  : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
+            "LUT"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
+            "FF"    : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
+            "DSP"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
+            "BRAM"  : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
         }
 
     def channels_in(self):
-        pass
         return self.filters
 
     def channels_out(self):
-        pass
         return self.filters
 
     def module_info(self):#TODO
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
@@ -74,7 +69,6 @@ class Bias3D(Module3D):
         return info
 
     def rsc(self,coef=None):#TODO replace conv version of func
-        pass
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -90,8 +84,7 @@ class Bias3D(Module3D):
         return rsc
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="bias", shape="box",
+        return pydot.Node(name,label="bias3d", shape="box",
                 style="filled", fillcolor="chartreuse",
                 fontsize=MODULE_3D_FONTSIZE)
 
@@ -100,7 +93,7 @@ class Bias3D(Module3D):
         # check input dimensionality
         assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.depth                   , "ERROR: invalid depth dimension"
+        assert data.shape[2] == self.depth                  , "ERROR: invalid depth dimension"
         assert data.shape[3] == self.filters                , "ERROR: invalid filter dimension"
         # check bias dimensionality
         assert biases.shape[0] == self.filters              , "ERROR: invalid filter dimension"
