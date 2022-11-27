@@ -5,29 +5,44 @@ These are the basic building blocks of the accelerator.
 MODULE_FONTSIZE=25
 MODULE_3D_FONTSIZE=25
 
+import math
+
+def int2bits(n):
+    """
+    helper function to get number of bits for integer
+    """
+    return math.ceil(math.log(n, 2))
+
 from .Module import Module
-from .Module3D import Module3D
 from .Accum import Accum
-from .Accum3D import Accum3D
 from .BatchNorm import BatchNorm
 from .Conv import Conv
-from .Conv3D import Conv3D
 from .Fork import Fork
-from .Fork3D import Fork3D
 from .Glue import Glue
-from .Glue3D import Glue3D
 from .Pool import Pool
-from .Pool3D import Pool3D
+from .MaxPool import MaxPool
+# from .Pool import AvgPool
 from .ReLU import ReLU
-from .ReLU3D import ReLU3D
-from .Activation3D import Activation3D
 from .SlidingWindow import SlidingWindow
-from .SlidingWindow3D import SlidingWindow3D
 from .Squeeze import Squeeze
-from .Squeeze3D import Squeeze3D
 from .Bias import Bias
-from .Bias3D import Bias3D
 from .VectorDot import VectorDot
-from .VectorDot3D import VectorDot3D
 from .AveragePool import AveragePool
+from .Concat import Concat
+from .EltWise import EltWise
+from .Stride import Stride
+
+# 3D modules
+from .Module3D import Module3D
+from .Accum3D import Accum3D
+from .Conv3D import Conv3D
+from .Fork3D import Fork3D
+from .Glue3D import Glue3D
+from .Pool3D import Pool3D
+from .Activation3D import Activation3D
+from .ReLU3D import ReLU3D
+from .SlidingWindow3D import SlidingWindow3D
+from .Squeeze3D import Squeeze3D
+from .Bias3D import Bias3D
+from .VectorDot3D import VectorDot3D
 from .AveragePool3D import AveragePool3D

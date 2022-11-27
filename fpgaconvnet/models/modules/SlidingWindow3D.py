@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model, bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model
 
 @dataclass
 class SlidingWindow3D(Module3D):

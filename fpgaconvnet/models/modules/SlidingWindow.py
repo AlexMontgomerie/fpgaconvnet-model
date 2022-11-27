@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model, bram_stream_resource_model
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model
 
 @dataclass
 class SlidingWindow(Module):
@@ -59,8 +59,10 @@ class SlidingWindow(Module):
     pad_right: int
     pad_bottom: int
     pad_left: int
+    backend: str = "chisel"
 
     def __post_init__(self):
+
         # format kernel size as a 2 element list
         if isinstance(self.kernel_size, int):
             self.kernel_size = [self.kernel_size, self.kernel_size]
@@ -77,44 +79,20 @@ class SlidingWindow(Module):
         else:
             raise TypeError
 
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/sliding_window_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/sliding_window_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/sliding_window_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/sliding_window_dsp.npy"))
+        # perform basic module initialisation
+        Module.__post_init__(self)
 
-    def utilisation_model(self):
-        return {
-            "LUT"  : np.array([self.data_width*self.kernel_size[0]*self.kernel_size[1],
-                self.kernel_size[0]*(self.kernel_size[1]-1)*(self.data_width+math.floor(math.log(self.channels,2))),
-                (self.kernel_size[1]-1)*(self.data_width+math.floor(math.log(self.channels*self.cols,2))),
-                (self.kernel_size[0])*(self.kernel_size[1]-1), (self.kernel_size[1]-1)]),
-            "FF"   : np.array([self.data_width*self.kernel_size[0]*self.kernel_size[1],
-                self.kernel_size[0]*(self.kernel_size[1]-1)*(self.data_width+math.floor(math.log(self.channels,2))),
-                (self.kernel_size[1]-1)*(self.data_width+math.floor(math.log(self.channels*self.cols,2))),
-                (self.kernel_size[0])*(self.kernel_size[1]-1), (self.kernel_size[1]-1)]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1]),
-        }
 
     def rows_out(self):
-        return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom)/self.stride[0]+1)
+        return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom+1)/self.stride[0])
 
     def cols_out(self):
-        return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right)/self.stride[1]+1)
+        return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right+1)/self.stride[1])
 
     def rate_in(self):
-        return (self.rows_in()*self.cols_in())/float(
-                (self.rows_in()+self.pad_top+self.pad_bottom)*\
-                (self.cols_in()+self.pad_left+self.pad_right))
+        padded_size = (self.rows_in()+self.pad_top+self.pad_bottom)*(self.cols_in()+self.pad_left+self.pad_right)
+        size = (self.rows_in()*self.cols_in())
+        return size/float(padded_size)
 
     def rate_out(self):
         return (self.rows_out()*self.cols_out())/float(self.rows*self.cols)
@@ -146,32 +124,89 @@ class SlidingWindow(Module):
         # return the info
         return info
 
-    def rsc(self, coef=None):
-        """
-        the main resources are from the line and frame buffers.
-        These use `BRAM` fifos.
+    def memory_usage(self):
+        if self.backend == "chisel":
+            return self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels) + \
+                self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels) + \
+                self.data_width*self.kernel_size[0]*self.kernel_size[1]
+        else:
+            raise NotImplementedError
 
-        Returns
-        -------
-        dict
-            estimated resource usage of the module. Uses the
-            resource coefficients for the estimate.
-        """
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.data_width,
+                    (self.kernel_size[0]-1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1),
+                    (self.kernel_size[0]-1)*(self.cols*self.channels+1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels+1),
+                ]),
+                "LUT_RAM"   : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
+                "LUT_SR"    : np.array([1]),
+                "FF"        : np.array([
+                    int2bits(self.rows), # row_cntr
+                    int2bits(self.cols), # col_cntr
+                    int2bits(self.channels), # channel_cntr
+                    self.data_width, # input buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer
+                    (self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
+                "BRAM18"    : np.array([
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                ]),
+            }
+
+    def rsc(self,coef=None):
+
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
-        # get the line buffer BRAM estimate
-        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
-        line_buffer_bram = (self.kernel_size[0]-1) * bram_stream_resource_model(line_buffer_depth, self.data_width)
-        # get the window buffer BRAM estimate
-        window_buffer_depth = self.channels+1
-        window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1) * bram_stream_resource_model(window_buffer_depth, self.data_width)
+
         # get the linear model estimation
-        rsc = Module.rsc(self,coef)
-        # add the bram estimation
-        rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+        rsc = Module.rsc(self, coef)
+
+        # # get the line buffer BRAM estimate
+        # line_buffer_depth = self.cols*self.channels+1
+        # line_buffer_bram = (self.kernel_size[0]-1) * \
+        #         bram_stream_resource_model(line_buffer_depth, self.data_width)
+
+        # # get the window buffer BRAM estimate
+        # window_buffer_depth = self.channels+1
+        # window_buffer_bram = self.kernel_size[0]*(self.kernel_size[0]-1) * \
+        #         bram_stream_resource_model(window_buffer_depth, self.data_width)
+
+        # # add the bram estimation
+        # rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+
+        # ensure zero DSPs
+        rsc["DSP"] = 0
+
         # return the resource usage
         return rsc
+
+
+    def memory_usage(self):
+        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
+        window_buffer_depth = self.channels+1
+        return (self.kernel_size[0]-1)*line_buffer_depth*self.data_width + \
+            self.kernel_size[0]*(self.kernel_size[1]-1)*window_buffer_depth*self.data_width
 
     def visualise(self, name):
         return pydot.Node(name,label="slwin", shape="box",

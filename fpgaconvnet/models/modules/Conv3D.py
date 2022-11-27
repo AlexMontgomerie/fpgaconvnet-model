@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
-from fpgaconvnet.tools.resource_model import dsp_multiplier_resource_model
+from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class Conv3D(Module3D):

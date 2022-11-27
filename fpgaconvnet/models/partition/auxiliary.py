@@ -3,9 +3,10 @@ import copy
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
-import fpgaconvnet.tools.onnx_helper as onnx_helper
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 from fpgaconvnet.models.layers import SqueezeLayer
+from fpgaconvnet.models.layers import SplitLayer
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
@@ -19,13 +20,16 @@ def add_squeeze(self):
         # mismatch
         if err[edge] != 0:
             # add node to graph
-            start_name = onnx_helper.gen_layer_name(self.graph, edge_list[edge][0])
-            end_name   = onnx_helper.gen_layer_name(self.graph, edge_list[edge][1])
+            # start_name = onnx_helper.format_onnx_name(edge_list[edge][0])
+            # end_name   = onnx_helper.format_onnx_name(edge_list[edge][1])
             start_node = edge_list[edge][0]
             end_node   = edge_list[edge][1]
-            new_node   = "_".join([start_name,"squeeze",end_name])
+            # new_node   = "_".join([start_name,"squeeze",end_name])
+            new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info
-            self.graph.add_node(new_node,type=LAYER_TYPE.Squeeze,
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[start_node]["onnx_node"],
                 hw=SqueezeLayer(
                     self.graph.nodes[start_node]['hw'].rows_out(),
                     self.graph.nodes[start_node]['hw'].cols_out(),
@@ -45,7 +49,9 @@ def add_squeeze(self):
         # add node to graph
         new_node  = "_".join([input_node,"squeeze"])
         # add node to node info
-        self.graph.add_node(new_node, type=LAYER_TYPE.Squeeze,
+        self.graph.add_node(new_node,
+            type=LAYER_TYPE.Squeeze,
+            onnx_node=self.graph.nodes[input_node]["onnx_node"],
             hw=SqueezeLayer(
                 self.graph.nodes[input_node]['hw'].rows_in(),
                 self.graph.nodes[input_node]['hw'].cols_in(),
@@ -62,7 +68,9 @@ def add_squeeze(self):
         # add node to graph
         new_node  = "_".join(["squeeze",output_node])
         # add node to node info
-        self.graph.add_node(new_node,type=LAYER_TYPE.Squeeze,
+        self.graph.add_node(new_node,
+            type=LAYER_TYPE.Squeeze,
+            onnx_node=self.graph.nodes[output_node]["onnx_node"],
             hw=SqueezeLayer(
                 self.graph.nodes[output_node]['hw'].rows_out(),
                 self.graph.nodes[output_node]['hw'].cols_out(),
@@ -97,4 +105,38 @@ def remove_squeeze(self):
             self.graph.add_edge(prev_node,next_node)
     # remove squeeze nodes
     self.graph.remove_nodes_from(remove_nodes)
+
+def add_split(self):
+    # iterate over nodes in the graph
+    nodes = list(self.graph.nodes())
+    for node in nodes:
+        # get the nodes out
+        nodes_out = graphs.get_next_nodes(self.graph, node)
+        # add a split layer if there are more than 1 nodes out
+        if len(nodes_out) > 1:
+            # create a split node
+            split_node  = f"{node}_split"
+            self.graph.add_node(split_node,
+                type=LAYER_TYPE.Split,
+                onnx_node=self.graph.nodes[node]["onnx_node"],
+                hw=SplitLayer(
+                    self.graph.nodes[node]['hw'].rows_out(),
+                    self.graph.nodes[node]['hw'].cols_out(),
+                    self.graph.nodes[node]['hw'].channels_out(),
+                    self.graph.nodes[node]['hw'].streams_out(),
+                    len(nodes_out)
+                )
+            )
+            # iterate over nodes out
+            for node_out in nodes_out:
+                # remove edge from original node
+                self.graph.remove_edge(node, node_out)
+                # add edge to split node
+                self.graph.add_edge(split_node, node_out)
+            # add edge from original node to split node
+            self.graph.add_edge(node, split_node)
+
+def remove_split(self): #TODO
+    pass
+
 

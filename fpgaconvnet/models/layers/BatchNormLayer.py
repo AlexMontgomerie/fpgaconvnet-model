@@ -3,7 +3,7 @@ import math
 import tempfile
 import pydot
 
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
 from fpgaconvnet.models.modules import BatchNorm
 from fpgaconvnet.models.layers import Layer

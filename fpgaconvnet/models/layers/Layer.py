@@ -12,7 +12,8 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from fpgaconvnet.tools.resource_model import bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
+from fpgaconvnet.data_types import FixedPoint
 
 @dataclass
 class Layer:
@@ -47,8 +48,8 @@ class Layer:
     _channels: int
     _coarse_in: int
     _coarse_out: int
-    data_width: int = field(default=16, init=True)
-    buffer_depth: int = field(default=0, init=False)
+    data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
+    buffer_depth: int = field(default=2, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
     @property
@@ -257,7 +258,7 @@ class Layer:
         int
             data width in
         """
-        return self.data_width
+        return self.data_t.width
 
     def width_out(self):
         """
@@ -266,7 +267,7 @@ class Layer:
         int
             data width out
         """
-        return self.data_width
+        return self.data_t.width
 
     def latency_in(self):
         return abs(self.workload_in()/(self.rate_in()*self.streams_in()))
@@ -287,31 +288,30 @@ class Layer:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : bram_stream_resource_model(self.buffer_depth,self.data_width)*self.streams_in(),
+            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_t.width)*self.streams_in(),
             "DSP"   : 0
         }
 
-    def get_coarse_in_feasible(self, wr_factor=1):
-        return get_factors(int(self.channels_in()/wr_factor))
+    def get_coarse_in_feasible(self):
+        return get_factors(int(self.channels_in()))
 
-    def get_coarse_out_feasible(self, wr_factor=1):
-        return get_factors(int(self.channels_out()/wr_factor))
+    def get_coarse_out_feasible(self):
+        return get_factors(int(self.channels_out()))
 
     def update(self):
         pass
 
     def layer_info(self, parameters, batch_size=1):
         parameters.batch_size   = batch_size
-        parameters.data_width   = self.data_width
-        parameters.buffer_depth = self.buffer_depth
         parameters.rows_in      = self.rows_in()
         parameters.cols_in      = self.cols_in()
         parameters.channels_in  = self.channels_in()
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
-        parameters.coarse_in    = self.streams_in()
-        parameters.coarse_out   = self.streams_out()
+        parameters.coarse_in    = self.coarse_in
+        parameters.coarse_out   = self.coarse_out
+        self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
         return 0

@@ -1,7 +1,7 @@
 {
     "type": "POOLING",
-    "rows": 28,
-    "cols": 28,
+    "rows": 29,
+    "cols": 29,
     "channels": 480,
     "kernel_size": 3,
     "stride": 2,

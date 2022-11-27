@@ -13,14 +13,14 @@ class Partition():
             streams_out=1,
             batch_size=1,
             wr_factor=1,
-            data_width=16,
-            weight_width=8,
-            acc_width=30,
             port_width=64
         ):
 
         ## graph for partition
         self.graph = graph
+
+        ## batch size
+        self.batch_size = batch_size
 
         ## ports
         self.ports_in   = ports_in
@@ -41,17 +41,16 @@ class Partition():
 
         ## bitwidths
         self.port_width     = port_width
-        self.data_width     = data_width
-        self.weight_width   = weight_width
-        self.acc_width      = acc_width
 
         # maximum streams in and out (TODO: turn into function calls)
-        self.max_streams_in     = self.ports_in*int(self.port_width/self.data_width)
-        self.max_streams_out    = self.ports_out*int(self.port_width/self.data_width)
+        self.max_streams_in     = self.ports_in*int(self.port_width/16)
+        self.max_streams_out    = self.ports_out*int(self.port_width/16)
 
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
     from fpgaconvnet.models.partition.auxiliary import remove_squeeze
+    from fpgaconvnet.models.partition.auxiliary import add_split
+    from fpgaconvnet.models.partition.auxiliary import remove_split
 
     # metrics
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
@@ -100,7 +99,9 @@ class Partition():
         for node in self.graph:
             for edge in graphs.get_next_nodes(self.graph,node):
                 for i in range(self.graph.nodes[node]['hw'].streams_out()):
-                    cluster.add_edge(pydot.Edge(edge_labels[node]["nodes_out"][i] ,edge_labels[edge]["nodes_in"][i]))
+                    cluster.add_edge(pydot.Edge(
+                        edge_labels[node]["nodes_out"][i],
+                        edge_labels[edge]["nodes_in"][i]))
 
 
         _, input_node_vis, _ = self.graph.nodes[input_node]['hw'].visualise(input_node)
@@ -129,7 +130,8 @@ class Partition():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and self.graph.nodes[input_node]["hw"].get_latency() > max_compute_latency
+        return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[input_node]["hw"].get_latency() > max_compute_latency
 
     def is_output_memory_bound(self):
         output_node  = graphs.get_output_nodes(self.graph)[0]
@@ -139,7 +141,8 @@ class Partition():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and self.graph.nodes[output_node]["hw"].get_latency() > max_compute_latency
+        return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[output_node]["hw"].get_latency() > max_compute_latency
 
     def reset(self):
         self.remove_squeeze()
@@ -169,7 +172,8 @@ class Partition():
             return _wr_layer( prev_node )
         # start from the end
         output_node = graphs.get_output_nodes(self.graph)[0]
-        if ( self.graph.in_degree(output_node) == 0 ) and ( self.graph.nodes[output_node]['type'] in transformable_layers ):
+        if ( self.graph.in_degree(output_node) == 0 ) and \
+                ( self.graph.nodes[output_node]['type'] in transformable_layers ):
             return output_node
         else:
             return _wr_layer( output_node )

@@ -1,1 +1,3 @@
-include fpgaconvnet/coefficients/*.npy
+include fpgaconvnet/coefficients/hls/*.npy
+include fpgaconvnet/coefficients/chisel/*.npy
+include fpgaconvnet/tools/fpgaconvnet-mongodb.pem

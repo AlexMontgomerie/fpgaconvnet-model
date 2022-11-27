@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import pydot
 
+from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import AveragePool
 from fpgaconvnet.models.layers import Layer
 
@@ -16,15 +17,22 @@ class AveragePoolingLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_width: int = 16
+            acc_t: FixedPoint = FixedPoint(32,16),
+            backend: str = "chisel",
         ):
 
+        # save acc_t
+        self.acc_t = acc_t
+
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse,
-                coarse, data_width=data_width)
+        super().__init__(rows, cols, channels, coarse, coarse)
 
         # update flags
         # self.flags['transformable'] = True
+
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
 
         # update parameters
         self._coarse = coarse
@@ -32,7 +40,8 @@ class AveragePoolingLayer(Layer):
         # init modules
         self.modules["average_pool"] = AveragePool(
                 self.rows_in(), self.cols_in(),
-                int(self.channels_in()/self.coarse))
+                self.channels_in()//self.coarse,
+                backend=self.backend)
 
         self.update()
 
@@ -78,12 +87,15 @@ class AveragePoolingLayer(Layer):
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        self.acc_t.to_protobuf(parameters.acc_t)
 
     def update(self):
         # pool
-        self.modules['pool'].rows     = self.rows_in()
-        self.modules['pool'].cols     = self.cols_in()
-        self.modules['pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['average_pool'].rows     = self.rows_in()
+        self.modules['average_pool'].cols     = self.cols_in()
+        self.modules['average_pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['average_pool'].data_width = self.data_t.width
+        self.modules['average_pool'].acc_width = self.acc_t.width
 
     def resource(self):
 
@@ -107,9 +119,9 @@ class AveragePoolingLayer(Layer):
 
         for i in range(self.coarse):
             # define names
-            pool_name[i] = "_".join([name, "pool", str(i)])
+            pool_name[i] = "_".join([name, "average_pool", str(i)])
             # add nodes
-            cluster.add_node(self.modules["pool"].visualise(pool_name[i]))
+            cluster.add_node(self.modules["average_pool"].visualise(pool_name[i]))
 
         return cluster, np.array(pool_name).flatten().tolist(), np.array(pool_name).flatten().tolist()
 

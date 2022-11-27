@@ -1,0 +1,51 @@
+"""
+"""
+
+import math
+import os
+import sys
+from dataclasses import dataclass, field
+from typing import List
+
+import numpy as np
+import pydot
+
+from fpgaconvnet.models.modules import Module
+
+@dataclass
+class EltWise(Module):
+    ports_in: int
+    biases_width: int = field(default=16, init=False)
+    backend: str = "chisel"
+
+    def module_info(self):
+        return {
+            'type'      : self.__class__.__name__.upper(),
+            'rows'      : self.rows_in(),
+            'cols'      : self.cols_in(),
+            'channels'  : self.channels_in(),
+            'ports_in'      : self.ports_in,
+            'rows_out'      : self.rows_out(),
+            'cols_out'      : self.cols_out(),
+            'channels_out'  : self.channels_out()
+        }
+
+    def functional_model(self, data):
+        # check input dimensionality
+        assert len(data) == self.ports_in , "ERROR: invalid row dimension"
+        for i in range(self.ports_in):
+            assert data[i].shape[0] == self.rows        , "ERROR: invalid column dimension"
+            assert data[i].shape[1] == self.cols        , "ERROR: invalid column dimension"
+            assert data[i].shape[2] == self.channels    , "ERROR: invalid channel dimension"
+
+        out = np.zeros((
+            self.rows,
+            self.cols,
+            self.channels),dtype=float)
+
+        for index, _ in np.ndenumerate(out):
+            for i in range(self.ports_in):
+                out[index] += float(data[i][index])
+
+        return out
+

@@ -4,8 +4,9 @@ import pydot
 import torch
 
 from fpgaconvnet.models.layers.utils import get_factors
-
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Conv
@@ -13,7 +14,7 @@ from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.modules import Accum
 from fpgaconvnet.models.modules import Glue
 from fpgaconvnet.models.modules import Bias
-from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.modules import VectorDot
 
 class InnerProductLayer(Layer):
     def __init__(
@@ -24,24 +25,24 @@ class InnerProductLayer(Layer):
             channels: int,
             coarse_in: int = 1,
             coarse_out: int = 1,
-            input_width: int = 16,
-            output_width: int = 16,
-            weight_width: int = 16,
-            acc_width: int = 16,
-            biases_width: int = 16,
-            has_bias: int = 0
+            input_t: FixedPoint = FixedPoint(16,8),
+            output_t: FixedPoint = FixedPoint(16,8),
+            weight_t: FixedPoint = FixedPoint(16,8),
+            acc_t: FixedPoint = FixedPoint(32,16),
+            has_bias: int = 0,
+            backend: str = "chisel"
         ):
 
         # initialise parent class
         super().__init__(rows, cols, channels, coarse_in,
-                coarse_out, data_width=input_width)
+                coarse_out, data_t=input_t)
 
-        # save the widths
-        self.input_width = input_width
-        self.output_width = output_width
-        self.weight_width = weight_width
-        self.acc_width = acc_width
-        self.biases_width = biases_width
+        # save data types
+        self.input_t = input_t
+        self.output_t = output_t
+        self.weight_t = weight_t
+        self.acc_t = acc_t
+
         # save bias flag
         self.has_bias = has_bias
 
@@ -52,17 +53,27 @@ class InnerProductLayer(Layer):
         # save parameters
         self._filters = filters
 
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # init modules
-        self.modules["fork"] = Fork(self.rows_in(), self.cols_in(), self.channels_in(), 1,
-                self.coarse_out)
-        self.modules["conv"] = Conv(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, 1, 1, 1)
+        self.modules["fork"] = Fork(self.rows_in(), self.cols_in(),
+                self.channels_in(), 1, self.coarse_out, backend=self.backend)
+        if self.backend == "hls":
+            self.modules["conv"] = Conv(1,1,
+                    self.channels_in()*self.rows_in()*self.cols_in(),
+                    self.filters, 1, 1, 1, backend=self.backend)
+        elif self.backend == "chisel":
+            self.modules["vector_dot"] = VectorDot(1, 1,
+                    self.channels_in()*self.rows_in()*self.cols_in(),
+                    self.filters, 1, backend=self.backend)
         self.modules["accum"] = Accum(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, 1)
+                self.filters, 1, backend=self.backend)
         self.modules["glue"] = Glue(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, self.coarse_in, self.coarse_out)
+                self.filters, self.coarse_in, self.coarse_out, backend=self.backend)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters)
+                self.filters, backend=self.backend)
 
         self.update()
 
@@ -86,13 +97,13 @@ class InnerProductLayer(Layer):
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
-        parameters.filters      = self.filters
-        parameters.input_width  = self.input_width
-        parameters.output_width = self.output_width
-        parameters.weight_width = self.weight_width
-        parameters.acc_width    = self.acc_width
-        parameters.biases_width = self.biases_width
-        parameters.has_bias     = self.has_bias
+        parameters.filters  = self.filters
+        parameters.has_bias = self.has_bias
+        self.input_t.to_protobuf(parameters.input_t)
+        self.output_t.to_protobuf(parameters.output_t)
+        self.weight_t.to_protobuf(parameters.weight_t)
+        self.acc_t.to_protobuf(parameters.acc_t)
+        parameters.data_t.Clear()
 
     def update(self): # TODO: update all parameters
         # fork
@@ -100,38 +111,47 @@ class InnerProductLayer(Layer):
         self.modules['fork'].cols     = self.cols_in()
         self.modules['fork'].channels = self.channels_in()//self.coarse_in
         self.modules['fork'].coarse   = self.coarse_out
-        self.modules['fork'].data_width = self.input_width
-        # conv
-        self.modules['conv'].rows     = 1
-        self.modules['conv'].cols     = 1
-        self.modules['conv'].channels =\
-                                self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
-        self.modules['conv'].filters  = self.filters//self.coarse_out
-        self.modules['conv'].fine     = 1
-        self.modules['conv'].data_width = self.input_width
-        self.modules['conv'].weight_width = self.weight_width
-        self.modules['conv'].acc_width = self.acc_width
+        self.modules['fork'].data_width = self.input_t.width
+        if self.backend == "hls":
+            # conv
+            self.modules['conv'].rows     = 1
+            self.modules['conv'].cols     = 1
+            self.modules['conv'].channels =\
+                self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
+            self.modules['conv'].filters  = self.filters//self.coarse_out
+            self.modules['conv'].fine     = 1
+            self.modules['conv'].data_width = self.input_t.width
+            self.modules['conv'].weight_width = self.weight_t.width
+            self.modules['conv'].acc_width = self.acc_t.width
+        elif self.backend == "chisel":
+            # vector dot
+            self.modules['vector_dot'].rows     = self.rows_out()
+            self.modules['vector_dot'].cols     = self.cols_out()
+            self.modules['vector_dot'].channels =\
+                self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
+            self.modules['vector_dot'].filters  = self.filters//self.coarse_out
+            self.modules['vector_dot'].fine     = 1
+            self.modules['vector_dot'].data_width     = self.input_t.width
+            self.modules['vector_dot'].weight_width   = self.weight_t.width
+            self.modules['vector_dot'].acc_width      = self.acc_t.width
         # accum
         self.modules['accum'].rows     = 1
         self.modules['accum'].cols     = 1
         self.modules['accum'].channels =\
-                                self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
+            self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
         self.modules['accum'].filters  = self.filters//self.coarse_out
-        self.modules['accum'].data_width = self.acc_width
+        self.modules['accum'].data_width = self.acc_t.width
         # glue
         self.modules['glue'].rows = 1
         self.modules['glue'].cols = 1
         self.modules['glue'].filters    = self.filters
         self.modules['glue'].coarse_in  = self.coarse_in
         self.modules['glue'].coarse_out = self.coarse_out
-        self.modules['glue'].data_width = self.output_width
-        self.modules['glue'].acc_width  = self.acc_width
-        # bias FIXME
+        self.modules['glue'].data_width = self.acc_t.width
+        # bias
         self.modules['bias'].rows           = 1#self.rows_out()
         self.modules['bias'].cols           = 1#self.cols_out()
         self.modules['bias'].filters        = self.filters
-        self.modules['bias'].data_width     = self.output_width
-        self.modules['bias'].biases_width   = self.biases_width
 
     def get_weights_reloading_feasible(self):
         return get_factors(int(self.filters/self.coarse_out))
@@ -146,56 +166,50 @@ class InnerProductLayer(Layer):
 
     def resource(self):
 
-        fork_rsc    = self.modules['fork'].rsc()
-        conv_rsc    = self.modules['conv'].rsc()
-        accum_rsc   = self.modules['accum'].rsc()
-        if self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in == 1:
-            accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        glue_rsc    = self.modules['glue'].rsc()
-        if self.coarse_in == 1:
-            glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        bias_rsc    = self.modules['bias'].rsc()
-        # condition if there are no biases for the layer
-        if self.has_bias:
-            bias_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+        if self.backend == "chisel":
 
-        # TODO: add to modules instead
+            # get module resource models
+            fork_rsc        = self.modules['fork'].rsc()
+            vector_dot_rsc  = self.modules['vector_dot'].rsc()
+            accum_rsc       = self.modules['accum'].rsc()
+            glue_rsc        = self.modules['glue'].rsc()
+            bias_rsc        = self.modules['bias'].rsc()
+
+            # remove redundant modules
+            if self.coarse_out == 1:
+                fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in == 1:
+                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_in == 1:
+                glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.has_bias:
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+
+            # accumulate resource usage based on coarse factors
+            rsc = { rsc_type: (
+                fork_rsc[rsc_type]*self.coarse_in +
+                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                glue_rsc[rsc_type]*self.coarse_out +
+                bias_rsc[rsc_type]*self.coarse_out
+            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+
+        # weight usage
         weights_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
                 self.cols_in())/float(self.coarse_in*self.coarse_out)
-        weights_bram_usage = \
-            bram_memory_resource_model(int(weights_memory_depth), self.weight_width)*\
-            self.coarse_in*self.coarse_out
+        weights_bram_usage = bram_memory_resource_model(
+                    int(weights_memory_depth),self.weight_t.width) * self.coarse_out
 
-        # FIXME: sort mem requirements correctly
-        bias_memory_depth = float(self.filters*self.rows_in()*\
-            self.cols_in())/float(self.coarse_out)
-        biases_bram_usage = \
-            bram_memory_resource_model(int(bias_memory_depth), self.biases_width)*self.coarse_out
-        # Total
-        return {
-            "LUT"  :  fork_rsc['LUT']*self.coarse_in +
-                      conv_rsc['LUT']*self.coarse_in*self.coarse_out +
-                      accum_rsc['LUT']*self.coarse_in*self.coarse_out +
-                      glue_rsc['LUT'] +
-                      bias_rsc['LUT']*self.coarse_out,
-            "FF"   :  fork_rsc['FF']*self.coarse_in +
-                      conv_rsc['FF']*self.coarse_in*self.coarse_out +
-                      accum_rsc['FF']*self.coarse_in*self.coarse_out +
-                      glue_rsc['FF'] +
-                      bias_rsc['FF']*self.coarse_out,
-            "BRAM" :  fork_rsc['BRAM']*self.coarse_in +
-                      conv_rsc['BRAM']*self.coarse_in*self.coarse_out +
-                      accum_rsc['BRAM']*self.coarse_out +
-                      glue_rsc['BRAM'] +
-                      weights_bram_usage +
-                      bias_rsc['BRAM']*self.coarse_out +
-                      biases_bram_usage,
-            "DSP"  :  fork_rsc['DSP']*self.coarse_in +
-                      conv_rsc['DSP']*self.coarse_in*self.coarse_out +
-                      accum_rsc['DSP']*self.coarse_out +
-                      glue_rsc['DSP'] +
-                      bias_rsc['DSP']*self.coarse_out
-        }
+        # bias usage FIXME depth, FIXME bram usage
+        bias_memory_depth = float(self.filters) / float(self.coarse_out)
+        biases_bram_usage = bram_memory_resource_model(
+                    int(bias_memory_depth),self.acc_t.width) * self.coarse_out
+
+        # add weights and bias to resources
+        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+
+        # return total resource
+        return rsc
 
     def visualise(self, name):
 

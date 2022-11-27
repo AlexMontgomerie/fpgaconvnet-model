@@ -13,7 +13,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/AlexMontgomerie/fpgaconvnet-model",
     include_package_data=True,
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_namespace_packages(
+        include=['fpgaconvnet.*']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
@@ -27,8 +28,8 @@ setuptools.setup(
         "pyyaml>=5.1.0",
         "scipy>=1.2.1",
         "torchvision>=0.8.2",
-        "onnx>=1.8.1",
-        "onnxruntime>=1.7.0",
+        "onnx>=1.12.0",
+        "onnxruntime>=1.12.0",
         "graphviz>=0.16",
         "pydot>=1.4.2",
         "onnxoptimizer==0.3.0",
@@ -36,6 +37,8 @@ setuptools.setup(
         "sklearn",
         "matplotlib",
         "coverage==5.5",
+        "onnxsim>=0.4.8",
+        "fpbinary>=1.5.3",
         "pyparsing<3"
     ]
 )

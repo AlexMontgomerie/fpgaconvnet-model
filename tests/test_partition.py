@@ -1,9 +1,10 @@
 import unittest
 import ddt
 from fpgaconvnet.models.partition.Partition import Partition
-import fpgaconvnet.tools.parser as parser
 import fpgaconvnet.tools.graphs as graphs
 import networkx as nx
+
+from fpgaconvnet.parser import Parser
 
 #class TestPartition(unittest.TestCase):
 

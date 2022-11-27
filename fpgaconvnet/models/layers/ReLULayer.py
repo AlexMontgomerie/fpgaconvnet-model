@@ -4,6 +4,8 @@ import math
 import onnx
 import pydot
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import ReLU
 from fpgaconvnet.models.layers import Layer
 
@@ -14,18 +16,25 @@ class ReLULayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_width: int = 16
+            data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel", # default to no bias for old configs
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse, coarse,
-                data_width=data_width)
+        super().__init__(rows, cols, channels,
+                coarse, coarse, data_t=data_t)
 
         # save parameters
         self._coarse = coarse
 
+        # backend flag
+        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
         # init modules
-        self.modules["relu"] = ReLU(self.rows_in(), self.cols_in(), self.channels_in()/self.coarse)
+        self.modules["relu"] = ReLU(self.rows_in(), self.cols_in(),
+                self.channels_in()//self.coarse, backend=self.backend)
+
         self.update()
 
     @property
@@ -69,6 +78,19 @@ class ReLULayer(Layer):
         self.modules['relu'].rows     = self.rows_in()
         self.modules['relu'].cols     = self.cols_in()
         self.modules['relu'].channels = int(self.channels_in()/self.coarse)
+
+    def resource(self):
+
+        # get relu resources
+        relu_rsc = self.modules['relu'].rsc()
+
+        # Total
+        return {
+            "LUT"  :  relu_rsc['LUT']*self.coarse,
+            "FF"   :  relu_rsc['FF']*self.coarse,
+            "BRAM" :  relu_rsc['BRAM']*self.coarse,
+            "DSP" :   relu_rsc['DSP']*self.coarse,
+        }
 
     def visualise(self,name):
         cluster = pydot.Cluster(name, label=name,
