@@ -61,3 +61,185 @@ class TestReLU3DModule(TestModule3DTemplate,unittest.TestCase):
         self.run_test_dimensions(module)
         self.run_test_rates(module)
         self.run_test_resources(module)
+
+@ddt.ddt
+class TestActivation3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/activation3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Activation3D(config["rows"],config["cols"],config["depth"],config["channels"],config["type"].lower())
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestAccum3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/accum3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Accum3D(config["rows"],config["cols"],config["depth"],config["channels"],config["filters"],config["groups"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestBias3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/bias3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Bias3D(config["rows"],config["cols"],config["depth"],config["channels"],config["filters"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestConv3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/conv3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Conv3D(config["rows"],config["cols"],config["depth"],config["channels"],
+                config["filters"],config["fine"],config["kernel_rows"],config["kernel_cols"],config["kernel_depth"],config["group"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestAveragePool3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/avgpool3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = AveragePool3D(config["rows"],config["cols"],config["depth"],config["channels"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestFork3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/fork3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Fork3D(config["rows"],config["cols"],config["depth"],config["channels"],config["kernel_rows"],config["kernel_cols"],config["kernel_depth"],config["coarse"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestGlue3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/glue3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Glue3D(config["rows"],config["cols"],config["depth"],config["channels"],config["filters"],config["coarse_in"],config["coarse_out"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestPool3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/pool3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Pool3D(config["rows"],config["cols"],config["depth"],config["channels"],config["kernel_rows"],config["kernel_cols"],config["kernel_depth"],config["pool_type"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+@ddt.ddt
+class TestSqueeze3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/squeeze3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Squeeze3D(config["rows"],config["cols"],config["depth"],config["channels"],config["coarse_in"],config["coarse_out"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
+
+
+@ddt.ddt
+class TestVectorDot3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/vector_dot3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = VectorDot3D(config["rows"],config["cols"],config["depth"],config["channels"],config["filters"],config["fine"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
