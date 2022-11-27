@@ -1,0 +1,10 @@
+{
+    "rows": 28,
+    "cols": 28,
+    "depth": 16,
+    "channels": 4,
+    "filters": 8,
+    "groups": 2,
+    "batch_size": 1,
+    "description": "2 groups, 1 filter"
+}

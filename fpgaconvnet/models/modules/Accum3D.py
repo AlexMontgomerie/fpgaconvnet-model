@@ -26,48 +26,43 @@ class Accum3D(Module3D):
     groups: int
 
     def __post_init__(self):
-        pass
         # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_lut.npy"))
+                "../../coefficients/accum3d_lut.npy"))
         self.rsc_coef["FF"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_ff.npy"))
+                "../../coefficients/accum3d_ff.npy"))
         self.rsc_coef["BRAM"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_bram.npy"))
+                "../../coefficients/accum3d_bram.npy"))
         self.rsc_coef["DSP"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_dsp.npy"))
+                "../../coefficients/accum3d_dsp.npy"))
 
     def utilisation_model(self):
-        pass
+        # TODO: Update utilisation model FIXME
         return {
-            "LUT"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "FF"    : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "DSP"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
-            "BRAM"  : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.channels]),
+            "LUT"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.depth,self.channels]),
+            "FF"    : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.depth,self.channels]),
+            "DSP"   : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.depth,self.channels]),
+            "BRAM"  : np.array([self.filters,self.groups,self.data_width,self.cols,self.rows,self.depth,self.channels]),
         }
 
     def channels_in(self):
-        pass
         return (self.channels*self.filters)//self.groups
 
     def channels_out(self):
-        pass
         return self.filters
 
     def rate_out(self):
-        pass
         return (self.groups)/float(self.channels)
 
     def pipeline_depth(self):
-        pass
         return (self.channels*self.filters)//(self.groups*self.groups)
 
     def module_info(self):
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
@@ -79,7 +74,6 @@ class Accum3D(Module3D):
         return info
 
     def rsc(self,coef=None):
-        pass
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -93,8 +87,7 @@ class Accum3D(Module3D):
         return rsc
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="accum", shape="box",
+        return pydot.Node(name,label="accum3d", shape="box",
                 height=self.filters/self.groups*0.25,
                 style="filled", fillcolor="coral",
                 fontsize=MODULE_3D_FONTSIZE)
