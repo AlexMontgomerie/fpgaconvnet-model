@@ -1,0 +1,14 @@
+{
+    "rows": 14,
+    "cols": 14,
+    "depth": 8,
+    "channels": 128,
+    "filters": 1,
+    "group": 1,
+    "fine": 9,
+    "kernel_rows": 3,
+    "kernel_cols": 3,
+    "kernel_depth": 3,
+    "batch_size": 1,
+    "description": "single filter, 3x3"
+}

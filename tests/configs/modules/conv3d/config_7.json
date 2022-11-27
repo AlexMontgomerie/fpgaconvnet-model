@@ -1,0 +1,15 @@
+{
+    "type": "CONV",
+    "rows": 28,
+    "cols": 28,
+    "depth": 16,
+    "channels": 2,
+    "filters": 1,
+    "group": 1,
+    "fine": 1,
+    "kernel_rows": 1,
+    "kernel_cols": 1,
+    "kernel_depth": 1,
+    "batch_size": 1,
+    "description": "module name: conv, layer name: res3c_branch2c, net name: resnet.prototxt"
+}
