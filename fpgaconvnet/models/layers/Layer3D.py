@@ -317,7 +317,7 @@ class Layer3D:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : bram_stream_resource_model(self.buffer_depth,self.data_width)*self.streams_in(),
+            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_width)*self.streams_in(),
             "DSP"   : 0
         }
 
@@ -332,8 +332,6 @@ class Layer3D:
 
     def layer_info(self, parameters, batch_size=1):
         parameters.batch_size   = batch_size
-        parameters.data_width   = self.data_width
-        parameters.buffer_depth = self.buffer_depth
         parameters.rows_in      = self.rows_in()
         parameters.cols_in      = self.cols_in()
         parameters.depth_in     = self.depth_in()
@@ -342,8 +340,9 @@ class Layer3D:
         parameters.cols_out     = self.cols_out()
         parameters.depth_out    = self.depth_out()
         parameters.channels_out = self.channels_out()
-        parameters.coarse_in    = self.streams_in()
-        parameters.coarse_out   = self.streams_out()
+        parameters.coarse_in    = self.coarse_in
+        parameters.coarse_out   = self.coarse_out
+        self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
         return 0
