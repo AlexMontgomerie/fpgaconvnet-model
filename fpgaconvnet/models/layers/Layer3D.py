@@ -247,7 +247,7 @@ class Layer3D:
         int
             workload into layer3d from port `index` for a single
             featuremap. This is calculated by
-            `rows_in()*cols_in()*channels_in()`.
+            `rows_in()*cols_in()*depth_in()*channels_in()`.
         """
         return self.rows_in() * self.cols_in() * self.depth_in() * self.channels_in()
 
@@ -258,7 +258,7 @@ class Layer3D:
         int
             workload out of layer3d from port `index` for a
             single featuremap. This is calculated by
-            `rows_out()*cols_out()*channels_out()`.
+            `rows_out()*cols_out()*depth_out()*channels_out()`.
         """
         return self.rows_out() * self.cols_out() * self.depth_out() * self.channels_out()
 

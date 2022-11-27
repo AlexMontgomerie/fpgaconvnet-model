@@ -58,14 +58,16 @@ message parameter {
     optional int32 ports_out    = 38;
     repeated int32 rows_in_array        = 39;
     repeated int32 cols_in_array        = 40;
-    repeated int32 channels_in_array    = 41;
-    repeated int32 rows_out_array       = 42;
-    repeated int32 cols_out_array       = 43;
-    repeated int32 channels_out_array   = 44;
-    optional quant_format input_quant   = 45;
-    optional quant_format outnput_quant = 46;
-    optional quant_format weight_quant  = 47;
-    optional quant_format bias_quant    = 48;
+    repeated int32 depth_in_array       = 41;
+    repeated int32 channels_in_array    = 42;
+    repeated int32 rows_out_array       = 43;
+    repeated int32 cols_out_array       = 44;
+    repeated int32 depth_out_array      = 45;
+    repeated int32 channels_out_array   = 46;
+    optional quant_format input_quant   = 47;
+    optional quant_format outnput_quant = 48;
+    optional quant_format weight_quant  = 49;
+    optional quant_format bias_quant    = 50;
 
 }
 
