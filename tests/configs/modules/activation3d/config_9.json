@@ -1,0 +1,13 @@
+{
+    "type": "SILU",
+    "rows": 28,
+    "cols": 28,
+    "depth": 16,
+    "channels": 32,
+    "rows_out": 28,
+    "cols_out": 28,
+    "depth_out": 16,
+    "channels_out": 32,
+    "batch_size": 1,
+    "description": "module name: relu, layer name: inception_3a/relu_3x3_reduce, net name: googlenet.prototxt"
+}
