@@ -5,6 +5,9 @@ from numpy.linalg import matrix_rank
 import networkx as nx
 from networkx.algorithms.dag import ancestors
 from networkx.algorithms.dag import descendants
+import os
+import pydot
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def print_graph(graph):
     for node, edges in graph.adjacency():
