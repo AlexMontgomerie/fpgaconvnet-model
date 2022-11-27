@@ -12,34 +12,32 @@ class VectorDot3D(Module3D):
     fine: int
 
     def __post_init__(self):
-        pass
         # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/vector_dot_lutlogic.npy"))
+                "../../coefficients/vector_dot3d_lutlogic.npy"))
 
     def module_info(self):
-        pass
         return {
             'type'      : self.__class__.__name__.upper(),
             'rows'      : self.rows_in(),
             'cols'      : self.cols_in(),
+            'depth'      : self.depth_in(),
             'channels'  : self.channels_in(),
             'fine'    : self.fine,
             'filters'    : self.filters,
             'rows_out'      : self.rows_out(),
             'cols_out'      : self.cols_out(),
+            'depth_out'      : self.depth_out(),
             'channels_out'  : self.channels_out()
         }
 
     def rate_in(self):
-        pass
         return 1.0/float(self.filters)
 
 
     def rsc(self, coef=None):
-        pass
-
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -68,13 +66,13 @@ class VectorDot3D(Module3D):
         # check input dimensionality
         assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.depth    , "ERROR: invalid depth dimension"
+        assert data.shape[2] == self.depth   , "ERROR: invalid depth dimension"
         assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
         assert data.shape[4] == self.fine    , "ERROR: invalid column dimension"
         # check input dimensionality
         assert weights.shape[0] == self.rows    , "ERROR: invalid row dimension"
         assert weights.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert weights.shape[2] == self.depth    , "ERROR: invalid depth dimension"
+        assert weights.shape[2] == self.depth   , "ERROR: invalid depth dimension"
         assert weights.shape[3] == self.channels, "ERROR: invalid channel dimension"
         assert weights.shape[4] == self.filters , "ERROR: invalid channel dimension"
         assert weights.shape[5] == self.fine    , "ERROR: invalid column dimension"
