@@ -191,7 +191,7 @@ class Module3D:
             the two.
         """
         latency_in  = int((self.rows_in() * self.cols_in() * self.depth_in() * self.channels_in() )/self.rate_in() )
-        latency_out = int((self.rows_out()* self.cols_out() * self.depth_out * self.channels_out())/self.rate_out())
+        latency_out = int((self.rows_out()* self.cols_out() * self.depth_out() * self.channels_out())/self.rate_out())
         return max(latency_in,latency_out)
 
     def pipeline_depth(self):
