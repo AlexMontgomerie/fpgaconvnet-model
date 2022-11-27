@@ -17,57 +17,54 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 
 @dataclass
 class Pool3D(Module3D):
-    kernel_size: Union[List[int],int]
+    # kernel_size: Union[List[int], int]
+    kernel_rows: int
+    kernel_cols: int
+    kernel_depth: int
     pool_type: str = "max"
 
     def __post_init__(self):
-        pass
-        # format kernel size as a 2 element list
-        if isinstance(self.kernel_size, int):
-            self.kernel_size = [self.kernel_size, self.kernel_size]
-        elif isinstance(self.kernel_size, list):
-            assert len(self.kernel_size) == 2, "Must specify two kernel dimensions"
-        else:
-            raise TypeError
-
         # load the resource model coefficients
+        # TODO: Update resource model coefficients FIXME
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_lut.npy"))
+                "../../coefficients/pool3d_lut.npy"))
         self.rsc_coef["FF"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_ff.npy"))
+                "../../coefficients/pool3d_ff.npy"))
         self.rsc_coef["BRAM"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_bram.npy"))
+                "../../coefficients/pool3d_bram.npy"))
         self.rsc_coef["DSP"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                "../../coefficients/pool_dsp.npy"))
+                "../../coefficients/pool3d_dsp.npy"))
 
     def utilisation_model(self):
-        pass
+        # TODO: Update utilisation model FIXME
         return {
-            "LUT"  : np.array([self.kernel_size[0],self.kernel_size[1],self.cols,self.rows,self.channels,self.data_width]),
-            "FF"   : np.array([self.kernel_size[0],self.kernel_size[1],self.cols,self.rows,self.channels,self.data_width]),
+            "LUT"  : np.array([self.kernel_rows,self.kernel_cols,self.kernel_depth,self.cols,self.rows,self.channels,self.data_width]),
+            "FF"   : np.array([self.kernel_rows,self.kernel_cols,self.kernel_depth,self.cols,self.rows,self.channels,self.data_width]),
             "DSP"  : np.array([1]),
             "BRAM" : np.array([1]),
         }
 
     def module_info(self):
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
-        info["kernel_size"] = self.kernel_size
+        # info["kernel_size"] = self.kernel_size
+        info["kernel_rows"] = self.kernel_rows
+        info["kernel_cols"] = self.kernel_cols
+        info["kernel_depth"] = self.kernel_depth
         info["pool_type"] = 0 if self.pool_type == 'max' else 1
         # return the info
         return info
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="pool", shape="box",
-                height=self.kernel_size[0],
-                width=self.kernel_size[1],
+        return pydot.Node(name,label="pool3d", shape="box",
+                height=self.kernel_rows,
+                width=self.kernel_cols,
+                depth=self.kernel_depth,
                 style="filled", fillcolor="cyan",
                 fontsize=MODULE_3D_FONTSIZE)
 
@@ -77,9 +74,9 @@ class Pool3D(Module3D):
         assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
         assert data.shape[2] == self.depth    , "ERROR: invalid depth dimension"
         assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
-        assert data.shape[4] == self.kernel_size[0]  , "ERROR: invalid kernel size (x) dimension"
-        assert data.shape[5] == self.kernel_size[1]  , "ERROR: invalid kernel size (y) dimension"
-        assert data.shape[6] == self.kernel_size[2]  , "ERROR: invalid kernel size (z) dimension"
+        assert data.shape[4] == self.kernel_rows  , "ERROR: invalid kernel size (x) dimension"
+        assert data.shape[5] == self.kernel_cols  , "ERROR: invalid kernel size (y) dimension"
+        assert data.shape[6] == self.kernel_depth  , "ERROR: invalid kernel size (z) dimension"
 
         out = np.ndarray((
             self.rows,
