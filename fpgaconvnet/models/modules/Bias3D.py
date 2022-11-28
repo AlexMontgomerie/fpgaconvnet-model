@@ -17,40 +17,26 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
-#from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class Bias3D(Module3D):
     filters: int
     biases_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum3d_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum3d_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum3d_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum3d_dsp.npy"))
 
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-
-    def utilisation_model(self):
-        # TODO: Update utilisation model FIXME
-        return {
-            "LUT"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
-            "FF"    : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
-            "DSP"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
-            "BRAM"  : np.array([self.filters,1,self.data_width,self.cols,self.rows,self.depth,1]),
-        }
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def channels_in(self):
         return self.filters
@@ -68,20 +54,29 @@ class Bias3D(Module3D):
         # return the info
         return info
 
-    def rsc(self,coef=None):#TODO replace conv version of func
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-        # get an estimate for the dsp usage
-        dot_product_dsp = dsp_multiplier_resource_model(self.biases_width, self.data_width)
-        # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
-        # update the dsp usage
-        rsc["DSP"] = dot_product_dsp
-        # set the BRAM usage to zero
-        rsc["BRAM"] = 0
-        # return the resource model
-        return rsc
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            return {
+                "LUT"   : np.array([1]),
+                "FF"    : np.array([1]),
+                "DSP"   : np.array([0]),
+                "BRAM"  : np.array([0]),
+            }
+
+        if self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([1]),
+                "LUT_RAM"   : np.array([1]),
+                "LUT_SR"    : np.array([1]),
+                "FF"        : np.array([1]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def visualise(self, name):
         return pydot.Node(name,label="bias3d", shape="box",
