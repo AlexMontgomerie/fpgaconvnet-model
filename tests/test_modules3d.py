@@ -261,3 +261,21 @@ class TestEltWise3DModule(TestModule3DTemplate,unittest.TestCase):
         self.run_test_dimensions(module)
         self.run_test_rates(module)
         self.run_test_resources(module)
+
+@ddt.ddt
+class TestSlidingWindow3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/sliding_window3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = SlidingWindow3D(config["rows"],config["cols"],config["depth"],config["channels"],config["kernel_rows"],config["kernel_cols"],config["kernel_depth"],config["stride_rows"],config["stride_cols"],config["stride_depth"],config["pad_top"],config["pad_right"],config["pad_front"],config["pad_bottom"],config["pad_left"],config["pad_back"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
