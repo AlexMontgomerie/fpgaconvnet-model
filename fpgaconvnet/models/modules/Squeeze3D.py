@@ -6,28 +6,26 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 
 @dataclass
 class Squeeze3D(Module3D):
     coarse_in: int
     coarse_out: int
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze3d_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze3d_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze3d_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/squeeze3d_dsp.npy"))
+
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def module_info(self):
         # get the base module fields
@@ -38,8 +36,44 @@ class Squeeze3D(Module3D):
         # return the info
         return info
 
+    @staticmethod
     def lcm(a, b):
         return abs(a*b) // math.gcd(a, b)
+
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            buffer_size = self.lcm(self.coarse_in, self.coarse_out)
+            return {
+                "Logic_LUT" : np.array([
+                    (buffer_size//self.coarse_in), # buffer ready
+                    self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
+                    (buffer_size//self.coarse_in),
+                    (buffer_size//self.coarse_out),
+                    self.coarse_in,
+                    self.coarse_out,
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([
+                    self.data_width*buffer_size*((buffer_size//self.coarse_in)+1), # buffer
+                    self.data_width*self.coarse_out, # output buffer
+                    # 1,
+                ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                    (buffer_size//self.coarse_in), # cntr_in
+                    self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
+                    1,
+
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def visualise(self, name):
         distortion = 0
