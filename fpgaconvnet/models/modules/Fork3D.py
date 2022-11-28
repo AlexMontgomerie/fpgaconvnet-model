@@ -26,31 +26,20 @@ class Fork3D(Module3D):
     kernel_cols: int
     kernel_depth: int
     coarse: int
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork3d_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork3d_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork3d_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/fork3d_dsp.npy"))
 
-    def utilisation_model(self):
-        # TODO: Update utilisation model FIXME
-        return {
-            "LUT"  : np.array([math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-            "FF"   : np.array([math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1]),
-        }
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def module_info(self):
         # get the base module fields
@@ -63,6 +52,36 @@ class Fork3D(Module3D):
         info["kernel_depth"] = self.kernel_depth
         # return the info
         return info
+
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass # TODO
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer valid
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer ready
+                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
+                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([0]),
+                "LUT_SR"    : np.array([0]),
+                "FF"    : np.array([
+                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
+                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
+                    1,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def visualise(self, name):
         return pydot.Node(name,label="fork3d", shape="box",
