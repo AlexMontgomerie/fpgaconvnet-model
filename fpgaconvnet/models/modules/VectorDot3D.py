@@ -3,20 +3,29 @@ import math
 import os
 from dataclasses import dataclass, field
 
-from fpgaconvnet.models.modules import Module3D
+from fpgaconvnet.models.modules import int2bits, Module3D
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class VectorDot3D(Module3D):
     filters: int
     fine: int
+    weight_width: int = field(default=16, init=False)
+    acc_width: int = field(default=32, init=False)
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/vector_dot3d_lutlogic.npy"))
+
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def module_info(self):
         return {
@@ -36,27 +45,65 @@ class VectorDot3D(Module3D):
     def rate_in(self):
         return 1.0/float(self.filters)
 
+    def memory_usage(self):
+        if self.backend == "chisel":
+            return self.data_width*(int2bits(self.fine)+3)
+        else:
+            raise NotImplementedError
 
-    def rsc(self, coef=None):
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.fine, self.data_width, self.weight_width,
+                    self.data_width*self.fine,
+                    self.weight_width*self.fine,
+                    self.acc_width*self.fine, # adder tree
+                    self.filters, # ready logic
+                    int2bits(self.filters), # filter counter
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([
+                    self.acc_width*(int2bits(self.fine)+3), # tree buffer
+                    # self.acc_width*self.fine, # tree buffer
+                    self.acc_width, # output buffer
+                ]),
+                "LUT_SR"    : np.array([
+                    int2bits(self.fine)+1, # tree buffer valid
+                ]),
+                "FF"    : np.array([
+                    self.acc_width, # output buffer TODO
+                    int2bits(self.filters), # filter counter
+                    int2bits(self.fine)+1, # tree buffer valid
+                    self.acc_width*self.fine, # adder tree reg
+                    self.data_width*self.fine, # adder tree reg
+                    self.weight_width*self.fine, # adder tree reg
+                    1,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
+    def rsc(self,coef=None):
+
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
 
-        # LUT
-        lut_model = np.array([self.fine, self.filters])
-        # FF
-        ff = self.int2bits(self.filters)
-        # DSP
+        # get the linear model estimation
+        rsc = Module3D.rsc(self, coef)
+
+        # get the dsp usage
         dsp = self.fine*dsp_multiplier_resource_model(
                 self.data_width, self.data_width)
+        rsc["DSP"] = dsp
 
-        # return utilisation
-        return {
-          "LUT"  : int(np.dot(lut_model, self.rsc_coef["LUT"])),
-          "BRAM" : 0,
-          "DSP"  : dsp,
-          "FF"   : ff,
-        }
+        return rsc
 
     '''
     FUNCTIONAL MODEL

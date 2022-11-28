@@ -40,6 +40,13 @@ class Squeeze3D(Module3D):
     def lcm(a, b):
         return abs(a*b) // math.gcd(a, b)
 
+    def memory_usage(self):
+        buffer_size = self.lcm(self.coarse_in, self.coarse_out)
+        if self.backend == "chisel":
+            return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
+        else:
+            raise NotImplementedError
+
     def utilisation_model(self):
 
         if self.backend == "hls":
