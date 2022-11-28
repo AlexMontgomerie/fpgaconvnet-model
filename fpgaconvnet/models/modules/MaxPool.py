@@ -16,7 +16,7 @@ class MaxPool(Pool):
         # iterate over resource types
         self.rsc_coef = {}
         for rsc_type in self.utilisation_model():
-            coef_path =f"{rsc_cache_path}/maxpool_{rsc_type}.npy".lower()
+            coef_path = os.path.join(rsc_cache_path, f"maxpool_{rsc_type}.npy".lower())
             self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def utilisation_model(self):
