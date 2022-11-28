@@ -15,77 +15,48 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 @dataclass
 class Activation3D(Module3D):
     activation_type: str
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        if self.activation_type == "relu":
-            self.rsc_coef["LUT"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/relu3d_lut.npy"))
-            self.rsc_coef["FF"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/relu3d_ff.npy"))
-            self.rsc_coef["BRAM"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/relu3d_bram.npy"))
-            self.rsc_coef["DSP"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/relu3d_dsp.npy"))
-        elif self.activation_type == "sigmoid":
-            self.rsc_coef["LUT"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/sigmoid3d_lut.npy"))
-            self.rsc_coef["FF"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/sigmoid3d_ff.npy"))
-            self.rsc_coef["BRAM"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/sigmoid3d_bram.npy"))
-            self.rsc_coef["DSP"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/sigmoid3d_dsp.npy"))
-        elif self.activation_type == "silu":
-            self.rsc_coef["LUT"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/silu3d_lut.npy"))
-            self.rsc_coef["FF"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/silu3d_ff.npy"))
-            self.rsc_coef["BRAM"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/silu3d_bram.npy"))
-            self.rsc_coef["DSP"] = np.load(
-                    os.path.join(os.path.dirname(__file__),
-                    "../../coefficients/silu3d_dsp.npy"))
-        else:
-            raise ValueError(f"ERROR: invalid activation type {self.activation_type}")
+        # TODO this is a hack for now FIXME
+        return
+        self.__class__.__name__ = f"{self.activation_type.capitalize()}3D"
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-    def utilisation_model(self):
-        # TODO: Update utilisation model FIXME
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
+
+    def rsc(self, coef=None):
+        # TODO this is a hack for now FIXME
         if self.activation_type == "relu":
             return {
-                "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "DSP"  : np.array([1]),
-                "BRAM" : np.array([1])
+                "LUT"   : 16,
+                "FF"    : 35,
+                "BRAM"  : 0,
+                "DSP"   : 0
             }
         elif self.activation_type == "sigmoid":
             return {
-                "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "DSP"  : np.array([3]),
-                "BRAM" : np.array([1])
+                "LUT"   : 16,
+                "FF"    : 35,
+                "BRAM"  : 0,
+                "DSP"   : 3
             }
         elif self.activation_type == "silu":
             return {
-                "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-                "DSP"  : np.array([4]),
-                "BRAM" : np.array([1])
+                "LUT"   : 16,
+                "FF"    : 35,
+                "BRAM"  : 0,
+                "DSP"   : 4
             }
         else:
-            raise ValueError(f"ERROR: invalid activation type {self.activation_type}")
+            raise NotImplementedError(f"Function not implemented for activation type {self.activation_type}")
 
     def visualise(self, name):
         return pydot.Node(name,label=f"{self.activation_type}3d", shape="box",

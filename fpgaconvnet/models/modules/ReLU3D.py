@@ -13,30 +13,30 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 
 @dataclass
 class ReLU3D(Module3D):
+    backend: str = "chisel"
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu3d_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu3d_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu3d_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/relu3d_dsp.npy"))
+        # TODO this is a hack for now FIXME
+        return
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-    def utilisation_model(self):
-        # TODO: Update utilisation model FIXME
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
+
+
+    def rsc(self, coef=None):
+        # TODO this is a hack for now FIXME
         return {
-            "LUT"  : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-            "FF"   : np.array([self.data_width, math.ceil(math.log(self.channels*self.rows*self.cols*self.depth,2))]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
+            "LUT"   : 16,
+            "FF"    : 35,
+            "BRAM"  : 0,
+            "DSP"   : 0
         }
 
     def visualise(self, name):
