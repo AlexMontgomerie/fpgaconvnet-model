@@ -4,7 +4,7 @@
     "cols": 4,
     "depth": 4,
     "channels": 1,
-    "pool_type": 0,
+    "pool_type": "max",
     "kernel_rows": 3,
     "kernel_cols": 3,
     "kernel_depth": 1,
