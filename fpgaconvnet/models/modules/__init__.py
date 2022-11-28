@@ -46,3 +46,4 @@ from .Squeeze3D import Squeeze3D
 from .Bias3D import Bias3D
 from .VectorDot3D import VectorDot3D
 from .AveragePool3D import AveragePool3D
+from .EltWise3D import EltWise3D

@@ -243,3 +243,21 @@ class TestVectorDot3DModule(TestModule3DTemplate,unittest.TestCase):
         self.run_test_dimensions(module)
         self.run_test_rates(module)
         self.run_test_resources(module)
+
+@ddt.ddt
+class TestEltWise3DModule(TestModule3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/modules/eltwise3d/*.json"))
+    def test_module_configurations(self, config_path):
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = EltWise3D(config["rows"],config["cols"],config["depth"],config["ports_in"],config["eltwise_type"],config["broadcast"])
+
+        # run tests
+        self.run_test_methods_exist(module)
+        self.run_test_dimensions(module)
+        self.run_test_rates(module)
+        self.run_test_resources(module)
