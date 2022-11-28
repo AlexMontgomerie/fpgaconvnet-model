@@ -9,37 +9,61 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
 @dataclass
 class AveragePool3D(Module3D):
+    backend: str = "chisel"
+    acc_width: int = field(default=32, init=False)
 
     def __post_init__(self):
-        # load the resource model coefficients
-        # TODO: Update resource model coefficients FIXME
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/avgpool3d_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/avgpool3d_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/avgpool3d_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/avgpool3d_dsp.npy"))
+
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def utilisation_model(self):
-        # TODO: Update utilisation model FIXME
-        return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([1]),
-            "BRAM"  : np.array([1]),
-        }
+
+        if self.backend == "hls":
+            raise NotImplementedError
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.acc_width, # adder
+                    self.data_width, # adder
+                    int2bits(self.channels), # channel_cntr
+                    int2bits(self.rows*self.cols*self.depth), # spatial cntr
+                    self.channels, # acc logic
+                    1,
+                ]),
+                "LUT_RAM"   : np.array([
+                    self.data_width, # output queue
+                    self.acc_width*self.channels,
+                ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                    self.data_width, # input cache
+                    int2bits(self.channels), # channel_cntr
+                    int2bits(self.rows*self.cols*self.depth), # spatial cntr
+                    self.acc_width*self.channels, # accumulation reg
+                    1, # other registers
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise NotImplementedError(f"{self.backend} backend not supported")
 
     def depth_out(self):
         return 1
@@ -62,10 +86,16 @@ class AveragePool3D(Module3D):
             coef = self.rsc_coef
         # get the average polling buffer BRAM estimate
         avgpool_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
+
         # get the linear model estimation
         rsc = Module3D.rsc(self, coef)
+
         # add the bram estimation
         rsc["BRAM"] = avgpool_buffer_bram
+
+        # add the dsp estimation
+        rsc["DSP"] = 1
+
         # return the resource usage
         return rsc
 
