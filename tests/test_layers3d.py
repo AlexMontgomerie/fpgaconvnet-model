@@ -1,3 +1,4 @@
+import glob
 import unittest
 import ddt
 import json
@@ -187,19 +188,7 @@ class TestLayer3DTemplate():
 @ddt.ddt
 class TestReLU3DLayer(TestLayer3DTemplate,unittest.TestCase):
 
-    @ddt.data(
-        "tests/configs/layers/relu3d/config_0.json",
-        "tests/configs/layers/relu3d/config_1.json",
-        "tests/configs/layers/relu3d/config_2.json",
-        "tests/configs/layers/relu3d/config_3.json",
-        "tests/configs/layers/relu3d/config_4.json",
-        "tests/configs/layers/relu3d/config_5.json",
-        "tests/configs/layers/relu3d/config_6.json",
-        "tests/configs/layers/relu3d/config_7.json",
-        "tests/configs/layers/relu3d/config_8.json",
-        "tests/configs/layers/relu3d/config_9.json",
-        "tests/configs/layers/relu3d/config_10.json",
-    )
+    @ddt.data(*glob.glob("tests/configs/layers/relu3d/*.json"))
     def test_layer_configurations(self, config_path):
 
         # open configuration
