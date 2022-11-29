@@ -17,3 +17,9 @@ from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
 from .AveragePoolingLayer import AveragePoolingLayer
+
+# 3D layers
+from .Layer3D import Layer3D
+from .MultiPortLayer3D import MultiPortLayer3D
+
+from .ReLULayer3D import ReLULayer3D

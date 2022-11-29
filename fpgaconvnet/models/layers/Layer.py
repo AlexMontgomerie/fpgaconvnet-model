@@ -34,7 +34,7 @@ class Layer:
         number of parallel streams per port into the layer.
     coarse_out: int
         number of parallel streams per port out of the layer.
-    data_width: int
+    data_t: int
         bitwidth of featuremap pixels
     modules: dict
         dictionary of `fpgaconvnet_optimiser.models.Module`

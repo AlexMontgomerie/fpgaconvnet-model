@@ -35,7 +35,7 @@ class Layer3D:
         number of parallel streams per port into the layer3d.
     coarse_out: int
         number of parallel streams per port out of the layer3d.
-    data_width: int
+    data_t: int
         bitwidth of featuremap pixels
     modules: dict
         dictionary of `fpgaconvnet.models.modules.Module3D` objects
@@ -50,7 +50,7 @@ class Layer3D:
     _channels: int
     _coarse_in: int
     _coarse_out: int
-    data_width: int = field(default=16, init=True)
+    data_t: int = field(default=16, init=True)
     buffer_depth: int = field(default=0, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
@@ -287,7 +287,7 @@ class Layer3D:
         int
             data width in
         """
-        return self.data_width
+        return self.data_t
 
     def width_out(self):
         """
@@ -296,7 +296,7 @@ class Layer3D:
         int
             data width out
         """
-        return self.data_width
+        return self.data_t
 
     def latency_in(self):
         return abs(self.workload_in()/(self.rate_in()*self.streams_in()))
@@ -317,7 +317,7 @@ class Layer3D:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_width)*self.streams_in(),
+            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_t)*self.streams_in(),
             "DSP"   : 0
         }
 

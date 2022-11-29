@@ -1,0 +1,17 @@
+{
+    "type": "RELU",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 512,
+    "coarse": 8,
+    "coarse_in": 8,
+    "coarse_out": 8,
+    "size_in": 401408,
+    "size_out": 401408,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 512,
+    "batch_size": 1,
+    "description": "layer name: relu4_2, net name: vgg16.prototxt"
+}
