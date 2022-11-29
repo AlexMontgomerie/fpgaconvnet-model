@@ -226,7 +226,6 @@ class TestReLU3DLayer(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_wait_depth(layer)
         self.run_test_updating_properties(layer)
         self.run_test_resources(layer)
-        print(f"Latency: {layer.latency()}, resources: {layer.resource()}")
 
 # @ddt.ddt
 # class TestInnerProductLayer(TestLayer3DTemplate,unittest.TestCase):
