@@ -22,4 +22,11 @@ from .AveragePoolingLayer import AveragePoolingLayer
 from .Layer3D import Layer3D
 from .MultiPortLayer3D import MultiPortLayer3D
 
+# from .InnerProductLayer3D import InnerProductLayer3D
+# from .PoolingLayer3D import PoolingLayer3D
+from .ActivationLayer3D import ActivationLayer3D
 from .ReLULayer3D import ReLULayer3D
+# from .ConvolutionLayer3D import ConvolutionLayer3D
+# from .SqueezeLayer3D import SqueezeLayer3D
+# from .EltWiseLayer3D import EltWiseLayer3D
+# from .AveragePoolingLayer3D import AveragePoolingLayer3D

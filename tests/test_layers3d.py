@@ -186,6 +186,38 @@ class TestLayer3DTemplate():
 #         self.run_test_resources(layer)
 
 @ddt.ddt
+class TestActivation3DLayer(TestLayer3DTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob("tests/configs/layers/activation3d/*.json"))
+    def test_layer_configurations(self, config_path):
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise layer
+        layer = ActivationLayer3D(
+            config["rows"],
+            config["cols"],
+            config["depth"],
+            config["channels"],
+            config["activation_type"],
+            coarse = config["coarse"]
+        )
+
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
+
+@ddt.ddt
 class TestReLU3DLayer(TestLayer3DTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/layers/relu3d/*.json"))
