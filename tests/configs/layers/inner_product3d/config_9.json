@@ -1,0 +1,12 @@
+{
+    "rows": 6,
+    "cols": 6,
+    "depth": 6,
+    "channels": 256,
+    "filters": 4096,
+    "coarse_in": 16,
+    "coarse_out": 4,
+    "batch_size": 1,
+    "has_bias": 1,
+    "description": "layer name: fc6, net name: alexnet.prototxt"
+}

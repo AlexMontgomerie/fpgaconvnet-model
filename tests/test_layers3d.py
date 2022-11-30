@@ -233,50 +233,39 @@ class TestReLULayer3D(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_updating_properties(layer)
         self.run_test_resources(layer)
 
-# @ddt.ddt
-# class TestInnerProductLayer(TestLayer3DTemplate,unittest.TestCase):
+@ddt.ddt
+class TestInnerProductLayer3D(TestLayer3DTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/inner_product/config_0.json",
-#         "tests/configs/layers/inner_product/config_1.json",
-#         "tests/configs/layers/inner_product/config_2.json",
-#         "tests/configs/layers/inner_product/config_3.json",
-#         "tests/configs/layers/inner_product/config_4.json",
-#         "tests/configs/layers/inner_product/config_5.json",
-#         "tests/configs/layers/inner_product/config_6.json",
-#         "tests/configs/layers/inner_product/config_7.json",
-#         "tests/configs/layers/inner_product/config_8.json",
-#         "tests/configs/layers/inner_product/config_9.json",
-#         "tests/configs/layers/inner_product/config_10.json",
-#     )
-#     def test_layer_configurations(self, config_path):
+    @ddt.data(*glob.glob("tests/configs/layers/inner_product3d/*.json"))
+    def test_layer_configurations(self, config_path):
 
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-#         # initialise layer
-#         layer = InnerProductLayer(
-#             config["filters"],
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             config["coarse_in"],
-#             config["coarse_out"],
-#             has_bias=config["has_bias"]
-#         )
+        # initialise layer
+        layer = InnerProductLayer3D(
+            config["filters"],
+            config["rows"],
+            config["cols"],
+            config["depth"],
+            config["channels"],
+            config["coarse_in"],
+            config["coarse_out"],
+            has_bias=config["has_bias"]
+        )
 
-#         # run tests
-#         self.run_test_dimensions(layer)
-#         self.run_test_rates(layer)
-#         self.run_test_workload(layer)
-#         self.run_test_size(layer)
-#         self.run_test_streams(layer)
-#         self.run_test_latency(layer)
-#         self.run_test_pipeline_depth(layer)
-#         self.run_test_wait_depth(layer)
-#         self.run_test_updating_properties(layer)
-#         self.run_test_resources(layer)
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
 
 @ddt.ddt
 class TestSqueezeLayer3D(TestLayer3DTemplate,unittest.TestCase):
