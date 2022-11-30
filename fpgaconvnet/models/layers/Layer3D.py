@@ -14,6 +14,9 @@ from fpgaconvnet.models.layers.utils import balance_module_rates
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
 
+from fpgaconvnet.data_types import FixedPoint
+
+
 @dataclass
 class Layer3D:
     """
@@ -50,7 +53,7 @@ class Layer3D:
     _channels: int
     _coarse_in: int
     _coarse_out: int
-    data_t: int = field(default=16, init=True)
+    data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
     buffer_depth: int = field(default=0, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 

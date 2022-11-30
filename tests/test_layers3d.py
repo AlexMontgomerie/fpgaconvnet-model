@@ -79,52 +79,48 @@ class TestLayer3DTemplate():
         self.assertEqual(layer.coarse_out, coarse_out)
 
 
-# @ddt.ddt
-# class TestPoolingLayer(TestLayer3DTemplate,unittest.TestCase):
+@ddt.ddt
+class TestPoolingLayer3D(TestLayer3DTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/pooling/config_0.json",
-#         "tests/configs/layers/pooling/config_1.json",
-#         "tests/configs/layers/pooling/config_2.json",
-#         "tests/configs/layers/pooling/config_3.json",
-#         "tests/configs/layers/pooling/config_4.json",
-#         "tests/configs/layers/pooling/config_5.json",
-#         "tests/configs/layers/pooling/config_6.json",
-#         "tests/configs/layers/pooling/config_7.json",
-#         "tests/configs/layers/pooling/config_8.json",
-#         "tests/configs/layers/pooling/config_9.json",
-#         "tests/configs/layers/pooling/config_10.json",
-#         "tests/configs/layers/pooling/config_11.json",
-#         "tests/configs/layers/pooling/config_12.json",
-#     )
-#     def test_layer_configurations(self, config_path):
+    @ddt.data(*glob.glob("tests/configs/layers/pooling3d/*.json"))
+    def test_layer_configurations(self, config_path):
 
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-#         # initialise layer
-#         layer = PoolingLayer(
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             coarse=config["coarse"],
-#             kernel_size=config["kernel_size"],
-#             stride=config["stride"],
-#             pad=config["pad"],
-#         )
+        # initialise layer
+        layer = PoolingLayer3D(
+            config["rows"],
+            config["cols"],
+            config["depth"],
+            config["channels"],
+            coarse=config["coarse"],
+            kernel_rows=config["kernel_rows"],
+            kernel_cols=config["kernel_cols"],
+            kernel_depth=config["kernel_depth"],
+            stride_rows=config["stride_rows"],
+            stride_cols=config["stride_cols"],
+            stride_depth=config["stride_depth"],
+            pad_top=config["pad_top"],
+            pad_right=config["pad_right"],
+            pad_front=config["pad_front"],
+            pad_bottom=config["pad_bottom"],
+            pad_left=config["pad_left"],
+            pad_back=config["pad_back"],
+        )
 
-#         # run tests
-#         self.run_test_dimensions(layer)
-#         self.run_test_rates(layer)
-#         self.run_test_workload(layer)
-#         self.run_test_size(layer)
-#         self.run_test_streams(layer)
-#         self.run_test_latency(layer)
-#         self.run_test_pipeline_depth(layer)
-#         self.run_test_wait_depth(layer)
-#         self.run_test_updating_properties(layer)
-#         self.run_test_resources(layer)
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
 
 # @ddt.ddt
 # class TestConvolutionLayer(TestLayer3DTemplate,unittest.TestCase):
@@ -186,7 +182,7 @@ class TestLayer3DTemplate():
 #         self.run_test_resources(layer)
 
 @ddt.ddt
-class TestActivation3DLayer(TestLayer3DTemplate,unittest.TestCase):
+class TestActivationLayer3D(TestLayer3DTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/layers/activation3d/*.json"))
     def test_layer_configurations(self, config_path):
@@ -204,7 +200,7 @@ class TestActivation3DLayer(TestLayer3DTemplate,unittest.TestCase):
             config["activation_type"],
             coarse = config["coarse"]
         )
-
+        print(f"Type {config['activation_type']}: latency {layer.latency()} cycles, resources: {layer.resource()}. Coarse: {config['coarse']}")
         # run tests
         self.run_test_dimensions(layer)
         self.run_test_rates(layer)
@@ -218,7 +214,7 @@ class TestActivation3DLayer(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_resources(layer)
 
 @ddt.ddt
-class TestReLU3DLayer(TestLayer3DTemplate,unittest.TestCase):
+class TestReLULayer3D(TestLayer3DTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/layers/relu3d/*.json"))
     def test_layer_configurations(self, config_path):
