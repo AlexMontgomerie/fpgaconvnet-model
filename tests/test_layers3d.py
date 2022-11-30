@@ -122,64 +122,53 @@ class TestPoolingLayer3D(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_updating_properties(layer)
         self.run_test_resources(layer)
 
-# @ddt.ddt
-# class TestConvolutionLayer(TestLayer3DTemplate,unittest.TestCase):
+@ddt.ddt
+class TestConvolutionLayer3D(TestLayer3DTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/convolution/config_0.json",
-#         "tests/configs/layers/convolution/config_1.json",
-#         "tests/configs/layers/convolution/config_2.json",
-#         "tests/configs/layers/convolution/config_3.json",
-#         "tests/configs/layers/convolution/config_4.json",
-#         "tests/configs/layers/convolution/config_7.json",
-#         "tests/configs/layers/convolution/config_8.json",
-#         "tests/configs/layers/convolution/config_9.json",
-#         "tests/configs/layers/convolution/config_10.json",
-#         "tests/configs/layers/convolution/config_11.json",
-#         "tests/configs/layers/convolution/config_12.json",
-#         "tests/configs/layers/convolution/config_13.json",
-#         "tests/configs/layers/convolution/config_14.json",
-#         "tests/configs/layers/convolution/config_15.json",
-#         "tests/configs/layers/convolution/config_16.json",
-#         "tests/configs/layers/convolution/config_17.json",
-#         "tests/configs/layers/convolution/config_18.json",
-#         "tests/configs/layers/convolution/config_19.json",
-#          "tests/configs/layers/convolution/config_23.json",
-#          "tests/configs/layers/convolution/config_25.json",
-#     )
-#     def test_layer_configurations(self, config_path):
+    @ddt.data(*glob.glob("tests/configs/layers/convolution3d/*.json"))
+    def test_layer_configurations(self, config_path):
 
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-#         # initialise layer
-#         layer = ConvolutionLayer(
-#             config["filters"],
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             coarse_in=config["coarse_in"],
-#             coarse_out=config["coarse_out"],
-#             kernel_size=config["kernel_size"],
-#             stride=config["stride"],
-#             groups=config["groups"],
-#             pad=config["pad"],
-#             fine=config["fine"],
-#             has_bias=config["has_bias"]
-#         )
+        # initialise layer
+        layer = ConvolutionLayer3D(
+            config["filters"],
+            config["rows"],
+            config["cols"],
+            config["depth"],
+            config["channels"],
+            coarse_in=config["coarse_in"],
+            coarse_out=config["coarse_out"],
+            kernel_rows=config["kernel_rows"],
+            kernel_cols=config["kernel_cols"],
+            kernel_depth=config["kernel_depth"],
+            stride_rows=config["stride_rows"],
+            stride_cols=config["stride_cols"],
+            stride_depth=config["stride_depth"],
+            groups=config["groups"],
+            pad_top=config["pad_top"],
+            pad_right=config["pad_right"],
+            pad_front=config["pad_front"],
+            pad_bottom=config["pad_bottom"],
+            pad_left=config["pad_left"],
+            pad_back=config["pad_back"],
+            fine=config["fine"],
+            has_bias=config["has_bias"]
+        )
 
-#         # run tests
-#         self.run_test_dimensions(layer)
-#         self.run_test_rates(layer)
-#         self.run_test_workload(layer)
-#         self.run_test_size(layer)
-#         self.run_test_streams(layer)
-#         self.run_test_latency(layer)
-#         self.run_test_pipeline_depth(layer)
-#         self.run_test_wait_depth(layer)
-#         self.run_test_updating_properties(layer)
-#         self.run_test_resources(layer)
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
 
 @ddt.ddt
 class TestActivationLayer3D(TestLayer3DTemplate,unittest.TestCase):
