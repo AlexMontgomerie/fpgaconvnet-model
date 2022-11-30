@@ -28,5 +28,5 @@ from .ActivationLayer3D import ActivationLayer3D
 from .ReLULayer3D import ReLULayer3D
 from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
-# from .EltWiseLayer3D import EltWiseLayer3D
+from .EltWiseLayer3D import EltWiseLayer3D
 from .AveragePoolingLayer3D import AveragePoolingLayer3D
