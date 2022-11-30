@@ -325,7 +325,16 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['fork3d'].kernel_depth = 1
 
         if self.backend == "hls":
-            pass # TODO: update conv module
+            # TODO: check the group parameter
+            self.modules['conv3d'].rows     = self.rows_out()
+            self.modules['conv3d'].cols     = self.cols_out()
+            self.modules['conv3d'].depth    = self.depth_out()
+            self.modules['conv3d'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['conv3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['conv3d'].fine     = self.fine
+            self.modules['conv3d'].data_width     = self.input_t.width
+            self.modules['conv3d'].weight_width   = self.weight_t.width
+            self.modules['conv3d'].acc_width      = self.acc_t.width
         elif self.backend == "chisel":
             # kernel dot
             self.modules['vector_dot3d'].rows     = self.rows_out()
@@ -347,7 +356,8 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['accum3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum3d'].data_width    = self.acc_t.width
         if self.backend == "hls":
-            pass # TODO: update conv module
+            # TODO: check the group parameter
+            self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
         elif self.backend == "chisel":
             self.modules['accum3d'].channels = (
                     self.channels*self.kernel_rows*self.kernel_cols*self.kernel_depth)//(
@@ -409,11 +419,42 @@ class ConvolutionLayer3D(Layer3D):
         if self.backend == "chisel":
             return get_factors(self.kernel_rows*self.kernel_cols*self.kernel_depth)
         elif self.backend == "hls":
-            if self.kernel_size[0] != self.kernel_size[1]:
-                # assert(self.kernel_size[0] == 1 or self.kernel_size[1] == 1)
-                return [ 1, max(self.kernel_size[0],self.kernel_size[1])]
+            if self.kernel_depth != self.kernel_rows and self.kernel_rows == self.kernel_cols:
+                if self.kernel_depth == 1:
+                    fine_feasible = [1, self.kernel_rows, self.kernel_rows * self.kernel_cols]
+                elif self.kernel_rows == 1:
+                    fine_feasible = [1, self.kernel_depth]
+                else:
+                    fine_feasible = [
+                        1,
+                        self.kernel_depth,
+                        self.kernel_rows,
+                        self.kernel_depth * self.kernel_rows,
+                        self.kernel_rows * self.kernel_cols,
+                        self.kernel_depth * self.kernel_rows * self.kernel_cols,
+                    ]
+            elif self.kernel_depth == self.kernel_rows and self.kernel_rows == self.kernel_cols:
+                if self.kernel_depth == 1:
+                    fine_feasible = [1]
+                else:
+                    fine_feasible = [
+                        1,
+                        self.kernel_depth,
+                        self.kernel_depth * self.kernel_rows,
+                        self.kernel_depth * self.kernel_rows * self.kernel_cols,
+                    ]
             else:
-                return [ 1, self.kernel_size[0], self.kernel_size[0]*self.kernel_size[1] ]
+                fine_feasible = [
+                    1,
+                    self.kernel_depth,
+                    self.kernel_rows,
+                    self.kernel_cols,
+                    self.kernel_depth * self.kernel_rows,
+                    self.kernel_depth * self.kernel_cols,
+                    self.kernel_rows * self.kernel_cols,
+                    self.kernel_depth * self.kernel_rows * self.kernel_cols,
+                ]
+            return fine_feasible
 
     def get_weights_reloading_feasible(self):
         return get_factors(self.filters//(self.groups*self.coarse_out))
@@ -462,6 +503,38 @@ class ConvolutionLayer3D(Layer3D):
                 squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                bias_rsc[rsc_type]*self.coarse_out
+            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+
+        elif self.backend == "hls":
+
+            # get module resource models
+            sw_rsc          = self.modules['sliding_window3d'].rsc()
+            fork_rsc        = self.modules['fork3d'].rsc()
+            conv_rsc        = self.modules['conv3d'].rsc()
+            accum_rsc       = self.modules['accum3d'].rsc()
+            glue_rsc        = self.modules['glue3d'].rsc()
+            bias_rsc        = self.modules['bias3d'].rsc()
+
+            # remove redundant modules
+            if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
+                sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_out == 1:
+                fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
+                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_in == 1:
+                glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.has_bias:
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+
+            # accumulate resource usage based on coarse factors
+            rsc = { rsc_type: (
+                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                conv_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
                 bias_rsc[rsc_type]*self.coarse_out
@@ -566,7 +639,8 @@ class ConvolutionLayer3D(Layer3D):
         assert bias.shape[0] == self.filters  ,     "ERROR (bias): invalid filter dimension"
 
         # instantiate convolution layer
-        convolution_layer = torch.nn.Conv3d(self.channels_in(), self.filters, (self.kernel_depth, self.kernel_rows, self.kernel_cols), stride=(self.stride_depth, self.stride_rows, self.stride_cols), padding=(self.pad_front, self.pad_top, self.pad_right), groups=self.groups, bias=True)
+        # convolution_layer = torch.nn.Conv3d(self.channels_in(), self.filters, (self.kernel_depth, self.kernel_rows, self.kernel_cols), stride=(self.stride_depth, self.stride_rows, self.stride_cols), padding=(self.pad_front, self.pad_top, self.pad_right), groups=self.groups, bias=True)
+        convolution_layer = torch.nn.Conv3d(self.channels_in(), self.filters, (self.kernel_depth, self.kernel_rows, self.kernel_cols), stride=(self.stride_depth, self.stride_rows, self.stride_cols), padding=0, groups=self.groups, bias=True)
 
         # update weights
         convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
@@ -575,20 +649,20 @@ class ConvolutionLayer3D(Layer3D):
         convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
         # get the padding
-        # padding = [
-        #     self.pad_front,
-        #     self.pad_left,
-        #     self.pad_right,
-        #     self.pad_back,
-        #     self.pad_top,
-        #     self.pad_bottom
-        # ]
+        padding = [
+            self.pad_left,
+            self.pad_right,
+            self.pad_top,
+            self.pad_bottom,
+            self.pad_front,
+            self.pad_back,
+        ]
 
         # return output featuremap
         data = np.moveaxis(data, [-1, -2], [0, 1])
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
-        # data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
-        # data = convolution_layer(data).detach().numpy()
+        data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
+        data = convolution_layer(data).detach().numpy()
         print(data.shape)
         return data
         # return convolution_layer(data).detach().numpy()

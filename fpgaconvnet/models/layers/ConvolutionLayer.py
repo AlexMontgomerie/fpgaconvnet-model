@@ -300,7 +300,15 @@ class ConvolutionLayer(Layer):
             self.modules['fork'].kernel_size = [self.fine, 1]
 
         if self.backend == "hls":
-            pass # TODO: update conv module
+            # TODO: check the group parameter
+            self.modules['conv'].rows     = self.rows_out()
+            self.modules['conv'].cols     = self.cols_out()
+            self.modules['conv'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['conv'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['conv'].fine     = self.fine
+            self.modules['conv'].data_width     = self.input_t.width
+            self.modules['conv'].weight_width   = self.weight_t.width
+            self.modules['conv'].acc_width      = self.acc_t.width
         elif self.backend == "chisel":
             # kernel dot
             self.modules['vector_dot'].rows     = self.rows_out()
@@ -320,7 +328,8 @@ class ConvolutionLayer(Layer):
         self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum'].data_width    = self.acc_t.width
         if self.backend == "hls":
-            pass # TODO: update conv module
+            # TODO: check the group parameter
+            self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
         elif self.backend == "chisel":
             self.modules['accum'].channels = (
                     self.channels*self.kernel_size[0]*self.kernel_size[1])//(
