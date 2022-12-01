@@ -81,8 +81,8 @@ class Network():
     from fpgaconvnet.models.network.update import update_partitions
     from fpgaconvnet.models.network.update import update_coarse_in_out_partition
 
-    from fpgaconvnet.models.network.represent import get_model_input_node
-    from fpgaconvnet.models.network.represent import get_model_output_node
+    from fpgaconvnet.models.network.represent import get_model_input_nodes
+    from fpgaconvnet.models.network.represent import get_model_output_nodes
     from fpgaconvnet.models.network.represent import get_stream_in_coarse
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in

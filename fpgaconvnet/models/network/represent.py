@@ -15,23 +15,23 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import Layer, MultiPortLayer
 
-def get_model_input_node(self, i):
+def get_model_input_nodes(self, i):
     input_node = self.partitions[i].input_nodes[0]
     onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
     while not onnx_helper.get_model_node(self.model, onnx_input_node):
         input_node = graphs.get_next_nodes(
                 self.partitions[i].graph,input_node)[0]
         onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_input_node).input[0]
+    return onnx_helper.get_model_node(self.model, onnx_input_node).input
 
-def get_model_output_node(self, i):
+def get_model_output_nodes(self, i):
     output_node = self.partitions[i].output_nodes[0]
     onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
     while not onnx_helper.get_model_node(self.model, onnx_output_node):
         output_node = graphs.get_prev_nodes(
                 self.partitions[i].graph,output_node)[0]
         onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_output_node).output[0]
+    return onnx_helper.get_model_node(self.model, onnx_output_node).output
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
@@ -69,8 +69,8 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
         partition.id = i
         partition.ports = 1 # TODO
         if input_output_from_model:
-            partition.input_node  = self.get_model_input_node(i)
-            partition.output_node = self.get_model_output_node(i)
+            partition.input_nodes.extend(self.get_model_input_nodes(i))
+            partition.output_nodes.extend(self.get_model_output_nodes(i))
         else:
             partition.input_node  = self.partitions[i].input_nodes[0]
             partition.output_node = self.partitions[i].output_nodes[0]

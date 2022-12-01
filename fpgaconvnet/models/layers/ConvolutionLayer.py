@@ -33,7 +33,8 @@ class ConvolutionLayer(Layer):
             coarse_in: int = 1,
             coarse_out: int = 1,
             coarse_group: int = 1,
-            kernel_size: Union[List[int], int] = 3,
+            kernel_rows: int = 1,
+            kernel_cols: int = 1,
             stride: Union[List[int], int] = 1,
             groups: int = 1,
             pad: Union[List[int], int] = 0,
@@ -60,7 +61,8 @@ class ConvolutionLayer(Layer):
         self.has_bias = has_bias
 
         # init variables
-        self._kernel_size = self.format_kernel_size(kernel_size)
+        self._kernel_rows = kernel_rows
+        self._kernel_cols = kernel_cols
         self._stride = self.format_stride(stride)
         self._pad = self.format_pad(pad)
         self._groups = groups
@@ -130,15 +132,6 @@ class ConvolutionLayer(Layer):
         # update modules
         self.update()
 
-    def format_kernel_size(self, kernel_size):
-        if isinstance(kernel_size, int):
-            return [kernel_size, kernel_size]
-        elif isinstance(kernel_size, list):
-            assert len(kernel_size) == 2, "Must specify two kernel dimensions"
-            return kernel_size
-        else:
-            raise TypeError
-
     def format_stride(self, stride):
         if isinstance(stride, int):
             return [stride, stride]
@@ -164,7 +157,7 @@ class ConvolutionLayer(Layer):
 
     @property
     def kernel_size(self) -> List[int]:
-        return self._kernel_size
+        return [ self._kernel_rows, self._kernel_cols ]
 
     @property
     def stride(self) -> List[int]:

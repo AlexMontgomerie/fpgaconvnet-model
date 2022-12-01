@@ -68,6 +68,8 @@ message parameter {
     optional quant_format outnput_quant = 48;
     optional quant_format weight_quant  = 49;
     optional quant_format bias_quant    = 50;
+    repeated int32 kernel_size = 51;
+    repeated int32 stride = 52;
 
 }
 

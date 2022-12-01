@@ -97,7 +97,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
-            kernel_size =list(self.node.parameters.kernel_size),
+            # kernel_size =list(self.node.parameters.kernel_size), # TODO
             stride      =list(self.node.parameters.stride),
             pad         = [
                 self.node.parameters.pad_top,

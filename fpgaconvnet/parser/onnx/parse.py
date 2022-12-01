@@ -116,7 +116,8 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 self.input_shape[2],
                 self.input_shape[3],
                 self.input_shape[1],
-                kernel_size = self.attr["kernel_shape"],
+                kernel_rows = self.attr["kernel_shape"][0],
+                kernel_cols = self.attr["kernel_shape"][1],
                 stride = self.attr["strides"],
                 pad = self.attr["pads"],
                 groups = self.attr["group"],
@@ -167,11 +168,12 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
         self.attr.setdefault("pads", [0,0,0,0])
         self.attr.setdefault("dilations", [1,1])
 
+        print(self.input_shape)
         # return hardware
         return InnerProductLayer(
             self.output_shape[1],
             1, 1,
-            np.prod(self.input_shape),
+            np.prod(self.input_shape[1:]),
             has_bias = len(self.inputs) == 3,
             backend=self.backend
         )
