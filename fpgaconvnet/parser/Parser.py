@@ -146,6 +146,8 @@ class Parser:
             LAYER_TYPE.AveragePooling: ParseOnnxAveragePoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.SiLU: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -204,7 +206,7 @@ class Parser:
                 graph.add_edge(*edge)
 
         # remove NOP nodes from the graph
-        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+        # graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
 
         # apply quantisation to the graph
         quantise(graph, quant_format)

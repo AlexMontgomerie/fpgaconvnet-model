@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from fpgaconvnet.models.layers import BatchNormLayer
 from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
-from fpgaconvnet.models.layers import ReLULayer, ActivationLayer3D
+from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
+from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import AveragePoolingLayer, AveragePoolingLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
@@ -163,20 +164,35 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
     def get_hardware(self):
 
         # default attributes
-        self.attr.setdefault("group", 1)
-        self.attr.setdefault("strides", [1,1])
-        self.attr.setdefault("pads", [0,0,0,0])
-        self.attr.setdefault("dilations", [1,1])
+        if self.dimensionality == 2:
+            self.attr.setdefault("group", 1)
+            self.attr.setdefault("strides", [1,1])
+            self.attr.setdefault("pads", [0,0,0,0])
+            self.attr.setdefault("dilations", [1,1])
+        else:
+            self.attr.setdefault("group", 1)
+            self.attr.setdefault("strides", [1,1,1])
+            self.attr.setdefault("pads", [0,0,0,0,0,0])
+            self.attr.setdefault("dilations", [1,1,1])
 
         print(self.input_shape)
         # return hardware
-        return InnerProductLayer(
-            self.output_shape[1],
-            1, 1,
-            np.prod(self.input_shape[1:]),
-            has_bias = len(self.inputs) == 3,
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return InnerProductLayer(
+                self.output_shape[1],
+                1, 1,
+                np.prod(self.input_shape[1:]),
+                has_bias = len(self.inputs) == 3,
+                backend=self.backend
+            )
+        else:
+            return InnerProductLayer3D(
+                self.output_shape[1],
+                1, 1, 1,
+                np.prod(self.input_shape),
+                has_bias = len(self.inputs) == 3,
+                backend=self.backend
+            )
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -193,11 +209,43 @@ class ParseOnnxReLUNode(ParseOnnxNode):
     def get_hardware(self):
 
         # return hardware
-        return ReLULayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-        )
+        if self.dimensionality == 2:
+            return ReLULayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+            )
+        else:
+            return ReLULayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1],
+            )
+
+class ParseOnnxActivationNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        if self.layer_type == LAYER_TYPE.ReLU:
+            activation_type = "relu"
+        elif self.layer_type == LAYER_TYPE.Sigmoid:
+            activation_type = "sigmoid"
+        elif self.layer_type == LAYER_TYPE.SiLU:
+            activation_type = "silu"
+        else:
+            raise Exception("Unsupported activation function: {}".format(self.layer_type))
+
+        # return hardware
+        if self.dimensionality == 2:
+            raise NotImplementedError("Activation layer not implemented for 2D")
+        else:
+            return ActivationLayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1], activation_type=activation_type
+            )
 
 class ParseOnnxPoolingNode(ParseOnnxNode):
 
@@ -209,16 +257,35 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
         self.attr.setdefault("dilations", [1,1])
 
         # create pooling layer hardware
-        return PoolingLayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            pool_type = 'max',
-            kernel_size = self.attr["kernel_shape"],
-            stride = self.attr["strides"],
-            pad = self.attr["pads"],
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return PoolingLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                self.input_shape[1],
+                pool_type = 'max',
+                kernel_size = self.attr["kernel_shape"],
+                stride = self.attr["strides"],
+                pad = self.attr["pads"],
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return PoolingLayer3D(
+                self.input_shape[3],
+                self.input_shape[4],
+                self.input_shape[2],
+                self.input_shape[1],
+                pool_type = 'max', # TODO
+                kernel_rows = self.attr["kernel_shape"][1],
+                kernel_cols = self.attr["kernel_shape"][2],
+                kernel_depth = self.attr["kernel_shape"][0],
+                stride_rows = self.attr["strides"][1],
+                stride_cols = self.attr["strides"][2],
+                stride_depth = self.attr["strides"][0],
+                # pad = self.attr["pads"], # TODO
+                backend=self.backend
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 
 class ParseOnnxNOPNode(ParseOnnxNode):
 

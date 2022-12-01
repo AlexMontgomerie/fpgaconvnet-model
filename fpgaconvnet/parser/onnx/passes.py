@@ -881,3 +881,37 @@ def fuse_matmul_add_into_gemm(model):
 
     return model
 
+def fuse_mul_sigmoid_into_hardswish(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "Mul":
+            continue
+
+        # check only two inputs
+        if len(node.input) != 2:
+            continue
+
+        # get previous nodes
+        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+
+        # check prev node a has two outputs
+        if len(prev_node_a.input) != 2:
+            continue
+
+        # check prev node b is a sigmoid
+        if prev_node_b.op_type != "Sigmoid":
+            continue
+
+        # check that the current node an prev node b have the same input
+        if node.input[0] != prev_node_b.input[0]:
+            continue
+
+        # remove prev nodes
+
+        # create a new HardSwish node
+
+    return model
