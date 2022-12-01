@@ -96,6 +96,9 @@ class Network():
     from fpgaconvnet.models.network.validate import check_partitions
     from fpgaconvnet.models.network.validate import check_memory_bandwidth
 
+    from fpgaconvnet.models.network.visualise import plot_latency_per_layer
+    from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
+
     def get_memory_usage_estimate(self):
 
         # for sequential networks, our worst-case memory usage is

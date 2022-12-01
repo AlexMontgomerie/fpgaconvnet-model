@@ -36,16 +36,16 @@ def get_model_output_node(self, i):
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
     if node_base_type == Layer:
-        return node_hw.coarse_in
+        return node_hw.streams_in()
     elif node_base_type == MultiPortLayer:
-        return node_hw.coarse_in[index]
+        return node_hw.streams_in(index)
 
 def get_stream_out_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
     if node_base_type == Layer:
-        return node_hw.coarse_out
+        return node_hw.streams_out()
     elif node_base_type == MultiPortLayer:
-        return node_hw.coarse_out[index]
+        return node_hw.streams_out(index)
 
 def get_buffer_depth_in(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]

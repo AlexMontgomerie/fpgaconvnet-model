@@ -18,6 +18,24 @@ class EltWise(Module):
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
 
+    def __post_init__(self):
+        pass
+
+    def rsc(self, coef=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
+        return {
+            "LUT"   : 49,
+            "FF"    : 23,
+            "BRAM"  : 0,
+            "DSP"   : 0
+        }
+
     def module_info(self):
         return {
             'type'      : self.__class__.__name__.upper(),

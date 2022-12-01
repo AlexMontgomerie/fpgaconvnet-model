@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import copy
 import sys
 import importlib
@@ -16,10 +14,10 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
-# from fpgaconvnet.models.partition import Partition
-# from fpgaconvnet.models.network import Network
-from ..models.partition.Partition import Partition
-from ..models.network.Network import Network
+from fpgaconvnet.models.partition import Partition
+from fpgaconvnet.models.network import Network
+# from ..models.partition.Partition import Partition
+# from ..models.network.Network import Network
 
 
 import fpgaconvnet.tools.graphs as graphs
@@ -201,6 +199,9 @@ class Parser:
             for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
 
+        # remove NOP nodes from the graph
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+
         # apply quantisation to the graph
         quantise(graph, quant_format)
 
@@ -268,6 +269,33 @@ class Parser:
 
         # return updated network
         return net
+
+    def remove_node_by_type(self, graph, layer_type):
+        # get input and output graphs
+        input_node  = graphs.get_input_nodes(graph)[0]
+        output_node = graphs.get_output_nodes(graph)[0]
+        # remove input squeeze module
+        if input_node in graph.nodes:
+            if graph.nodes[input_node]['type'] == layer_type:
+                graph.remove_node(input_node)
+        # remove output squeeze module
+        if output_node in graph.nodes:
+            if graph.nodes[output_node]['type'] == layer_type:
+                graph.remove_node(output_node)
+        # remove intermediate squeeze modules
+        remove_nodes = []
+        for node in graph.nodes():
+            if graph.nodes[node]['type'] == layer_type:
+                # add squeeze nodes to list
+                remove_nodes.append(node)
+                # place edge back
+                prev_node = graphs.get_prev_nodes(graph,node)[0]
+                next_node = graphs.get_next_nodes(graph,node)[0]
+                graph.add_edge(prev_node,next_node)
+        # remove squeeze nodes
+        graph.remove_nodes_from(remove_nodes)
+        # return the graph
+        return graph
 
 if __name__ == "__main__":
 
