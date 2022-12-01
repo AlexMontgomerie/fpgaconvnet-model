@@ -3,7 +3,6 @@ import copy
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
-import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 from fpgaconvnet.models.layers import SqueezeLayer
 from fpgaconvnet.models.layers import SplitLayer
@@ -20,8 +19,6 @@ def add_squeeze(self):
         # mismatch
         if err[edge] != 0:
             # add node to graph
-            # start_name = onnx_helper.format_onnx_name(edge_list[edge][0])
-            # end_name   = onnx_helper.format_onnx_name(edge_list[edge][1])
             start_node = edge_list[edge][0]
             end_node   = edge_list[edge][1]
             # new_node   = "_".join([start_name,"squeeze",end_name])
@@ -81,22 +78,22 @@ def add_squeeze(self):
         )
         self.graph.add_edge(output_node,new_node)
 
-def remove_squeeze(self):
+def remove_node_by_type(self, layer_type):
     # get input and output graphs
     input_node  = graphs.get_input_nodes(self.graph)[0]
     output_node = graphs.get_output_nodes(self.graph)[0]
     # remove input squeeze module
     if input_node in self.graph.nodes:
-        if self.graph.nodes[input_node]['type'] == LAYER_TYPE.Squeeze:
+        if self.graph.nodes[input_node]['type'] == layer_type:
             self.graph.remove_node(input_node)
     # remove output squeeze module
     if output_node in self.graph.nodes:
-        if self.graph.nodes[output_node]['type'] == LAYER_TYPE.Squeeze:
+        if self.graph.nodes[output_node]['type'] == layer_type:
             self.graph.remove_node(output_node)
     # remove intermediate squeeze modules
     remove_nodes = []
     for node in self.graph.nodes():
-        if self.graph.nodes[node]['type'] == LAYER_TYPE.Squeeze:
+        if self.graph.nodes[node]['type'] == layer_type:
             # add squeeze nodes to list
             remove_nodes.append(node)
             # place edge back
@@ -105,6 +102,32 @@ def remove_squeeze(self):
             self.graph.add_edge(prev_node,next_node)
     # remove squeeze nodes
     self.graph.remove_nodes_from(remove_nodes)
+
+def remove_squeeze(self):
+    remove_node_by_type(self, LAYER_TYPE.Squeeze)
+    # # get input and output graphs
+    # input_node  = graphs.get_input_nodes(self.graph)[0]
+    # output_node = graphs.get_output_nodes(self.graph)[0]
+    # # remove input squeeze module
+    # if input_node in self.graph.nodes:
+    #     if self.graph.nodes[input_node]['type'] == LAYER_TYPE.Squeeze:
+    #         self.graph.remove_node(input_node)
+    # # remove output squeeze module
+    # if output_node in self.graph.nodes:
+    #     if self.graph.nodes[output_node]['type'] == LAYER_TYPE.Squeeze:
+    #         self.graph.remove_node(output_node)
+    # # remove intermediate squeeze modules
+    # remove_nodes = []
+    # for node in self.graph.nodes():
+    #     if self.graph.nodes[node]['type'] == LAYER_TYPE.Squeeze:
+    #         # add squeeze nodes to list
+    #         remove_nodes.append(node)
+    #         # place edge back
+    #         prev_node = graphs.get_prev_nodes(self.graph,node)[0]
+    #         next_node = graphs.get_next_nodes(self.graph,node)[0]
+    #         self.graph.add_edge(prev_node,next_node)
+    # # remove squeeze nodes
+    # self.graph.remove_nodes_from(remove_nodes)
 
 def add_split(self):
     # iterate over nodes in the graph
