@@ -148,6 +148,8 @@ class Parser:
             LAYER_TYPE.AveragePooling: ParseOnnxAveragePoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.SiLU: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
