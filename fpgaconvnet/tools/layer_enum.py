@@ -14,7 +14,7 @@ class LAYER_TYPE(Enum):
     Sigmoid      =19
     Softmax      =20
     Split        =22
-    Eltwise      =25
+    EltWise      =25
     # Not Enumerated
     BatchNorm = 40
     Scale     = 41
@@ -50,7 +50,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.Concat           : fpgaconvnet_pb2.layer.layer_type.CONCAT,
         LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
         LAYER_TYPE.Split            : fpgaconvnet_pb2.layer.layer_type.SPLIT,
-        LAYER_TYPE.Eltwise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
+        LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
         LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
@@ -66,7 +66,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
         fpgaconvnet_pb2.layer.layer_type.SPLIT              : LAYER_TYPE.Split,
-        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.Eltwise
+        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 

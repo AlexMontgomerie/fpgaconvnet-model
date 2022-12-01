@@ -1,15 +1,16 @@
 import onnx
 import numpy as np
 import importlib
+from dataclasses import dataclass
 
 from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import InnerProductLayer
-from fpgaconvnet.models.layers import PoolingLayer
-from fpgaconvnet.models.layers import ReLULayer
-from fpgaconvnet.models.layers import SqueezeLayer
-from fpgaconvnet.models.layers import AveragePoolingLayer
-from fpgaconvnet.models.layers import EltWiseLayer
-from fpgaconvnet.models.layers import ConvolutionLayer
+from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
+from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
+from fpgaconvnet.models.layers import ReLULayer, ActivationLayer3D
+from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
+from fpgaconvnet.models.layers import AveragePoolingLayer, AveragePoolingLayer3D
+from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
+from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -17,7 +18,9 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, backend="hls"):
+    def __init__(self, graph, n, dimensionality, backend="hls"):
+        # model dimensionality
+        self.dimensionality = dimensionality
 
         # save node
         self.node = n
@@ -94,24 +97,55 @@ class ParseOnnxConvNode(ParseOnnxNode):
     def get_hardware(self):
 
         # default attributes
-        self.attr.setdefault("group", 1)
-        self.attr.setdefault("strides", [1,1])
-        self.attr.setdefault("pads", [0,0,0,0])
-        self.attr.setdefault("dilations", [1,1])
+        if self.dimensionality == 2:
+            self.attr.setdefault("group", 1)
+            self.attr.setdefault("strides", [1,1])
+            self.attr.setdefault("pads", [0,0,0,0])
+            self.attr.setdefault("dilations", [1,1])
+        else:
+            self.attr.setdefault("group", 1)
+            self.attr.setdefault("strides", [1,1,1])
+            self.attr.setdefault("pads", [0,0,0,0,0,0])
+            self.attr.setdefault("dilations", [1,1,1])
+
 
         # return hardware
-        return ConvolutionLayer(
-            self.output_shape[1],
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            kernel_size = self.attr["kernel_shape"],
-            stride = self.attr["strides"],
-            pad = self.attr["pads"],
-            groups = self.attr["group"],
-            has_bias = len(self.inputs) == 3,
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return ConvolutionLayer(
+                self.output_shape[1],
+                self.input_shape[2],
+                self.input_shape[3],
+                self.input_shape[1],
+                kernel_size = self.attr["kernel_shape"],
+                stride = self.attr["strides"],
+                pad = self.attr["pads"],
+                groups = self.attr["group"],
+                has_bias = len(self.inputs) == 3,
+                backend=self.backend
+            )
+        else:
+            return ConvolutionLayer3D(
+                filters=self.output_shape[1],
+                rows=self.input_shape[3],
+                cols=self.input_shape[4],
+                depth=self.input_shape[2],
+                channels=self.input_shape[1],
+                kernel_rows=self.attr["kernel_shape"][1],
+                kernel_cols=self.attr["kernel_shape"][2],
+                kernel_depth=self.attr["kernel_shape"][0],
+                stride_rows=self.attr["strides"][1],
+                stride_cols=self.attr["strides"][2],
+                stride_depth=self.attr["strides"][0],
+                pad_top=self.attr["pads"][1],
+                pad_right=self.attr["pads"][2],
+                pad_front=self.attr["pads"][0],
+                pad_bottom=self.attr["pads"][4],
+                pad_left=self.attr["pads"][5],
+                pad_back=self.attr["pads"][3],
+                groups = self.attr["group"],
+                has_bias = len(self.inputs) == 3,
+                backend=self.backend
+            )
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)

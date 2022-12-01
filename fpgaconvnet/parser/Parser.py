@@ -96,6 +96,8 @@ class Parser:
 
         # load onnx model
         model = onnx.load(onnx_filepath)
+        input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
+        dimensionality = len(input_shape) - 2
 
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
@@ -134,9 +136,9 @@ class Parser:
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        return model_opt
+        return model_opt, dimensionality
 
-    def get_hardware_from_onnx_node(self, graph, node):
+    def get_hardware_from_onnx_node(self, graph, node, dimensionality):
 
         # register converters
         converter = {
@@ -154,7 +156,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, backend=self.backend)
+            return converter[node_type](graph, node, dimensionality, backend=self.backend)
         except KeyError:
             raise TypeError(f"{node.op_type} not supported, exiting now")
 
@@ -178,7 +180,9 @@ class Parser:
     def onnx_to_fpgaconvnet(self, onnx_filepath):
 
         # load the onnx model
-        onnx_model = self.load_onnx_model(onnx_filepath)
+        onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
+        optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
+        onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)
@@ -191,7 +195,7 @@ class Parser:
 
             # get the hardware for the node
             hardware = self.get_hardware_from_onnx_node(
-                    onnx_model.graph, node)
+                    onnx_model.graph, node, dimensionality)
 
             # add node to graph
             graph.add_node(hardware.name,
@@ -273,6 +277,12 @@ if __name__ == "__main__":
 
     p = Parser()
 
+    # print(f" - parsing c3d")
+    # net = p.onnx_to_fpgaconvnet(f"onnx_models/c3d.onnx")
+
+    print(f" - parsing x3d")
+    net = p.onnx_to_fpgaconvnet(f"onnx_models/x3d_m.onnx")
+
     # print("parsing alexnet")
     # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
 
@@ -285,8 +295,8 @@ if __name__ == "__main__":
     # p.onnx_to_fpgaconvnet(f"models/from_keras/sfc.onnx")
     # print(f" - parsing vgg11")
     # p.onnx_to_fpgaconvnet(f"models/from_keras/vgg11.onnx")
-    print(f" - parsing resnet18")
-    net = p.onnx_to_fpgaconvnet(f"models/from_keras/lenet.onnx")
+    # print(f" - parsing resnet18")
+    # net = p.onnx_to_fpgaconvnet(f"models/from_keras/lenet.onnx")
 
     # for model in os.listdir("models/from_keras/"):
     #     print(f" - parsing {model}")
