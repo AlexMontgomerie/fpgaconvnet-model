@@ -62,9 +62,11 @@ class Parser:
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
             "fuse_mul_add_into_bn",
+            "convert_to_version_14",
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
+            "fuse_mul_sigmoid_into_hardswish",
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",

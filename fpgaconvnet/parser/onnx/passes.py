@@ -898,9 +898,9 @@ def fuse_mul_sigmoid_into_hardswish(model):
         prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
         prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
 
-        # check prev node a has two outputs
-        if len(prev_node_a.input) != 2:
-            continue
+        # # check prev node a has two outputs
+        # if len(prev_node_a.input) != 2:
+        #     continue
 
         # check prev node b is a sigmoid
         if prev_node_b.op_type != "Sigmoid":
@@ -910,8 +910,23 @@ def fuse_mul_sigmoid_into_hardswish(model):
         if node.input[0] != prev_node_b.input[0]:
             continue
 
-        # remove prev nodes
 
         # create a new HardSwish node
+        new_node = onnx.helper.make_node(
+            "HardSwish",
+            name=node.name+"_hard_swish",
+            inputs=[prev_node_a.output[0]],
+            outputs=node.output,
+        )
+
+        # add the node to the graph
+        model.graph.node.insert(index, new_node)
+
+        # remove prev nodes
+        model.graph.node.remove(node)
+        model.graph.node.remove(prev_node_b)
 
     return model
+
+def convert_to_version_14(model):
+    return onnx.version_converter.convert_version(model, 14)
