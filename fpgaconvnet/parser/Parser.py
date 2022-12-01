@@ -61,8 +61,8 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
-            "fuse_mul_add_into_bn",
             "convert_to_version_14",
+            "fuse_mul_add_into_bn",
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
@@ -84,7 +84,7 @@ class Parser:
         ]
 
         # minimum supported opset version
-        self.onnx_opset_version = 12
+        self.onnx_opset_version = 14
 
     def optimize_onnx(self, model, passes):
         model_opt = model
@@ -107,9 +107,6 @@ class Parser:
 
         # validate model
         onnx.checker.check_model(model_opt)
-
-        # # check opset version
-        # assert model.opset_import.version >= self.opset_version, f"ONNX Operator version {model.opset_import.version} not supported!"
 
         # remove doc strings
         onnx.helper.strip_doc_string(model_opt)
@@ -179,12 +176,13 @@ class Parser:
         # return model and quantisation
         return model_opt, quant_format
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
-        optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
-        onnx.save(onnx_model, optimize_onnx_filepath)
+        if save_opt_model:
+            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
+            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)

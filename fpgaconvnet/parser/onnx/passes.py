@@ -910,7 +910,6 @@ def fuse_mul_sigmoid_into_hardswish(model):
         if node.input[0] != prev_node_b.input[0]:
             continue
 
-
         # create a new HardSwish node
         new_node = onnx.helper.make_node(
             "HardSwish",

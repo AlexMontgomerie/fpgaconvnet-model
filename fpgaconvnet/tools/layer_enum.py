@@ -26,7 +26,7 @@ class LAYER_TYPE(Enum):
     Clip      = 47
     Shape     = 48
     AveragePooling = 49
-    SiLU = 50 # i.e. Swish
+    SiLU    = 50 # i.e. Swish
     Reshape = 51
     NOP     = 52
 
@@ -90,6 +90,7 @@ def from_onnx_op_type(op_type):
         "Relu" : LAYER_TYPE.ReLU,
         "Clip" : LAYER_TYPE.ReLU, # TODO: implement clip properly
         "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
+        "HardSwish" : LAYER_TYPE.SiLU,
         "Softmax" : LAYER_TYPE.NOP, # TODO: move to CPU
         "Dropout" : LAYER_TYPE.Dropout,
         # shape operations

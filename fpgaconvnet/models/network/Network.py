@@ -7,6 +7,7 @@ import copy
 import math
 import numpy as np
 import networkx as nx
+import matplotlib.pyplot as plt
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
@@ -49,10 +50,6 @@ class Network():
         # node and edge lists
         self.node_list = list(self.graph.nodes())
         self.edge_list = list(self.graph.edges())
-
-        # matrices
-        self.connections_matrix = matrix.get_connections_matrix(self.graph)
-        self.workload_matrix    = matrix.get_workload_matrix(self.graph)
 
         # partitions
         self.partitions = [ Partition(copy.deepcopy(self.graph)) ]

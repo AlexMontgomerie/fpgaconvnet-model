@@ -4,7 +4,7 @@ import ddt
 import copy
 
 from fpgaconvnet.models.network import Network
-from fpgaconvnet.parser import Parser
+from fpgaconvnet.parser.Parser import Parser
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from numpy.linalg import matrix_rank
@@ -47,7 +47,7 @@ class TestNetwork(TestNetworkTemplate, unittest.TestCase):
     @ddt.data(*glob.glob("tests/models/*.onnx"))
     def test_network(self, network_path):
         # initialise network
-        net = Parser().onnx_to_fpgaconvnet(network_path)
+        net = Parser(backend="chisel").onnx_to_fpgaconvnet(network_path, save_opt_model=False)
         # load platform
         net.platform.update(PLATFORM)
         # run all tests

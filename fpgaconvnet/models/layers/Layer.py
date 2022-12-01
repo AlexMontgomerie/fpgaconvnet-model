@@ -4,6 +4,7 @@
 
 import pydot
 import collections
+from typing import Union, List
 from google.protobuf.json_format import MessageToDict
 import numpy as np
 from dataclasses import dataclass, field
@@ -250,6 +251,12 @@ class Layer:
             workload out per stream.
         """
         return self.rows_out() * self.cols_out() * int( self.channels_out() / self.streams_out() )
+
+    def shape_in(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_in(), self.cols_in(), self.channels_in() ]
+
+    def shape_out(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
     def width_in(self):
         """

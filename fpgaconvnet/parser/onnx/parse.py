@@ -19,7 +19,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, dimensionality, backend="hls"):
+    def __init__(self, graph, n, dimensionality=2, backend="hls"):
+
         # model dimensionality
         self.dimensionality = dimensionality
 
@@ -88,7 +89,7 @@ class ParseOnnxNode:
     def get_edges_in(self, model):
         try:
             prev_node = next(filter(
-                lambda x: x.output[0] in self.node.input[0], model.graph.node))
+                lambda x: x.output[0] == self.node.input[0], model.graph.node))
             return [(onnx_helper.format_onnx_name(prev_node), self.name)]
         except StopIteration:
             return []
@@ -109,7 +110,6 @@ class ParseOnnxConvNode(ParseOnnxNode):
             self.attr.setdefault("pads", [0,0,0,0,0,0])
             self.attr.setdefault("dilations", [1,1,1])
 
-
         # return hardware
         if self.dimensionality == 2:
             return ConvolutionLayer(
@@ -117,15 +117,19 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 self.input_shape[2],
                 self.input_shape[3],
                 self.input_shape[1],
-                kernel_rows = self.attr["kernel_shape"][0],
-                kernel_cols = self.attr["kernel_shape"][1],
-                stride = self.attr["strides"],
-                pad = self.attr["pads"],
+                kernel_rows=self.attr["kernel_shape"][0],
+                kernel_cols=self.attr["kernel_shape"][1],
+                stride_rows=self.attr["strides"][0],
+                stride_cols=self.attr["strides"][1],
+                pad_top     = self.attr["pads"][0],
+                pad_left    = self.attr["pads"][1],
+                pad_bottom  = self.attr["pads"][2],
+                pad_right   = self.attr["pads"][3],
                 groups = self.attr["group"],
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend
             )
-        else:
+        elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 filters=self.output_shape[1],
                 rows=self.input_shape[3],
@@ -138,16 +142,18 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 stride_rows=self.attr["strides"][1],
                 stride_cols=self.attr["strides"][2],
                 stride_depth=self.attr["strides"][0],
-                pad_top=self.attr["pads"][1],
-                pad_right=self.attr["pads"][2],
-                pad_front=self.attr["pads"][0],
-                pad_bottom=self.attr["pads"][4],
-                pad_left=self.attr["pads"][5],
-                pad_back=self.attr["pads"][3],
+                pad_front   = self.attr["pads"][0],
+                pad_top     = self.attr["pads"][1],
+                pad_left    = self.attr["pads"][2],
+                pad_back    = self.attr["pads"][3],
+                pad_bottom  = self.attr["pads"][4],
+                pad_right   = self.attr["pads"][5],
                 groups = self.attr["group"],
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ConvolutionLayer")
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -175,7 +181,6 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
             self.attr.setdefault("pads", [0,0,0,0,0,0])
             self.attr.setdefault("dilations", [1,1,1])
 
-        print(self.input_shape)
         # return hardware
         if self.dimensionality == 2:
             return InnerProductLayer(
@@ -185,14 +190,16 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend
             )
-        else:
+        elif self.dimensionality == 3:
             return InnerProductLayer3D(
                 self.output_shape[1],
                 1, 1, 1,
-                np.prod(self.input_shape),
+                np.prod(self.input_shape[1:]),
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -215,13 +222,16 @@ class ParseOnnxReLUNode(ParseOnnxNode):
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
             )
-        else:
+        elif self.dimensionality == 3:
             return ReLULayer3D(
                 self.input_shape[3] if len(self.input_shape) == 5 else 1,
                 self.input_shape[4] if len(self.input_shape) == 5 else 1,
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+
 
 class ParseOnnxActivationNode(ParseOnnxNode):
 
@@ -239,13 +249,16 @@ class ParseOnnxActivationNode(ParseOnnxNode):
         # return hardware
         if self.dimensionality == 2:
             raise NotImplementedError("Activation layer not implemented for 2D")
-        else:
+        elif self.dimensionality == 3:
             return ActivationLayer3D(
                 self.input_shape[3] if len(self.input_shape) == 5 else 1,
                 self.input_shape[4] if len(self.input_shape) == 5 else 1,
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1], activation_type=activation_type
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ActivationLayer")
+
 
 class ParseOnnxPoolingNode(ParseOnnxNode):
 
@@ -263,9 +276,14 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 self.input_shape[3],
                 self.input_shape[1],
                 pool_type = 'max',
-                kernel_size = self.attr["kernel_shape"],
-                stride = self.attr["strides"],
-                pad = self.attr["pads"],
+                kernel_rows = self.attr["kernel_shape"][0],
+                kernel_cols = self.attr["kernel_shape"][1],
+                stride_rows = self.attr["strides"][0],
+                stride_cols = self.attr["strides"][1],
+                pad_top     = self.attr["pads"][0],
+                pad_left    = self.attr["pads"][1],
+                pad_bottom  = self.attr["pads"][2],
+                pad_right   = self.attr["pads"][3],
                 backend=self.backend
             )
         elif self.dimensionality == 3:
@@ -281,7 +299,12 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 stride_rows = self.attr["strides"][1],
                 stride_cols = self.attr["strides"][2],
                 stride_depth = self.attr["strides"][0],
-                # pad = self.attr["pads"], # TODO
+                pad_front   = self.attr["pads"][0],
+                pad_top     = self.attr["pads"][1],
+                pad_left    = self.attr["pads"][2],
+                pad_back    = self.attr["pads"][3],
+                pad_bottom  = self.attr["pads"][4],
+                pad_right   = self.attr["pads"][5],
                 backend=self.backend
             )
         else:
@@ -290,7 +313,6 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
 class ParseOnnxNOPNode(ParseOnnxNode):
 
     def get_hardware(self):
-
 
         print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
 
@@ -307,6 +329,7 @@ class ParseOnnxAveragePoolingNode(ParseOnnxNode):
 
     def get_hardware(self):
 
+        # TODO
         # create Average pooling layer hardware
         return AveragePoolingLayer(
             self.input_shape[2],
@@ -328,14 +351,30 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
             raise TypeError(f"unsported eltwise type {self.node.op_type}")
 
         # create Average pooling layer hardware
-        return EltWiseLayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            ports_in=len(self.inputs),
-            op_type=op_type,
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return EltWiseLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                self.input_shape[1],
+                ports_in=len(self.inputs),
+                op_type=op_type,
+                broadcast=False, # TODO: parse from the onnx
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return EltWiseLayer3D(
+                self.input_shape[3],
+                self.input_shape[4],
+                self.input_shape[2],
+                self.input_shape[1],
+                ports_in=len(self.inputs),
+                op_type=op_type,
+                broadcast=False, # TODO: parse from the onnx
+                backend=self.backend
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+
 
     def get_edges_in(self, model):
         try:

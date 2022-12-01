@@ -123,7 +123,7 @@ class EltWiseLayer(MultiPortLayer):
 
     def resource(self):
 
-        eltwise_rsc = self.modules['eltwise3d'].rsc()
+        eltwise_rsc = self.modules['eltwise'].rsc()
 
         # Total
         return {
@@ -142,9 +142,9 @@ class EltWiseLayer(MultiPortLayer):
 
         for i in range(self.coarse):
             # get the relu name
-            eltwise_name[i] = "_".join([name, "eltwise3d", str(i)])
+            eltwise_name[i] = "_".join([name, "eltwise", str(i)])
             # add nodes
-            cluster.add_node(self.modules["eltwise3d"].visualise(eltwise_name[i]))
+            cluster.add_node(self.modules["eltwise"].visualise(eltwise_name[i]))
 
         return cluster, np.array(eltwise_name).tolist(), np.array(eltwise_name).tolist()
 

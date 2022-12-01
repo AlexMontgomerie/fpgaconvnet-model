@@ -13,7 +13,7 @@ import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.models.layers import Layer, MultiPortLayer
+from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
 
 def get_model_input_nodes(self, i):
     input_node = self.partitions[i].input_nodes[0]
@@ -35,24 +35,30 @@ def get_model_output_nodes(self, i):
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
+    if node_base_type in [ Layer, Layer3D ]:
         return node_hw.streams_in()
-    elif node_base_type == MultiPortLayer:
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
         return node_hw.streams_in(index)
+    else:
+        raise NotImplementedError(f"base type {node_base_type}")
 
 def get_stream_out_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
+    if node_base_type in [ Layer, Layer3D ]:
         return node_hw.streams_out()
-    elif node_base_type == MultiPortLayer:
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
         return node_hw.streams_out(index)
+    else:
+        raise NotImplementedError
 
 def get_buffer_depth_in(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
+    if node_base_type in [ Layer, Layer3D ]:
         return node_hw.buffer_depth
-    elif node_base_type == MultiPortLayer:
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
         return node_hw.buffer_depth[index]
+    else:
+        raise NotImplementedError
 
 def save_all_partitions(self, filepath, input_output_from_model=True):
 

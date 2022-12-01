@@ -14,38 +14,6 @@ from fpgaconvnet.models.layers import Layer
 
 class PoolingLayer(Layer):
 
-    def format_kernel_size(self, kernel_size):
-        if isinstance(kernel_size, int):
-            return [kernel_size, kernel_size]
-        elif isinstance(kernel_size, list):
-            assert len(kernel_size) == 2, "Must specify two kernel dimensions"
-            return kernel_size
-        else:
-            raise TypeError
-
-    def format_stride(self, stride):
-        if isinstance(stride, int):
-            return [stride, stride]
-        elif isinstance(stride, list):
-            assert len(stride) == 2, "Must specify two stride dimensions"
-            return stride
-        else:
-            raise TypeError
-
-    def format_pad(self, pad):
-        if isinstance(pad, int):
-            return [
-                    pad - (self.rows_in() - self.kernel_size[0] + 2*pad) % self.stride[0],
-                    pad,
-                    pad,
-                    pad - (self.cols_in() - self.kernel_size[1] + 2*pad) % self.stride[1],
-                ]
-        elif isinstance(pad, list):
-            assert len(pad) == 4, "Must specify four pad dimensions"
-            return pad
-        else:
-            raise TypeError
-
     def __init__(
             self,
             rows: int,
@@ -53,9 +21,14 @@ class PoolingLayer(Layer):
             channels: int,
             coarse: int = 1,
             pool_type   ='max',
-            kernel_size: Union[List[int], int] = 2,
-            stride: Union[List[int], int] = 2,
-            pad: Union[List[int], int] = 0,
+            kernel_rows: int = 1,
+            kernel_cols: int = 1,
+            stride_rows: int = 2,
+            stride_cols: int = 2,
+            pad_top: int = 0,
+            pad_right: int = 0,
+            pad_bottom: int = 0,
+            pad_left: int = 0,
             fine: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel"
@@ -69,17 +42,17 @@ class PoolingLayer(Layer):
         # self.flags['transformable'] = True
 
         # update parameters
-        self._kernel_size = self.format_kernel_size(kernel_size)
-        self._stride = self.format_stride(stride)
-        self._pad = self.format_pad(pad)
+        self._kernel_rows = kernel_rows
+        self._kernel_cols = kernel_cols
+        self._stride_rows = stride_rows
+        self._stride_cols = stride_cols
+        self._pad_top       = pad_top
+        self._pad_right     = pad_right
+        self._pad_bottom    = pad_bottom
+        self._pad_left      = pad_left
         self._pool_type = pool_type
         self._coarse = coarse
         self._fine = fine
-
-        self._pad_top = self._pad[0]
-        self._pad_right = self._pad[3]
-        self._pad_bottom = self._pad[2]
-        self._pad_left = self._pad[1]
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -91,7 +64,7 @@ class PoolingLayer(Layer):
                 self.kernel_size, self.stride, self.pad_top,
                 self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend)
         self.modules["pool"] = MaxPool(self.rows_out(), self.cols_out(),
-                self.channels_out()//self.coarse, kernel_size, backend=self.backend)
+                self.channels_out()//self.coarse, self.kernel_size, backend=self.backend)
 
         self.update()
 
@@ -103,31 +76,52 @@ class PoolingLayer(Layer):
 
     @property
     def kernel_size(self) -> List[int]:
-        return self._kernel_size
+        return [ self._kernel_rows, self._kernel_cols ]
+
+    @property
+    def kernel_rows(self) -> int:
+        return self._kernel_rows
+
+    @property
+    def kernel_cols(self) -> int:
+        return self._kernel_cols
 
     @property
     def stride(self) -> List[int]:
-        return self._stride
+        return [ self._stride_rows, self._stride_cols ]
+
+    @property
+    def stride_rows(self) -> int:
+        return self._stride_rows
+
+    @property
+    def stride_cols(self) -> int:
+        return self._stride_cols
 
     @property
     def pad(self) -> List[int]:
-        return self._pad
+        return [
+            self._pad_top,
+            self._pad_left,
+            self._pad_bottom,
+            self._pad_right,
+        ]
 
     @property
     def pad_top(self) -> int:
-        return self._pad[0]
+        return self._pad_top
 
     @property
     def pad_right(self) -> int:
-        return self._pad[3]
+        return self._pad_right
 
     @property
     def pad_bottom(self) -> int:
-        return self._pad[2]
+        return self._pad_bottom
 
     @property
     def pad_left(self) -> int:
-        return self._pad[1]
+        return self._pad_left
 
     @property
     def pool_type(self) -> str:
@@ -154,21 +148,62 @@ class PoolingLayer(Layer):
 
     @kernel_size.setter
     def kernel_size(self, val: List[int]) -> None:
-        self._kernel_size = self.format_kernel_size(val)
+        self._kernel_rows = val[0]
+        self._kernel_cols = val[1]
+        self.update()
+
+    @kernel_rows.setter
+    def kernel_rows(self, val: int) -> None:
+        self._kernel_rows = val
+        self.update()
+
+    @kernel_cols.setter
+    def kernel_cols(self, val: int) -> None:
+        self._kernel_cols = val
         self.update()
 
     @stride.setter
     def stride(self, val: List[int]) -> None:
-        self._stride = self.format_stride(val)
+        self._stride_rows = val[0]
+        self._stride_cols = val[1]
+        self.update()
+
+    @stride_rows.setter
+    def stride_rows(self, val: int) -> None:
+        self._stride_rows = val
+        self.update()
+
+    @stride_cols.setter
+    def stride_cols(self, val: int) -> None:
+        self._stride_cols = val
         self.update()
 
     @pad.setter
     def pad(self, val: List[int]) -> None:
-        self._pad = self.format_pad(val)
-        self.pad_top = self._pad[0]
-        self.pad_right = self._pad[3]
-        self.pad_bottom = self._pad[2]
-        self.pad_left = self._pad[1]
+        self._pad_top    = val[0]
+        self._pad_right  = val[3]
+        self._pad_bottom = val[2]
+        self._pad_left   = val[1]
+        self.update()
+
+    @pad_top.setter
+    def pad_top(self, val: int) -> None:
+        self._pad_top = val
+        self.update()
+
+    @pad_right.setter
+    def pad_right(self, val: int) -> None:
+        self._pad_right = val
+        self.update()
+
+    @pad_bottom.setter
+    def pad_bottom(self, val: int) -> None:
+        self._pad_bottom = val
+        self.update()
+
+    @pad_left.setter
+    def pad_left(self, val: int) -> None:
+        self._pad_left = val
         self.update()
 
     @coarse.setter
@@ -200,8 +235,12 @@ class PoolingLayer(Layer):
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
-        parameters.kernel_size.extend([self.kernel_size[0], self.kernel_size[1]])
-        parameters.stride.extend([self.stride[0], self.stride[1]])
+        parameters.kernel_size.extend(self.kernel_size)
+        parameters.kernel_rows  = self.kernel_rows
+        parameters.kernel_cols  = self.kernel_cols
+        parameters.stride.extend(self.stride)
+        parameters.stride_rows  = self.stride_rows,
+        parameters.stride_cols  = self.stride_cols,
         parameters.pad_top      = self.pad_top
         parameters.pad_right    = self.pad_right
         parameters.pad_bottom   = self.pad_bottom
