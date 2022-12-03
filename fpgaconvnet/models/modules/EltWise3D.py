@@ -10,7 +10,7 @@ from typing import List
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module3D
+from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
 @dataclass
@@ -87,6 +87,11 @@ class EltWise3D(Module3D):
 
         # return the resource usage
         return rsc
+
+    def visualise(self, name):
+        return pydot.Node(name,label="etlwise3d", shape="box",
+                          style="filled", fillcolor="gold",
+                          fontsize=MODULE_3D_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality
