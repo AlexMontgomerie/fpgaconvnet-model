@@ -28,8 +28,9 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-from fpgaconvnet.parser.onnx.parse import *
-from fpgaconvnet.parser.prototxt.parse import *
+
+from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxAveragePoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
+from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtAveragePoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
 
 from fpgaconvnet.parser.quant import quantise
 
@@ -308,10 +309,27 @@ if __name__ == "__main__":
     p = Parser()
 
     # print(f" - parsing c3d")
-    # net = p.onnx_to_fpgaconvnet(f"onnx_models/c3d.onnx")
+    # net = p.onnx_to_fpgaconvnet(f"tests/models/c3d.onnx")
+
+    # print(f" - parsing r2plus1d")
+    # net = p.onnx_to_fpgaconvnet(f"tests/models/r2plus1d.onnx")
+
+    # print(f" - parsing slowonly")
+    # net = p.onnx_to_fpgaconvnet(f"tests/models/slowonly.onnx")
 
     print(f" - parsing x3d")
-    net = p.onnx_to_fpgaconvnet(f"onnx_models/x3d_m.onnx")
+    net = p.onnx_to_fpgaconvnet(f"tests/models/x3d_m.onnx")
+
+    # print performance and resource estimates
+    print(f"predicted latency (us): {net.get_latency()*1000000}")
+    print(f"predicted throughput (img/s): {net.get_throughput()} (batch size={net.batch_size})")
+    print(f"predicted resource usage: {net.partitions[0].get_resource_usage()}")
+
+    # visualise the network configuration
+    # net.visualise("image-path.png", mode="png")
+
+    # export out the configuration
+    # net.save_all_partitions("config-path.json")
 
     # print("parsing alexnet")
     # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
@@ -343,7 +361,7 @@ if __name__ == "__main__":
     #     print(f" - parsing {model}")
     #     p.onnx_to_fpgaconvnet(f"models/from_pytorch/{model}")
 
-    print("ONNX model zoo models:")
+    # print("ONNX model zoo models:")
     # print(f" - parsing vgg16")
     # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/vgg16-12.onnx")
     # print(f" - parsing mobilenetv2")
