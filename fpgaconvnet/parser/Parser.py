@@ -213,7 +213,7 @@ class Parser:
         quantise(graph, quant_format)
 
         # return the graph
-        return Network("from_onnx", onnx_model, graph)
+        return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
     def get_hardware_from_prototxt_node(self, node):
 
@@ -308,17 +308,11 @@ if __name__ == "__main__":
 
     p = Parser()
 
-    # print(f" - parsing c3d")
-    # net = p.onnx_to_fpgaconvnet(f"tests/models/c3d.onnx")
+    models = ["c3d", "r2plus1d", "slowonly", "x3d_m"]
+    model_name = models[1]
 
-    # print(f" - parsing r2plus1d")
-    # net = p.onnx_to_fpgaconvnet(f"tests/models/r2plus1d.onnx")
-
-    # print(f" - parsing slowonly")
-    # net = p.onnx_to_fpgaconvnet(f"tests/models/slowonly.onnx")
-
-    print(f" - parsing x3d")
-    net = p.onnx_to_fpgaconvnet(f"tests/models/x3d_m.onnx")
+    print(f" - parsing {model_name}")
+    net = p.onnx_to_fpgaconvnet(f"tests/models/{model_name}.onnx")
 
     # print performance and resource estimates
     print(f"predicted latency (us): {net.get_latency()*1000000}")
