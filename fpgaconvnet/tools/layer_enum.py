@@ -25,7 +25,7 @@ class LAYER_TYPE(Enum):
     Cast      = 46
     Clip      = 47
     Shape     = 48
-    AveragePooling = 49
+    GlobalPooling = 49
     SiLU    = 50 # i.e. Swish
     Reshape = 51
     NOP     = 52
@@ -42,7 +42,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
         LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
-        LAYER_TYPE.AveragePooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
+        LAYER_TYPE.GlobalPooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
         LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
@@ -60,7 +60,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
-        fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.AveragePooling,
+        fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,
         fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU],
         fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
@@ -77,11 +77,11 @@ def from_onnx_op_type(op_type):
         "Gemm" : LAYER_TYPE.InnerProduct,
         "MatMul" : LAYER_TYPE.InnerProduct,
         "MaxPool" : LAYER_TYPE.Pooling,
-        "AveragePool" : LAYER_TYPE.AveragePooling,
+        "GlobalPool" : LAYER_TYPE.GlobalPooling,
         "BatchNormalization" : LAYER_TYPE.BatchNorm,
         "LRN" : LAYER_TYPE.LRN,
-        "GlobalAveragePool" : LAYER_TYPE.AveragePooling,
-        "GlobalMaxPool" : LAYER_TYPE.AveragePooling, # TODO
+        "GlobalAveragePool" : LAYER_TYPE.GlobalPooling,
+        "GlobalMaxPool" : LAYER_TYPE.GlobalPooling, # TODO
         # branching nodes
         "Add" : LAYER_TYPE.EltWise,
         "Mul" : LAYER_TYPE.EltWise,

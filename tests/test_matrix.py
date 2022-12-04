@@ -4,12 +4,14 @@ import ddt
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.parser import Parser
+from fpgaconvnet.parser.Parser import Parser
 
 from numpy.linalg import matrix_rank
 import scipy
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
+
+BACKEND="chisel"
 
 """
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,7 +26,7 @@ class TestConnectionMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes             = len(matrix.get_node_list_matrix(net.graph))
@@ -51,7 +53,7 @@ class TestStreamsMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes         = len(matrix.get_node_list_matrix(net.graph))
@@ -77,7 +79,7 @@ class TestRatesMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes         = len(matrix.get_node_list_matrix(net.graph))
@@ -149,7 +151,7 @@ class TestWorkloadMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes         = len(matrix.get_node_list_matrix(net.graph))
@@ -181,7 +183,7 @@ class TestTopologyMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes         = len(matrix.get_node_list_matrix(net.graph))
@@ -208,7 +210,7 @@ class TestIntervalMatrix(unittest.TestCase):
     def test_net(self,model_path):
 
         # graph definition
-        net = Parser().onnx_to_fpgaconvnet(model_path)
+        net = Parser(backend=BACKEND).onnx_to_fpgaconvnet(model_path, save_opt_model=False)
 
         # get matrix and expected dimensions
         n_nodes         = len(matrix.get_node_list_matrix(net.graph))

@@ -27,7 +27,7 @@ from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze
 from .Bias import Bias
 from .VectorDot import VectorDot
-from .AveragePool import AveragePool
+from .GlobalPool import GlobalPool
 from .Concat import Concat
 from .EltWise import EltWise
 from .Stride import Stride
@@ -45,5 +45,5 @@ from .SlidingWindow3D import SlidingWindow3D
 from .Squeeze3D import Squeeze3D
 from .Bias3D import Bias3D
 from .VectorDot3D import VectorDot3D
-from .AveragePool3D import AveragePool3D
+from .GlobalPool3D import GlobalPool3D
 from .EltWise3D import EltWise3D

@@ -16,7 +16,7 @@ from .SqueezeLayer import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
-from .AveragePoolingLayer import AveragePoolingLayer
+from .GlobalPoolingLayer import GlobalPoolingLayer
 
 # 3D layers
 from .Layer3D import Layer3D
@@ -29,4 +29,4 @@ from .ReLULayer3D import ReLULayer3D
 from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
-from .AveragePoolingLayer3D import AveragePoolingLayer3D
+from .GlobalPoolingLayer3D import GlobalPoolingLayer3D

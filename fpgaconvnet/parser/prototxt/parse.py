@@ -8,7 +8,7 @@ from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
-from fpgaconvnet.models.layers import AveragePoolingLayer, SqueezeLayer3D
+from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
 from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
 
@@ -275,12 +275,12 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
             backend =self.backend,
         )
 
-class ParsePrototxtAveragePoolingNode(ParsePrototxtNode):
+class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
         # create Average pooling layer hardware
-        return AveragePoolingLayer(
+        return GlobalPoolingLayer(
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,

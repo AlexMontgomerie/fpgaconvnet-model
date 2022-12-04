@@ -4,6 +4,7 @@ import ddt
 import json
 from fpgaconvnet.models.modules import *
 
+BACKEND="chisel"
 
 class TestModuleTemplate():
 
@@ -51,8 +52,7 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Fork(config["rows"],config["cols"],config["channels"],
-                config["kernel_size"],
-                config["coarse"])
+                config["kernel_size"],config["coarse"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -71,7 +71,7 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Accum(config["rows"],config["cols"],config["channels"],
-                config["filters"],config["groups"])
+                config["filters"],config["groups"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -87,19 +87,23 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/modules/conv/*.json"))
     def test_module_configurations(self, config_path):
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
 
-        # initialise module
-        module = Conv(config["rows"],config["cols"],config["channels"],
-                config["filters"],config["fine"],config["kernel_size"],config["group"])
+        if BACKEND == "hls":
 
-        # run tests
-        self.run_test_methods_exist(module)
-        self.run_test_dimensions(module)
-        self.run_test_rates(module)
-        self.run_test_resources(module)
+            # open configuration
+            with open(config_path, "r") as f:
+                config = json.load(f)
+
+            # initialise module
+            module = Conv(config["rows"],config["cols"],config["channels"],
+                    config["filters"],config["fine"],config["kernel_size"],
+                    config["group"],backend=BACKEND)
+
+            # run tests
+            self.run_test_methods_exist(module)
+            self.run_test_dimensions(module)
+            self.run_test_rates(module)
+            self.run_test_resources(module)
 
 @ddt.ddt
 class TestGlueModule(TestModuleTemplate,unittest.TestCase):
@@ -112,7 +116,7 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Glue(config["rows"],config["cols"],config["channels"],
-                config["filters"],config["coarse_in"],config["coarse_out"])
+                config["filters"],config["coarse_in"],config["coarse_out"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -132,7 +136,7 @@ class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
         # initialise module
         module = SlidingWindow(config["rows"],config["cols"],config["channels"],
                 config["kernel_size"],config["stride"],config["pad_top"],
-                config["pad_right"],config["pad_bottom"],config["pad_left"])
+                config["pad_right"],config["pad_bottom"],config["pad_left"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -151,7 +155,7 @@ class TestPoolModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Pool(config["rows"],config["cols"],config["channels"],
-                config["kernel_size"])
+                config["kernel_size"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -170,7 +174,7 @@ class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Squeeze(config["rows"],config["cols"],config["channels"],
-                config["coarse_in"],config["coarse_out"])
+                config["coarse_in"],config["coarse_out"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)
@@ -188,7 +192,7 @@ class TestReLUModule(TestModuleTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise module
-        module = ReLU(config["rows"],config["cols"],config["channels"])
+        module = ReLU(config["rows"],config["cols"],config["channels"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)

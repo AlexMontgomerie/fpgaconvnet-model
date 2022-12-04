@@ -9,7 +9,7 @@ from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
 from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
-from fpgaconvnet.models.layers import AveragePoolingLayer, AveragePoolingLayer3D
+from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 
@@ -325,13 +325,13 @@ class ParseOnnxNOPNode(ParseOnnxNode):
             backend=self.backend
         )
 
-class ParseOnnxAveragePoolingNode(ParseOnnxNode):
+class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
 
     def get_hardware(self):
 
         # TODO
         # create Average pooling layer hardware
-        return AveragePoolingLayer(
+        return GlobalPoolingLayer(
             self.input_shape[2],
             self.input_shape[3],
             self.input_shape[1],

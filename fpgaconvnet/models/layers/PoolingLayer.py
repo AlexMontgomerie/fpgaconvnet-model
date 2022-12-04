@@ -239,8 +239,8 @@ class PoolingLayer(Layer):
         parameters.kernel_rows  = self.kernel_rows
         parameters.kernel_cols  = self.kernel_cols
         parameters.stride.extend(self.stride)
-        parameters.stride_rows  = self.stride_rows,
-        parameters.stride_cols  = self.stride_cols,
+        parameters.stride_rows  = self.stride_rows
+        parameters.stride_cols  = self.stride_cols
         parameters.pad_top      = self.pad_top
         parameters.pad_right    = self.pad_right
         parameters.pad_bottom   = self.pad_bottom

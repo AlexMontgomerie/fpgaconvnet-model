@@ -85,6 +85,10 @@ class PoolingLayer3D(Layer3D):
         return self.modules["sliding_window3d"].depth_out()
 
     @property
+    def kernel_size(self) -> List[int]:
+        return [ self._kernel_rows, self._kernel_cols, self._kernel_depth ]
+
+    @property
     def kernel_rows(self) -> int:
         return self._kernel_rows
 
@@ -97,6 +101,10 @@ class PoolingLayer3D(Layer3D):
         return self._kernel_depth
 
     @property
+    def stride(self) -> List[int]:
+        return [ self._stride_rows, self._stride_cols, self._stride_depth ]
+
+    @property
     def stride_rows(self) -> int:
         return self._stride_rows
 
@@ -107,6 +115,17 @@ class PoolingLayer3D(Layer3D):
     @property
     def stride_depth(self) -> int:
         return self._stride_depth
+
+    @property
+    def pad(self) -> List[int]:
+        return [
+            self._pad_top,
+            self._pad_left,
+            self._pad_front,
+            self._pad_bottom,
+            self._pad_right,
+            self._pad_back,
+        ]
 
     @property
     def pad_top(self) -> int:
@@ -244,9 +263,11 @@ class PoolingLayer3D(Layer3D):
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        parameters.kernel_size.extend(self.kernel_size)
         parameters.kernel_rows = self.kernel_rows
         parameters.kernel_cols = self.kernel_cols
         parameters.kernel_depth = self.kernel_depth
+        parameters.stride.extend(self.stride)
         parameters.stride_rows = self.stride_rows
         parameters.stride_cols = self.stride_cols
         parameters.stride_depth = self.stride_depth

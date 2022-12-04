@@ -142,7 +142,7 @@ class Parser:
             LAYER_TYPE.Convolution: ParseOnnxConvNode,
             LAYER_TYPE.InnerProduct: ParseOnnxInnerProductNode,
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
-            LAYER_TYPE.AveragePooling: ParseOnnxAveragePoolingNode,
+            LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
@@ -206,7 +206,7 @@ class Parser:
                 graph.add_edge(*edge)
 
         # remove NOP nodes from the graph
-        # graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
 
         # apply quantisation to the graph
         quantise(graph, quant_format)
@@ -221,7 +221,7 @@ class Parser:
             LAYER_TYPE.Convolution: ParsePrototxtConvNode,
             LAYER_TYPE.InnerProduct: ParsePrototxtInnerProductNode,
             LAYER_TYPE.Pooling: ParsePrototxtPoolingNode,
-            LAYER_TYPE.AveragePooling: ParsePrototxtAveragePoolingNode,
+            LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParsePrototxtEltWiseNode,
             LAYER_TYPE.ReLU: ParsePrototxtReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
