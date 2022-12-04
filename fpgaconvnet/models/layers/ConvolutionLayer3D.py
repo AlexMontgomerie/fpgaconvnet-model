@@ -95,7 +95,7 @@ class ConvolutionLayer3D(Layer3D):
 
         if self.backend == "hls":
 
-            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size, self.coarse_out, backend=self.backend)
+            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_rows, self.kernel_cols, self.kernel_depth, self.coarse_out, backend=self.backend)
 
             self.modules["conv3d"] = Conv3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.kernel_rows, self.kernel_cols, self.kernel_depth, backend=self.backend)
 
