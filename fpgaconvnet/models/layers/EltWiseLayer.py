@@ -129,7 +129,7 @@ class EltWiseLayer(MultiPortLayer):
         return {
             "LUT"  :  eltwise_rsc['LUT']*self.coarse,
             "FF"   :  eltwise_rsc['FF']*self.coarse,
-            "BRAM" :  eltwise_rsc['BRAM']*self.coarse,
+            "BRAM" :  eltwise_rsc['BRAM']*self.coarse if self.backend == "hls" else eltwise_rsc['BRAM18']*self.coarse,
             "DSP" :   eltwise_rsc['DSP']*self.coarse
         }
 

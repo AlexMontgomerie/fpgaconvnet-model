@@ -360,13 +360,9 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        op_type = None
-        if self.node.op_type == "Add":
-            op_type = "sum"
-        elif self.node.op_type == "Mul":
-            op_type = "mul"
-        else:
+        if self.node.op_type not in ["Add", "Mul"]:
             raise TypeError(f"unsported eltwise type {self.node.op_type}")
+        op_type = self.node.op_type.lower()
 
         # create Average pooling layer hardware
         if self.dimensionality == 2:
