@@ -317,26 +317,44 @@ class ParseOnnxNOPNode(ParseOnnxNode):
         print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
 
         # create pooling layer hardware
-        return SqueezeLayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-            1, 1,
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return SqueezeLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                1, 1,
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return SqueezeLayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1],
+                1, 1,
+                backend=self.backend
+            )
 
 class ParseOnnxAveragePoolingNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # TODO
         # create Average pooling layer hardware
-        return AveragePoolingLayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return AveragePoolingLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                self.input_shape[1],
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return AveragePoolingLayer3D(
+                self.input_shape[3],
+                self.input_shape[4],
+                self.input_shape[2],
+                self.input_shape[1],
+                backend=self.backend
+            )
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
 
