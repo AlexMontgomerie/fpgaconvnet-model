@@ -28,8 +28,10 @@ from fpgaconvnet.platform import Platform
 
 class Network():
 
-    def __init__(self, name, model, graph, batch_size=1, freq=125,
+    def __init__(self, name, model, graph, dimensionality=2, batch_size=1, freq=125,
             rsc_allocation=1.0, backend="hls"):
+        # network dimensionality
+        self.dimensionality = dimensionality
 
         # empty transforms configuration
         self.transforms_config = {}

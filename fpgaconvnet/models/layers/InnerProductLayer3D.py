@@ -235,7 +235,7 @@ class InnerProductLayer3D(Layer3D):
 
         # names
         fork_name = [""]*self.coarse_in
-        conv_name = [[""]*self.coarse_in]*self.coarse_out
+        vector_dot_name = [[""]*self.coarse_in]*self.coarse_out
         accum_name = [[""]*self.coarse_in]*self.coarse_out
         glue_name = [""]*self.coarse_out
         bias_name = [""]*self.coarse_out
@@ -249,20 +249,20 @@ class InnerProductLayer3D(Layer3D):
             # iterate over coarse out
             for j in range(self.coarse_out):
                 # define names
-                conv_name[j][i] = "_".join([name, "conv3d", str(j), str(i)])
+                vector_dot_name[j][i] = "_".join([name, "vector_dot3d", str(j), str(i)])
                 accum_name[j][i] = "_".join([name, "accum3d", str(j), str(i)])
                 glue_name[j] = "_".join([name, "glue3d", str(j)])
                 bias_name[j] = "_".join([name, "bias3d", str(j)])
 
                 # add nodes
-                cluster.add_node(self.modules["conv3d"].visualise(conv_name[j][i]))
+                cluster.add_node(self.modules["vector_dot3d"].visualise(vector_dot_name[j][i]))
                 cluster.add_node(self.modules["accum3d"].visualise(accum_name[j][i]))
                 cluster.add_node(self.modules["glue3d"].visualise(glue_name[j]))
                 cluster.add_node(self.modules["bias3d"].visualise(bias_name[j]))
 
                 # add edges
-                cluster.add_edge(pydot.Edge(fork_name[i], conv_name[j][i]))
-                cluster.add_edge(pydot.Edge(conv_name[j][i], accum_name[j][i]))
+                cluster.add_edge(pydot.Edge(fork_name[i], vector_dot_name[j][i]))
+                cluster.add_edge(pydot.Edge(vector_dot_name[j][i], accum_name[j][i]))
                 cluster.add_edge(pydot.Edge(accum_name[j][i], glue_name[j]))
                 cluster.add_edge(pydot.Edge(glue_name[j], bias_name[j]))
 

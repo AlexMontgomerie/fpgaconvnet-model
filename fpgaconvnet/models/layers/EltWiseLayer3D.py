@@ -136,7 +136,7 @@ class EltWiseLayer3D(MultiPortLayer3D):
             "LUT"  :  eltwise_rsc['LUT']*self.coarse,
             "FF"   :  eltwise_rsc['FF']*self.coarse,
             "BRAM" :  eltwise_rsc['BRAM']*self.coarse,
-            "DSP" :   eltwise_rsc['DSP']*self.coarse
+            "DSP" :   eltwise_rsc['DSP']*self.coarse,
         }
 
     def visualise(self,name):

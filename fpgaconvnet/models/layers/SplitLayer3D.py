@@ -46,6 +46,8 @@ class SplitLayer3D(MultiPortLayer3D):
             row dimension of input featuremap
         cols: list int
             column dimension of input featuremap
+        depth: list int
+            depth dimension of input featuremap
         channels: list int
             channel dimension of input featuremap
         ports_in: int
@@ -100,7 +102,7 @@ class SplitLayer3D(MultiPortLayer3D):
     def coarse(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = [val]
-        self.coarse_out = [val]*self.ports_out
+        self._coarse_out = [val]*self.ports_out
         self.update()
 
     @coarse_in.setter
@@ -175,11 +177,11 @@ class SplitLayer3D(MultiPortLayer3D):
         cluster = pydot.Cluster(name,label=name)
 
         for i in self.coarse_in:
-            cluster.add_node(pydot.Node( "_".join([name,"split",str(i)]), label="split" ))
+            cluster.add_node(pydot.Node( "_".join([name,"split3d",str(i)]), label="split3d" ))
 
         # get nodes in and out
-        nodes_in  = [ "_".join([name,"split",str(i)]) for i in range(self.coarse) ]
-        nodes_out = [ "_".join([name,"split",str(i)]) for i in range(self.ports_out) ]
+        nodes_in  = [ "_".join([name,"split3d",str(i)]) for i in range(self.coarse) ]
+        nodes_out = [ "_".join([name,"split3d",str(i)]) for i in range(self.ports_out) ]
 
         return cluster, nodes_in, nodes_out
 
@@ -187,6 +189,7 @@ class SplitLayer3D(MultiPortLayer3D):
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"
-        assert data.shape[2] == self.channels_in(), "ERROR (data): invalid channel dimension"
+        assert data.shape[2] == self.depth_in()   , "ERROR (data): invalid depth dimension"
+        assert data.shape[3] == self.channels_in(), "ERROR (data): invalid channel dimension"
 
         return [data for _ in range(self.ports_out)]

@@ -6,7 +6,7 @@ import onnxruntime
 import onnx.numpy_helper
 import numpy as np
 
-from .onnx_model_utils import *
+from fpgaconvnet.parser.onnx.onnx_model_utils import make_dim_param_fixed, make_input_shape_fixed, fix_output_shapes
 
 onnxruntime.set_default_logger_severity(3)
 

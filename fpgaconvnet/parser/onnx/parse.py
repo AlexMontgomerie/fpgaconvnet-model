@@ -317,38 +317,52 @@ class ParseOnnxNOPNode(ParseOnnxNode):
         print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
 
         # create pooling layer hardware
-        return SqueezeLayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-            1, 1,
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return SqueezeLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                1, 1,
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return SqueezeLayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1],
+                1, 1,
+                backend=self.backend
+            )
 
 class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # TODO
         # create Average pooling layer hardware
-        return GlobalPoolingLayer(
-            self.input_shape[2],
-            self.input_shape[3],
-            self.input_shape[1],
-            backend=self.backend
-        )
+        if self.dimensionality == 2:
+            return GlobalPoolingLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                self.input_shape[1],
+                backend=self.backend
+            )
+        elif self.dimensionality == 3:
+            return GlobalPoolingLayer3D(
+                self.input_shape[3],
+                self.input_shape[4],
+                self.input_shape[2],
+                self.input_shape[1],
+                backend=self.backend
+            )
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        op_type = None
-        if self.node.op_type == "Add":
-            op_type = "sum"
-        elif self.node.op_type == "Mul":
-            op_type = "mul"
-        else:
+        if self.node.op_type not in ["Add", "Mul"]:
             raise TypeError(f"unsported eltwise type {self.node.op_type}")
+        op_type = self.node.op_type.lower()
 
         # create Average pooling layer hardware
         if self.dimensionality == 2:

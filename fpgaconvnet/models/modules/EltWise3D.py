@@ -10,7 +10,7 @@ from typing import List
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module3D
+from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
 @dataclass
@@ -80,13 +80,18 @@ class EltWise3D(Module3D):
         rsc = Module3D.rsc(self, coef)
 
         # add the bram estimation
-        rsc["BRAM18"] = channel_buffer_bram if self.broadcast else 0
+        rsc["BRAM"] = channel_buffer_bram if self.broadcast else 0
 
         # ensure zero DSPs
         rsc["DSP"] = 0 if self.eltwise_type == "add" else 1
 
         # return the resource usage
         return rsc
+
+    def visualise(self, name):
+        return pydot.Node(name,label="etlwise3d", shape="box",
+                          style="filled", fillcolor="gold",
+                          fontsize=MODULE_3D_FONTSIZE)
 
     def functional_model(self, data):
         # check input dimensionality

@@ -45,20 +45,34 @@ net.save_all_partitions("config-path.json")
 In order to do the CNN to hardware mapping, a model of the hardware is needed. There are four levels of abstraction for the final hardware: modules, layers, partitions and network. At each level of abstraction, there is an associated performance and resource estimate so that the constraints for the optimiser can be obtained.
 
 - __Module:__ These are the basic building blocks of the accelerator. The modules are the following:
-  - Accum
+  - Accum & Accum3D
+  - Activation3D
+  - AveragePool & AveragePool3D
   - BatchNorm
-  - Conv
-  - Glue
-  - SlidingWindow
-  - Fork
-  - Pool
-  - Squeeze
+  - Bias & Bias3D
+  - Concat
+  - Conv & Conv3D
+  - EltWise & EltWise3D
+  - Fork & Fork3D
+  - Glue & Glue3D
+  - MaxPool
+  - Pool & Pool3D
+  - SlidingWindow & SlidingWindow3D
+  - Squeeze & Squeeze3D
+  - Stride
+  - VectorDot & VectorDot3D
 - __Layer:__ Layers are comprised of modules. They have the same functionality of the equivalent layers of the CNN model. The following layers are supported:
+  - Activation 3D
+  - AveragePooling & AveragePooling 3D
   - Batch Normalization
-  - Convolution
-  - Inner Product
-  - Pooling
-  - ReLU
+  - Concatenation
+  - Convolution & Convolution 3D
+  - Element Wise & Element Wise 3D
+  - Inner Product & Inner Product 3D
+  - Pooling & Pooling 3D
+  - ReLU & ReLU 3D
+  - Split & Split 3D
+  - Squeeze & Squeeze 3D
 - __Partition:__ Partitions make up a sub-graph of the CNN model network. They are comprised of layers. A single partition fits on an FPGA at a time, and partitions are changed by reconfiguring the FPGA.
 - __Network:__ This is the entire CNN model described through hardware. A network contains partitions and information on how to execute them.
 

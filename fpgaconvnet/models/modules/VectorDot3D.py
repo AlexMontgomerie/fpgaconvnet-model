@@ -1,9 +1,10 @@
 import numpy as np
 import math
+import pydot
 import os
 from dataclasses import dataclass, field
 
-from fpgaconvnet.models.modules import int2bits, Module3D
+from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
@@ -108,6 +109,11 @@ class VectorDot3D(Module3D):
     '''
     FUNCTIONAL MODEL
     '''
+
+    def visualise(self, name):
+        return pydot.Node(name,label="vector_dot3d", shape="box",
+                          style="filled", fillcolor="gold",
+                          fontsize=MODULE_3D_FONTSIZE)
 
     def functional_model(self, data, weights):
         # check input dimensionality

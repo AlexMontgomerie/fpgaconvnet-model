@@ -87,7 +87,7 @@ class EltWise(Module):
         rsc = Module.rsc(self, coef)
 
         # add the bram estimation
-        rsc["BRAM18"] = channel_buffer_bram if self.broadcast else 0
+        rsc["BRAM"] = channel_buffer_bram if self.broadcast else 0
 
         # ensure zero DSPs
         rsc["DSP"] = 0 if self.eltwise_type == "add" else 1

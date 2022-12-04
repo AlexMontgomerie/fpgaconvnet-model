@@ -52,8 +52,8 @@ class ConvolutionLayer3D(Layer3D):
             output_t: FixedPoint = FixedPoint(16,8),
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
-            has_bias: int = 0, # default to no bias3d for old configs
-            backend: str = "chisel", # default to no bias3d for old configs
+            has_bias: int = 0, # default to no bias for old configs
+            backend: str = "chisel", # default to no bias for old configs
         ):
 
         # initialise parent class
@@ -66,7 +66,7 @@ class ConvolutionLayer3D(Layer3D):
         self.weight_t = weight_t
         self.acc_t = acc_t
 
-        # save bias3d flag
+        # save bias flag
         self.has_bias = has_bias
 
         # init variables
@@ -95,7 +95,7 @@ class ConvolutionLayer3D(Layer3D):
 
         if self.backend == "hls":
 
-            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size, self.coarse_out, backend=self.backend)
+            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_rows, self.kernel_cols, self.kernel_depth, self.coarse_out, backend=self.backend)
 
             self.modules["conv3d"] = Conv3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.kernel_rows, self.kernel_cols, self.kernel_depth, backend=self.backend)
 
@@ -573,27 +573,26 @@ class ConvolutionLayer3D(Layer3D):
                     int(weight_memory_depth), self.weight_t.width*self.fine) * \
                 self.coarse_in*self.coarse_out*self.coarse_group
 
-        # bias3d usage FIXME depth, FIXME bram usage
+        # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)
         biases_bram_usage = bram_memory_resource_model(
                     int(bias_memory_depth),self.acc_t.width) * self.coarse_out
 
-        # add weights and bias3d to resources
+        # add weights and bias to resources
         rsc["BRAM"] += weights_bram_usage + biases_bram_usage
 
         # return total resource
         return rsc
 
     def visualise(self, name):
-        pass
-        """
         cluster = pydot.Cluster(name, label=name,
                 style="dashed", bgcolor="lightpink")
 
         # names
         slwin_name = [[""]*self.coarse_in]*self.coarse_group
         fork_name = [[""]*self.coarse_in]*self.coarse_group
-        conv_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
+        # conv_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
+        vector_dot_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
         accum_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
         glue_name = [[""]*self.coarse_out]*self.coarse_group
         bias_name = [[""]*self.coarse_out]*self.coarse_group
@@ -601,7 +600,7 @@ class ConvolutionLayer3D(Layer3D):
         for g in range(self.coarse_group):
             for i in range(self.coarse_in):
                 # define names
-                slwin_name[g][i] = "_".join([name, "sw", str(g), str(i)])
+                slwin_name[g][i] = "_".join([name, "sw3d", str(g), str(i)])
                 fork_name[g][i] = "_".join([name, "fork3d", str(g), str(i)])
                 # add nodes
                 cluster.add_node(self.modules["sliding_window3d"].visualise(slwin_name[g][i]))
@@ -612,18 +611,22 @@ class ConvolutionLayer3D(Layer3D):
                 # iterate over coarse out
                 for j in range(self.coarse_out):
                     # define names
-                    conv_name[g][j][i] = "_".join([name, "conv", str(g), str(j), str(i)])
+                    # conv_name[g][j][i] = "_".join([name, "conv3d", str(g), str(j), str(i)])
+                    vector_dot_name[g][j][i] = "_".join([name, "vector_dot3d", str(g), str(j), str(i)])
                     accum_name[g][j][i] = "_".join([name, "accum3d", str(g), str(j), str(i)])
                     glue_name[g][j] = "_".join([name, "glue3d", str(g), str(j)])
                     bias_name[g][j] = "_".join([name, "bias3d", str(g), str(j)])
 
                     # add nodes
-                    cluster.add_node(self.modules["conv"].visualise(conv_name[g][j][i]))
+                    # cluster.add_node(self.modules["conv3d"].visualise(conv_name[g][j][i]))
+                    cluster.add_node(self.modules["vector_dot3d"].visualise(vector_dot_name[g][j][i]))
                     cluster.add_node(self.modules["accum3d"].visualise(accum_name[g][j][i]))
 
                     # add edges
-                    cluster.add_edge(pydot.Edge(fork_name[g][i], conv_name[g][j][i]))
-                    cluster.add_edge(pydot.Edge(conv_name[g][j][i], accum_name[g][j][i]))
+                    # cluster.add_edge(pydot.Edge(fork_name[g][i], conv_name[g][j][i]))
+                    cluster.add_edge(pydot.Edge(fork_name[g][i], vector_dot_name[g][j][i]))
+                    # cluster.add_edge(pydot.Edge(conv_name[g][j][i], accum_name[g][j][i]))
+                    cluster.add_edge(pydot.Edge(vector_dot_name[g][j][i], accum_name[g][j][i]))
                     cluster.add_edge(pydot.Edge(accum_name[g][j][i], glue_name[g][j]))
 
         for g in range(self.coarse_group):
@@ -638,7 +641,6 @@ class ConvolutionLayer3D(Layer3D):
 
 
         return cluster, np.array(slwin_name).flatten().tolist(), np.array(bias_name).flatten().tolist()
-        """
 
     def functional_model(self,data,weights,bias,batch_size=1):
 
