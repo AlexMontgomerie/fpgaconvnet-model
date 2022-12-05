@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import copy
 import sys
 import importlib
@@ -16,10 +14,10 @@ import onnxoptimizer as optimizer
 import pydot
 import numpy as np
 
-# from fpgaconvnet.models.partition import Partition
-# from fpgaconvnet.models.network import Network
-from ..models.partition.Partition import Partition
-from ..models.network.Network import Network
+from fpgaconvnet.models.partition import Partition
+from fpgaconvnet.models.network import Network
+# from ..models.partition.Partition import Partition
+# from ..models.network.Network import Network
 
 
 import fpgaconvnet.tools.graphs as graphs
@@ -30,8 +28,9 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-from fpgaconvnet.parser.onnx.parse import *
-from fpgaconvnet.parser.prototxt.parse import *
+
+from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
+from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
 
 from fpgaconvnet.parser.quant import quantise
 
@@ -63,10 +62,12 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
+            "convert_to_version_14",
             "fuse_mul_add_into_bn",
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
+            "fuse_mul_sigmoid_into_hardswish",
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
@@ -84,7 +85,7 @@ class Parser:
         ]
 
         # minimum supported opset version
-        self.onnx_opset_version = 12
+        self.onnx_opset_version = 14
 
     def optimize_onnx(self, model, passes):
         model_opt = model
@@ -96,6 +97,8 @@ class Parser:
 
         # load onnx model
         model = onnx.load(onnx_filepath)
+        input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
+        dimensionality = len(input_shape) - 2
 
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
@@ -105,9 +108,6 @@ class Parser:
 
         # validate model
         onnx.checker.check_model(model_opt)
-
-        # # check opset version
-        # assert model.opset_import.version >= self.opset_version, f"ONNX Operator version {model.opset_import.version} not supported!"
 
         # remove doc strings
         onnx.helper.strip_doc_string(model_opt)
@@ -134,18 +134,20 @@ class Parser:
         # check optimized model
         onnx.checker.check_model(model_opt)
 
-        return model_opt
+        return model_opt, dimensionality
 
-    def get_hardware_from_onnx_node(self, graph, node):
+    def get_hardware_from_onnx_node(self, graph, node, dimensionality):
 
         # register converters
         converter = {
             LAYER_TYPE.Convolution: ParseOnnxConvNode,
             LAYER_TYPE.InnerProduct: ParseOnnxInnerProductNode,
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
-            LAYER_TYPE.AveragePooling: ParseOnnxAveragePoolingNode,
+            LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.SiLU: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -154,7 +156,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, backend=self.backend)
+            return converter[node_type](graph, node, dimensionality, backend=self.backend)
         except KeyError:
             raise TypeError(f"{node.op_type} not supported, exiting now")
 
@@ -175,10 +177,13 @@ class Parser:
         # return model and quantisation
         return model_opt, quant_format
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
 
         # load the onnx model
-        onnx_model = self.load_onnx_model(onnx_filepath)
+        onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
+        if save_opt_model:
+            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
+            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)
@@ -191,7 +196,7 @@ class Parser:
 
             # get the hardware for the node
             hardware = self.get_hardware_from_onnx_node(
-                    onnx_model.graph, node)
+                    onnx_model.graph, node, dimensionality)
 
             # add node to graph
             graph.add_node(hardware.name,
@@ -201,11 +206,14 @@ class Parser:
             for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
 
+        # remove NOP nodes from the graph
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+
         # apply quantisation to the graph
         quantise(graph, quant_format)
 
         # return the graph
-        return Network("from_onnx", onnx_model, graph)
+        return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
     def get_hardware_from_prototxt_node(self, node):
 
@@ -214,7 +222,7 @@ class Parser:
             LAYER_TYPE.Convolution: ParsePrototxtConvNode,
             LAYER_TYPE.InnerProduct: ParsePrototxtInnerProductNode,
             LAYER_TYPE.Pooling: ParsePrototxtPoolingNode,
-            LAYER_TYPE.AveragePooling: ParsePrototxtAveragePoolingNode,
+            LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParsePrototxtEltWiseNode,
             LAYER_TYPE.ReLU: ParsePrototxtReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
@@ -269,9 +277,53 @@ class Parser:
         # return updated network
         return net
 
+    def remove_node_by_type(self, graph, layer_type):
+        # get input and output graphs
+        input_node  = graphs.get_input_nodes(graph)[0]
+        output_node = graphs.get_output_nodes(graph)[0]
+        # remove input squeeze module
+        if input_node in graph.nodes:
+            if graph.nodes[input_node]['type'] == layer_type:
+                graph.remove_node(input_node)
+        # remove output squeeze module
+        if output_node in graph.nodes:
+            if graph.nodes[output_node]['type'] == layer_type:
+                graph.remove_node(output_node)
+        # remove intermediate squeeze modules
+        remove_nodes = []
+        for node in graph.nodes():
+            if graph.nodes[node]['type'] == layer_type:
+                # add squeeze nodes to list
+                remove_nodes.append(node)
+                # place edge back
+                prev_node = graphs.get_prev_nodes(graph,node)[0]
+                next_node = graphs.get_next_nodes(graph,node)[0]
+                graph.add_edge(prev_node,next_node)
+        # remove squeeze nodes
+        graph.remove_nodes_from(remove_nodes)
+        # return the graph
+        return graph
+
 if __name__ == "__main__":
 
     p = Parser()
+
+    models = ["c3d", "r2plus1d", "slowonly", "x3d_m"]
+    model_name = models[1]
+
+    print(f" - parsing {model_name}")
+    net = p.onnx_to_fpgaconvnet(f"tests/models/{model_name}.onnx")
+
+    # print performance and resource estimates
+    print(f"predicted latency (us): {net.get_latency()*1000000}")
+    print(f"predicted throughput (img/s): {net.get_throughput()} (batch size={net.batch_size})")
+    print(f"predicted resource usage: {net.partitions[0].get_resource_usage()}")
+
+    # visualise the network configuration
+    # net.visualise("image-path.png", mode="png")
+
+    # export out the configuration
+    # net.save_all_partitions("config-path.json")
 
     # print("parsing alexnet")
     # p.onnx_to_fpgaconvnet("../samo/models/alexnet.onnx")
@@ -285,8 +337,8 @@ if __name__ == "__main__":
     # p.onnx_to_fpgaconvnet(f"models/from_keras/sfc.onnx")
     # print(f" - parsing vgg11")
     # p.onnx_to_fpgaconvnet(f"models/from_keras/vgg11.onnx")
-    print(f" - parsing resnet18")
-    net = p.onnx_to_fpgaconvnet(f"models/from_keras/lenet.onnx")
+    # print(f" - parsing resnet18")
+    # net = p.onnx_to_fpgaconvnet(f"models/from_keras/lenet.onnx")
 
     # for model in os.listdir("models/from_keras/"):
     #     print(f" - parsing {model}")
@@ -303,7 +355,7 @@ if __name__ == "__main__":
     #     print(f" - parsing {model}")
     #     p.onnx_to_fpgaconvnet(f"models/from_pytorch/{model}")
 
-    print("ONNX model zoo models:")
+    # print("ONNX model zoo models:")
     # print(f" - parsing vgg16")
     # p.onnx_to_fpgaconvnet(f"models/from_onnx_model_zoo/vgg16-12.onnx")
     # print(f" - parsing mobilenetv2")

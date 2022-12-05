@@ -7,6 +7,7 @@ import copy
 import math
 import numpy as np
 import networkx as nx
+import matplotlib.pyplot as plt
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
@@ -27,8 +28,10 @@ from fpgaconvnet.platform import Platform
 
 class Network():
 
-    def __init__(self, name, model, graph, batch_size=1, freq=125,
+    def __init__(self, name, model, graph, dimensionality=2, batch_size=1, freq=125,
             rsc_allocation=1.0, backend="hls"):
+        # network dimensionality
+        self.dimensionality = dimensionality
 
         # empty transforms configuration
         self.transforms_config = {}
@@ -49,10 +52,6 @@ class Network():
         # node and edge lists
         self.node_list = list(self.graph.nodes())
         self.edge_list = list(self.graph.edges())
-
-        # matrices
-        self.connections_matrix = matrix.get_connections_matrix(self.graph)
-        self.workload_matrix    = matrix.get_workload_matrix(self.graph)
 
         # partitions
         self.partitions = [ Partition(copy.deepcopy(self.graph)) ]
@@ -81,8 +80,8 @@ class Network():
     from fpgaconvnet.models.network.update import update_partitions
     from fpgaconvnet.models.network.update import update_coarse_in_out_partition
 
-    from fpgaconvnet.models.network.represent import get_model_input_node
-    from fpgaconvnet.models.network.represent import get_model_output_node
+    from fpgaconvnet.models.network.represent import get_model_input_nodes
+    from fpgaconvnet.models.network.represent import get_model_output_nodes
     from fpgaconvnet.models.network.represent import get_stream_in_coarse
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in
@@ -95,6 +94,9 @@ class Network():
     from fpgaconvnet.models.network.validate import check_streams
     from fpgaconvnet.models.network.validate import check_partitions
     from fpgaconvnet.models.network.validate import check_memory_bandwidth
+
+    from fpgaconvnet.models.network.visualise import plot_latency_per_layer
+    from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
 
     def get_memory_usage_estimate(self):
 

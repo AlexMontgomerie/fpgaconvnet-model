@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 
 RSC_TYPES = ["FF","LUT","DSP","BRAM"]
 
+SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+
 @dataclass
 class Module3D:
     """
@@ -51,6 +53,49 @@ class Module3D:
     data_width: int = field(default=16, init=False)
     rsc_coef: dict = field(default_factory=lambda: {"FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
 
+    def __post_init__(self):
+
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
+
+    def utilisation_model(self):
+        raise ValueError(f"{self.backend} backend not supported")
+
+    def rsc(self, coef=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
+
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
+
+        # get the utilisation_model
+        util_model = self.utilisation_model()
+
+        # return the linear model estimation
+        rsc = { rsc_type: int(np.dot(util_model[rsc_type],
+            coef[rsc_type])) for rsc_type in coef.keys()}
+
+        if self.backend == "chisel":
+            # update the resources for sum of LUT and BRAM types
+            rsc["LUT"] = rsc["Logic_LUT"] + rsc["LUT_RAM"] + rsc["LUT_SR"]
+            rsc["BRAM"] = 2*rsc["BRAM36"] + rsc["BRAM18"]
+
+        # return updated resources
+        return rsc
+
     def module_info(self):
         """
         creates a dictionary containing information and
@@ -66,21 +111,6 @@ class Module3D:
             'cols_out'      : self.cols_out(),
             'depth_out'     : self.depth_out(),
             'channels_out'  : self.channels_out()
-        }
-
-    def utilisation_model(self):
-        """
-        Returns
-        -------
-        dict
-            utilisation of resources model. Defaults
-            to zero resources.
-        """
-        return {
-            "LUT"  : np.array([0]),
-            "DSP"  : np.array([0]),
-            "BRAM" : np.array([0]),
-            "FF"   : np.array([0]),
         }
 
     def rows_in(self):
@@ -191,7 +221,7 @@ class Module3D:
             the two.
         """
         latency_in  = int((self.rows_in() * self.cols_in() * self.depth_in() * self.channels_in() )/self.rate_in() )
-        latency_out = int((self.rows_out()* self.cols_out() * self.depth_out * self.channels_out())/self.rate_out())
+        latency_out = int((self.rows_out()* self.cols_out() * self.depth_out() * self.channels_out())/self.rate_out())
         return max(latency_in,latency_out)
 
     def pipeline_depth(self):
@@ -206,35 +236,16 @@ class Module3D:
         """
         return 0
 
-    def int2bits(self, n):
-        """
-        helper function to get number of bits for integer
-        """
-        return math.ceil(math.log(n, 2))
-
-    def rsc(self, coef=None):
+    def memory_usage(self):
         """
         Returns
         -------
-        dict
-            estimated resource usage of the module. Uses the
-            resource coefficients for the estimate.
+        int
+            number of memory bits required by the module.
+
+            default is 0.
         """
-
-        # get the utilisation model
-        utilisation_model = self.utilisation_model()
-
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-
-        # return the linear model estimation
-        return {
-          "LUT"  : int(np.dot(utilisation_model["LUT"], coef["LUT"])),
-          "BRAM" : int(np.dot(utilisation_model["BRAM"], coef["BRAM"])),
-          "DSP"  : int(np.dot(utilisation_model["DSP"], coef["DSP"])),
-          "FF"   : int(np.dot(utilisation_model["FF"], coef["FF"])),
-        }
+        return 0
 
     def functional_model(self,data):
         """

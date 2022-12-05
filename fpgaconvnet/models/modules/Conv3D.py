@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
@@ -36,6 +36,8 @@ class Conv3D(Module3D):
         row dimension of input featuremap
     cols: int
         column dimension of input featuremap
+    depth: int
+        depth dimension of input featuremap
     channels: int
         channel dimension of input featuremap
     data_width: int
@@ -48,74 +50,74 @@ class Conv3D(Module3D):
 
     filters: int
     fine: int
-    kernel_size: Union[List[int], int]
+    # kernel_size: Union[List[int], int]
+    kernel_rows: int
+    kernel_cols: int
+    kernel_depth: int
     groups: int
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=16, init=False)
+    backend: str = "hls"
 
     def __post_init__(self):
-        pass
-        # format kernel size as a 2 element list
-        if isinstance(self.kernel_size, int):
-            self.kernel_size = [self.kernel_size, self.kernel_size]
-        elif isinstance(self.kernel_size, list):
-            assert len(self.kernel_size) == 2, "Must specify two kernel dimensions"
-        else:
-            raise TypeError
 
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/conv_dsp.npy"))
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-    def utilisation_model(self):
-        pass
-        return {
-            "LUT"  : np.array([math.log(self.filters,2),math.log(self.cols*self.rows,2),math.log(self.channels,2)]),
-            "FF"   : np.array([math.log(self.filters,2),math.log(self.cols*self.rows,2),math.log(self.channels,2)]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
-        }
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def channels_out(self):
-        pass
         return int(self.filters/float(self.groups))
 
     def rate_in(self):
-        pass
-        return self.fine*self.groups/float(self.kernel_size[0]*self.kernel_size[1]*self.filters)
+        return self.fine*self.groups/float(self.kernel_rows*self.kernel_cols*self.kernel_depth*self.filters)
 
     def rate_out(self):
-        pass
-        return self.fine/float(self.kernel_size[0]*self.kernel_size[1])
+        return self.fine/float(self.kernel_rows*self.kernel_cols*self.kernel_depth)
 
     def pipeline_depth(self):
-        pass
         return self.fine
 
     def module_info(self):
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
         info["filters"] = self.filters
-        info["kernel_size"] = self.kernel_size
+        # info["kernel_size"] = self.kernel_size
+        info["kernel_rows"] = self.kernel_rows
+        info["kernel_cols"] = self.kernel_cols
+        info["kernel_depth"] = self.kernel_depth
         info["groups"] = self.groups
         info["fine"] = self.fine
         # return the info
         return info
 
+    def utilisation_model(self):
+        if self.backend == "hls":
+            return {
+                "LUT"  : np.array([
+                    int2bits(self.filters),
+                    int2bits(self.cols*self.rows*self.depth),
+                    int2bits(self.channels)
+                ]),
+                "FF"   : np.array([
+                    int2bits(self.filters),
+                    int2bits(self.cols*self.rows*self.depth),
+                    int2bits(self.channels)
+                ]),
+                "DSP"  : np.array([0]),
+                "BRAM" : np.array([0])
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
     def rsc(self,coef=None):
-        pass
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -131,10 +133,10 @@ class Conv3D(Module3D):
         return rsc
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="conv", shape="box",
-                height=self.kernel_size[0],
-                width=self.kernel_size[1],
+        return pydot.Node(name,label="conv3d", shape="box",
+                height=self.kernel_rows,
+                width=self.kernel_cols,
+                depth=self.kernel_depth,
                 style="filled", fillcolor="gold",
                 fontsize=MODULE_3D_FONTSIZE)
 
@@ -143,16 +145,16 @@ class Conv3D(Module3D):
         assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
         assert data.shape[2] == self.depth    , "ERROR: invalid depth dimension"
-        assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
-        assert data.shape[4] == self.kernel_size[0]  , "ERROR: invalid kernel row dimension"
-        assert data.shape[5] == self.kernel_size[1]  , "ERROR: invalid kernel column dimension"
-        assert data.shape[6] == self.kernel_size[2]  , "ERROR: invalid kernel depth dimension"
+        assert data.shape[3] == self.channels   , "ERROR: invalid channel dimension"
+        assert data.shape[4] == self.kernel_rows  , "ERROR: invalid kernel row dimension"
+        assert data.shape[5] == self.kernel_cols  , "ERROR: invalid kernel column dimension"
+        assert data.shape[6] == self.kernel_depth  , "ERROR: invalid kernel depth dimension"
         # check weight dimensionality
         assert weights.shape[0] == self.channels, "ERROR: invalid channel dimension"
         assert weights.shape[1] == int(self.filters/float(self.groups)) , "ERROR: invalid filter dimension"
-        assert weights.shape[2] == self.kernel_size[0]  , "ERROR: invalid kernel row dimension"
-        assert weights.shape[3] == self.kernel_size[1]  , "ERROR: invalid kernel column dimension"
-        assert weights.shape[4] == self.kernel_size[2]  , "ERROR: invalid kernel depth dimension"
+        assert weights.shape[2] == self.kernel_rows  , "ERROR: invalid kernel row dimension"
+        assert weights.shape[3] == self.kernel_cols  , "ERROR: invalid kernel column dimension"
+        assert weights.shape[4] == self.kernel_depth  , "ERROR: invalid kernel depth dimension"
 
         out = np.zeros((
             self.rows,
@@ -163,9 +165,9 @@ class Conv3D(Module3D):
         ),dtype=float)
 
         for index,_ in np.ndenumerate(out):
-            for k1 in range(self.kernel_size[0]):
-                for k2 in range(self.kernel_size[1]):
-                    for k3 in range(self.kernel_size[2]):
+            for k1 in range(self.kernel_rows):
+                for k2 in range(self.kernel_cols):
+                    for k3 in range(self.kernel_depth):
                         out[index] += data[
                         index[0],index[1],index[2],index[3],k1,k2,k3]*weights[
                         index[2],index[3],index[4],k1,k2,k3]

@@ -1,0 +1,16 @@
+{
+    "type": "POOL",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 3,
+    "pool_type": "max",
+    "kernel_rows": 3,
+    "kernel_cols": 3,
+    "kernel_depth": 3,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 3,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: inception_3a/pool, net name: googlenet.prototxt"
+}

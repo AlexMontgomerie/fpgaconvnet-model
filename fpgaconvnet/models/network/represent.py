@@ -13,46 +13,52 @@ import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.models.layers import Layer, MultiPortLayer
+from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
 
-def get_model_input_node(self, i):
+def get_model_input_nodes(self, i):
     input_node = self.partitions[i].input_nodes[0]
     onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
     while not onnx_helper.get_model_node(self.model, onnx_input_node):
         input_node = graphs.get_next_nodes(
                 self.partitions[i].graph,input_node)[0]
         onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_input_node).input[0]
+    return onnx_helper.get_model_node(self.model, onnx_input_node).input
 
-def get_model_output_node(self, i):
+def get_model_output_nodes(self, i):
     output_node = self.partitions[i].output_nodes[0]
     onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
     while not onnx_helper.get_model_node(self.model, onnx_output_node):
         output_node = graphs.get_prev_nodes(
                 self.partitions[i].graph,output_node)[0]
         onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_output_node).output[0]
+    return onnx_helper.get_model_node(self.model, onnx_output_node).output
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
-        return node_hw.coarse_in
-    elif node_base_type == MultiPortLayer:
-        return node_hw.coarse_in[index]
+    if node_base_type in [ Layer, Layer3D ]:
+        return node_hw.streams_in()
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
+        return node_hw.streams_in(index)
+    else:
+        raise NotImplementedError(f"base type {node_base_type}")
 
 def get_stream_out_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
-        return node_hw.coarse_out
-    elif node_base_type == MultiPortLayer:
-        return node_hw.coarse_out[index]
+    if node_base_type in [ Layer, Layer3D ]:
+        return node_hw.streams_out()
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
+        return node_hw.streams_out(index)
+    else:
+        raise NotImplementedError
 
 def get_buffer_depth_in(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
-    if node_base_type == Layer:
+    if node_base_type in [ Layer, Layer3D ]:
         return node_hw.buffer_depth
-    elif node_base_type == MultiPortLayer:
+    elif node_base_type in [ MultiPortLayer, MultiPortLayer3D ]:
         return node_hw.buffer_depth[index]
+    else:
+        raise NotImplementedError
 
 def save_all_partitions(self, filepath, input_output_from_model=True):
 
@@ -69,8 +75,8 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
         partition.id = i
         partition.ports = 1 # TODO
         if input_output_from_model:
-            partition.input_node  = self.get_model_input_node(i)
-            partition.output_node = self.get_model_output_node(i)
+            partition.input_nodes.extend(self.get_model_input_nodes(i))
+            partition.output_nodes.extend(self.get_model_output_nodes(i))
         else:
             partition.input_node  = self.partitions[i].input_nodes[0]
             partition.output_node = self.partitions[i].output_nodes[0]

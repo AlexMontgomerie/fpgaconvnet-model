@@ -1,0 +1,13 @@
+{
+    "rows": 28,
+    "cols": 28,
+    "depth": 16,
+    "channels": 8,
+    "rows_out": 28,
+    "cols_out": 28,
+    "depth_out": 16,
+    "channels_out": 8,
+    "batch_size": 1,
+    "coarse": 4,
+    "description": "module name: relu, layer name: inception_3b/relu_5x5_reduce, net name: googlenet.prototxt"
+}

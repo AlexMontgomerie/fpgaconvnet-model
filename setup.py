@@ -35,10 +35,13 @@ setuptools.setup(
         "onnxoptimizer==0.3.0",
         "ddt>=1.4.2",
         "sklearn",
+        "toml",
         "matplotlib",
         "coverage==5.5",
         "onnxsim>=0.4.8",
         "fpbinary>=1.5.3",
-        "pyparsing<3"
+        "pyparsing<3",
+        "tqdm",
+        "pymongo",
     ]
 )

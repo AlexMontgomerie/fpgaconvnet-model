@@ -1,0 +1,20 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 55,
+    "cols"        : 55,
+    "depth"       : 16,
+    "channels"    : 8,
+    "pad_top"     : 0,
+    "pad_right"   : 0,
+    "pad_front"   : 0,
+    "pad_bottom"  : 0,
+    "pad_left"    : 0,
+    "pad_back"    : 0,
+    "stride_rows" : 2,
+    "stride_cols" : 2,
+    "stride_depth": 2,
+    "kernel_rows" : 3,
+    "kernel_cols" : 3,
+    "kernel_depth": 3,
+    "description" : "alexnet (pool1)"
+}

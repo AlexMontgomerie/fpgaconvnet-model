@@ -6,7 +6,7 @@ import onnxruntime
 import onnx.numpy_helper
 import numpy as np
 
-from .onnx_model_utils import *
+from fpgaconvnet.parser.onnx.onnx_model_utils import make_dim_param_fixed, make_input_shape_fixed, fix_output_shapes
 
 onnxruntime.set_default_logger_severity(3)
 
@@ -134,8 +134,8 @@ def add_input_from_initializer(model : onnx.ModelProto):
 def update_batch_size(model, batch_size):
     # get the input shape
     input_shape = get_input_shape(model, model.graph.input[0].name)
-    batch_size_param = model.graph.input[0].type.tensor_type.shape.dim[0].dim_param
-    if model.graph.input[0].type.tensor_type.shape.dim[0].dim_param == "":
+    batch_size_param = model.graph.input[0].type.tensor_type.shape.dim[0]
+    if model.graph.input[0].type.tensor_type.shape.dim[0] == "":
         print(f"CRITICAL WARNING: batch size dimension already fixed to {input_shape[0]}")
         return model
     # new_input_shape = [batch_size, *input_shape[1:]]
@@ -196,7 +196,7 @@ def format_attr(attribute):
 def format_onnx_name(node):
     # get baseline name
     # name = node.output[0].rstrip(":0").rstrip("_Y")
-    name = node.name.rstrip(":0").rstrip("_Y")
+    name = node.name #.rstrip(":0").rstrip("_Y")
     # replace all invalid characters in the layer name
     invalid_char = "/: -;"
     for c in invalid_char:

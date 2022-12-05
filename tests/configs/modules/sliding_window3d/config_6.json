@@ -1,0 +1,20 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 56,
+    "cols"        : 56,
+    "depth"       : 8,
+    "channels"    : 64,
+    "pad_top"     : 1,
+    "pad_right"   : 1,
+    "pad_front"   : 1,
+    "pad_bottom"  : 1,
+    "pad_left"    : 1,
+    "pad_back"    : 1,
+    "stride_rows" : 1,
+    "stride_cols" : 1,
+    "stride_depth": 1,
+    "kernel_rows" : 3,
+    "kernel_cols" : 3,
+    "kernel_depth": 3,
+    "description" : "resnet (first branch)"
+}

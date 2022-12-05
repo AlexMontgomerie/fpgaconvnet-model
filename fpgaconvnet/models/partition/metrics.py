@@ -54,12 +54,13 @@ def get_latency(self, frequency):
     interval = self.get_interval()
     # get pipeline depth of partition
     input_node = graphs.get_input_nodes(self.graph)[0]
-    pipeline_depth = self.get_pipeline_depth(input_node) # TODO: find max of all input nodes
+    # pipeline_depth = self.get_pipeline_depth(input_node) # TODO: find max of all input nodes
     # return the latency (in seconds)
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
     size_wr     = self.size_wr
-    return ( (interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr )/(frequency*1000000)
+    # return ( (interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr )/(frequency*1000000)
+    return ( (interval*batch_size)*wr_factor + (wr_factor-1)*size_wr )/(frequency*1000000)
 
 def get_bandwidth_in(self,freq):
     # get the interval for the partition

@@ -13,19 +13,20 @@ class LAYER_TYPE(Enum):
     ReLU         =18
     Sigmoid      =19
     Softmax      =20
+    Split        =22
     EltWise      =25
     # Not Enumerated
     BatchNorm = 40
     Scale     = 41
-    Split     = 42
-    Merge     = 43
-    Squeeze   = 44
-    Transpose = 45
-    Flatten   = 46
-    Cast      = 47
-    Clip      = 48
-    Shape     = 49
-    AveragePooling = 50
+    Merge     = 42
+    Squeeze   = 43
+    Transpose = 44
+    Flatten   = 45
+    Cast      = 46
+    Clip      = 47
+    Shape     = 48
+    GlobalPooling = 49
+    SiLU    = 50 # i.e. Swish
     Reshape = 51
     NOP     = 52
 
@@ -38,32 +39,34 @@ class LAYER_TYPE(Enum):
 
 def to_proto_layer_type(layer_type):
     layer_types = {
-        LAYER_TYPE.Convolution : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
-        LAYER_TYPE.InnerProduct : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
-        LAYER_TYPE.Pooling : fpgaconvnet_pb2.layer.layer_type.POOLING,
-        LAYER_TYPE.ReLU : fpgaconvnet_pb2.layer.layer_type.RELU,
-        LAYER_TYPE.Squeeze : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
-        LAYER_TYPE.Concat : fpgaconvnet_pb2.layer.layer_type.CONCAT,
-        LAYER_TYPE.BatchNorm : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
-        LAYER_TYPE.Split : fpgaconvnet_pb2.layer.layer_type.SPLIT,
-        LAYER_TYPE.AveragePooling : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
-        LAYER_TYPE.EltWise: fpgaconvnet_pb2.layer.layer_type.ELTWISE,
-        LAYER_TYPE.NOP : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
+        LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
+        LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
+        LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
+        LAYER_TYPE.GlobalPooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
+        LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.Squeeze          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
+        LAYER_TYPE.Concat           : fpgaconvnet_pb2.layer.layer_type.CONCAT,
+        LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
+        LAYER_TYPE.Split            : fpgaconvnet_pb2.layer.layer_type.SPLIT,
+        LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
+        LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
 def from_proto_layer_type(layer_type):
     layer_types = {
-        fpgaconvnet_pb2.layer.layer_type.CONVOLUTION : LAYER_TYPE.Convolution,
-        fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT : LAYER_TYPE.InnerProduct,
-        fpgaconvnet_pb2.layer.layer_type.POOLING : LAYER_TYPE.Pooling,
-        fpgaconvnet_pb2.layer.layer_type.RELU : LAYER_TYPE.ReLU,
-        fpgaconvnet_pb2.layer.layer_type.SQUEEZE : LAYER_TYPE.Squeeze,
-        fpgaconvnet_pb2.layer.layer_type.CONCAT : LAYER_TYPE.Concat,
-        fpgaconvnet_pb2.layer.layer_type.BATCH_NORM : LAYER_TYPE.BatchNorm,
-        fpgaconvnet_pb2.layer.layer_type.SPLIT : LAYER_TYPE.Split,
-        fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING : LAYER_TYPE.AveragePooling,
-        fpgaconvnet_pb2.layer.layer_type.ELTWISE: LAYER_TYPE.EltWise,
+        fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
+        fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
+        fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
+        fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,
+        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU],
+        fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
+        fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
+        fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
+        fpgaconvnet_pb2.layer.layer_type.SPLIT              : LAYER_TYPE.Split,
+        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -74,11 +77,11 @@ def from_onnx_op_type(op_type):
         "Gemm" : LAYER_TYPE.InnerProduct,
         "MatMul" : LAYER_TYPE.InnerProduct,
         "MaxPool" : LAYER_TYPE.Pooling,
-        "AveragePool" : LAYER_TYPE.AveragePooling,
+        "GlobalPool" : LAYER_TYPE.GlobalPooling,
         "BatchNormalization" : LAYER_TYPE.BatchNorm,
         "LRN" : LAYER_TYPE.LRN,
-        "GlobalAveragePool" : LAYER_TYPE.AveragePooling,
-        "GlobalMaxPool" : LAYER_TYPE.AveragePooling, # TODO
+        "GlobalAveragePool" : LAYER_TYPE.GlobalPooling,
+        "GlobalMaxPool" : LAYER_TYPE.GlobalPooling, # TODO
         # branching nodes
         "Add" : LAYER_TYPE.EltWise,
         "Mul" : LAYER_TYPE.EltWise,
@@ -87,6 +90,7 @@ def from_onnx_op_type(op_type):
         "Relu" : LAYER_TYPE.ReLU,
         "Clip" : LAYER_TYPE.ReLU, # TODO: implement clip properly
         "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
+        "HardSwish" : LAYER_TYPE.SiLU,
         "Softmax" : LAYER_TYPE.NOP, # TODO: move to CPU
         "Dropout" : LAYER_TYPE.Dropout,
         # shape operations

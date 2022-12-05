@@ -1,0 +1,12 @@
+{
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 1,
+    "rows_out": 28,
+    "cols_out": 28,
+    "depth_out": 8,
+    "filters": 1,
+    "fine": 4,
+    "batch_size": 1
+}

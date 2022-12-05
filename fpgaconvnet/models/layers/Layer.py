@@ -4,6 +4,7 @@
 
 import pydot
 import collections
+from typing import Union, List
 from google.protobuf.json_format import MessageToDict
 import numpy as np
 from dataclasses import dataclass, field
@@ -34,7 +35,7 @@ class Layer:
         number of parallel streams per port into the layer.
     coarse_out: int
         number of parallel streams per port out of the layer.
-    data_width: int
+    data_t: int
         bitwidth of featuremap pixels
     modules: dict
         dictionary of `fpgaconvnet_optimiser.models.Module`
@@ -250,6 +251,12 @@ class Layer:
             workload out per stream.
         """
         return self.rows_out() * self.cols_out() * int( self.channels_out() / self.streams_out() )
+
+    def shape_in(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_in(), self.cols_in(), self.channels_in() ]
+
+    def shape_out(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
     def width_in(self):
         """

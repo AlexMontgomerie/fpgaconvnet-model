@@ -1,0 +1,13 @@
+{
+    "buffer_depth": 2,
+    "rows": 1,
+    "cols": 1,
+    "depth": 1,
+    "channels": 500,
+    "filters": 10,
+    "coarse_in": 50,
+    "coarse_out": 2,
+    "batch_size": 1,
+    "has_bias": 1,
+    "description": "layer name: ip2, net name: lenet.prototxt"
+}

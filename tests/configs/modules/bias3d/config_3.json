@@ -1,0 +1,8 @@
+{
+    "rows": 128,
+    "cols": 128,
+    "depth": 16,
+    "channels": 56,
+    "filters": 56,
+    "biases_width": 16
+}

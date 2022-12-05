@@ -17,53 +17,34 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
-#from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 
 @dataclass
 class Bias3D(Module3D):
     filters: int
     biases_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def __post_init__(self):
-        pass
-        # load the resource model coefficients
-        #TODO add model coefs FOR BIAS - currently using conv to approx.
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/accum_dsp.npy"))
 
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
 
-
-    def utilisation_model(self):#TODO - copied from acum, FIXME
-        pass
-        return {
-            "LUT"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "FF"    : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "DSP"   : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-            "BRAM"  : np.array([self.filters,1,self.data_width,self.cols,self.rows,1]),
-        }
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def channels_in(self):
-        pass
         return self.filters
 
     def channels_out(self):
-        pass
         return self.filters
 
     def module_info(self):#TODO
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
@@ -73,25 +54,32 @@ class Bias3D(Module3D):
         # return the info
         return info
 
-    def rsc(self,coef=None):#TODO replace conv version of func
-        pass
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-        # get an estimate for the dsp usage
-        dot_product_dsp = dsp_multiplier_resource_model(self.biases_width, self.data_width)
-        # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
-        # update the dsp usage
-        rsc["DSP"] = dot_product_dsp
-        # set the BRAM usage to zero
-        rsc["BRAM"] = 0
-        # return the resource model
-        return rsc
+    def utilisation_model(self):
+
+        if self.backend == "hls":
+            return {
+                "LUT"   : np.array([1]),
+                "FF"    : np.array([1]),
+                "DSP"   : np.array([0]),
+                "BRAM"  : np.array([0]),
+            }
+
+        if self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([1]),
+                "LUT_RAM"   : np.array([1]),
+                "LUT_SR"    : np.array([1]),
+                "FF"        : np.array([1]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
 
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="bias", shape="box",
+        return pydot.Node(name,label="bias3d", shape="box",
                 style="filled", fillcolor="chartreuse",
                 fontsize=MODULE_3D_FONTSIZE)
 
@@ -100,7 +88,7 @@ class Bias3D(Module3D):
         # check input dimensionality
         assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.depth                   , "ERROR: invalid depth dimension"
+        assert data.shape[2] == self.depth                  , "ERROR: invalid depth dimension"
         assert data.shape[3] == self.filters                , "ERROR: invalid filter dimension"
         # check bias dimensionality
         assert biases.shape[0] == self.filters              , "ERROR: invalid filter dimension"

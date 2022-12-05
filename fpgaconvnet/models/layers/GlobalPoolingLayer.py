@@ -6,10 +6,10 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import AveragePool
+from fpgaconvnet.models.modules import GlobalPool
 from fpgaconvnet.models.layers import Layer
 
-class AveragePoolingLayer(Layer):
+class GlobalPoolingLayer(Layer):
 
     def __init__(
             self,
@@ -18,6 +18,7 @@ class AveragePoolingLayer(Layer):
             channels: int,
             coarse: int = 1,
             acc_t: FixedPoint = FixedPoint(32,16),
+            op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
         ):
 
@@ -38,7 +39,7 @@ class AveragePoolingLayer(Layer):
         self._coarse = coarse
 
         # init modules
-        self.modules["average_pool"] = AveragePool(
+        self.modules["global_pool"] = GlobalPool(
                 self.rows_in(), self.cols_in(),
                 self.channels_in()//self.coarse,
                 backend=self.backend)
@@ -91,15 +92,15 @@ class AveragePoolingLayer(Layer):
 
     def update(self):
         # pool
-        self.modules['average_pool'].rows     = self.rows_in()
-        self.modules['average_pool'].cols     = self.cols_in()
-        self.modules['average_pool'].channels = int(self.channels_in()/self.coarse)
-        self.modules['average_pool'].data_width = self.data_t.width
-        self.modules['average_pool'].acc_width = self.acc_t.width
+        self.modules['global_pool'].rows     = self.rows_in()
+        self.modules['global_pool'].cols     = self.cols_in()
+        self.modules['global_pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['global_pool'].data_width = self.data_t.width
+        self.modules['global_pool'].acc_width = self.acc_t.width
 
     def resource(self):
 
-        pool_rsc = self.modules['average_pool'].rsc()
+        pool_rsc = self.modules['global_pool'].rsc()
 
         # Total
         return {
@@ -119,9 +120,9 @@ class AveragePoolingLayer(Layer):
 
         for i in range(self.coarse):
             # define names
-            pool_name[i] = "_".join([name, "average_pool", str(i)])
+            pool_name[i] = "_".join([name, "global_pool", str(i)])
             # add nodes
-            cluster.add_node(self.modules["average_pool"].visualise(pool_name[i]))
+            cluster.add_node(self.modules["global_pool"].visualise(pool_name[i]))
 
         return cluster, np.array(pool_name).flatten().tolist(), np.array(pool_name).flatten().tolist()
 

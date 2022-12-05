@@ -1,0 +1,12 @@
+{
+    "type": "GLUE",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 16,
+    "filters": 64,
+    "coarse_in": 4,
+    "coarse_out": 4,
+    "batch_size": 1,
+    "description": "module name: glue, layer name: inception_3a/1x1, net name: googlenet.prototxt"
+}

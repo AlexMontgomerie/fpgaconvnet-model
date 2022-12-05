@@ -106,9 +106,14 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
             config["cols"],
             config["channels"],
             coarse=config["coarse"],
-            kernel_size=config["kernel_size"],
-            stride=config["stride"],
-            pad=config["pad"],
+            kernel_rows=config["kernel_size"][0],
+            kernel_cols=config["kernel_size"][1],
+            stride_rows=config["stride"][0],
+            stride_cols=config["stride"][1],
+            pad_top=config["pad"],
+            pad_left=config["pad"],
+            pad_bottom=config["pad"],
+            pad_right=config["pad"],
         )
 
         # run tests
@@ -162,10 +167,15 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
             config["channels"],
             coarse_in=config["coarse_in"],
             coarse_out=config["coarse_out"],
-            kernel_size=config["kernel_size"],
-            stride=config["stride"],
+            kernel_rows=config["kernel_size"][0],
+            kernel_cols=config["kernel_size"][1],
+            stride_rows=config["stride"][0],
+            stride_cols=config["stride"][1],
             groups=config["groups"],
-            pad=config["pad"],
+            pad_top=config["pad"],
+            pad_left=config["pad"],
+            pad_bottom=config["pad"],
+            pad_right=config["pad"],
             fine=config["fine"],
             has_bias=config["has_bias"]
         )

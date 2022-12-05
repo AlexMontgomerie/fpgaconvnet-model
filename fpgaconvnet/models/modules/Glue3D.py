@@ -13,54 +13,38 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 
 @dataclass
 class Glue3D(Module3D):
     filters: int
     coarse_in: int
     coarse_out: int
-    acc_width: int = field(default=16, init=False)
+    backend: str = "chisel"
 
     def __post_init__(self):
-        pass
-        # load the resource model coefficients
-        self.rsc_coef["LUT"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_lut.npy"))
-        self.rsc_coef["FF"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_ff.npy"))
-        self.rsc_coef["BRAM"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_bram.npy"))
-        self.rsc_coef["DSP"] = np.load(
-                os.path.join(os.path.dirname(__file__),
-                "../../coefficients/glue_dsp.npy"))
 
-    def utilisation_model(self):
-        pass
-        return {
-            "LUT"   : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "FF"    : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "DSP"   : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-            "BRAM"  : np.array([self.cols,self.rows,self.channels,self.data_width,self.acc_width,self.filters,self.coarse_in,self.coarse_out]),
-        }
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def channels_in(self):
-        pass
         return self.filters
 
     def channels_out(self):
-        pass
         return self.filters
 
     def get_latency(self):
-        pass
-        return self.rows *self.cols *self.filters / self.coarse_out
+        return self.rows * self.cols * self.depth * self.filters / self.coarse_out
 
     def module_info(self):
-        pass
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
@@ -70,9 +54,42 @@ class Glue3D(Module3D):
         # return the info
         return info
 
+    def utilisation_model(self):
+        if self.backend == "hls":
+            pass
+        elif self.backend == "chisel":
+            return {
+                "Logic_LUT" : np.array([
+                    self.data_width*self.coarse_in, # tree buffer
+                    self.data_width*int2bits(self.coarse_in), # tree buffer
+                    self.coarse_in, # input ready
+                    1,
+                ]),
+                "LUT_RAM" : np.array([
+                    self.data_width*(int2bits(self.coarse_in)+1), # tree buffer
+                    1,
+                ]),
+                "LUT_SR" : np.array([
+                    int2bits(self.coarse_in), # tree buffer valid
+                    1,
+                ]),
+                "FF" : np.array([
+                    self.data_width, # output buffer
+                    int2bits(self.coarse_in), # tree buffer valid
+                    int2bits(max(1,int2bits(self.coarse_in))), # tree buffer queue buffer
+                    # self.coarse_in, # ready signal
+                    self.data_width*(self.coarse_in + math.floor((self.coarse_in-5)/2)), # adder tree reg
+                    1,
+                ]),
+                "DSP"       : np.array([0]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
+            }
+        else:
+            raise ValueError(f"{self.backend} backend not supported")
+
     def visualise(self, name):
-        pass
-        return pydot.Node(name,label="glue", shape="box",
+        return pydot.Node(name,label="glue3d", shape="box",
                 style="filled", fillcolor="fuchsia",
                 fontsize=MODULE_3D_FONTSIZE)
 

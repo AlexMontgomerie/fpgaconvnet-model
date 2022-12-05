@@ -1,0 +1,13 @@
+{
+    "type": "SIGMOID",
+    "rows": 56,
+    "cols": 56,
+    "depth": 8,
+    "channels": 16,
+    "rows_out": 56,
+    "cols_out": 56,
+    "depth_out": 8,
+    "channels_out": 16,
+    "batch_size": 1,
+    "description": "module name: relu, layer name: res2a_relu, net name: resnet.prototxt"
+}

@@ -1,0 +1,16 @@
+{
+    "type": "POOL",
+    "rows": 6,
+    "cols": 6,
+    "depth": 4,
+    "channels": 1,
+    "pool_type": "max",
+    "kernel_rows": 1,
+    "kernel_cols": 1,
+    "kernel_depth": 3,
+    "rows_out": 6,
+    "cols_out": 6,
+    "channels_out": 1,
+    "batch_size": 1,
+    "description": "module name: pool, layer name: pool5, net name: alexnet.prototxt"
+}

@@ -1,0 +1,20 @@
+{
+    "batch_size"  : 1,
+    "rows"        : 28,
+    "cols"        : 28,
+    "depth"       : 8,
+    "channels"    : 1,
+    "pad_top"     : 0,
+    "pad_right"   : 0,
+    "pad_front"   : 0,
+    "pad_bottom"  : 0,
+    "pad_left"    : 0,
+    "pad_back"    : 0,
+    "stride_rows" : 1,
+    "stride_cols" : 1,
+    "stride_depth": 1,
+    "kernel_rows" : 5,
+    "kernel_cols" : 5,
+    "kernel_depth": 5,
+    "description" : "lenet (conv1)"
+}

@@ -1,0 +1,15 @@
+{
+    "type": "GLUE",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 512,
+    "filters": 512,
+    "coarse_in": 32,
+    "coarse_out": 32,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 512,
+    "batch_size": 1,
+    "description": "module name: glue, layer name: res3c_branch2c, net name: resnet.prototxt"
+}

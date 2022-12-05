@@ -1,0 +1,12 @@
+{
+    "rows": 1,
+    "cols": 1,
+    "depth": 1,
+    "channels": 4096,
+    "filters": 4096,
+    "coarse_in": 2,
+    "coarse_out": 512,
+    "batch_size": 1,
+    "has_bias": 1,
+    "description": "layer name: fc7, net name: alexnet.prototxt"
+}

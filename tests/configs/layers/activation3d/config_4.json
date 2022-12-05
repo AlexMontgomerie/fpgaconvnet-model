@@ -1,0 +1,18 @@
+{
+    "type": "RELU",
+    "rows": 28,
+    "cols": 28,
+    "depth": 8,
+    "channels": 64,
+    "coarse": 64,
+    "coarse_in": 64,
+    "coarse_out": 64,
+    "size_in": 50176,
+    "size_out": 50176,
+    "rows_out": 28,
+    "cols_out": 28,
+    "channels_out": 64,
+    "batch_size": 1,
+    "activation_type": "sigmoid",
+    "description": "layer name: inception_3a/relu_1x1, net name: googlenet.prototxt"
+}

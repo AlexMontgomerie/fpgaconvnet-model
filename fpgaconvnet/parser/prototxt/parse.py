@@ -3,14 +3,14 @@ import numpy as np
 import importlib
 
 from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import ConvolutionLayer
-from fpgaconvnet.models.layers import InnerProductLayer
-from fpgaconvnet.models.layers import PoolingLayer
-from fpgaconvnet.models.layers import ReLULayer
-from fpgaconvnet.models.layers import SqueezeLayer
-from fpgaconvnet.models.layers import AveragePoolingLayer
-from fpgaconvnet.models.layers import EltWiseLayer
-from fpgaconvnet.models.layers import SplitLayer
+from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
+from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
+from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
+from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
+from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
+from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
+from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
+from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -19,7 +19,9 @@ import fpgaconvnet.tools.layer_enum as layer_enum
 
 class ParsePrototxtNode:
 
-    def __init__(self, n, backend="hls"):
+    def __init__(self, n, dimensionality=2, backend="hls"):
+
+        self.dimensionality = dimensionality
 
         # save node
         self.node = n
@@ -92,26 +94,57 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
     def get_hardware(self):
 
         # return hardware
-        return ConvolutionLayer(
-            self.node.parameters.channels_out,
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            kernel_size =list(self.node.parameters.kernel_size),
-            stride      =list(self.node.parameters.stride),
-            pad         = [
-                self.node.parameters.pad_top,
-                self.node.parameters.pad_right,
-                self.node.parameters.pad_bottom,
-                self.node.parameters.pad_left],
-            groups      =self.node.parameters.groups,
-            fine        =self.node.parameters.fine,
-            coarse_in   =self.node.parameters.coarse_in,
-            coarse_out  =self.node.parameters.coarse_out,
-            coarse_group=self.node.parameters.coarse_group,
-            has_bias    =self.node.parameters.has_bias,
-            backend =self.backend,
-        )
+        if self.dimensionality == 2:
+            return ConvolutionLayer(
+                self.node.parameters.channels_out,
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                kernel_rows =self.node.parameters.kernel_rows,
+                kernel_cols =self.node.parameters.kernel_cols,
+                stride_rows =self.node.parameters.stride_rows,
+                stride_cols =self.node.parameters.stride_cols,
+                pad_top     =self.node.parameters.pad_top,
+                pad_bottom  =self.node.parameters.pad_bottom,
+                pad_left    =self.node.parameters.pad_left,
+                pad_right   =self.node.parameters.pad_right,
+                groups      =self.node.parameters.groups,
+                fine        =self.node.parameters.fine,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                coarse_group=self.node.parameters.coarse_group,
+                has_bias    =self.node.parameters.has_bias,
+                backend =self.backend,
+            )
+        elif self.dimensionality == 3:
+            return ConvolutionLayer3D(
+                self.node.parameters.channels_out,
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                kernel_rows =self.node.parameters.kernel_rows,
+                kernel_cols =self.node.parameters.kernel_cols,
+                kernel_depth=self.node.parameters.kernel_depth,
+                stride_rows =self.node.parameters.stride_rows,
+                stride_cols =self.node.parameters.stride_cols,
+                stride_depth=self.node.parameters.stride_depth,
+                pad_top     =self.node.parameters.pad_top,
+                pad_bottom  =self.node.parameters.pad_bottom,
+                pad_left    =self.node.parameters.pad_left,
+                pad_right   =self.node.parameters.pad_right,
+                pad_front   =self.node.parameters.pad_front,
+                pad_back    =self.node.parameters.pad_back,
+                groups      =self.node.parameters.groups,
+                fine        =self.node.parameters.fine,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                coarse_group=self.node.parameters.coarse_group,
+                has_bias    =self.node.parameters.has_bias,
+                backend =self.backend,
+            )
+        else:
+            raise NotImplementedError
 
     def get_node_info(self):
         node_info = ParsePrototxtNode.get_node_info(self)
@@ -126,16 +159,31 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
     def get_hardware(self):
 
         # return hardware
-        return InnerProductLayer(
-            self.node.parameters.channels_out,
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            coarse_in   =self.node.parameters.coarse_in,
-            coarse_out  =self.node.parameters.coarse_out,
-            has_bias    =self.node.parameters.has_bias,
-            backend =self.backend,
-        )
+        if self.dimensionality == 2:
+            return InnerProductLayer(
+                self.node.parameters.channels_out,
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                has_bias    =self.node.parameters.has_bias,
+                backend =self.backend,
+            )
+        elif self.dimensionality == 3:
+            return InnerProductLayer3D(
+                self.node.parameters.channels_out,
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                has_bias    =self.node.parameters.has_bias,
+                backend =self.backend,
+            )
+        else:
+            raise NotImplementedError
 
     def get_node_info(self):
         node_info = ParsePrototxtNode.get_node_info(self)
@@ -150,32 +198,68 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
     def get_hardware(self):
 
         # return hardware
-        return ReLULayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-        )
+        if self.dimensionality == 2:
+            return ReLULayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+            )
+        elif self.dimensionality == 3:
+            return ReLULayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1],
+            )
+        else:
+            raise NotImplementedError
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
         # create pooling layer hardware
-        return PoolingLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            pool_type   = 'max',
-            kernel_size =list(self.node.parameters.kernel_size),
-            stride      =list(self.node.parameters.stride),
-            pad         = [
-                self.node.parameters.pad_top,
-                self.node.parameters.pad_right,
-                self.node.parameters.pad_bottom,
-                self.node.parameters.pad_left],
-            coarse  =self.node.parameters.coarse,
-            backend =self.backend,
-        )
+        if self.dimensionality == 2:
+            return PoolingLayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                pool_type   = 'max',
+                kernel_rows =self.node.parameters.kernel_rows,
+                kernel_cols =self.node.parameters.kernel_cols,
+                stride_rows =self.node.parameters.stride_rows,
+                stride_cols =self.node.parameters.stride_cols,
+                pad_top     =self.node.parameters.pad_top,
+                pad_bottom  =self.node.parameters.pad_bottom,
+                pad_left    =self.node.parameters.pad_left,
+                pad_right   =self.node.parameters.pad_right,
+                coarse  =self.node.parameters.coarse,
+                backend =self.backend,
+            )
+        elif self.dimensionality == 3:
+            return PoolingLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                pool_type   = 'max',
+                kernel_rows =self.node.parameters.kernel_rows,
+                kernel_cols =self.node.parameters.kernel_cols,
+                kernel_depth=self.node.parameters.kernel_depth,
+                stride_rows =self.node.parameters.stride_rows,
+                stride_cols =self.node.parameters.stride_cols,
+                stride_depth=self.node.parameters.stride_depth,
+                pad_top     =self.node.parameters.pad_top,
+                pad_bottom  =self.node.parameters.pad_bottom,
+                pad_left    =self.node.parameters.pad_left,
+                pad_right   =self.node.parameters.pad_right,
+                pad_front   =self.node.parameters.pad_front,
+                pad_back    =self.node.parameters.pad_back,
+                coarse  =self.node.parameters.coarse,
+                backend =self.backend,
+            )
+        else:
+            raise NotImplementedError
 
 class ParsePrototxtSqueezeNode(ParsePrototxtNode):
 
@@ -191,12 +275,12 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
             backend =self.backend,
         )
 
-class ParsePrototxtAveragePoolingNode(ParsePrototxtNode):
+class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
         # create Average pooling layer hardware
-        return AveragePoolingLayer(
+        return GlobalPoolingLayer(
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,

@@ -1,0 +1,14 @@
+{
+    "rows": 28,
+    "cols": 28,
+    "depth": 12,
+    "channels": 64,
+    "ports_in": 2,
+    "eltwise_type": "add",
+    "broadcast": 0,
+    "rows_out": 28,
+    "cols_out": 28,
+    "depth_out": 12,
+    "channels_out": 64,
+    "batch_size": 1
+}
