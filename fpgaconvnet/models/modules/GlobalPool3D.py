@@ -18,36 +18,19 @@ class GlobalPool3D(Module3D):
     backend: str = "chisel"
     acc_width: int = field(default=32, init=False)
 
-    # def __post_init__(self):
-
-    #     # get the cache path
-    #     rsc_cache_path = os.path.dirname(__file__) + \
-    #             f"/../../coefficients/{self.backend}"
-
-    #     # iterate over resource types
-    #     self.rsc_coef = {}
-    #     for rsc_type in self.utilisation_model():
-    #         # load the resource coefficients from the 2D version
-    #         coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-    #         self.rsc_coef[rsc_type] = np.load(coef_path)
-
     def __post_init__(self):
-        return
 
-    def rsc(self, coef=None): # TODO: do properly
-        """
-        Returns
-        -------
-        dict
-            estimated resource usage of the module. Uses the
-            resource coefficients for the estimate.
-        """
-        return {
-            "LUT"   : 0,
-            "FF"    : 0,
-            "BRAM"  : 0,
-            "DSP"   : 0
-        }
+        # get the cache path
+        rsc_cache_path = os.path.dirname(__file__) + \
+                f"/../../coefficients/{self.backend}"
+
+        # iterate over resource types
+        self.rsc_coef = {}
+        for rsc_type in self.utilisation_model():
+            # load the resource coefficients from the 2D version
+            # coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.replace('Global', 'Average').split('3D')[0]}_{rsc_type}.npy".lower()) #TODO: fix this hack
+            self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def utilisation_model(self):
 
