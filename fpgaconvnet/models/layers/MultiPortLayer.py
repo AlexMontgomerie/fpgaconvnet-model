@@ -338,6 +338,12 @@ class MultiPortLayer:
         assert(port_index < self.ports_out)
         return self.rows_out(port_index) * self.cols_out(port_index) * int( self.channels_out(port_index) / self.streams_out(port_index) )
 
+    def shape_in(self, port_index=0) -> List[int]: # TODO: add documentation
+        return [ self.rows_in(port_index), self.cols_in(port_index), self.channels_in(port_index) ]
+
+    def shape_out(self, port_index=0) -> List[int]: # TODO: add documentation
+        return [ self.rows_out(port_index), self.cols_out(port_index), self.channels_out(port_index) ]
+
     def width_in(self):
         """
         Returns
