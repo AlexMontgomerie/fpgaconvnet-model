@@ -84,7 +84,7 @@ class InnerProductLayer(Layer):
     @filters.setter
     def filters(self, val: int) -> None:
         self._filters = val
-        self.update()
+        # self.update()
 
     def rows_out(self) -> int:
         return 1

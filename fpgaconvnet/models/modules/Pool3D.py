@@ -9,11 +9,14 @@ import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+
+from fpgaconvnet.models.modules import Pool
 
 @dataclass
 class Pool3D(Module3D):
@@ -25,44 +28,30 @@ class Pool3D(Module3D):
     backend: str = "chisel"
 
     def __post_init__(self):
-        self.__class__.__name__ = f"{self.pool_type.capitalize()}Pool3D"
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # get the module identifer
+        self.module_identifier = "Pool"
+
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
+
+    @property
+    def kernel_size(self):
+        return [ self.kernel_rows, self.kernel_cols, self.kernel_depth ]
 
     def utilisation_model(self):
-        if self.pool_type == 'max':
-            if self.backend == "hls":
-                pass
-            elif self.backend == "chisel":
-                # TODO: Update this to use the 3D version FIXME
-                # Logic_LUT and FF should be arrays of size 3 not 2
-                return {
-                    "Logic_LUT"  : np.array([
-                        self.kernel_rows,
-                        self.kernel_cols*self.kernel_depth
-                    ]),
-                    "LUT_RAM"  : np.array([1]),
-                    "LUT_SR"  : np.array([1]),
-                    "FF"   : np.array([
-                        self.kernel_rows,
-                        self.kernel_cols*self.kernel_depth
-                    ]),
-                    "DSP"  : np.array([1]),
-                    "BRAM36" : np.array([1]),
-                    "BRAM18" : np.array([1]),
-                }
-            else:
-                raise ValueError()
-        else:
-            raise NotImplementedError()
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = self.__dict__
+        param["kernel_size"] = self.kernel_size
+        param = namedtuple('PoolParam', param.keys())(*param.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
+
+        # call the 2D utilisation model instead
+        return Pool.utilisation_model(param)
 
     def module_info(self):
         # get the base module fields

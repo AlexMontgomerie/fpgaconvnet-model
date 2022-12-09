@@ -69,21 +69,21 @@ class GlobalPoolingLayer3D(Layer3D):
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)

@@ -2,11 +2,14 @@ import math
 import os
 import sys
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 import pydot
 import numpy as np
 
 from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
+
+from fpgaconvnet.models.modules import Squeeze
 
 @dataclass
 class Squeeze3D(Module3D):
@@ -16,16 +19,11 @@ class Squeeze3D(Module3D):
 
     def __post_init__(self):
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # get the module identifer
+        self.module_identifier = "Squeeze"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
 
     def module_info(self):
         # get the base module fields
@@ -49,38 +47,15 @@ class Squeeze3D(Module3D):
 
     def utilisation_model(self):
 
-        if self.backend == "hls":
-            pass # TODO
-        elif self.backend == "chisel":
-            buffer_size = self.lcm(self.coarse_in, self.coarse_out)
-            return {
-                "Logic_LUT" : np.array([
-                    (buffer_size//self.coarse_in), # buffer ready
-                    self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
-                    (buffer_size//self.coarse_in),
-                    (buffer_size//self.coarse_out),
-                    self.coarse_in,
-                    self.coarse_out,
-                    1,
-                ]),
-                "LUT_RAM"   : np.array([
-                    self.data_width*buffer_size*((buffer_size//self.coarse_in)+1), # buffer
-                    self.data_width*self.coarse_out, # output buffer
-                    # 1,
-                ]),
-                "LUT_SR"    : np.array([0]),
-                "FF"        : np.array([
-                    (buffer_size//self.coarse_in), # cntr_in
-                    self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
-                    1,
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('SqueezeParam', self.__dict__.keys())(*self.__dict__.values())
 
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
-            }
-        else:
-            raise ValueError(f"{self.backend} backend not supported")
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
+
+        # call the 2D utilisation model instead
+        return Squeeze.utilisation_model(param)
 
     def visualise(self, name):
         distortion = 0

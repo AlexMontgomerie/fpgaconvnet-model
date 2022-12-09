@@ -55,6 +55,14 @@ class Module3D:
 
     def __post_init__(self):
 
+        # get the module identifer
+        self.module_identifier = self.__class__.__name__
+
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
+
+    def load_resource_coefficients(self, module_identifier):
+
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
                 f"/../../coefficients/{self.backend}"
@@ -62,7 +70,9 @@ class Module3D:
         # iterate over resource types
         self.rsc_coef = {}
         for rsc_type in self.utilisation_model():
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__}_{rsc_type}.npy".lower())
+            # get the coefficients from the cache path and load
+            coef_path = os.path.join(rsc_cache_path,
+                    f"{module_identifier}_{rsc_type}.npy".lower())
             self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def utilisation_model(self):

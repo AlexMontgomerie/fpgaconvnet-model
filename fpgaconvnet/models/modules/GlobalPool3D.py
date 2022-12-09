@@ -5,6 +5,7 @@ import math
 import os
 import sys
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 import numpy as np
 import pydot
@@ -13,58 +14,32 @@ from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
 from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
 
+from fpgaconvnet.models.modules import GlobalPool
+
 @dataclass
 class GlobalPool3D(Module3D):
     backend: str = "chisel"
-    acc_width: int = field(default=32, init=False)
+    acc_width: int = 32
 
     def __post_init__(self):
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # get the module identifer
+        self.module_identifier = "GlobalPool"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            # coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.replace('Global', 'Average').split('3D')[0]}_{rsc_type}.npy".lower()) #TODO: fix this hack
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
 
     def utilisation_model(self):
 
-        if self.backend == "hls":
-            raise NotImplementedError
-        elif self.backend == "chisel":
-            return {
-                "Logic_LUT" : np.array([
-                    self.acc_width, # adder
-                    self.data_width, # adder
-                    int2bits(self.channels), # channel_cntr
-                    int2bits(self.rows*self.cols*self.depth), # spatial cntr
-                    self.channels, # acc logic
-                    1,
-                ]),
-                "LUT_RAM"   : np.array([
-                    self.data_width, # output queue
-                    self.acc_width*self.channels,
-                ]),
-                "LUT_SR"    : np.array([0]),
-                "FF"        : np.array([
-                    self.data_width, # input cache
-                    int2bits(self.channels), # channel_cntr
-                    int2bits(self.rows*self.cols*self.depth), # spatial cntr
-                    self.acc_width*self.channels, # accumulation reg
-                    1, # other registers
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
-            }
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('GlobalPoolParam', self.__dict__.keys())(*self.__dict__.values())
 
-        else:
-            raise NotImplementedError(f"{self.backend} backend not supported")
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
+
+        # call the 2D utilisation model instead
+        return GlobalPool.utilisation_model(param)
 
     def depth_out(self):
         return 1

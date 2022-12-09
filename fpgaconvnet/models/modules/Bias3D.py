@@ -12,12 +12,15 @@ import math
 import os
 import sys
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
+
+from fpgaconvnet.models.modules import Bias
 
 @dataclass
 class Bias3D(Module3D):
@@ -27,16 +30,11 @@ class Bias3D(Module3D):
 
     def __post_init__(self):
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # get the module identifer
+        self.module_identifier = "Bias"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
 
     def channels_in(self):
         return self.filters
@@ -56,27 +54,15 @@ class Bias3D(Module3D):
 
     def utilisation_model(self):
 
-        if self.backend == "hls":
-            return {
-                "LUT"   : np.array([1]),
-                "FF"    : np.array([1]),
-                "DSP"   : np.array([0]),
-                "BRAM"  : np.array([0]),
-            }
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('BiasParam', self.__dict__.keys())(*self.__dict__.values())
 
-        if self.backend == "chisel":
-            return {
-                "Logic_LUT" : np.array([1]),
-                "LUT_RAM"   : np.array([1]),
-                "LUT_SR"    : np.array([1]),
-                "FF"        : np.array([1]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
-            }
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
 
-        else:
-            raise ValueError(f"{self.backend} backend not supported")
+        # call the 2D utilisation model instead
+        return Bias.utilisation_model(param)
 
     def visualise(self, name):
         return pydot.Node(name,label="bias3d", shape="box",

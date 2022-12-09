@@ -90,19 +90,19 @@ class MultiPortLayer:
     def rows(self, val: List[int]) -> None:
         assert(len(val) == self.ports_in)
         self._rows = val
-        self.update()
+        # self.update()
 
     @cols.setter
     def cols(self, val: List[int]) -> None:
         assert(len(val) == self.ports_in)
         self._cols = val
-        self.update()
+        # self.update()
 
     @channels.setter
     def channels(self, val: List[int]) -> None:
         assert(len(val) == self.ports_in)
         self._channels = val
-        self.update()
+        # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: List[int]) -> None:
@@ -111,7 +111,7 @@ class MultiPortLayer:
         #     assert(val[i] in self.coarse_in_feasible(port_index=i))
         self._coarse_in = val
         self.coarse_out = val
-        self.update()
+        # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: List[int]) -> None:
@@ -120,7 +120,7 @@ class MultiPortLayer:
         #     assert(val[i] in self.coarse_out_feasible(port_index=i))
         self._coarse_out = val
         self._coarse_in = val
-        self.update()
+        # self.update()
 
     def rows_in(self, port_index=0):
         """

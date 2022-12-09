@@ -136,7 +136,7 @@ class TestConv3DModule(TestModule3DTemplate,unittest.TestCase):
         self.run_test_resources(module)
 
 @ddt.ddt
-class TestAveragePool3DModule(TestModule3DTemplate,unittest.TestCase):
+class TestGlobalPool3DModule(TestModule3DTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/modules/avgpool3d/*.json"))
     def test_module_configurations(self, config_path):
@@ -145,7 +145,7 @@ class TestAveragePool3DModule(TestModule3DTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise module
-        module = AveragePool3D(config["rows"],config["cols"],config["depth"],config["channels"])
+        module = GlobalPool3D(config["rows"],config["cols"],config["depth"],config["channels"])
 
         # run tests
         self.run_test_methods_exist(module)

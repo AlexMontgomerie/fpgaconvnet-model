@@ -76,29 +76,29 @@ class Layer:
     @rows.setter
     def rows(self, val: int) -> None:
         self._rows = val
-        self.update()
+        # self.update()
 
     @cols.setter
     def cols(self, val: int) -> None:
         self._cols = val
-        self.update()
+        # self.update()
 
     @channels.setter
     def channels(self, val: int) -> None:
         self._channels = val
-        self.update()
+        # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
         assert(val in self.get_coarse_in_feasible())
         self._coarse_in = val
-        self.update()
+        # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
         assert(val in self.get_coarse_out_feasible())
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     def rows_in(self) -> int:
         """

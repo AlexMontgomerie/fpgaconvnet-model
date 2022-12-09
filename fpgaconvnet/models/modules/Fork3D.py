@@ -13,11 +13,14 @@ import os
 import sys
 from typing import Union, List
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
+
+from fpgaconvnet.models.modules import Fork
 
 @dataclass
 class Fork3D(Module3D):
@@ -30,16 +33,21 @@ class Fork3D(Module3D):
 
     def __post_init__(self):
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # get the module identifer
+        self.module_identifier = "Fork"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
+
+    @property
+    def kernel_size(self):
+        return [ self.kernel_rows, self.kernel_cols, self.kernel_depth ]
+
+    @kernel_size.setter
+    def kernel_size(self, kernel_size):
+        self.kernel_rows = kernel_size[0]
+        self.kernel_cols = kernel_size[1]
+        self.kernel_depth = kernel_size[2]
 
     def module_info(self):
         # get the base module fields
@@ -54,34 +62,18 @@ class Fork3D(Module3D):
         return info
 
     def utilisation_model(self):
-        if self.backend == "hls":
-            pass # TODO
-        elif self.backend == "chisel":
-            return {
-                "Logic_LUT" : np.array([
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer valid
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer ready
-                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
-                    1,
-                ]),
-                "LUT_RAM"   : np.array([0]),
-                "LUT_SR"    : np.array([0]),
-                "FF"    : np.array([
-                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth, # input buffer
-                    self.kernel_rows*self.kernel_cols*self.kernel_depth*self.coarse, # output buffer
-                    1,
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
-            }
-        else:
-            raise ValueError(f"{self.backend} backend not supported")
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = self.__dict__
+        param["kernel_size"] = self.kernel_size
+        param = namedtuple('ForkParam', param.keys())(*param.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
+
+        # call the 2D utilisation model instead
+        return Fork.utilisation_model(param)
 
     def visualise(self, name):
         return pydot.Node(name,label="fork3d", shape="box",

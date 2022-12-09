@@ -20,21 +20,6 @@ class GlobalPool(Module):
     def __post_init__(self):
         return
 
-    def rsc(self, coef=None): # TODO: do properly
-        """
-        Returns
-        -------
-        dict
-            estimated resource usage of the module. Uses the
-            resource coefficients for the estimate.
-        """
-        return {
-            "LUT"   : 0,
-            "FF"    : 0,
-            "BRAM"  : 0,
-            "DSP"   : 0
-        }
-
     def utilisation_model(self):
 
         if self.backend == "hls":

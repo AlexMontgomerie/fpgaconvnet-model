@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import importlib
 import inspect
@@ -18,9 +19,10 @@ CHISEL_RSC_TYPES=["Logic_LUT", "LUT_RAM", "LUT_SR", "FF", "DSP", "BRAM36", "BRAM
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
 class ModuleModel:
-    def __init__(self, name, backend):
+    def __init__(self, identifier, module, backend):
 
-        self.name = name
+        self.identifier = identifier
+        self.module = module
         self.backend = backend
 
         if self.backend == "chisel":
@@ -54,14 +56,14 @@ class ModuleModel:
         db = client["fpgaconvnet"]
         collection = db[self.backend]
 
-        filter = {"name":self.name}
         if self.backend == "chisel":
-            # filter = {"name":self.name+"Fixed"}
             filter = {
-                "name":self.name+"Fixed", # specific module
+                "name" : self.identifier, # specific module
                 # "parameters.data_width": 16, # only 16-bit input shapes
-                "time_stamp.commit_hash": "10e6c5564ea29ed1ab78f7e2bc8f566aa16a75a4", # specific commit hash
+                "time_stamp.commit_hash": "1bbb96a7cc760f6448283b3403aa921711f461aa", # specific commit hash
             }
+        else:
+            raise NotImplementedError
 
         for document in tqdm(collection.find(filter), desc="loading points from database"):
             self.parameters.append(document["parameters"])
@@ -95,15 +97,15 @@ class ModuleModel:
             # iterate over resource types
             self.coef = {}
             for rsc_type in self.rsc_types:
-                with open(f"{cache_path}/{self.name}_{rsc_type}.npy", "wb") as f:
+                with open(f"{cache_path}/{self.identifier}_{rsc_type}.npy", "wb") as f:
                     self.coef[rsc_type] = np.save(f)
 
         else:
 
             # get the utilisation model
             utilisation_model = getattr(importlib.import_module(
-                f"fpgaconvnet.models.modules.{self.name}"),
-                self.name).utilisation_model
+                f"fpgaconvnet.models.modules.{self.module}"),
+                self.module).utilisation_model
             utilisation_model = staticmethod(utilisation_model)
 
             # iterate over design points
@@ -151,7 +153,7 @@ class ModuleModel:
 
     def save_coef(self, outpath):
         for rsc_type in self.rsc_types:
-            filepath = os.path.join(outpath, f"{self.name}_{rsc_type}.npy".lower())
+            filepath = os.path.join(outpath, f"{self.module}_{rsc_type}.npy".lower())
             np.save(filepath, self.coef[rsc_type])
 
     # def get_model_error(self):

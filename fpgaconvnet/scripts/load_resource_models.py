@@ -7,17 +7,28 @@ import matplotlib.pyplot as plt
 
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
-CHISEL_MODULES = [ "Accum", "Fork", "Glue", "SlidingWindow",
-    "Squeeze", "VectorDot" , "MaxPool", "AveragePool" , "Bias" ]
+CHISEL_MODULES = {
+        "Accum": "AccumFixed",
+        "Fork": "ForkFixed",
+        "Glue": "GlueFixed",
+        "SlidingWindow": "SlidingWindowFixed",
+        "SlidingWindow3D": "SlidingTensorFixed",
+        "Squeeze": "SqueezeFixed",
+        "VectorDot": "VectorDotFixed",
+        "Pool": "MaxPoolFixed",
+        "GlobalPool": "AveragePoolFixed",
+        "Bias": "BiasFixed"
+}
+
 # CHISEL_MODULES = [ "AveragePool" ]
 HLS_MODULES = []
 
 # iterate over chisel modules
-for module in CHISEL_MODULES:
+for module, identifier in CHISEL_MODULES.items():
 
     print(f"{module} (chisel)")
     # create regression model
-    rsc_model = ModuleModel(module, "chisel")
+    rsc_model = ModuleModel(identifier, module, "chisel")
 
     # load data
     rsc_model.load_data_from_db()
@@ -92,7 +103,7 @@ for module in CHISEL_MODULES:
         plt.xlabel("actual")
         plt.ylabel("predicted")
         plt.legend()
-        plt.show()
+        # plt.show()
 
 #     for rsc_type in self.rsc_types:
     #         fig, ax = plt.subplots(figsize=(10, 6))

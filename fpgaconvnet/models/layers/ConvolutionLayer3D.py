@@ -204,83 +204,83 @@ class ConvolutionLayer3D(Layer3D):
     @kernel_rows.setter
     def kernel_rows(self, val: int) -> None:
         self._kernel_rows = val
-        self.update()
+        # self.update()
 
     @kernel_cols.setter
     def kernel_cols(self, val: int) -> None:
         self._kernel_cols = val
-        self.update()
+        # self.update()
 
     @kernel_depth.setter
     def kernel_depth(self, val: int) -> None:
         self._kernel_depth = val
-        self.update()
+        # self.update()
 
     @stride_rows.setter
     def stride_rows(self, val: int) -> None:
         self._stride_rows = val
-        self.update()
+        # self.update()
 
     @stride_cols.setter
     def stride_cols(self, val: int) -> None:
         self._stride_cols = val
-        self.update()
+        # self.update()
 
     @stride_depth.setter
     def stride_depth(self, val: int) -> None:
         self._stride_depth = val
-        self.update()
+        # self.update()
 
     @pad_top.setter
     def pad_top(self, val: int) -> None:
         self._pad_top = val
-        self.update()
+        # self.update()
 
     @pad_right.setter
     def pad_right(self, val: int) -> None:
         self._pad_right = val
-        self.update()
+        # self.update()
 
     @pad_front.setter
     def pad_front(self, val: int) -> None:
         self._pad_front = val
-        self.update()
+        # self.update()
 
     @pad_bottom.setter
     def pad_bottom(self, val: int) -> None:
         self._pad_bottom = val
-        self.update()
+        # self.update()
 
     @pad_left.setter
     def pad_left(self, val: int) -> None:
         self._pad_left = val
-        self.update()
+        # self.update()
 
     @pad_back.setter
     def pad_back(self, val: int) -> None:
         self._pad_back = val
-        self.update()
+        # self.update()
 
     @groups.setter
     def groups(self, val: int) -> None:
         self._groups = val
-        self.update()
+        # self.update()
 
     @fine.setter
     def fine(self, val: int) -> None:
         self._fine = val
-        self.update()
+        # self.update()
 
     @filters.setter
     def filters(self, val: int) -> None:
         self._filters = val
-        self.update()
+        # self.update()
 
     @coarse_group.setter
     def coarse_group(self, val: int) -> None:
         assert(val in self.get_coarse_group_feasible())
         self._coarse_group = val
-        self.update()
+        # self.update()
 
     def rows_out(self) -> int:
         return self.modules["sliding_window3d"].rows_out()

@@ -3,9 +3,12 @@ import math
 import pydot
 import os
 from dataclasses import dataclass, field
+from collections import namedtuple
 
 from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
+
+from fpgaconvnet.models.modules import VectorDot
 
 @dataclass
 class VectorDot3D(Module3D):
@@ -17,16 +20,11 @@ class VectorDot3D(Module3D):
 
     def __post_init__(self):
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # get the module identifer
+        self.module_identifier = "VectorDot"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
 
     def module_info(self):
         return {
@@ -53,42 +51,18 @@ class VectorDot3D(Module3D):
             raise NotImplementedError
 
     def utilisation_model(self):
-        if self.backend == "hls":
-            pass
-        elif self.backend == "chisel":
-            return {
-                "Logic_LUT" : np.array([
-                    self.fine, self.data_width, self.weight_width,
-                    self.data_width*self.fine,
-                    self.weight_width*self.fine,
-                    self.acc_width*self.fine, # adder tree
-                    self.filters, # ready logic
-                    int2bits(self.filters), # filter counter
-                    1,
-                ]),
-                "LUT_RAM"   : np.array([
-                    self.acc_width*(int2bits(self.fine)+3), # tree buffer
-                    # self.acc_width*self.fine, # tree buffer
-                    self.acc_width, # output buffer
-                ]),
-                "LUT_SR"    : np.array([
-                    int2bits(self.fine)+1, # tree buffer valid
-                ]),
-                "FF"    : np.array([
-                    self.acc_width, # output buffer TODO
-                    int2bits(self.filters), # filter counter
-                    int2bits(self.fine)+1, # tree buffer valid
-                    self.acc_width*self.fine, # adder tree reg
-                    self.data_width*self.fine, # adder tree reg
-                    self.weight_width*self.fine, # adder tree reg
-                    1,
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
-            }
-        else:
-            raise ValueError(f"{self.backend} backend not supported")
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        self.weight_width = self.weight_width # hack to do with it not being initialised
+        self.acc_width = self.acc_width # hack to do with it not being initialised
+        param = namedtuple('VectorDotParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols + param.depth)
+
+        # call the 2D utilisation model instead
+        return VectorDot.utilisation_model(param)
 
     def rsc(self,coef=None):
 

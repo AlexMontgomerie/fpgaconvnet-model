@@ -177,88 +177,88 @@ class PoolingLayer3D(Layer3D):
     @kernel_rows.setter
     def kernel_rows(self, val: int) -> None:
         self._kernel_rows = val
-        self.update()
+        # self.update()
 
     @kernel_cols.setter
     def kernel_cols(self, val: int) -> None:
         self._kernel_cols = val
-        self.update()
+        # self.update()
 
     @kernel_depth.setter
     def kernel_depth(self, val: int) -> None:
         self._kernel_depth = val
-        self.update()
+        # self.update()
 
     @stride_rows.setter
     def stride_rows(self, val: int) -> None:
         self._stride_rows = val
-        self.update()
+        # self.update()
 
     @stride_cols.setter
     def stride_cols(self, val: int) -> None:
         self._stride_cols = val
-        self.update()
+        # self.update()
 
     @stride_depth.setter
     def stride_depth(self, val: int) -> None:
         self._stride_depth = val
-        self.update()
+        # self.update()
 
     @pad_top.setter
     def pad_top(self, val: int) -> None:
         self._pad_top = val
-        self.update()
+        # self.update()
 
     @pad_right.setter
     def pad_right(self, val: int) -> None:
         self._pad_right = val
-        self.update()
+        # self.update()
 
     @pad_front.setter
     def pad_front(self, val: int) -> None:
         self._pad_front = val
-        self.update()
+        # self.update()
 
     @pad_bottom.setter
     def pad_bottom(self, val: int) -> None:
         self._pad_bottom = val
-        self.update()
+        # self.update()
 
     @pad_left.setter
     def pad_left(self, val: int) -> None:
         self._pad_left = val
-        self.update()
+        # self.update()
 
     @pad_back.setter
     def pad_back(self, val: int) -> None:
         self._pad_back = val
-        self.update()
+        # self.update()
 
     @coarse.setter
     def coarse(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
         self._coarse = val
         self._coarse_in = val
         self._coarse_out = val
-        self.update()
+        # self.update()
 
     @fine.setter
     def fine(self, val: int) -> None:
         self._fine = val
-        self.update()
+        # self.update()
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)

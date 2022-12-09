@@ -83,19 +83,15 @@ class SlidingWindow3D(Module3D):
     pad_back: int
     backend: str = "chisel"
 
-    def __post_init__(self):
+    @property
+    def kernel_size(self):
+        return [ self.kernel_rows, self.kernel_cols, self.kernel_depth ]
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
-
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # TODO Update this to use the new resource model for 3D version FIXME
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+    @kernel_size.setter
+    def kernel_size(self, kernel_size):
+        self.kernel_rows = kernel_size[0]
+        self.kernel_cols = kernel_size[1]
+        self.kernel_depth = kernel_size[2]
 
     def rows_out(self):
         return int((self.rows_in()-self.kernel_rows+self.pad_top+self.pad_bottom)/self.stride_rows+1)
@@ -169,15 +165,15 @@ class SlidingWindow3D(Module3D):
             return {
                 "Logic_LUT" : np.array([
                     self.data_width,
-                    (self.kernel_rows-1),
-                    self.kernel_rows*(self.kernel_cols-1),
-                    (self.kernel_rows-1)*(self.cols*self.channels+1),
-                    self.kernel_rows*(self.kernel_cols-1)*(self.channels+1),
+                    (self.kernel_size[0]-1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1),
+                    (self.kernel_size[0]-1)*(self.cols*self.channels+1),
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels+1),
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width*(self.kernel_rows-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_rows*(self.kernel_cols-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols, # frame buffer
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
                 ]),
                 "LUT_SR"    : np.array([1]),
                 "FF"        : np.array([
@@ -185,21 +181,21 @@ class SlidingWindow3D(Module3D):
                     int2bits(self.cols), # col_cntr
                     int2bits(self.channels), # channel_cntr
                     self.data_width, # input buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols, # output buffer
-                    (self.kernel_rows-1)*(self.cols*self.channels), # line buffer
-                    self.kernel_rows*(self.kernel_cols-1)*(self.channels), # window buffer
-                    self.kernel_rows*self.kernel_cols, # frame buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer
+                    (self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.kernel_size[0]*self.kernel_size[1], # frame buffer
                 ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([
-                    self.data_width*(self.kernel_rows-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_rows*(self.kernel_cols-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols, # frame buffer
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
                 ]),
                 "BRAM18"    : np.array([
-                    self.data_width*(self.kernel_rows-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_rows*(self.kernel_cols-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_rows*self.kernel_cols, # frame buffer
+                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
                 ]),
             }
 
@@ -229,13 +225,13 @@ class SlidingWindow3D(Module3D):
         window_buffer_bram = self.kernel_rows*(self.kernel_cols-1) * \
                 bram_stream_resource_model(window_buffer_depth, self.data_width)
 
-        # get the tensor buffer BRAM estimate
-        tensor_buffer_depth = self.channels + 1
-        tensor_buffer_bram = self.kernel_rows*self.kernel_cols*(self.kernel_depth-1) * \
-                bram_stream_resource_model(tensor_buffer_depth, self.data_width)
+        # # get the tensor buffer BRAM estimate
+        # tensor_buffer_depth = self.channels + 1
+        # tensor_buffer_bram = self.kernel_rows*self.kernel_cols*(self.kernel_depth-1) * \
+        #         bram_stream_resource_model(tensor_buffer_depth, self.data_width)
 
         # add the bram estimation
-        rsc["BRAM"] = line_buffer_bram + window_buffer_bram + tensor_buffer_bram
+        rsc["BRAM"] = line_buffer_bram + window_buffer_bram #+ tensor_buffer_bram
 
         # ensure zero DSPs
         rsc["DSP"] = 0

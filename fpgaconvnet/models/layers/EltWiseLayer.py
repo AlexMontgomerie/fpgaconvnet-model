@@ -73,27 +73,27 @@ class EltWiseLayer(MultiPortLayer):
     @coarse.setter
     def coarse(self, val: int) -> None:
         self._coarse = val
-        self.update()
+        # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
         self._coarse = val
-        self.update()
+        # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
         self._coarse = val
-        self.update()
+        # self.update()
 
     @op_type.setter
     def op_type(self, val: str) -> None:
         self._op_type = val
-        self.update()
+        # self.update()
 
     @broadcast.setter
     def broadcast(self, val: bool) -> None:
         self._broadcast = val
-        self.update()
+        # self.update()
 
     def update(self):
         # eltwise
