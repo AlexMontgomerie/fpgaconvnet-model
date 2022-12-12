@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass, field
 
 from fpgaconvnet.models.modules import int2bits, Module
-from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
+from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model, queue_lutram_resource_model
 
 @dataclass
 class VectorDot(Module):
@@ -45,9 +45,9 @@ class VectorDot(Module):
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.acc_width*(int2bits(self.fine)+3), # tree buffer
-                    # self.acc_width*self.fine, # tree buffer
-                    self.acc_width, # output buffer
+                    queue_lutram_resource_model(
+                        int2bits(self.fine)+3, self.acc_width), # buffer
+                    1,
                 ]),
                 "LUT_SR"    : np.array([
                     int2bits(self.fine)+1, # tree buffer valid
@@ -57,8 +57,8 @@ class VectorDot(Module):
                     int2bits(self.filters), # filter counter
                     int2bits(self.fine)+1, # tree buffer valid
                     self.acc_width*self.fine, # adder tree reg
-                    self.data_width*self.fine, # adder tree reg
-                    self.weight_width*self.fine, # adder tree reg
+                    # self.acc_width*(2**(int2bits(self.fine))), # tree buffer registers
+                    # self.acc_width*int2bits(self.fine), # tree buffer
                     1,
                 ]),
                 "DSP"       : np.array([self.fine]),
@@ -85,7 +85,8 @@ class VectorDot(Module):
 
         # get the dsp usage
         dsp = self.fine*dsp_multiplier_resource_model(
-                self.data_width, self.data_width)
+                self.data_width, self.weight_width)
+
         rsc["DSP"] = dsp
 
         return rsc

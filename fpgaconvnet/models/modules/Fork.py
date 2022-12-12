@@ -54,20 +54,19 @@ class Fork(Module):
             return {
                 "Logic_LUT" : np.array([
                     self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
-                    self.kernel_size[0]*self.kernel_size[1], # input buffer ready
+                    self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[0]*self.kernel_size[1], # input buffer ready
                     self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
                     self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
-                    self.kernel_size[0]*self.kernel_size[1], # input buffer
-                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer valid
+                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer ready
                     1,
                 ]),
                 "LUT_RAM"   : np.array([0]),
                 "LUT_SR"    : np.array([0]),
                 "FF"    : np.array([
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
-                    self.kernel_size[0]*self.kernel_size[1], # input buffer
-                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+                    self.kernel_size[0]*self.kernel_size[1], # input buffer (ready)
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer (data)
+                    # self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer (valid)
                     1,
                 ]),
                 "DSP"       : np.array([0]),

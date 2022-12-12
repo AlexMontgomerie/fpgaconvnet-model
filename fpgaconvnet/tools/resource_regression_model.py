@@ -60,7 +60,7 @@ class ModuleModel:
             filter = {
                 "name" : self.identifier, # specific module
                 # "parameters.data_width": 16, # only 16-bit input shapes
-                "time_stamp.commit_hash": "1bbb96a7cc760f6448283b3403aa921711f461aa", # specific commit hash
+                "time_stamp.commit_hash": "6d85add9a95df1dc82938af7abaf4cfbe28819ff", # specific commit hash
             }
         else:
             raise NotImplementedError
@@ -147,6 +147,8 @@ class ModuleModel:
         # fit model
         nnls = sklearn.linear_model.LinearRegression(
                 positive=True, fit_intercept=False)
+        # nnls = sklearn.linear_model.LinearRegression(
+        #         positive=False, fit_intercept=False)
 
         # return coefficients
         return nnls.fit(model, rsc).coef_

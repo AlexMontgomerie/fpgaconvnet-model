@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
-
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
+from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_model
 
 @dataclass
 class Pool(Module):
@@ -40,16 +40,27 @@ class Pool(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT"  : np.array([
-                    self.kernel_size[0],self.kernel_size[1],
+                    self.kernel_size[0]*self.kernel_size[1],
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # tree buffer
+                    self.data_width*int2bits(self.kernel_size[0]*self.kernel_size[1]), # tree buffer
+                    self.kernel_size[0],self.kernel_size[1], # input ready
+                    1,
                 ]),
-                "LUT_RAM"  : np.array([1]),
-                "LUT_SR"  : np.array([1]),
+                "LUT_RAM"  : np.array([
+                    queue_lutram_resource_model(
+                        int2bits(self.kernel_size[0]*self.kernel_size[1])+1, self.data_width), # buffer
+                    1,
+                ]),
+                "LUT_SR"  : np.array([0]),
                 "FF"   : np.array([
-                    self.kernel_size[0],self.kernel_size[1],
+                    self.data_width, # output buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # op tree input
+                    int2bits(self.kernel_size[0]*self.kernel_size[1]), # shift register
+                    1,
                 ]),
-                "DSP"  : np.array([1]),
-                "BRAM36" : np.array([1]),
-                "BRAM18" : np.array([1]),
+                "DSP"  : np.array([0]),
+                "BRAM36" : np.array([0]),
+                "BRAM18" : np.array([0]),
             }
         else:
             raise ValueError()

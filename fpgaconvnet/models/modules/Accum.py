@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, queue_lutram_resource_model
 
 @dataclass
 class Accum(Module):
@@ -83,16 +83,15 @@ class Accum(Module):
                     int2bits(self.filters), 1,
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width*self.filters, # output queue and memory
-                    self.data_width, # acc buffer
-                    1,
+                    queue_lutram_resource_model(
+                        2, self.data_width), # output buffer
+                    self.data_width*self.filters, # filter memory memory
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
                     self.data_width,  # input val cache
                     int2bits(self.channels), # channel_cntr
                     int2bits(self.filters), # filter cntr
-                    self.filters, # output queue and memory
                     1, # other registers
                 ]),
                 "DSP"       : np.array([0]),
@@ -102,28 +101,6 @@ class Accum(Module):
 
         else:
             raise ValueError(f"{self.backend} backend not supported")
-
-    def rsc(self,coef=None):
-
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-
-        # # get the accumulation buffer BRAM estimate
-        # acc_buffer_bram = bram_memory_resource_model(
-        #         int(self.filters/self.groups), self.data_width)
-
-        # get the linear model estimation
-        rsc = Module.rsc(self, coef)
-
-        # add the bram estimation
-        rsc["BRAM"] = 0
-
-        # ensure zero DSPs
-        rsc["DSP"] = 0
-
-        # return the resource usage
-        return rsc
 
     def visualise(self, name):
         return pydot.Node(name,label="accum", shape="box",

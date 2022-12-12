@@ -9,7 +9,7 @@ from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
 CHISEL_MODULES = {
         "Accum": "AccumFixed",
-        "Fork": "ForkFixed",
+        # "Fork": "ForkFixed",
         "Glue": "GlueFixed",
         "SlidingWindow": "SlidingWindowFixed",
         "SlidingWindow3D": "SlidingTensorFixed",

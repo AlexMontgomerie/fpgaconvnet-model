@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model, bram_efficient_resource_model, queue_lutram_resource_model
 
 @dataclass
 class SlidingWindow(Module):
@@ -136,18 +136,30 @@ class SlidingWindow(Module):
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
+            line_buffer_depth = self.cols*self.channels
+            line_buffer_lutram = queue_lutram_resource_model(
+                        line_buffer_depth, self.data_width)
+            if line_buffer_depth <= 256:
+                line_buffer_lutram = 0
+            window_buffer_depth = self.channels
+            window_buffer_lutram = queue_lutram_resource_model(
+                        window_buffer_depth, self.data_width)
+            if window_buffer_depth <= 256:
+                window_buffer_lutram = 0
             return {
                 "Logic_LUT" : np.array([
                     self.data_width,
                     (self.kernel_size[0]-1),
                     self.kernel_size[0]*(self.kernel_size[1]-1),
-                    (self.kernel_size[0]-1)*(self.cols*self.channels+1),
-                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels+1),
+                    self.data_width*(self.kernel_size[0]-1),
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                    (self.kernel_size[0]-1)*line_buffer_lutram, # line buffer
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*\
+                            window_buffer_lutram, # window buffer
+                    self.kernel_size[0]*self.kernel_size[1]*\
+                            queue_lutram_resource_model(2, self.data_width), # frame buffer
                 ]),
                 "LUT_SR"    : np.array([1]),
                 "FF"        : np.array([
@@ -155,22 +167,16 @@ class SlidingWindow(Module):
                     int2bits(self.cols), # col_cntr
                     int2bits(self.channels), # channel_cntr
                     self.data_width, # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer
-                    (self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
-                    self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
+                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer (data)
+                    self.kernel_size[0]*self.kernel_size[1], # output buffer (valid)
+                    self.data_width*(self.kernel_size[0]-1), # line buffer
+                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
                     self.kernel_size[0]*self.kernel_size[1], # frame buffer
+                    1,
                 ]),
                 "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([
-                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
-                ]),
-                "BRAM18"    : np.array([
-                    self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels), # window buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # frame buffer
-                ]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
             }
 
     def rsc(self,coef=None):
@@ -182,18 +188,26 @@ class SlidingWindow(Module):
         # get the linear model estimation
         rsc = Module.rsc(self, coef)
 
-        # # get the line buffer BRAM estimate
-        # line_buffer_depth = self.cols*self.channels+1
-        # line_buffer_bram = (self.kernel_size[0]-1) * \
-        #         bram_stream_resource_model(line_buffer_depth, self.data_width)
+        # get the line buffer BRAM estimate
+        line_buffer_depth = self.cols*self.channels
+        line_buffer_bram = (self.kernel_size[0]-1) * \
+                    bram_stream_resource_model(line_buffer_depth, self.data_width)
+                    # bram_efficient_resource_model(line_buffer_depth, self.data_width)
 
-        # # get the window buffer BRAM estimate
-        # window_buffer_depth = self.channels+1
-        # window_buffer_bram = self.kernel_size[0]*(self.kernel_size[0]-1) * \
-        #         bram_stream_resource_model(window_buffer_depth, self.data_width)
+        if line_buffer_depth <= 256:
+            line_buffer_bram = 0
 
-        # # add the bram estimation
-        # rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+        # get the window buffer BRAM estimate
+        window_buffer_depth = self.channels
+        window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1) * \
+                    bram_stream_resource_model(window_buffer_depth, self.data_width)
+                    # bram_efficient_resource_model(window_buffer_depth, self.data_width)
+                # bram_memory_resource_model(window_buffer_depth, self.data_width)
+        if window_buffer_depth <= 256:
+            window_buffer_bram = 0
+
+        # add the bram estimation
+        rsc["BRAM"] = line_buffer_bram + window_buffer_bram
 
         # ensure zero DSPs
         rsc["DSP"] = 0

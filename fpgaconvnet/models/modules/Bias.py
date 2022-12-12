@@ -16,9 +16,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
-#from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
-from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
+from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 
 @dataclass
 class Bias(Module):
@@ -52,10 +50,18 @@ class Bias(Module):
 
         if self.backend == "chisel":
             return {
-                "Logic_LUT" : np.array([1]),
-                "LUT_RAM"   : np.array([1]),
-                "LUT_SR"    : np.array([1]),
-                "FF"        : np.array([1]),
+                "Logic_LUT" : np.array([
+                        self.data_width,
+                    ]),
+                "LUT_RAM"   : np.array([
+                        self.data_width*self.channels,
+                    ]),
+                "LUT_SR"    : np.array([0]),
+                "FF"        : np.array([
+                        self.data_width,
+                        int2bits(self.channels),
+                        1,
+                    ]),
                 "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),
                 "BRAM18"    : np.array([0]),

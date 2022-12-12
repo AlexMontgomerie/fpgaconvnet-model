@@ -11,6 +11,7 @@ import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model
+from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_model
 
 @dataclass
 class GlobalPool(Module):
@@ -31,12 +32,11 @@ class GlobalPool(Module):
                     self.data_width, # adder
                     int2bits(self.channels), # channel_cntr
                     int2bits(self.rows*self.cols), # spatial cntr
-                    self.channels, # acc logic
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width, # output queue
-                    self.acc_width*self.channels,
+                    queue_lutram_resource_model(
+                        4, self.data_width), # buffer
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([

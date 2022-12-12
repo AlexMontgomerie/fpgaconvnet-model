@@ -14,6 +14,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
+from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_model
 
 @dataclass
 class Glue(Module):
@@ -53,7 +54,8 @@ class Glue(Module):
                     1,
                 ]),
                 "LUT_RAM" : np.array([
-                    self.data_width*(int2bits(self.coarse_in)+1), # tree buffer
+                    queue_lutram_resource_model(
+                        int2bits(self.coarse_in)+1, self.data_width), # buffer
                     1,
                 ]),
                 "LUT_SR" : np.array([
@@ -63,9 +65,7 @@ class Glue(Module):
                 "FF" : np.array([
                     self.data_width, # output buffer
                     int2bits(self.coarse_in), # tree buffer valid
-                    int2bits(max(1,int2bits(self.coarse_in))), # tree buffer queue buffer
-                    # self.coarse_in, # ready signal
-                    self.data_width*(self.coarse_in + math.floor((self.coarse_in-5)/2)), # adder tree reg
+                    self.data_width*(2**(int2bits(self.coarse_in))), # tree buffer registers
                     1,
                 ]),
                 "DSP"       : np.array([0]),

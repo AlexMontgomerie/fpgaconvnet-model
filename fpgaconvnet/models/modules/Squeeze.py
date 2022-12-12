@@ -7,6 +7,7 @@ import pydot
 import numpy as np
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
+from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_model
 
 def lcm(a, b):
     return abs(a*b) // math.gcd(a, b)
@@ -47,16 +48,19 @@ class Squeeze(Module):
                     (buffer_size//self.coarse_out),
                     self.coarse_in,
                     self.coarse_out,
+                    self.data_width*self.coarse_out, # DCFull on the output
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
-                    self.data_width*buffer_size*((buffer_size//self.coarse_in)+1), # buffer
-                    self.data_width*self.coarse_out, # output buffer
+                    buffer_size*queue_lutram_resource_model((buffer_size//self.coarse_in)+1, self.data_width), # buffer
                     # 1,
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
-                    (buffer_size//self.coarse_in), # cntr_in
+                    int2bits(buffer_size//self.coarse_in), # cntr_in
+                    buffer_size, # buffer registers
+                    self.data_width*self.coarse_out, # DCFull on the output (data)
+                    self.coarse_out, # DCFull on the output (ready and valid)
                     self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
                     1,
 
