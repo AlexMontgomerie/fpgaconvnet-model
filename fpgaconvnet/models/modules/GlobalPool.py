@@ -46,7 +46,7 @@ class GlobalPool(Module):
                     self.acc_width*self.channels, # accumulation reg
                     1, # other registers
                 ]),
-                "DSP"       : np.array([1]),
+                "DSP"       : np.array([0]),
                 "BRAM36"    : np.array([0]),
                 "BRAM18"    : np.array([0]),
             }
@@ -54,6 +54,22 @@ class GlobalPool(Module):
         else:
             raise NotImplementedError(f"{self.backend} backend not supported")
 
+    def rsc(self,coef=None):
+
+        # use module resource coefficients if none are given
+        if coef == None:
+            coef = self.rsc_coef
+
+        # get the linear model estimation
+        rsc = Module.rsc(self, coef)
+
+        # get the dsp usage
+        dsp = dsp_multiplier_resource_model(
+                self.data_width, self.acc_width)
+
+        rsc["DSP"] = dsp
+
+        return rsc
 
     def rows_out(self):
         return 1

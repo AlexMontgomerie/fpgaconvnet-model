@@ -190,20 +190,18 @@ class SlidingWindow(Module):
 
         # get the line buffer BRAM estimate
         line_buffer_depth = self.cols*self.channels
-        line_buffer_bram = (self.kernel_size[0]-1) * \
-                    bram_stream_resource_model(line_buffer_depth, self.data_width)
-                    # bram_efficient_resource_model(line_buffer_depth, self.data_width)
-
-        if line_buffer_depth <= 256:
+        if self.kernel_size[0] > 1 and line_buffer_depth > 256:
+            line_buffer_bram =  bram_memory_resource_model(
+                line_buffer_depth, (self.kernel_size[0]-1)*self.data_width)
+        else:
             line_buffer_bram = 0
 
         # get the window buffer BRAM estimate
         window_buffer_depth = self.channels
-        window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1) * \
-                    bram_stream_resource_model(window_buffer_depth, self.data_width)
-                    # bram_efficient_resource_model(window_buffer_depth, self.data_width)
-                # bram_memory_resource_model(window_buffer_depth, self.data_width)
-        if window_buffer_depth <= 256:
+        if self.kernel_size[1] > 1 and window_buffer_depth > 256:
+            window_buffer_bram = self.kernel_size[0]*bram_memory_resource_model(
+                    window_buffer_depth, (self.kernel_size[1]-1)*self.data_width)
+        else:
             window_buffer_bram = 0
 
         # add the bram estimation

@@ -60,7 +60,7 @@ class ModuleModel:
             filter = {
                 "name" : self.identifier, # specific module
                 # "parameters.data_width": 16, # only 16-bit input shapes
-                "time_stamp.commit_hash": "6d85add9a95df1dc82938af7abaf4cfbe28819ff", # specific commit hash
+                "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
             }
         else:
             raise NotImplementedError
