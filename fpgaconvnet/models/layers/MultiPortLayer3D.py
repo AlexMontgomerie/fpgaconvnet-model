@@ -39,6 +39,12 @@ class MultiPortLayer3D:
         number of parallel streams per port into the layer3d.
     coarse_out: list int
         number of parallel streams per port out of the layer3d.
+    mem_bw_in: float
+        maximum bandwidth for the input streams of the layer3d expressed
+        as a fraction of the clock cycle.
+    mem_bw_out: float
+        maximum bandwidth for the output streams of the layer3d expressed
+        as a fraction of the clock cycle.
     data_width: int
         bitwidth of featuremap pixels
     modules: dict
@@ -53,6 +59,8 @@ class MultiPortLayer3D:
     _channels: List[int]
     _coarse_in: List[int]
     _coarse_out: List[int]
+    _mem_bw_in: List[float]
+    _mem_bw_out: List[float]
     ports_in: int = field(default=1, init=True)
     ports_out: int = field(default=1, init=True)
     data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
@@ -88,6 +96,14 @@ class MultiPortLayer3D:
     @property
     def coarse_out(self) -> List[int]:
         return self._coarse_out
+
+    @property
+    def mem_bw_in(self) -> List[float]:
+        return self._mem_bw_in
+
+    @property
+    def mem_bw_out(self) -> List[float]:
+        return self._mem_bw_out
 
     """
     property setters
@@ -133,6 +149,18 @@ class MultiPortLayer3D:
         #     assert(val[i] in self.coarse_out_feasible(port_index=i))
         self._coarse_out = val
         self._coarse_in = val
+        # self.update()
+
+    @mem_bw_in.setter
+    def mem_bw_in(self, val: List[float]) -> None:
+        assert(len(val) == self.ports_in)
+        self._mem_bw_in = val
+        # self.update()
+
+    @mem_bw_out.setter
+    def mem_bw_out(self, val: List[float]) -> None:
+        assert(len(val) == self.ports_out)
+        self._mem_bw_out = val
         # self.update()
 
     def rows_in(self, port_index=0):
@@ -407,12 +435,12 @@ class MultiPortLayer3D:
 
     def latency_in(self):
         return max([
-            abs(self.workload_in(i)/(self.rate_in(i)*self.streams_in(i) )) for
+            abs(self.workload_in(i)/(min(self.mem_bw_in[i], self.rate_in(i)*self.streams_in(i)))) for
             i in range(self.ports_in) ])
 
     def latency_out(self):
         return max([
-            abs(self.workload_out(i)/(self.rate_out(i)*self.streams_out(i)))
+            abs(self.workload_out(i)/(min(self.mem_bw_out[i], self.rate_out(i)*self.streams_out(i))))
             for i in range(self.ports_out) ])
 
     def latency(self):
@@ -453,10 +481,12 @@ class MultiPortLayer3D:
         parameters.cols_in_array.extend(map(self.cols_in, range(self.ports_in)))
         parameters.depth_in_array.extend(map(self.depth_in, range(self.ports_in)))
         parameters.channels_in_array.extend(map(self.channels_in, range(self.ports_in)))
+        parameters.mem_bw_in_array.extend([self.mem_bw_in[i] for i in range(self.ports_in)])
         parameters.rows_out_array.extend(map(self.rows_out, range(self.ports_out)))
         parameters.cols_out_array.extend(map(self.cols_out, range(self.ports_out)))
         parameters.depth_out_array.extend(map(self.depth_out, range(self.ports_out)))
         parameters.channels_out_array.extend(map(self.channels_out, range(self.ports_out)))
+        parameters.mem_bw_out_array.extend([self.mem_bw_out[i] for i in range(self.ports_out)])
         parameters.coarse_in    = self.streams_in()
         parameters.coarse_out   = self.streams_out()
         parameters.ports_in     = self.ports_in

@@ -35,6 +35,12 @@ class Layer:
         number of parallel streams per port into the layer.
     coarse_out: int
         number of parallel streams per port out of the layer.
+    mem_bw_in: float
+        maximum bandwidth for the input streams of the layer3d expressed
+        as a fraction of the clock cycle.
+    mem_bw_out: float
+        maximum bandwidth for the output streams of the layer3d expressed
+        as a fraction of the clock cycle.
     data_t: int
         bitwidth of featuremap pixels
     modules: dict
@@ -49,6 +55,8 @@ class Layer:
     _channels: int
     _coarse_in: int
     _coarse_out: int
+    _mem_bw_in: float
+    _mem_bw_out: float
     data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
     buffer_depth: int = field(default=2, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
@@ -72,6 +80,14 @@ class Layer:
     @property
     def coarse_out(self) -> int:
         return self._coarse_out
+
+    @property
+    def mem_bw_in(self) -> float:
+        return self._mem_bw_in
+
+    @property
+    def mem_bw_out(self) -> float:
+        return self._mem_bw_out
 
     @rows.setter
     def rows(self, val: int) -> None:
@@ -98,6 +114,16 @@ class Layer:
     def coarse_out(self, val: int) -> None:
         assert(val in self.get_coarse_out_feasible())
         self._coarse_out = val
+        # self.update()
+
+    @mem_bw_in.setter
+    def mem_bw_in(self, val: float) -> None:
+        self._mem_bw_in = val
+        # self.update()
+
+    @mem_bw_out.setter
+    def mem_bw_out(self, val: float) -> None:
+        self._mem_bw_out = val
         # self.update()
 
     def rows_in(self) -> int:
@@ -277,10 +303,10 @@ class Layer:
         return self.data_t.width
 
     def latency_in(self):
-        return abs(self.workload_in()/(self.rate_in()*self.streams_in()))
+        return abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in())))
 
     def latency_out(self):
-        return abs(self.workload_out()/(self.rate_out()*self.streams_out()))
+        return abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out())))
 
     def latency(self):
         return max(self.latency_in(), self.latency_out())
@@ -318,6 +344,8 @@ class Layer:
         parameters.channels_out = self.channels_out()
         parameters.coarse_in    = self.coarse_in
         parameters.coarse_out   = self.coarse_out
+        parameters.mem_bw_in    = self.mem_bw_in
+        parameters.mem_bw_out   = self.mem_bw_out
         self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
