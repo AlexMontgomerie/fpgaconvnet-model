@@ -59,7 +59,7 @@ class ModuleModel:
         if self.backend == "chisel":
             filter = {
                 "name" : self.identifier, # specific module
-                # "parameters.data_width": 16, # only 16-bit input shapes
+                "parameters.data_width": 16, # only 16-bit input shapes
                 "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
             }
         else:

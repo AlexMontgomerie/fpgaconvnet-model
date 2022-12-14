@@ -8,16 +8,16 @@ import matplotlib.pyplot as plt
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
 CHISEL_MODULES = {
-        # "Accum": "AccumFixed",
-        # "Fork": "ForkFixed",
-        # "Glue": "GlueFixed",
+        "Accum": "AccumFixed",
+        "Fork": "ForkFixed",
+        "Glue": "GlueFixed",
         "SlidingWindow": "SlidingWindowFixed",
         "SlidingWindow3D": "SlidingTensorFixed",
-        # "Squeeze": "SqueezeFixed",
-        # "VectorDot": "VectorDotFixed",
-        # "Pool": "MaxPoolFixed",
-        # "GlobalPool": "AveragePoolFixed",
-        # "Bias": "BiasFixed"
+        "Squeeze": "SqueezeFixed",
+        "VectorDot": "VectorDotFixed",
+        "Pool": "MaxPoolFixed",
+        "GlobalPool": "AveragePoolFixed",
+        "Bias": "BiasFixed"
 }
 
 # CHISEL_MODULES = [ "AveragePool" ]
@@ -103,7 +103,7 @@ for module, identifier in CHISEL_MODULES.items():
         plt.xlabel("actual")
         plt.ylabel("predicted")
         plt.legend()
-        plt.show()
+        # plt.show()
 
 #     for rsc_type in self.rsc_types:
     #         fig, ax = plt.subplots(figsize=(10, 6))

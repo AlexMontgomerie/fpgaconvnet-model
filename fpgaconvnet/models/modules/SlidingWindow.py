@@ -189,7 +189,7 @@ class SlidingWindow(Module):
         rsc = Module.rsc(self, coef)
 
         # get the line buffer BRAM estimate
-        line_buffer_depth = self.cols*self.channels
+        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels
         if self.kernel_size[0] > 1 and line_buffer_depth > 256:
             line_buffer_bram =  bram_memory_resource_model(
                 line_buffer_depth, (self.kernel_size[0]-1)*self.data_width)
