@@ -300,7 +300,7 @@ class TestSqueezeLayer3D(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_resources(layer)
 
 @ddt.ddt
-class TestAveragePoolingLayer3D(TestLayer3DTemplate,unittest.TestCase):
+class TestGlobalPoolingLayer3D(TestLayer3DTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/layers/avgpool3d/*.json"))
     def test_layer_configurations(self, config_path):
@@ -310,7 +310,7 @@ class TestAveragePoolingLayer3D(TestLayer3DTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise layer
-        layer = AveragePoolingLayer3D(
+        layer = GlobalPoolingLayer3D(
             config["rows"],
             config["cols"],
             config["depth"],

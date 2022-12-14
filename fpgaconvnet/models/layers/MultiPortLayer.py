@@ -56,9 +56,9 @@ class MultiPortLayer:
     _channels: List[int]
     _coarse_in: List[int]
     _coarse_out: List[int]
-    _mem_bw_in: List[float]
-    _mem_bw_out: List[float]
-    ports_in: int = field(default=1, init=True)
+    _mem_bw_in: List[float] = field(default_factory=lambda: [50.0, 50.0], init=True)
+    _mem_bw_out: List[float] = field(default_factory=lambda: [100.0], init=True)
+    ports_in: int = field(default=2, init=True)
     ports_out: int = field(default=1, init=True)
     data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
