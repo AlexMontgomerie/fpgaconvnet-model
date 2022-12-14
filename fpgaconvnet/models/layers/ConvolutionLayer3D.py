@@ -54,6 +54,8 @@ class ConvolutionLayer3D(Layer3D):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             backend: str = "chisel", # default to no bias for old configs
+            double_buffered: bool = True,
+            stream_weights: bool = False,
         ):
 
         # initialise parent class
@@ -86,6 +88,10 @@ class ConvolutionLayer3D(Layer3D):
         self._coarse_group = coarse_group
         self._fine = fine
         self._filters = filters
+
+        # weights buffering flag
+        self.double_buffered = double_buffered
+        self.stream_weights = stream_weights
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -569,9 +575,17 @@ class ConvolutionLayer3D(Layer3D):
                                     self.kernel_depth) / \
             float(self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
 
+        # apply double buffering
+        if self.double_buffered:
+            weight_memory_depth *= 2
+
         weights_bram_usage = bram_memory_resource_model(
                     int(weight_memory_depth), self.weight_t.width*self.fine) * \
                 self.coarse_in*self.coarse_out*self.coarse_group
+
+        # if streaming weights, set to zero
+        if self.stream_weights:
+            weights_bram_usage = 0
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)
@@ -579,7 +593,7 @@ class ConvolutionLayer3D(Layer3D):
                     int(bias_memory_depth),self.acc_t.width) * self.coarse_out
 
         # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+        rsc["BRAM"] += weights_bram_usage # + biases_bram_usage
 
         # return total resource
         return rsc

@@ -240,14 +240,9 @@ class SlidingWindow3D(Module3D):
         rsc = Module3D.rsc(self, coef)
 
         # get the line buffer BRAM estimate
-        line_buffer_depth = self.channels * self.depth * self.cols
-        # line_buffer_depth = self.channels * \
-        #                     (self.depth + self.pad_front + self.pad_back) * \
-        #                     (self.cols + self.pad_left + self.pad_right)
-        # line_buffer_bram = (self.kernel_rows-1) * \
-        #         bram_stream_resource_model(line_buffer_depth, self.data_width)
-        # if line_buffer_depth <= 256:
-        #     line_buffer_bram = 0
+        line_buffer_depth = self.channels * \
+                            (self.depth + self.pad_front + self.pad_back) * \
+                            (self.cols + self.pad_left + self.pad_right)
         if self.kernel_rows > 1 and line_buffer_depth > 256:
             line_buffer_bram =  bram_memory_resource_model(
                 line_buffer_depth, (self.kernel_rows-1)*self.data_width)
@@ -255,13 +250,8 @@ class SlidingWindow3D(Module3D):
             line_buffer_bram = 0
 
         # get the window buffer BRAM estimate
-        window_buffer_depth = self.channels * self.depth
-        # window_buffer_depth = self.channels * \
-        #                       (self.depth + self.pad_front + self.pad_back)
-        # window_buffer_bram = self.kernel_rows*(self.kernel_cols-1) * \
-        #         bram_stream_resource_model(window_buffer_depth, self.data_width)
-        # if window_buffer_depth <= 256:
-        #     window_buffer_bram = 0
+        window_buffer_depth = self.channels * \
+                              (self.depth + self.pad_front + self.pad_back)
         if self.kernel_cols > 1 and window_buffer_depth > 256:
             window_buffer_bram = self.kernel_rows*bram_memory_resource_model(
                     window_buffer_depth, (self.kernel_cols-1)*self.data_width)
@@ -270,10 +260,6 @@ class SlidingWindow3D(Module3D):
 
         # get the tensor buffer BRAM estimate
         tensor_buffer_depth = self.channels
-        # tensor_buffer_bram = self.kernel_rows*self.kernel_cols*(self.kernel_depth-1) * \
-        #         bram_stream_resource_model(tensor_buffer_depth, self.data_width)
-        # if tensor_buffer_depth <= 256:
-        #     tensor_buffer_bram = 0
         if self.kernel_depth > 1 and tensor_buffer_depth > 256:
             tensor_buffer_bram = self.kernel_rows*self.kernel_cols*bram_memory_resource_model(
                     tensor_buffer_depth, (self.kernel_depth-1)*self.data_width)
