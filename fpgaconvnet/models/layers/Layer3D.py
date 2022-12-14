@@ -60,8 +60,8 @@ class Layer3D:
     _channels: int
     _coarse_in: int
     _coarse_out: int
-    _mem_bw_in: float = field(default=100.0, init=True)
-    _mem_bw_out: float = field(default=100.0, init=True)
+    mem_bw_in: float = field(default=100.0, init=True)
+    mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
     buffer_depth: int = field(default=0, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
@@ -89,14 +89,6 @@ class Layer3D:
     @property
     def coarse_out(self) -> int:
         return self._coarse_out
-
-    @property
-    def mem_bw_in(self) -> float:
-        return self._mem_bw_in
-
-    @property
-    def mem_bw_out(self) -> float:
-        return self._mem_bw_out
 
     @rows.setter
     def rows(self, val: int) -> None:
@@ -128,16 +120,6 @@ class Layer3D:
     def coarse_out(self, val: int) -> None:
         assert(val in self.get_coarse_out_feasible())
         self._coarse_out = val
-        # self.update()
-
-    @mem_bw_in.setter
-    def mem_bw_in(self, val: float) -> None:
-        self._mem_bw_in = val
-        # self.update()
-
-    @mem_bw_out.setter
-    def mem_bw_out(self, val: float) -> None:
-        self._mem_bw_out = val
         # self.update()
 
     def rows_in(self) -> int:

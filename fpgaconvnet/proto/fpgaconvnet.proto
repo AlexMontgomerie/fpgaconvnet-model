@@ -64,12 +64,12 @@ message parameter {
     repeated int32 cols_in_array        = 44;
     repeated int32 depth_in_array       = 45;
     repeated int32 channels_in_array    = 46;
-    repeated int32 mem_bw_in_array      = 47;
+    repeated float mem_bw_in_array      = 47;
     repeated int32 rows_out_array       = 48;
     repeated int32 cols_out_array       = 49;
     repeated int32 depth_out_array      = 50;
     repeated int32 channels_out_array   = 51;
-    repeated int32 mem_bw_out_array     = 52;
+    repeated float mem_bw_out_array     = 52;
     optional quant_format input_quant   = 53;
     optional quant_format outnput_quant = 54;
     optional quant_format weight_quant  = 55;

@@ -56,8 +56,8 @@ class MultiPortLayer:
     _channels: List[int]
     _coarse_in: List[int]
     _coarse_out: List[int]
-    _mem_bw_in: List[float] = field(default_factory=lambda: [50.0, 50.0], init=True)
-    _mem_bw_out: List[float] = field(default_factory=lambda: [100.0], init=True)
+    mem_bw_in: List[float] = field(default_factory=lambda: [50.0, 50.0], init=True)
+    mem_bw_out: List[float] = field(default_factory=lambda: [100.0], init=True)
     ports_in: int = field(default=2, init=True)
     ports_out: int = field(default=1, init=True)
     data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
@@ -89,14 +89,6 @@ class MultiPortLayer:
     @property
     def coarse_out(self) -> List[int]:
         return self._coarse_out
-
-    @property
-    def mem_bw_in(self) -> List[float]:
-        return self._mem_bw_in
-
-    @property
-    def mem_bw_out(self) -> List[float]:
-        return self._mem_bw_out
 
     """
     property setters
@@ -136,18 +128,6 @@ class MultiPortLayer:
         #     assert(val[i] in self.coarse_out_feasible(port_index=i))
         self._coarse_out = val
         self._coarse_in = val
-        # self.update()
-
-    @mem_bw_in.setter
-    def mem_bw_in(self, val: List[float]) -> None:
-        assert(len(val) == self.ports_in)
-        self._mem_bw_in = val
-        # self.update()
-
-    @mem_bw_out.setter
-    def mem_bw_out(self, val: List[float]) -> None:
-        assert(len(val) == self.ports_out)
-        self._mem_bw_out = val
         # self.update()
 
     def rows_in(self, port_index=0):
