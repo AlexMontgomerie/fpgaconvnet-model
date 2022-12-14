@@ -19,6 +19,7 @@ class EltWiseLayer3D(MultiPortLayer3D):
             depth: int,
             channels: int,
             ports_in: int = 1,
+            ports_out: int = 1,
             coarse: int = 1,
             op_type: str = "add",
             broadcast: bool = False,
@@ -30,7 +31,7 @@ class EltWiseLayer3D(MultiPortLayer3D):
         super().__init__([rows]*ports_in, [cols]*ports_in,
                 [depth]*ports_in,
                 [channels]*ports_in, [coarse]*ports_in,
-                [coarse]*ports_in, ports_in=ports_in)
+                [coarse]*ports_out, ports_in=ports_in, ports_out=ports_out)
 
         self.acc_t = acc_t
 

@@ -131,7 +131,7 @@ class MultiPortLayer3D:
         # for i in range(val):
         #     assert(val[i] in self.coarse_in_feasible(port_index=i))
         self._coarse_in = val
-        self.coarse_out = val
+        self._coarse_out = val
         # self.update()
 
     @coarse_out.setter
