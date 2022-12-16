@@ -61,6 +61,12 @@ class ModuleModel:
                 "name" : self.identifier, # specific module
                 "parameters.data_width": 16, # only 16-bit input shapes
                 "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
+                # filter resources
+                "resources.LUT" : { "$lt" : int(461000*0.7) },
+                "resources.FF"  : { "$lt" : int(504000*0.7) },
+                "resources.DSP" : { "$lt" : int(1728*0.7) },
+                "resources.BRAM36" : { "$lt" : int(312*0.7) },
+                "resources.BRAM18" : { "$lt" : int(624*0.7) },
             }
         else:
             raise NotImplementedError

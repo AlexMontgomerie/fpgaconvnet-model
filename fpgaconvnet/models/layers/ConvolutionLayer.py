@@ -50,7 +50,7 @@ class ConvolutionLayer(Layer):
             has_bias: int = 0, # default to no bias for old configs
             backend: str = "chisel", # default to no bias for old configs
             double_buffered: bool = True,
-            stream_weights: bool = True,
+            stream_weights: bool = False,
         ):
 
         # initialise parent class
@@ -498,6 +498,9 @@ class ConvolutionLayer(Layer):
         weights_bram_usage = bram_memory_resource_model(
                     int(weight_memory_depth), self.weight_t.width*self.fine) * \
                 self.coarse_in*self.coarse_out*self.coarse_group
+
+        if self.stream_weights:
+            weights_bram_usage = 0
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)

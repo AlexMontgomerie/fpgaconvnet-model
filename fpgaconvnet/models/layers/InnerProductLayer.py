@@ -30,7 +30,9 @@ class InnerProductLayer(Layer):
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0,
-            backend: str = "chisel"
+            backend: str = "chisel",
+            double_buffered: bool = True,
+            stream_weights: bool = False,
         ):
 
         # initialise parent class
@@ -52,6 +54,10 @@ class InnerProductLayer(Layer):
 
         # save parameters
         self._filters = filters
+
+        # weights buffering flag
+        self.double_buffered = double_buffered
+        self.stream_weights = stream_weights
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -197,8 +203,15 @@ class InnerProductLayer(Layer):
         # weight usage
         weights_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
                 self.cols_in())/float(self.coarse_in*self.coarse_out)
+
+        if self.double_buffered:
+            weights_memory_depth *= 2
+
         weights_bram_usage = bram_memory_resource_model(
-                    int(weights_memory_depth),self.weight_t.width) * self.coarse_out
+                    int(weights_memory_depth), self.weight_t.width) * self.coarse_in * self.coarse_out
+
+        if self.stream_weights:
+            weights_bram_usage = 0
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)

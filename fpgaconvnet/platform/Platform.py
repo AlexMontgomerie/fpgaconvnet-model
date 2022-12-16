@@ -14,8 +14,7 @@ class Platform:
     mem_bw: float = 10.0
     mem_bw_wpc: float = 6.25
     reconf_time: float = 10.0
-    axi_ports: int = 2
-    axi_data_width: int = 128
+    port_width: int = 512
 
     def __post_init__(self):
         self.get_name()
@@ -65,15 +64,14 @@ class Platform:
             self.resources[resource] = val
 
         ## system
-        self.board_freq = conf["system"].get("board_frequency", 100.0)
-        self.mem_bw = conf["system"].get("memory_bandwidth", 5.0)
-        self.reconf_time = conf["system"].get("reconfiguration_time", 0.0)
-        self.axi_ports = conf["system"].get("axi_ports", 2)
-        self.axi_data_width = conf["system"].get("axi_data_width", 128)
+        self.board_freq  = conf["system"].get("board_frequency", 100.0) # in MHz
+        self.mem_bw      = conf["system"].get("memory_bandwidth", 5.0) # in Gbps
+        self.reconf_time = conf["system"].get("reconfiguration_time", 0.0) # in seconds
+        self.port_width  = conf["system"].get("port_width", 512) # in bits
 
         # perform post initialisation again
         self.__post_init__()
 
     def get_memory_bandwidth(self):
-        pl_bw = self.axi_ports*self.axi_data_width*self.board_freq/1000.0
+        pl_bw = 2*16*self.port_width*self.board_freq/1000.0 # TODO: get the data type
         return min(pl_bw, self.mem_bw)

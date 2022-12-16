@@ -165,17 +165,17 @@ class SlidingWindow3D(Module3D):
             line_buffer_depth = self.cols*self.depth*self.channels
             line_buffer_lutram = queue_lutram_resource_model(
                         line_buffer_depth, self.data_width)
-            if line_buffer_depth <= 256:
+            if line_buffer_depth > 256:
                 line_buffer_lutram = 0
             window_buffer_depth = self.depth*self.channels
             window_buffer_lutram = queue_lutram_resource_model(
                         window_buffer_depth, self.data_width)
-            if window_buffer_depth <= 256:
+            if window_buffer_depth > 256:
                 window_buffer_lutram = 0
             tensor_buffer_depth = self.channels
             tensor_buffer_lutram = queue_lutram_resource_model(
                         tensor_buffer_depth, self.data_width)
-            if tensor_buffer_depth <= 256:
+            if tensor_buffer_depth > 256:
                 tensor_buffer_lutram = 0
             return {
                 "Logic_LUT" : np.array([
