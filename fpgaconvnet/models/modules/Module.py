@@ -103,6 +103,7 @@ class Module:
         # use module resource coefficients if none are given
         if coef == None and model == None:
             coef = self.rsc_coef
+            model = self.rsc_coef
 
         # return the linear model estimation
         match self.regression_model:
