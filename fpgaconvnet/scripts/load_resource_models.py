@@ -28,6 +28,9 @@ CHISEL_MODULES = {
 HLS_MODULES = []
 
 def save_npy(rsc_model, module):
+    db_data_local_path = os.path.join(os.path.dirname(__file__), f"../db_data")
+    if not os.path.exists(db_data_local_path):
+        os.mkdir(db_data_local_path)
     X = []
     Y = []
     for param, actual in zip(rsc_model.parameters, rsc_model.actual["Logic_LUT"]):
@@ -44,8 +47,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_Logic_LUT_X.npy", x_arr)
-    np.save(f"regression_models/{module}_Logic_LUT_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_Logic_LUT_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_Logic_LUT_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -63,8 +66,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_LUT_RAM_X.npy", x_arr)
-    np.save(f"regression_models/{module}_LUT_RAM_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_LUT_RAM_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_LUT_RAM_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -82,8 +85,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_LUT_SR_X.npy", x_arr)
-    np.save(f"regression_models/{module}_LUT_SR_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_LUT_SR_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_LUT_SR_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -101,8 +104,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_FF_X.npy", x_arr)
-    np.save(f"regression_models/{module}_FF_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_FF_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_FF_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -120,8 +123,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_DSP_X.npy", x_arr)
-    np.save(f"regression_models/{module}_DSP_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_DSP_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_DSP_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -139,8 +142,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_BRAM36_X.npy", x_arr)
-    np.save(f"regression_models/{module}_BRAM36_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_BRAM36_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_BRAM36_Y.npy", y_arr)
 
     X = []
     Y = []
@@ -158,8 +161,8 @@ def save_npy(rsc_model, module):
 
     x_arr = np.array(X)
     y_arr = np.array(Y)
-    np.save(f"regression_models/{module}_BRAM18_X.npy", x_arr)
-    np.save(f"regression_models/{module}_BRAM18_Y.npy", y_arr)
+    np.save(f"{db_data_local_path}/{module}_BRAM18_X.npy", x_arr)
+    np.save(f"{db_data_local_path}/{module}_BRAM18_Y.npy", y_arr)
 
 # iterate over chisel modules
 for module, identifier in CHISEL_MODULES.items():
@@ -170,6 +173,8 @@ for module, identifier in CHISEL_MODULES.items():
 
     # load data
     rsc_model.load_data_from_db()
+
+    # save database data locally
     # save_npy(rsc_model, module)
 
     # fit model

@@ -13,6 +13,7 @@ data/
 rpt/
 
 outputs/
+db_data/
 
 .eggs/
 
