@@ -25,6 +25,7 @@ class SplitLayer3D(MultiPortLayer3D):
             ports_out: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
         """
         Parameters
@@ -74,6 +75,10 @@ class SplitLayer3D(MultiPortLayer3D):
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # parameters
         self._coarse = coarse
 
@@ -81,7 +86,7 @@ class SplitLayer3D(MultiPortLayer3D):
         #One fork module, fork coarse_out corresponds to number of layer output ports
         self.modules["fork3d"] = Fork3D( self.rows_in(), self.cols_in(),
                 self.depth_in(), self.channels_in(), 1, self.ports_out,
-                backend=self.backend)
+                backend=self.backend, regression_model=self.regression_model)
 
         # update the modules
         self.update()

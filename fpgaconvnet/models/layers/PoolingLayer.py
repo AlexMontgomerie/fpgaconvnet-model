@@ -31,7 +31,8 @@ class PoolingLayer(Layer):
             pad_left: int = 0,
             fine: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel"
+            backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -58,13 +59,17 @@ class PoolingLayer(Layer):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # init modules
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(),
                 self.cols_in(), self.channels_in()//self.coarse,
                 self.kernel_size, self.stride, self.pad_top,
-                self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend)
+                self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend, regression_model=self.regression_model)
         self.modules["pool"] = MaxPool(self.rows_out(), self.cols_out(),
-                self.channels_out()//self.coarse, self.kernel_size, backend=self.backend)
+                self.channels_out()//self.coarse, self.kernel_size, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 

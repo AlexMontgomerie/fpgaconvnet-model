@@ -20,6 +20,7 @@ class ActivationLayer3D(Layer3D):
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -35,8 +36,12 @@ class ActivationLayer3D(Layer3D):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # init modules
-        self.modules[self.layer_name] = Activation3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//self.coarse, activation_type, backend=self.backend)
+        self.modules[self.layer_name] = Activation3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//self.coarse, activation_type, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 
