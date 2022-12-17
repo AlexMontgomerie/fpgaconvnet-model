@@ -6,6 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from fpgaconvnet.tools.resource_regression_model import ModuleModel
+from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_absolute_percentage_error
+
+# Available regression models: linear_regression, xgboost
+REGRESSOR = "xgboost"
 
 CHISEL_MODULES = {
         "Accum": "AccumFixed",
@@ -23,24 +27,159 @@ CHISEL_MODULES = {
 # CHISEL_MODULES = [ "AveragePool" ]
 HLS_MODULES = []
 
+def save_npy(rsc_model, module):
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["Logic_LUT"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_Logic_LUT_X.npy", x_arr)
+    np.save(f"regression_models/{module}_Logic_LUT_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["LUT_RAM"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_LUT_RAM_X.npy", x_arr)
+    np.save(f"regression_models/{module}_LUT_RAM_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["LUT_SR"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_LUT_SR_X.npy", x_arr)
+    np.save(f"regression_models/{module}_LUT_SR_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["FF"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_FF_X.npy", x_arr)
+    np.save(f"regression_models/{module}_FF_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["DSP"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_DSP_X.npy", x_arr)
+    np.save(f"regression_models/{module}_DSP_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["BRAM36"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_BRAM36_X.npy", x_arr)
+    np.save(f"regression_models/{module}_BRAM36_Y.npy", y_arr)
+
+    X = []
+    Y = []
+    for param, actual in zip(rsc_model.parameters, rsc_model.actual["BRAM18"]):
+        x = []
+        for k, p in param.items():
+            if isinstance(p, list):
+                x.extend(p)
+            elif isinstance(p, str):
+                continue
+            else:
+                x.append(p)
+        X.append(x)
+        Y.append([actual])
+
+    x_arr = np.array(X)
+    y_arr = np.array(Y)
+    np.save(f"regression_models/{module}_BRAM18_X.npy", x_arr)
+    np.save(f"regression_models/{module}_BRAM18_Y.npy", y_arr)
+
 # iterate over chisel modules
 for module, identifier in CHISEL_MODULES.items():
 
-    print(f"{module} (chisel)")
+    print(f"{module} (chisel) ({REGRESSOR})")
     # create regression model
-    rsc_model = ModuleModel(identifier, module, "chisel")
+    rsc_model = ModuleModel(identifier, module, REGRESSOR, "chisel")
 
     # load data
     rsc_model.load_data_from_db()
+    # save_npy(rsc_model, module)
 
     # fit model
     rsc_model.fit_model(from_cache=False)
 
     # save coefficeints
-    cache_path = os.path.join(
-            os.path.dirname(__file__),
-            f"../coefficients/chisel")
-    rsc_model.save_coef(cache_path)
+    # cache_path = os.path.join(
+    #         os.path.dirname(__file__),
+    #         f"../coefficients/{REGRESSOR}/chisel")
+    # rsc_model.save_coef(cache_path)
 
     # get modelled resources
     hw_model = getattr(importlib.import_module(
@@ -51,6 +190,7 @@ for module, identifier in CHISEL_MODULES.items():
     attrs = [x for x in attrs if (x[0] == "__dataclass_fields__")]
     attrs = {k : 1 for k, v in attrs[0][1].items() if v.init}
     attrs["backend"] = "chisel"
+    attrs["regression_model"] = REGRESSOR
     attrs.pop("pool_type", None) # bug fix for Pool
     m = hw_model(**attrs)
 
@@ -67,7 +207,23 @@ for module, identifier in CHISEL_MODULES.items():
                 setattr(m, k, v)
 
         # get the predicted resources
-        rsc = m.rsc(coef=rsc_model.coef)
+        match REGRESSOR:
+            case "linear_regression":
+                rsc = m.rsc(coef=rsc_model.coef)
+            case "xgboost":
+                tmp = list(param.values())
+                tmp.remove('chisel')
+                final_tmp = []
+                for i in tmp:
+                    if type(i) == list:
+                        for j in i:
+                            final_tmp.append(j)
+                    elif type(i) == str:
+                        continue
+                    else:
+                        final_tmp.append(i)
+                rsc = m.rsc(model=rsc_model.coef, array=np.array(final_tmp))
+
         for rsc_type in predicted.keys():
             predicted[rsc_type].append(rsc[rsc_type])
 
@@ -93,7 +249,14 @@ for module, identifier in CHISEL_MODULES.items():
         mse = (diff*diff).mean()
         std = diff.std()
 
-        print(f"({module}) {rsc_type}: mean_err={mean_err:.2f}, mse={mse:.2f}, std={std:.2f}")
+        mse = mean_squared_error(actual[rsc_type], predicted[rsc_type])
+        mae = mean_absolute_error(actual[rsc_type], predicted[rsc_type])
+        mape = mean_absolute_percentage_error(actual[rsc_type], predicted[rsc_type])
+        evs = explained_variance_score(actual[rsc_type], predicted[rsc_type])
+        r2 = r2_score(actual[rsc_type], predicted[rsc_type])
+
+        # print(f"({module}) {rsc_type}: mean_err={mean_err:.2f}, mse={mse:.2f}, std={std:.2f}")
+        print(f"({module}) {rsc_type}: mse={mse:.2f}, mae={mae:.2f}, mape={mape:.2f}, evs={evs:.2f}, r2={r2:.2f}")
 
         x = actual[rsc_type]
         y = predicted[rsc_type]
