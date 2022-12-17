@@ -19,6 +19,7 @@ from fpgaconvnet.models.modules import GlobalPool
 @dataclass
 class GlobalPool3D(Module3D):
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
     acc_width: int = 32
 
     def __post_init__(self):
@@ -56,7 +57,7 @@ class GlobalPool3D(Module3D):
         # return the info
         return info
 
-    def rsc(self,coef=None):
+    def rsc(self,coef=None, model=None, array=None):
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -64,7 +65,7 @@ class GlobalPool3D(Module3D):
         avgpool_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        rsc = Module3D.rsc(self, coef, model, array)
 
         # add the bram estimation
         rsc["BRAM"] = avgpool_buffer_bram

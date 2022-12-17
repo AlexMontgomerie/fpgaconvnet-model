@@ -14,9 +14,10 @@ from fpgaconvnet.models.modules import VectorDot
 class VectorDot3D(Module3D):
     filters: int
     fine: int
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
-    backend: str = "chisel"
 
     def __post_init__(self):
 
@@ -64,14 +65,14 @@ class VectorDot3D(Module3D):
         # call the 2D utilisation model instead
         return VectorDot.utilisation_model(param)
 
-    def rsc(self,coef=None):
+    def rsc(self,coef=None, model=None, array=None):
 
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        rsc = Module3D.rsc(self, coef, model, array)
 
         # get the dsp usage
         dsp = self.fine*dsp_multiplier_resource_model(

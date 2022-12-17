@@ -58,12 +58,13 @@ class Conv3D(Module3D):
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=16, init=False)
     backend: str = "hls"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+                f"/../../coefficients/linear_regression/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}
@@ -117,14 +118,14 @@ class Conv3D(Module3D):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
-    def rsc(self,coef=None):
+    def rsc(self,coef=None, model=None, array=None):
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
         # get an estimate for the dsp usage
         dot_product_dsp = self.fine * dsp_multiplier_resource_model(self.weight_width, self.data_width)
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        rsc = Module3D.rsc(self, coef, model, array)
         # update the dsp usage
         rsc["DSP"] = dot_product_dsp
         # set the BRAM usage to zero

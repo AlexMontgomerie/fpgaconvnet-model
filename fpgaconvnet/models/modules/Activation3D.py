@@ -16,6 +16,7 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 class Activation3D(Module3D):
     activation_type: str
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         # TODO this is a hack for now FIXME
@@ -23,7 +24,7 @@ class Activation3D(Module3D):
         self.__class__.__name__ = f"{self.activation_type.capitalize()}3D"
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+                f"/../../coefficients/linear_regression/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}

@@ -26,6 +26,7 @@ class Pool3D(Module3D):
     kernel_depth: int
     pool_type: str = "max"
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 

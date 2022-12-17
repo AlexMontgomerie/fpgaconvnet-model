@@ -16,6 +16,7 @@ class Squeeze3D(Module3D):
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 

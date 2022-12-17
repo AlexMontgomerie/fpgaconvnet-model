@@ -28,6 +28,7 @@ class Accum3D(Module3D):
     filters: int
     groups: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -75,7 +76,7 @@ class Accum3D(Module3D):
         # call the 2D utilisation model instead
         return Accum.utilisation_model(param)
 
-    def rsc(self,coef=None):
+    def rsc(self,coef=None, model=None, array=None):
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -83,7 +84,7 @@ class Accum3D(Module3D):
         # acc_buffer_bram = bram_memory_resource_model(int(self.filters/self.groups), self.data_width)
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        rsc = Module3D.rsc(self, coef, model, array)
 
         # add the bram estimation
         rsc["BRAM"] = 0
