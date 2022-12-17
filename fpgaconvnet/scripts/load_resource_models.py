@@ -216,18 +216,7 @@ for module, identifier in CHISEL_MODULES.items():
             case "linear_regression":
                 rsc = m.rsc(coef=rsc_model.coef)
             case "xgboost":
-                tmp = list(param.values())
-                tmp.remove('chisel')
-                final_tmp = []
-                for i in tmp:
-                    if type(i) == list:
-                        for j in i:
-                            final_tmp.append(j)
-                    elif type(i) == str:
-                        continue
-                    else:
-                        final_tmp.append(i)
-                rsc = m.rsc(model=rsc_model.coef, array=np.array(final_tmp))
+                rsc = m.rsc(model=rsc_model.coef)
 
         for rsc_type in predicted.keys():
             predicted[rsc_type].append(rsc[rsc_type])

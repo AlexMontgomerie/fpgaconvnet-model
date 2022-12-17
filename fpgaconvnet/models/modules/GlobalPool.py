@@ -55,14 +55,14 @@ class GlobalPool(Module):
         else:
             raise NotImplementedError(f"{self.backend} backend not supported")
 
-    def rsc(self,coef=None, model=None, array=None):
+    def rsc(self,coef=None, model=None):
 
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
 
         # get the linear model estimation
-        rsc = Module.rsc(self, coef, model, array)
+        rsc = Module.rsc(self, coef, model)
 
         # get the dsp usage
         dsp = dsp_multiplier_resource_model(

@@ -31,7 +31,7 @@ class ReLU3D(Module3D):
             self.rsc_coef[rsc_type] = np.load(coef_path)
 
 
-    def rsc(self, coef=None, model=None, array=None):
+    def rsc(self, coef=None, model=None):
         # TODO this is a hack for now FIXME
         return {
             "LUT"   : 16,

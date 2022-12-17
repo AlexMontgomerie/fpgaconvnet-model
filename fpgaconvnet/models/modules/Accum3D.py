@@ -71,12 +71,12 @@ class Accum3D(Module3D):
         param = namedtuple('AccumParam', self.__dict__.keys())(*self.__dict__.values())
 
         # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols + param.depth)
+        param._replace(cols=param.cols * param.depth)
 
         # call the 2D utilisation model instead
         return Accum.utilisation_model(param)
 
-    def rsc(self,coef=None, model=None, array=None):
+    def rsc(self,coef=None, model=None):
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -84,7 +84,7 @@ class Accum3D(Module3D):
         # acc_buffer_bram = bram_memory_resource_model(int(self.filters/self.groups), self.data_width)
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef, model, array)
+        rsc = Module3D.rsc(self, coef, model)
 
         # add the bram estimation
         rsc["BRAM"] = 0

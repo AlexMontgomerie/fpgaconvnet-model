@@ -91,7 +91,10 @@ class Module:
     def utilisation_model(self):
         raise ValueError(f"{self.backend} backend not supported")
 
-    def rsc(self, coef=None, model=None, array=None):
+    def get_pred_array(self):
+        raise ValueError(f"{self.backend} backend not supported")
+
+    def rsc(self, coef=None, model=None):
         """
         Returns
         -------
@@ -113,7 +116,8 @@ class Module:
                 rsc = { rsc_type: int(np.dot(util_model[rsc_type],
                     coef[rsc_type])) for rsc_type in coef.keys()}
             case "xgboost":
-                rsc = { rsc_type: int(model[rsc_type].predict(array.reshape(1,-1))) for rsc_type in model.keys()}
+                pred_array = self.get_pred_array()
+                rsc = { rsc_type: int(model[rsc_type].predict(pred_array)) for rsc_type in model.keys()}
 
         if self.backend == "chisel":
             # update the resources for sum of LUT and BRAM types

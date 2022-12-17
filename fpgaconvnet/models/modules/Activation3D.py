@@ -33,7 +33,7 @@ class Activation3D(Module3D):
             coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
             self.rsc_coef[rsc_type] = np.load(coef_path)
 
-    def rsc(self, coef=None):
+    def rsc(self, coef=None, model=None):
         # TODO this is a hack for now FIXME
         if self.activation_type == "relu":
             return {

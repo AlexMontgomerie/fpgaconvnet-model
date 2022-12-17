@@ -69,7 +69,7 @@ class EltWise3D(Module3D):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
-    def rsc(self,coef=None, model=None, array=None):
+    def rsc(self,coef=None, model=None):
         # use module resource coefficients if none are given
         if coef == None:
             coef = self.rsc_coef
@@ -78,7 +78,7 @@ class EltWise3D(Module3D):
         channel_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef, model, array)
+        rsc = Module3D.rsc(self, coef, model)
 
         # add the bram estimation
         rsc["BRAM"] = channel_buffer_bram if self.broadcast else 0
