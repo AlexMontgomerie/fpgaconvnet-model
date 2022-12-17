@@ -265,12 +265,15 @@ for module, identifier in CHISEL_MODULES.items():
 
         x = actual[rsc_type]
         y = predicted[rsc_type]
+        plt.clf()
         plt.plot(x, x, label="actual")
         plt.scatter(x, y, label="predict", marker="x", color="r")
         plt.title(rsc_type)
         plt.xlabel("actual")
         plt.ylabel("predicted")
         plt.legend()
+        # imgs_path = os.path.join(os.path.dirname(__file__), f"../imgs")
+        # plt.savefig(os.path.join(imgs_path, f"{REGRESSOR}_{module}_{rsc_type}.jpg"))
         # plt.show()
 
 #     for rsc_type in self.rsc_types:
