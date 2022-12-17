@@ -70,7 +70,7 @@ class Accum3D(Module3D):
         param = namedtuple('AccumParam', self.__dict__.keys())(*self.__dict__.values())
 
         # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols + param.depth)
+        param._replace(cols=param.cols * param.depth)
 
         # call the 2D utilisation model instead
         return Accum.utilisation_model(param)

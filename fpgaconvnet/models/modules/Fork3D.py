@@ -70,7 +70,7 @@ class Fork3D(Module3D):
         param = namedtuple('ForkParam', param.keys())(*param.values())
 
         # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols + param.depth)
+        param._replace(cols=param.cols * param.depth)
 
         # call the 2D utilisation model instead
         return Fork.utilisation_model(param)

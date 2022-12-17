@@ -52,7 +52,7 @@ class Squeeze3D(Module3D):
         param = namedtuple('SqueezeParam', self.__dict__.keys())(*self.__dict__.values())
 
         # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols + param.depth)
+        param._replace(cols=param.cols * param.depth)
 
         # call the 2D utilisation model instead
         return Squeeze.utilisation_model(param)
