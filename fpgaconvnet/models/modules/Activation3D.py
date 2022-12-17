@@ -24,7 +24,7 @@ class Activation3D(Module3D):
         self.__class__.__name__ = f"{self.activation_type.capitalize()}3D"
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/linear_regression/{self.backend}"
+                f"/../../coefficients/{self.regression_model}/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}

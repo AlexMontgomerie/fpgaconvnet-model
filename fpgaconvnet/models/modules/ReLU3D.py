@@ -21,7 +21,7 @@ class ReLU3D(Module3D):
         return
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/linear_regression/{self.backend}"
+                f"/../../coefficients/{self.regression_model}/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}

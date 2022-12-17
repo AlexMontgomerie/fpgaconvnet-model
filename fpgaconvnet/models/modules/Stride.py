@@ -40,16 +40,16 @@ class Stride(Module):
         # load the resource model coefficients
         self.rsc_coef["LUT"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                f"../../coefficients/linear_regression/{self.backend}/fork_lut.npy"))
+                f"../../coefficients/{self.regression_model}/{self.backend}/fork_lut.npy"))
         self.rsc_coef["FF"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                f"../../coefficients/linear_regression/{self.backend}/fork_ff.npy"))
+                f"../../coefficients/{self.regression_model}/{self.backend}/fork_ff.npy"))
         self.rsc_coef["BRAM"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                f"../../coefficients/linear_regression/{self.backend}/fork_bram.npy"))
+                f"../../coefficients/{self.regression_model}/{self.backend}/fork_bram.npy"))
         self.rsc_coef["DSP"] = np.load(
                 os.path.join(os.path.dirname(__file__),
-                f"../../coefficients/linear_regression/{self.backend}/fork_dsp.npy"))
+                f"../../coefficients/{self.regression_model}/{self.backend}/fork_dsp.npy"))
 
     def utilisation_model(self):
         return {
