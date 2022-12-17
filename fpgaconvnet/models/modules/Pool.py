@@ -21,6 +21,7 @@ class Pool(Module):
     kernel_size: Union[List[int],int]
     pool_type: str = "max"
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __name__(self):
         return f"{self.pool_type.capitalize()}Pool"

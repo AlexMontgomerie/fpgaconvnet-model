@@ -18,6 +18,7 @@ class Squeeze(Module):
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def module_info(self):
         # get the base module fields

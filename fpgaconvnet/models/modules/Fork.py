@@ -24,6 +24,7 @@ class Fork(Module):
     kernel_size: Union[List[int],int]
     coarse: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 

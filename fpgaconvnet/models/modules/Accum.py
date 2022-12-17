@@ -26,6 +26,7 @@ class Accum(Module):
     filters: int
     groups: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups

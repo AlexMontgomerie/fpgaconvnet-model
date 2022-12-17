@@ -23,6 +23,7 @@ class Bias(Module):
     filters: int
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return self.filters

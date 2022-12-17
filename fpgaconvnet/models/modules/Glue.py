@@ -22,6 +22,7 @@ class Glue(Module):
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return self.filters
