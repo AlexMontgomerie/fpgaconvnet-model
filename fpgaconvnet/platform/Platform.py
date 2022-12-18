@@ -45,6 +45,9 @@ class Platform:
     def get_ff(self):
         return self.resources.get("FF", 0)
 
+    def get_mem_bw(self):
+        return self.mem_bw
+
     def update(self, platform_path):
 
         # make sure toml configuration
