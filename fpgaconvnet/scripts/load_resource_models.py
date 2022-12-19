@@ -9,7 +9,7 @@ from fpgaconvnet.tools.resource_regression_model import ModuleModel
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_absolute_percentage_error
 
 # Available regression models: linear_regression, xgboost
-REGRESSOR = "linear_regression"
+REGRESSOR = "xgboost"
 
 CHISEL_MODULES = {
         "Accum": "AccumFixed",
@@ -21,7 +21,7 @@ CHISEL_MODULES = {
         "VectorDot": "VectorDotFixed",
         "Pool": "MaxPoolFixed",
         "GlobalPool": "AveragePoolFixed",
-        # "Bias": "BiasFixed"
+        "Bias": "BiasFixed"
 }
 
 # CHISEL_MODULES = [ "AveragePool" ]
@@ -249,7 +249,6 @@ for module, identifier in CHISEL_MODULES.items():
         evs = explained_variance_score(actual[rsc_type], predicted[rsc_type])
         r2 = r2_score(actual[rsc_type], predicted[rsc_type])
 
-        # print(f"({module}) {rsc_type}: mean_err={mean_err:.2f}, mse={mse:.2f}, std={std:.2f}")
         print(f"({module}) {rsc_type}: mse={mse:.2f}, mae={mae:.2f}, mape={mape:.2f}, evs={evs:.2f}, r2={r2:.2f}")
 
         x = actual[rsc_type]
@@ -265,7 +264,7 @@ for module, identifier in CHISEL_MODULES.items():
         # plt.savefig(os.path.join(imgs_path, f"{REGRESSOR}_{module}_{rsc_type}.jpg"))
         # plt.show()
 
-#     for rsc_type in self.rsc_types:
+    # for rsc_type in self.rsc_types:
     #         fig, ax = plt.subplots(figsize=(10, 6))
     #         x = self.actual[rsc_type]
     #         y = self.predict[rsc_type]
