@@ -403,8 +403,8 @@ class MultiPortLayer:
 
     def memory_bandwidth(self):
         return {
-            "in"  : max([min(self.mem_bw_in[i], self.rate_in(i)*self.streams_in(i)) for i in range(self.ports_in)]),
-            "out" : max([min(self.mem_bw_out[i], self.rate_out(i)*self.streams_out(i)) for i in range(self.ports_out)])
+            "in"  : sum([min(self.mem_bw_in[i], self.rate_in(i)*self.streams_in(i)) for i in range(self.ports_in)]),
+            "out" : sum([min(self.mem_bw_out[i], self.rate_out(i)*self.streams_out(i)) for i in range(self.ports_out)])
         }
 
     def get_coarse_in_feasible(self, port_index=0):
