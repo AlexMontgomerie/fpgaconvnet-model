@@ -339,6 +339,12 @@ class Layer3D:
             "DSP"   : 0
         }
 
+    def memory_bandwidth(self):
+        return {
+            "in"  : min(self.mem_bw_in, self.rate_in()*self.streams_in()),
+            "out" : min(self.mem_bw_out, self.rate_out()*self.streams_out())
+        }
+
     def get_coarse_in_feasible(self, wr_factor=1):
         return get_factors(int(self.channels_in()/wr_factor))
 

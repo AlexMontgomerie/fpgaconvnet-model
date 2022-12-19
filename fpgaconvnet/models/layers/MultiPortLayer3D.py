@@ -444,6 +444,12 @@ class MultiPortLayer3D:
             "DSP"   : 0
         }
 
+    def memory_bandwidth(self):
+        return {
+            "in"  : sum([min(self.mem_bw_in[i], self.rate_in(i)*self.streams_in(i)) for i in range(self.ports_in)]),
+            "out" : sum([min(self.mem_bw_out[i], self.rate_out(i)*self.streams_out(i)) for i in range(self.ports_out)])
+        }
+
     def get_coarse_in_feasible(self, port_index=0):
         assert(port_index < self.ports_in)
         return get_factors(self.channels_in(port_index))
