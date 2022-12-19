@@ -128,21 +128,21 @@ class ModuleModel:
             # get the cache path
             match self.regression_model:
                 case "linear_regression":
-                    cache_path = os.path.dirname(__file__) + f"../coefficients/{self.regression_model}/{self.backend}"
+                    cache_path = os.path.dirname(__file__) + f"/../coefficients/{self.regression_model}/{self.backend}"
 
                     # iterate over resource types
                     self.coef = {}
                     for rsc_type in self.rsc_types:
-                        with open(f"{cache_path}/{self.identifier}_{rsc_type}.npy", "wb") as f:
+                        with open(f"{cache_path}/{self.module.lower()}_{rsc_type.lower()}.npy", "wb") as f:
                             self.coef[rsc_type] = np.save(f)
                 case "xgboost":
-                    cache_path = os.path.dirname(__file__) + f"../coefficients/{self.regression_model}/{self.backend}"
+                    cache_path = os.path.dirname(__file__) + f"/../coefficients/{self.regression_model}/{self.backend}"
 
                     # iterate over resource types
                     self.coef = {}
                     for rsc_type in self.rsc_types:
                         model = XGBRegressor()
-                        model.load_model(f"{cache_path}/{self.identifier}_{rsc_type}.json")
+                        model.load_model(f"{cache_path}/{self.module.lower()}_{rsc_type.lower()}.json")
                         self.coef[rsc_type] = model
 
         else:
