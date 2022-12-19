@@ -69,23 +69,16 @@ class GlobalPool3D(Module3D):
         # return the info
         return info
 
-    def rsc(self,coef=None, model=None):
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-        # get the average polling buffer BRAM estimate
-        avgpool_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
+    def rsc(self, coef=None, model=None):
 
-        # get the linear model estimation
+        # get the regression model estimation
         rsc = Module3D.rsc(self, coef, model)
 
-        # add the bram estimation
-        rsc["BRAM"] = avgpool_buffer_bram
+        if self.regression_model == "linear_regression":
+            # get the dsp usage
+            rsc["DSP"] = dsp_multiplier_resource_model(
+                    self.data_width, self.acc_width)
 
-        # add the dsp estimation
-        rsc["DSP"] = 1
-
-        # return the resource usage
         return rsc
 
     def visualise(self, name):

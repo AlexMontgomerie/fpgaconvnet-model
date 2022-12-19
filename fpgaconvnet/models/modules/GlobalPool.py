@@ -83,20 +83,10 @@ class GlobalPool(Module):
         # return the info
         return info
 
-    # def rsc(self,coef=None):
-    #     # use module resource coefficients if none are given
-    #     if coef == None:
-    #         coef = self.rsc_coef
-    #     # get the linear model estimation
-    #     rsc = Module.rsc(self, coef)
-    #     # return the resource model
-    #     return rsc
-
     def visualise(self, name):
         return pydot.Node(name, label="global_pool", shape="box",
                 style="filled", fillcolor="chartreuse",
                 fontsize=MODULE_FONTSIZE)
-
 
     def functional_model(self, data):
         # check input dimensionality
