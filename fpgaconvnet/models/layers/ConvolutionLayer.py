@@ -80,6 +80,9 @@ class ConvolutionLayer(Layer):
         self._fine = fine
         self._filters = filters
 
+        # check if the layer is depthwise
+        self.depthwise = (groups == channels) and (groups == filters)
+
         # weights buffering flag
         self.double_buffered = double_buffered
         self.stream_weights = stream_weights
