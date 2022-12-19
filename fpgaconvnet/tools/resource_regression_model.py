@@ -175,15 +175,6 @@ class ModuleModel:
         coefficients are positive.
         """
 
-        # find indicies where resources are zero
-        idx = np.where(rsc == 0.0)[0]
-        if idx.shape[0] == model.shape[0]:
-            idx = idx[1:] # make sure there's at least one element
-
-        # remove all zero resources from model and rsc
-        model = np.delete(model, idx, axis=0)
-        rsc = np.delete(rsc, idx, axis=0)
-
         # fit model
         nnls = sklearn.linear_model.LinearRegression(
                 positive=True, fit_intercept=False)
@@ -199,15 +190,6 @@ class ModuleModel:
         non-negative least squares. This ensures all
         coefficients are positive.
         """
-
-        # find indicies where resources are zero
-        idx = np.where(rsc == 0.0)[0]
-        if idx.shape[0] == model.shape[0]:
-            idx = idx[1:] # make sure there's at least one element
-
-        # remove all zero resources from model and rsc
-        model = np.delete(model, idx, axis=0)
-        rsc = np.delete(rsc, idx, axis=0)
 
         # initialize model
         nnls = XGBRegressor()
