@@ -65,6 +65,15 @@ class VectorDot3D(Module3D):
         # call the 2D utilisation model instead
         return VectorDot.utilisation_model(param)
 
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('VectorDotParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # call the 2D utilisation model instead
+        return VectorDot.get_pred_array(param)
+
     def rsc(self,coef=None, model=None):
 
         # use module resource coefficients if none are given

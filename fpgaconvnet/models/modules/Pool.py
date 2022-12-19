@@ -75,7 +75,7 @@ class Pool(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.kernel_size[0], self.kernel_size[1],
+        *self.kernel_size
         # self.pool_type,
         ]).reshape(1,-1)
 

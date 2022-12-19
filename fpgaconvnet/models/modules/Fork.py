@@ -80,8 +80,7 @@ class Fork(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.kernel_size[0], self.kernel_size[1],
-        self.coarse, self.kernel_size[0]*self.kernel_size[1],
+        self.coarse, np.prod(self.kernel_size),
         ]).reshape(1,-1)
 
     def visualise(self, name):

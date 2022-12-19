@@ -21,17 +21,17 @@ class Activation3D(Module3D):
     def __post_init__(self):
         # TODO this is a hack for now FIXME
         return
-        self.__class__.__name__ = f"{self.activation_type.capitalize()}3D"
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.regression_model}/{self.backend}"
+        # self.__class__.__name__ = f"{self.activation_type.capitalize()}3D"
+        # # get the cache path
+        # rsc_cache_path = os.path.dirname(__file__) + \
+        #         f"/../../coefficients/{self.regression_model}/{self.backend}"
 
-        # iterate over resource types
-        self.rsc_coef = {}
-        for rsc_type in self.utilisation_model():
-            # load the resource coefficients from the 2D version
-            coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+        # # iterate over resource types
+        # self.rsc_coef = {}
+        # for rsc_type in self.utilisation_model():
+        #     # load the resource coefficients from the 2D version
+        #     coef_path = os.path.join(rsc_cache_path, f"{self.__class__.__name__.split('3D')[0]}_{rsc_type}.npy".lower())
+        #     self.rsc_coef[rsc_type] = np.load(coef_path)
 
     def rsc(self, coef=None, model=None):
         # TODO this is a hack for now FIXME

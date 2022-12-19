@@ -70,6 +70,17 @@ class Bias3D(Module3D):
                 style="filled", fillcolor="chartreuse",
                 fontsize=MODULE_3D_FONTSIZE)
 
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('BiasParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols * param.depth)
+
+        # call the 2D utilisation model instead
+        return Bias.get_pred_array(param)
 
     def functional_model(self,data,biases):
         # check input dimensionality

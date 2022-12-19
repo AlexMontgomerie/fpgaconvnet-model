@@ -235,9 +235,6 @@ class SlidingWindow3D(Module3D):
         return np.array([
         self.data_width, self.data_width//2,
         self.channels, self.rows, self.cols, self.depth,
-        self.kernel_size[0], self.kernel_size[1],
-        self.kernel_size[2], self.stride_rows,
-        self.stride_cols, self.stride_depth,
         self.kernel_rows, self.kernel_cols,
         self.kernel_depth, self.stride_rows,
         self.stride_cols, self.stride_depth,

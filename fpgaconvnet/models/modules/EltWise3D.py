@@ -23,12 +23,12 @@ class EltWise3D(Module3D):
     regression_model: str = "linear_regression"
 
     def __post_init__(self):
+        return
+        # # get the module identifer
+        # self.module_identifier = "EltWise"
 
-        # get the module identifer
-        self.module_identifier = "EltWise"
-
-        # load resource coefficients
-        self.load_resource_coefficients(self.module_identifier)
+        # # load resource coefficients
+        # self.load_resource_coefficients(self.module_identifier)
 
     def rsc(self, coef=None, model=None):
         """

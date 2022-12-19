@@ -42,6 +42,18 @@ class GlobalPool3D(Module3D):
         # call the 2D utilisation model instead
         return GlobalPool.utilisation_model(param)
 
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('GlobalPoolParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols * param.depth)
+
+        # call the 2D utilisation model instead
+        return GlobalPool.get_pred_array(param)
+
     def depth_out(self):
         return 1
 

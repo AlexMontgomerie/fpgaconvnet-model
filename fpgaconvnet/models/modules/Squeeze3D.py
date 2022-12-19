@@ -58,6 +58,15 @@ class Squeeze3D(Module3D):
         # call the 2D utilisation model instead
         return Squeeze.utilisation_model(param)
 
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('SqueezeParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # call the 2D utilisation model instead
+        return Squeeze.get_pred_array(param)
+
     def visualise(self, name):
         distortion = 0
         if self.coarse_in > self.coarse_out:

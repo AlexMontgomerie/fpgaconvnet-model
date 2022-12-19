@@ -43,5 +43,6 @@ setuptools.setup(
         "pyparsing<3",
         "tqdm",
         "pymongo",
+        "xgboost",
     ]
 )
