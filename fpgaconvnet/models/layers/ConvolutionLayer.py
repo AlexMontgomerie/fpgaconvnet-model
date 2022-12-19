@@ -80,6 +80,9 @@ class ConvolutionLayer(Layer):
         self._fine = fine
         self._filters = filters
 
+        # check if the layer is depthwise
+        self.depthwise = (groups == channels) and (groups == filters)
+
         # weights buffering flag
         self.double_buffered = double_buffered
         self.stream_weights = stream_weights
@@ -104,10 +107,11 @@ class ConvolutionLayer(Layer):
                     self.filters//(self.coarse_out*self.groups), self.kernel_size,
                     backend=self.backend)
 
-            self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
-                    self.channels_in()//(self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend)
+            if not self.depthwise:
+                self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
+                        self.channels_in()//(self.coarse_in*self.groups),
+                        self.filters//(self.coarse_out*self.groups), 1,
+                        backend=self.backend)
 
         elif self.backend == "chisel":
 
@@ -125,11 +129,12 @@ class ConvolutionLayer(Layer):
                     self.filters//(self.coarse_out*self.groups), self.fine,
                     backend=self.backend)
 
-            self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
-                    (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
-                        self.fine*self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend)
+            if not self.depthwise:
+                self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
+                        (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
+                            self.fine*self.coarse_in*self.groups),
+                        self.filters//(self.coarse_out*self.groups), 1,
+                        backend=self.backend)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
                 int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out,
@@ -363,18 +368,19 @@ class ConvolutionLayer(Layer):
             self.modules['vector_dot'].acc_width      = self.acc_t.width
 
         # accum
-        self.modules['accum'].rows     = self.rows_out()
-        self.modules['accum'].cols     = self.cols_out()
-        self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['accum'].data_width    = self.acc_t.width
-        if self.backend == "hls":
-            # TODO: check the group parameter
-            self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
-        elif self.backend == "chisel":
-            self.modules['accum'].channels = (
-                    self.channels*self.kernel_size[0]*self.kernel_size[1])//(
-                    self.fine*self.coarse_in*self.coarse_group)
-            self.modules['accum'].groups   = 1
+        if not self.depthwise:
+            self.modules['accum'].rows     = self.rows_out()
+            self.modules['accum'].cols     = self.cols_out()
+            self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['accum'].data_width    = self.acc_t.width
+            if self.backend == "hls":
+                # TODO: check the group parameter
+                self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
+            elif self.backend == "chisel":
+                self.modules['accum'].channels = (
+                        self.channels*self.kernel_size[0]*self.kernel_size[1])//(
+                        self.fine*self.coarse_in*self.coarse_group)
+                self.modules['accum'].groups   = 1
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -456,7 +462,8 @@ class ConvolutionLayer(Layer):
             squeeze_rsc     = self.modules['squeeze'].rsc()
             fork_rsc        = self.modules['fork'].rsc()
             vector_dot_rsc  = self.modules['vector_dot'].rsc()
-            accum_rsc       = self.modules['accum'].rsc()
+            if not self.depthwise:
+                accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
             bias_rsc        = self.modules['bias'].rsc()
 
@@ -467,23 +474,34 @@ class ConvolutionLayer(Layer):
                 squeeze_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
-                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.depthwise:
+                if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
+                    accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.has_bias:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
-            rsc = { rsc_type: (
-                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                bias_rsc[rsc_type]*self.coarse_out
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            if not self.depthwise:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
         weight_memory_depth = float((self.filters/self.groups)* \

@@ -89,6 +89,9 @@ class ConvolutionLayer3D(Layer3D):
         self._fine = fine
         self._filters = filters
 
+        # check if the layer is depthwise
+        self.depthwise = (groups == channels) and (groups == filters)
+
         # weights buffering flag
         self.double_buffered = double_buffered
         self.stream_weights = stream_weights
@@ -105,7 +108,8 @@ class ConvolutionLayer3D(Layer3D):
 
             self.modules["conv3d"] = Conv3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.kernel_rows, self.kernel_cols, self.kernel_depth, backend=self.backend)
 
-            self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend)
+            if not self.depthwise:
+                self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend)
 
         elif self.backend == "chisel":
 
@@ -114,8 +118,9 @@ class ConvolutionLayer3D(Layer3D):
             self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.fine, 1, 1, self.coarse_out, backend=self.backend)
 
             self.modules["vector_dot3d"] = VectorDot3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.fine, backend=self.backend)
-
-            self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in())//(self.fine*self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend)
+            
+            if not self.depthwise:
+                self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in())//(self.fine*self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend)
 
         self.modules["glue3d"] = Glue3D(self.rows_out(), self.cols_out(), self.depth_out(), 1, int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, backend=self.backend) # TODO
 
@@ -375,19 +380,20 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['vector_dot3d'].acc_width      = self.acc_t.width
 
         # accum3d
-        self.modules['accum3d'].rows     = self.rows_out()
-        self.modules['accum3d'].cols     = self.cols_out()
-        self.modules['accum3d'].depth    = self.depth_out()
-        self.modules['accum3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['accum3d'].data_width    = self.acc_t.width
-        if self.backend == "hls":
-            # TODO: check the group parameter
-            self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
-        elif self.backend == "chisel":
-            self.modules['accum3d'].channels = (
-                    self.channels*self.kernel_rows*self.kernel_cols*self.kernel_depth)//(
-                    self.fine*self.coarse_in*self.coarse_group)
-            self.modules['accum3d'].groups   = 1
+        if not self.depthwise:
+            self.modules['accum3d'].rows     = self.rows_out()
+            self.modules['accum3d'].cols     = self.cols_out()
+            self.modules['accum3d'].depth    = self.depth_out()
+            self.modules['accum3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['accum3d'].data_width    = self.acc_t.width
+            if self.backend == "hls":
+                # TODO: check the group parameter
+                self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
+            elif self.backend == "chisel":
+                self.modules['accum3d'].channels = (
+                        self.channels*self.kernel_rows*self.kernel_cols*self.kernel_depth)//(
+                        self.fine*self.coarse_in*self.coarse_group)
+                self.modules['accum3d'].groups   = 1
 
         # glue3d
         self.modules['glue3d'].rows       = self.rows_out()
@@ -506,7 +512,8 @@ class ConvolutionLayer3D(Layer3D):
             squeeze_rsc     = self.modules['squeeze3d'].rsc()
             fork_rsc        = self.modules['fork3d'].rsc()
             vector_dot_rsc  = self.modules['vector_dot3d'].rsc()
-            accum_rsc       = self.modules['accum3d'].rsc()
+            if not self.depthwise:
+                accum_rsc       = self.modules['accum3d'].rsc()
             glue_rsc        = self.modules['glue3d'].rsc()
             bias_rsc        = self.modules['bias3d'].rsc()
 
@@ -517,23 +524,34 @@ class ConvolutionLayer3D(Layer3D):
                 squeeze_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
-                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.depthwise:
+                if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
+                    accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.has_bias:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
-            rsc = { rsc_type: (
-                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                bias_rsc[rsc_type]*self.coarse_out
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            if not self.depthwise:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         elif self.backend == "hls":
 
@@ -541,7 +559,8 @@ class ConvolutionLayer3D(Layer3D):
             sw_rsc          = self.modules['sliding_window3d'].rsc()
             fork_rsc        = self.modules['fork3d'].rsc()
             conv_rsc        = self.modules['conv3d'].rsc()
-            accum_rsc       = self.modules['accum3d'].rsc()
+            if not self.depthwise:
+                accum_rsc       = self.modules['accum3d'].rsc()
             glue_rsc        = self.modules['glue3d'].rsc()
             bias_rsc        = self.modules['bias3d'].rsc()
 
@@ -550,22 +569,32 @@ class ConvolutionLayer3D(Layer3D):
                 sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
-                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.depthwise:
+                if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
+                    accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.has_bias:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
-            rsc = { rsc_type: (
-                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                conv_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                bias_rsc[rsc_type]*self.coarse_out
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            if not self.depthwise:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    conv_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    conv_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    bias_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
         weight_memory_depth = float((self.filters/self.groups)* \
@@ -607,7 +636,8 @@ class ConvolutionLayer3D(Layer3D):
         fork_name = [[""]*self.coarse_in]*self.coarse_group
         # conv_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
         vector_dot_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
-        accum_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
+        if not self.depthwise:
+            accum_name = [[[""]*self.coarse_in]*self.coarse_out]*self.coarse_group
         glue_name = [[""]*self.coarse_out]*self.coarse_group
         bias_name = [[""]*self.coarse_out]*self.coarse_group
 
@@ -627,21 +657,26 @@ class ConvolutionLayer3D(Layer3D):
                     # define names
                     # conv_name[g][j][i] = "_".join([name, "conv3d", str(g), str(j), str(i)])
                     vector_dot_name[g][j][i] = "_".join([name, "vector_dot3d", str(g), str(j), str(i)])
-                    accum_name[g][j][i] = "_".join([name, "accum3d", str(g), str(j), str(i)])
+                    if not self.depthwise:
+                        accum_name[g][j][i] = "_".join([name, "accum3d", str(g), str(j), str(i)])
                     glue_name[g][j] = "_".join([name, "glue3d", str(g), str(j)])
                     bias_name[g][j] = "_".join([name, "bias3d", str(g), str(j)])
 
                     # add nodes
                     # cluster.add_node(self.modules["conv3d"].visualise(conv_name[g][j][i]))
                     cluster.add_node(self.modules["vector_dot3d"].visualise(vector_dot_name[g][j][i]))
-                    cluster.add_node(self.modules["accum3d"].visualise(accum_name[g][j][i]))
+                    if not self.depthwise:
+                        cluster.add_node(self.modules["accum3d"].visualise(accum_name[g][j][i]))
 
                     # add edges
                     # cluster.add_edge(pydot.Edge(fork_name[g][i], conv_name[g][j][i]))
                     cluster.add_edge(pydot.Edge(fork_name[g][i], vector_dot_name[g][j][i]))
                     # cluster.add_edge(pydot.Edge(conv_name[g][j][i], accum_name[g][j][i]))
-                    cluster.add_edge(pydot.Edge(vector_dot_name[g][j][i], accum_name[g][j][i]))
-                    cluster.add_edge(pydot.Edge(accum_name[g][j][i], glue_name[g][j]))
+                    if not self.depthwise:
+                        cluster.add_edge(pydot.Edge(vector_dot_name[g][j][i], accum_name[g][j][i]))
+                        cluster.add_edge(pydot.Edge(accum_name[g][j][i], glue_name[g][j]))
+                    else:
+                        cluster.add_edge(pydot.Edge(vector_dot_name[g][j][i], glue_name[g][j]))
 
         for g in range(self.coarse_group):
             for j in range(self.coarse_out):
