@@ -69,6 +69,14 @@ class VectorDot(Module):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.filters, self.fine,
+        self.acc_width, self.acc_width//2,
+        self.weight_width, self.weight_width//2,
+        ]).reshape(1,-1)
+
     def memory_usage(self):
         if self.backend == "chisel":
             return self.data_width*(int2bits(self.fine)+3)

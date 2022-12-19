@@ -29,11 +29,11 @@ class Squeeze(Module):
         # return the info
         return info
 
-    def memory_usage(self):
-        if self.backend == "chisel":
-            return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
-        else:
-            raise NotImplementedError
+    # def memory_usage(self):
+    #     if self.backend == "chisel":
+    #         return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
+    #     else:
+    #         raise NotImplementedError
 
     def utilisation_model(self):
 
@@ -72,6 +72,12 @@ class Squeeze(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.coarse_in, self.coarse_out,
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         distortion = 0

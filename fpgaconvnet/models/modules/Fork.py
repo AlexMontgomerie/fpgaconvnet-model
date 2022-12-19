@@ -77,6 +77,13 @@ class Fork(Module):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.kernel_size[0], self.kernel_size[1],
+        self.coarse, self.kernel_size[0]*self.kernel_size[1],
+        ]).reshape(1,-1)
+
     def visualise(self, name):
         return pydot.Node(name,label="fork", shape="box",
                 style="filled", fillcolor="azure",

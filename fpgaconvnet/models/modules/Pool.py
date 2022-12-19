@@ -35,6 +35,12 @@ class Pool(Module):
         else:
             raise TypeError
 
+        # get the module identifer
+        self.module_identifier = self.__class__.__name__
+
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
+
     def utilisation_model(self):
         if self.backend == "hls":
             pass
@@ -65,6 +71,13 @@ class Pool(Module):
             }
         else:
             raise ValueError()
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.kernel_size[0], self.kernel_size[1],
+        # self.pool_type,
+        ]).reshape(1,-1)
 
     def module_info(self):
         # get the base module fields

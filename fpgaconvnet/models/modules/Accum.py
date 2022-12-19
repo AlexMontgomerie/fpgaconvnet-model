@@ -103,6 +103,12 @@ class Accum(Module):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.channels, self.filters
+        ]).reshape(1,-1)
+
     def visualise(self, name):
         return pydot.Node(name,label="accum", shape="box",
                 height=self.filters/self.groups*0.25,

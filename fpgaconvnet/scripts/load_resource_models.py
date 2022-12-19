@@ -9,7 +9,7 @@ from fpgaconvnet.tools.resource_regression_model import ModuleModel
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_absolute_percentage_error
 
 # Available regression models: linear_regression, xgboost
-REGRESSOR = "xgboost"
+REGRESSOR = "linear_regression"
 
 CHISEL_MODULES = {
         "Accum": "AccumFixed",
@@ -21,7 +21,7 @@ CHISEL_MODULES = {
         "VectorDot": "VectorDotFixed",
         "Pool": "MaxPoolFixed",
         "GlobalPool": "AveragePoolFixed",
-        "Bias": "BiasFixed"
+        # "Bias": "BiasFixed"
 }
 
 # CHISEL_MODULES = [ "AveragePool" ]

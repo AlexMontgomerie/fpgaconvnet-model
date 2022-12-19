@@ -19,7 +19,7 @@ class ReLU(Module):
     def __post_init__(self):
         pass
 
-    def rsc(self, coef=None):
+    def rsc(self, coef=None, model=None):
         """
         Returns
         -------

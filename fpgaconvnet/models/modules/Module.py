@@ -73,6 +73,7 @@ class Module:
 
         # iterate over resource types
         self.rsc_coef = {}
+        self.rsc_model = {}
         for rsc_type in self.utilisation_model():
             match self.regression_model:
                 case "linear_regression":
@@ -86,7 +87,9 @@ class Module:
                             f"{module_identifier}_{rsc_type}.json".lower())
                     model = XGBRegressor()
                     model.load_model(model_path)
-                    self.rsc_coef[rsc_type] = model
+                    self.rsc_model[rsc_type] = model
+                case _:
+                    raise NotImplementedError(f"{self.regression_model} not supported")
 
     def utilisation_model(self):
         raise ValueError(f"{self.backend} backend not supported")
@@ -104,9 +107,10 @@ class Module:
         """
 
         # use module resource coefficients if none are given
-        if coef == None and model == None:
+        if coef == None:
             coef = self.rsc_coef
-            model = self.rsc_coef
+        if model == None:
+            model = self.rsc_model
 
         # return the linear model estimation
         match self.regression_model:
@@ -118,6 +122,8 @@ class Module:
             case "xgboost":
                 pred_array = self.get_pred_array()
                 rsc = { rsc_type: int(model[rsc_type].predict(pred_array)) for rsc_type in model.keys()}
+            case _:
+                raise NotImplementedError(f"{self.regression_model} not supported")
 
         if self.backend == "chisel":
             # update the resources for sum of LUT and BRAM types

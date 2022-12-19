@@ -19,9 +19,6 @@ class GlobalPool(Module):
     regression_model: str = "linear_regression"
     acc_width: int = field(default=32, init=False)
 
-    def __post_init__(self):
-        return
-
     def utilisation_model(self):
 
         if self.backend == "hls":
@@ -55,20 +52,22 @@ class GlobalPool(Module):
         else:
             raise NotImplementedError(f"{self.backend} backend not supported")
 
-    def rsc(self,coef=None, model=None):
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.channels, 0, self.rows, self.cols,
+        self.acc_width, self.acc_width//2,
+        ]).reshape(1,-1)
 
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
+    def rsc(self, coef=None, model=None):
 
-        # get the linear model estimation
+        # get the regression model estimation
         rsc = Module.rsc(self, coef, model)
 
-        # get the dsp usage
-        dsp = dsp_multiplier_resource_model(
-                self.data_width, self.acc_width)
-
-        rsc["DSP"] = dsp
+        if self.regression_model == "linear_regression":
+            # get the dsp usage
+            rsc["DSP"] = dsp_multiplier_resource_model(
+                    self.data_width, self.acc_width)
 
         return rsc
 
