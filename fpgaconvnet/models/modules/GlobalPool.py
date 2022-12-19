@@ -55,7 +55,7 @@ class GlobalPool(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.channels, 0, self.rows, self.cols,
+        self.channels, self.rows, self.cols,
         self.acc_width, self.acc_width//2,
         ]).reshape(1,-1)
 

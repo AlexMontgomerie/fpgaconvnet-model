@@ -39,6 +39,31 @@ class ModuleModel:
         self.predict = {k: [] for k in self.rsc_types}
         self.actual = {k: [] for k in self.rsc_types}
 
+    def get_module_parameter_list(self):
+        match self.module:
+            case "Accum":
+                return ["data_width", "binary_point", "channels", "filters"]
+            case "Fork":
+                return ["data_width", "binary_point", "coarse", "fine"]
+            case "Glue":
+                return ["data_width", "binary_point", "coarse"]
+            case "SlidingWindow":
+                return ["data_width", "binary_point", "channels", "rows", "cols", "kernel_size", "stride"]
+            case "SlidingWindow3D":
+                return ["data_width", "binary_point", "channels", "rows", "cols", "depth", "kernel_rows", "kernel_cols", "kernel_depth", "stride_rows", "stride_cols", "stride_depth"]
+            case "Squeeze":
+                return ["data_width", "binary_point", "coarse_in", "coarse_out"]
+            case "VectorDot":
+                return ["data_width", "binary_point", "filters", "fine", "acc_width", "acc_binary_point", "weight_width", "weight_binary_point"]
+            case "Pool":
+                return ["data_width", "binary_point", "kernel_size"]
+            case "GlobalPool":
+                return ["data_width", "binary_point", "channels", "rows", "cols", "acc_width", "acc_binary_point"]
+            case "Bias":
+                return ["data_width", "binary_point", "filters", "channels"]
+            case _:
+                raise NotImplementedError
+
     def load_data_from_db(self):
         """
         loads a set of parameter-resource pairs for
@@ -62,7 +87,7 @@ class ModuleModel:
         if self.backend == "chisel":
             filter = {
                 "name" : self.identifier, # specific module
-                "parameters.data_width": 16, # only 16-bit input shapes
+                # "parameters.data_width": 16, # only 16-bit input shapes
                 "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
                 # filter resources
                 "resources.LUT" : { "$lt" : int(461000*0.8) },
@@ -137,15 +162,12 @@ class ModuleModel:
                         case "linear_regression":
                             self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
                         case "xgboost":
-                            tmp = list(point.values())
-                            tmp.remove('chisel')
+                            tmp = [p for k, p in point.items() if k in self.get_module_parameter_list()]
                             final_tmp = []
                             for i in tmp:
                                 if type(i) == list:
                                     for j in i:
                                         final_tmp.append(j)
-                                elif type(i) == str:
-                                    continue
                                 else:
                                     final_tmp.append(i)
                             self.model[rsc_type].append(np.array(final_tmp))
