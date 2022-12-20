@@ -16,16 +16,16 @@ class BatchNorm(Module):
         # # load the resource model coefficients
         # self.rsc_coef["LUT"] = np.load(
         #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/relu_lut.npy"))
+        #         "../../coefficients/linear_regression/chisel/relu_lut.npy"))
         # self.rsc_coef["FF"] = np.load(
         #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/relu_ff.npy"))
+        #         "../../coefficients/linear_regression/chisel/relu_ff.npy"))
         # self.rsc_coef["BRAM"] = np.load(
         #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/relu_bram.npy"))
+        #         "../../coefficients/linear_regression/chisel/relu_bram.npy"))
         # self.rsc_coef["DSP"] = np.load(
         #         os.path.join(os.path.dirname(__file__),
-        #         "../../coefficients/relu_dsp.npy"))
+        #         "../../coefficients/linear_regression/chisel/relu_dsp.npy"))
 
     def rsc(self):
         return {

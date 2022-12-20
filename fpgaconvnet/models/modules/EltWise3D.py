@@ -20,15 +20,33 @@ class EltWise3D(Module3D):
     broadcast: bool = False
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
+        return
+        # # get the module identifer
+        # self.module_identifier = "EltWise"
 
-        # get the cache path
-        rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+        # # load resource coefficients
+        # self.load_resource_coefficients(self.module_identifier)
 
-        # iterate over resource types
-        self.rsc_coef = self.utilisation_model()
+    def rsc(self, coef=None, model=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
+        # get the channel buffer BRAM estimate
+        channel_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
+
+        return {
+            "LUT"   : 49,
+            "FF"    : 23,
+            "BRAM"  : channel_buffer_bram if self.broadcast else 0,
+            "DSP"   : 0 if self.eltwise_type == "add" else 1
+        }
 
     def module_info(self):
         return {
@@ -67,26 +85,6 @@ class EltWise3D(Module3D):
 
         else:
             raise ValueError(f"{self.backend} backend not supported")
-
-    def rsc(self,coef=None):
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-
-        # get the channel buffer BRAM estimate
-        channel_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
-
-        # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
-
-        # add the bram estimation
-        rsc["BRAM"] = channel_buffer_bram if self.broadcast else 0
-
-        # ensure zero DSPs
-        rsc["DSP"] = 0 if self.eltwise_type == "add" else 1
-
-        # return the resource usage
-        return rsc
 
     def visualise(self, name):
         return pydot.Node(name,label="etlwise3d", shape="box",

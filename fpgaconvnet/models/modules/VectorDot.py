@@ -11,6 +11,7 @@ class VectorDot(Module):
     filters: int
     fine: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
 
@@ -68,26 +69,31 @@ class VectorDot(Module):
         else:
             raise ValueError(f"{self.backend} backend not supported")
 
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.filters, self.fine,
+        self.acc_width, self.acc_width//2,
+        self.weight_width, self.weight_width//2,
+        ]).reshape(1,-1)
+
     def memory_usage(self):
         if self.backend == "chisel":
             return self.data_width*(int2bits(self.fine)+3)
         else:
             raise NotImplementedError
 
-    def rsc(self,coef=None):
-
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
+    def rsc(self,coef=None, model=None):
 
         # get the linear model estimation
-        rsc = Module.rsc(self, coef)
+        rsc = Module.rsc(self, coef, model)
 
-        # get the dsp usage
-        dsp = self.fine*dsp_multiplier_resource_model(
-                self.data_width, self.weight_width)
+        if self.regression_model == "linear_regression":
+            # get the dsp usage
+            dsp = self.fine*dsp_multiplier_resource_model(
+                    self.data_width, self.weight_width)
 
-        rsc["DSP"] = dsp
+            rsc["DSP"] = dsp
 
         return rsc
 

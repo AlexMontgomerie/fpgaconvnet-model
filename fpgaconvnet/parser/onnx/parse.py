@@ -19,7 +19,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, dimensionality=2, backend="hls"):
+    def __init__(self, graph, n, dimensionality=2, backend="hls", regression_model="linear_regression"):
 
         # model dimensionality
         self.dimensionality = dimensionality
@@ -29,6 +29,9 @@ class ParseOnnxNode:
 
         # backend string
         self.backend = backend
+
+        # regression model
+        self.regression_model = regression_model
 
         # get name of node
         self.name = onnx_helper.format_onnx_name(n)
@@ -127,7 +130,8 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 pad_right   = self.attr["pads"][3],
                 groups = self.attr["group"],
                 has_bias = len(self.inputs) == 3,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -150,7 +154,8 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 pad_right   = self.attr["pads"][5],
                 groups = self.attr["group"],
                 has_bias = len(self.inputs) == 3,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ConvolutionLayer")
@@ -188,7 +193,8 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                 1, 1,
                 np.prod(self.input_shape[1:]),
                 has_bias = len(self.inputs) == 3,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
@@ -196,7 +202,8 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                 1, 1, 1,
                 np.prod(self.input_shape[1:]),
                 has_bias = len(self.inputs) == 3,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
@@ -284,7 +291,8 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 pad_left    = self.attr["pads"][1],
                 pad_bottom  = self.attr["pads"][2],
                 pad_right   = self.attr["pads"][3],
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return PoolingLayer3D(
@@ -305,7 +313,8 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 pad_back    = self.attr["pads"][3],
                 pad_bottom  = self.attr["pads"][4],
                 pad_right   = self.attr["pads"][5],
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
@@ -323,7 +332,8 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
                 1, 1,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return SqueezeLayer3D(
@@ -332,7 +342,8 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
                 1, 1,
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
 
 class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
@@ -345,7 +356,8 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 self.input_shape[2],
                 self.input_shape[3],
                 self.input_shape[1],
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return GlobalPoolingLayer3D(
@@ -353,7 +365,8 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 self.input_shape[4],
                 self.input_shape[2],
                 self.input_shape[1],
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
@@ -373,7 +386,8 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 op_type=op_type,
                 broadcast=False, # TODO: parse from the onnx
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(
@@ -384,7 +398,8 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 op_type=op_type,
                 broadcast=False, # TODO: parse from the onnx
-                backend=self.backend
+                backend=self.backend,
+                regression_model=self.regression_model
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")

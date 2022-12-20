@@ -22,6 +22,7 @@ class Glue(Module):
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return self.filters
@@ -74,6 +75,12 @@ class Glue(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.coarse_in,
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         return pydot.Node(name,label="glue", shape="box",

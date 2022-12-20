@@ -14,9 +14,10 @@ from fpgaconvnet.models.modules import VectorDot
 class VectorDot3D(Module3D):
     filters: int
     fine: int
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
-    backend: str = "chisel"
 
     def __post_init__(self):
 
@@ -64,19 +65,25 @@ class VectorDot3D(Module3D):
         # call the 2D utilisation model instead
         return VectorDot.utilisation_model(param)
 
-    def rsc(self,coef=None):
+    def get_pred_array(self):
 
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('VectorDotParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # call the 2D utilisation model instead
+        return VectorDot.get_pred_array(param)
+
+    def rsc(self,coef=None, model=None):
 
         # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        rsc = Module3D.rsc(self, coef, model)
 
-        # get the dsp usage
-        dsp = self.fine*dsp_multiplier_resource_model(
-                self.data_width, self.data_width)
-        rsc["DSP"] = dsp
+        if self.regression_model == "linear_regression":
+            # get the dsp usage
+            dsp = self.fine*dsp_multiplier_resource_model(
+                    self.data_width, self.data_width)
+            rsc["DSP"] = dsp
 
         return rsc
 

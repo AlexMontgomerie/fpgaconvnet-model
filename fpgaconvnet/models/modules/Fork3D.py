@@ -30,6 +30,7 @@ class Fork3D(Module3D):
     kernel_depth: int
     coarse: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -74,6 +75,18 @@ class Fork3D(Module3D):
 
         # call the 2D utilisation model instead
         return Fork.utilisation_model(param)
+
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('ForkParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols * param.depth)
+
+        # call the 2D utilisation model instead
+        return Fork.get_pred_array(param)
 
     def visualise(self, name):
         return pydot.Node(name,label="fork3d", shape="box",

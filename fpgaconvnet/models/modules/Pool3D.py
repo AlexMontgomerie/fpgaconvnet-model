@@ -26,6 +26,7 @@ class Pool3D(Module3D):
     kernel_depth: int
     pool_type: str = "max"
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -52,6 +53,15 @@ class Pool3D(Module3D):
 
         # call the 2D utilisation model instead
         return Pool.utilisation_model(param)
+
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('PoolParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # call the 2D utilisation model instead
+        return Pool.get_pred_array(param)
 
     def module_info(self):
         # get the base module fields

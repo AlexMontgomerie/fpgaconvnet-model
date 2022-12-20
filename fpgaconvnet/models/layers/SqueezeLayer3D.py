@@ -16,7 +16,8 @@ class SqueezeLayer3D(Layer3D):
             coarse_in: int,
             coarse_out: int,
             data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel"
+            backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -27,8 +28,12 @@ class SqueezeLayer3D(Layer3D):
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # initialise modules
-        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, self.channels, self.coarse_in, self.coarse_out, backend=self.backend)
+        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, self.channels, self.coarse_in, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)

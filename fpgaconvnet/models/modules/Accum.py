@@ -26,6 +26,7 @@ class Accum(Module):
     filters: int
     groups: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups
@@ -101,6 +102,12 @@ class Accum(Module):
 
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.channels, self.filters
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         return pydot.Node(name,label="accum", shape="box",

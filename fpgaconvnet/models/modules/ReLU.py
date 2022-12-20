@@ -14,11 +14,12 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 @dataclass
 class ReLU(Module):
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
 
-    def rsc(self, coef=None):
+    def rsc(self, coef=None, model=None):
         """
         Returns
         -------

@@ -20,6 +20,7 @@ class GlobalPoolingLayer3D(Layer3D):
             coarse: int = 1,
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
 
         # save acc_t
@@ -32,6 +33,10 @@ class GlobalPoolingLayer3D(Layer3D):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # update parameters
         self._coarse = coarse
 
@@ -39,7 +44,7 @@ class GlobalPoolingLayer3D(Layer3D):
         self.modules["global_pool3d"] = GlobalPool3D(
                 self.rows_in(), self.cols_in(), self.depth_in(),
                 self.channels_in()//self.coarse,
-                backend=self.backend)
+                backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 

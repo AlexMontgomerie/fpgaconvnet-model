@@ -8,6 +8,7 @@ import os
 import copy
 from typing import List
 from dataclasses import dataclass, field
+from xgboost import XGBRegressor
 
 RSC_TYPES = ["FF","LUT","DSP","BRAM"]
 
@@ -65,20 +66,32 @@ class Module3D:
 
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+                f"/../../coefficients/{self.regression_model}/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}
         for rsc_type in self.utilisation_model():
-            # get the coefficients from the cache path and load
-            coef_path = os.path.join(rsc_cache_path,
-                    f"{module_identifier}_{rsc_type}.npy".lower())
-            self.rsc_coef[rsc_type] = np.load(coef_path)
+            match self.regression_model:
+                case "linear_regression":
+                    # get the coefficients from the cache path and load
+                    coef_path = os.path.join(rsc_cache_path,
+                            f"{module_identifier}_{rsc_type}.npy".lower())
+                    self.rsc_coef[rsc_type] = np.load(coef_path)
+                case "xgboost":
+                    # get the coefficients from the cache path and load
+                    model_path = os.path.join(rsc_cache_path,
+                            f"{module_identifier}_{rsc_type}.json".lower())
+                    model = XGBRegressor()
+                    model.load_model(model_path)
+                    self.rsc_coef[rsc_type] = model
 
     def utilisation_model(self):
         raise ValueError(f"{self.backend} backend not supported")
 
-    def rsc(self, coef=None):
+    def get_pred_array(self):
+        raise ValueError(f"{self.backend} backend not supported")
+
+    def rsc(self, coef=None, model=None):
         """
         Returns
         -------
@@ -88,15 +101,20 @@ class Module3D:
         """
 
         # use module resource coefficients if none are given
-        if coef == None:
+        if coef == None and model == None:
             coef = self.rsc_coef
-
-        # get the utilisation_model
-        util_model = self.utilisation_model()
+            model = self.rsc_coef
 
         # return the linear model estimation
-        rsc = { rsc_type: int(np.dot(util_model[rsc_type],
-            coef[rsc_type])) for rsc_type in coef.keys()}
+        match self.regression_model:
+            case "linear_regression":
+                # get the utilisation_model
+                util_model = self.utilisation_model()
+                rsc = { rsc_type: int(np.dot(util_model[rsc_type],
+                    coef[rsc_type])) for rsc_type in coef.keys()}
+            case "xgboost":
+                pred_array = self.get_pred_array()
+                rsc = { rsc_type: int(model[rsc_type].predict(pred_array)) for rsc_type in model.keys()}
 
         if self.backend == "chisel":
             # update the resources for sum of LUT and BRAM types

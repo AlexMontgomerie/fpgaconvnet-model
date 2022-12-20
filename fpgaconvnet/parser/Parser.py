@@ -39,10 +39,13 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 
 class Parser:
 
-    def __init__(self, backend="chisel", quant_mode="auto", batch_size=1):
+    def __init__(self, backend="chisel", regression_model="linear_regression", quant_mode="auto", batch_size=1):
 
         # set the backend string
         self.backend = backend
+
+        # set the regression model
+        self.regression_model = regression_model
 
         # quantisation mode [ auto, float, QDQ, BFP, config ]
         self.quant_mode = quant_mode
@@ -156,7 +159,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, dimensionality, backend=self.backend)
+            return converter[node_type](graph, node, dimensionality, backend=self.backend, regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node.op_type} not supported, exiting now")
 
@@ -234,7 +237,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, backend=self.backend)
+            return converter[node_type](node, backend=self.backend, regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 

@@ -23,6 +23,7 @@ class EltWiseLayer(MultiPortLayer):
             broadcast: bool = False,
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel", # default to no bias for old configs
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -41,10 +42,14 @@ class EltWiseLayer(MultiPortLayer):
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # init modules
         self.modules = {
             "eltwise" : EltWise(self.rows_in(), self.cols_in(),
-                self.channels_in()//self.coarse, self.ports_in, eltwise_type=op_type, broadcast=broadcast, backend=self.backend),
+                self.channels_in()//self.coarse, self.ports_in, eltwise_type=op_type, broadcast=broadcast, backend=self.backend, regression_model=self.regression_model),
         }
 
         # update the layer

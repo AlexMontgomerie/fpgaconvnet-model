@@ -14,13 +14,14 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 @dataclass
 class ReLU3D(Module3D):
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         # TODO this is a hack for now FIXME
         return
         # get the cache path
         rsc_cache_path = os.path.dirname(__file__) + \
-                f"/../../coefficients/{self.backend}"
+                f"/../../coefficients/{self.regression_model}/{self.backend}"
 
         # iterate over resource types
         self.rsc_coef = {}
@@ -30,7 +31,7 @@ class ReLU3D(Module3D):
             self.rsc_coef[rsc_type] = np.load(coef_path)
 
 
-    def rsc(self, coef=None):
+    def rsc(self, coef=None, model=None):
         # TODO this is a hack for now FIXME
         return {
             "LUT"   : 16,

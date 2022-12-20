@@ -20,6 +20,7 @@ class GlobalPoolingLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
 
         # save acc_t
@@ -35,6 +36,10 @@ class GlobalPoolingLayer(Layer):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # update parameters
         self._coarse = coarse
 
@@ -42,7 +47,7 @@ class GlobalPoolingLayer(Layer):
         self.modules["global_pool"] = GlobalPool(
                 self.rows_in(), self.cols_in(),
                 self.channels_in()//self.coarse,
-                backend=self.backend)
+                backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 

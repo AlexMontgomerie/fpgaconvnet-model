@@ -28,6 +28,7 @@ class Accum3D(Module3D):
     filters: int
     groups: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -75,24 +76,17 @@ class Accum3D(Module3D):
         # call the 2D utilisation model instead
         return Accum.utilisation_model(param)
 
-    def rsc(self,coef=None):
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-        # get the accumulation buffer BRAM estimate
-        # acc_buffer_bram = bram_memory_resource_model(int(self.filters/self.groups), self.data_width)
+    def get_pred_array(self):
 
-        # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('AccumParam', self.__dict__.keys())(*self.__dict__.values())
 
-        # add the bram estimation
-        rsc["BRAM"] = 0
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols * param.depth)
 
-        # ensure zero DSPs
-        rsc["DSP"] = 0
-
-        # return the resource usage
-        return rsc
+        # call the 2D utilisation model instead
+        return Accum.get_pred_array(param)
 
     def visualise(self, name):
         return pydot.Node(name,label="accum3d", shape="box",

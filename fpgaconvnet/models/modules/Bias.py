@@ -23,6 +23,7 @@ class Bias(Module):
     filters: int
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return self.filters
@@ -30,7 +31,7 @@ class Bias(Module):
     def channels_out(self):
         return self.filters
 
-    def module_info(self):#TODO
+    def module_info(self):
         # get the base module fields
         info = Module.module_info(self)
         # add module-specific info fields
@@ -69,6 +70,12 @@ class Bias(Module):
 
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.filters, self.channels
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         return pydot.Node(name,label="bias", shape="box",

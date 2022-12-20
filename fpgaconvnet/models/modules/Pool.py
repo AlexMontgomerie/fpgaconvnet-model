@@ -21,6 +21,7 @@ class Pool(Module):
     kernel_size: Union[List[int],int]
     pool_type: str = "max"
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __name__(self):
         return f"{self.pool_type.capitalize()}Pool"
@@ -33,6 +34,12 @@ class Pool(Module):
             assert len(self.kernel_size) == 2, "Must specify two kernel dimensions"
         else:
             raise TypeError
+
+        # get the module identifer
+        self.module_identifier = self.__class__.__name__
+
+        # load resource coefficients
+        self.load_resource_coefficients(self.module_identifier)
 
     def utilisation_model(self):
         if self.backend == "hls":
@@ -64,6 +71,13 @@ class Pool(Module):
             }
         else:
             raise ValueError()
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        *self.kernel_size
+        # self.pool_type,
+        ]).reshape(1,-1)
 
     def module_info(self):
         # get the base module fields

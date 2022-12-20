@@ -24,6 +24,7 @@ class Fork(Module):
     kernel_size: Union[List[int],int]
     coarse: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -75,6 +76,12 @@ class Fork(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.coarse, np.prod(self.kernel_size),
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         return pydot.Node(name,label="fork", shape="box",

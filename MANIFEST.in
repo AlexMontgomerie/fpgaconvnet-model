@@ -1,3 +1,4 @@
-include fpgaconvnet/coefficients/hls/*.npy
-include fpgaconvnet/coefficients/chisel/*.npy
+include fpgaconvnet/coefficients/linear_regression/hls/*.npy
+include fpgaconvnet/coefficients/linear_regression/chisel/*.npy
+include fpgaconvnet/coefficients/xgboost/chisel/*.json
 include fpgaconvnet/tools/fpgaconvnet-mongodb.pem

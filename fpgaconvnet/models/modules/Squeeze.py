@@ -18,6 +18,7 @@ class Squeeze(Module):
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def module_info(self):
         # get the base module fields
@@ -28,11 +29,11 @@ class Squeeze(Module):
         # return the info
         return info
 
-    def memory_usage(self):
-        if self.backend == "chisel":
-            return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
-        else:
-            raise NotImplementedError
+    # def memory_usage(self):
+    #     if self.backend == "chisel":
+    #         return self.data_width*buffer_size*((buffer_size//self.coarse_in)+1) # buffer
+    #     else:
+    #         raise NotImplementedError
 
     def utilisation_model(self):
 
@@ -71,6 +72,12 @@ class Squeeze(Module):
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
+
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.coarse_in, self.coarse_out,
+        ]).reshape(1,-1)
 
     def visualise(self, name):
         distortion = 0

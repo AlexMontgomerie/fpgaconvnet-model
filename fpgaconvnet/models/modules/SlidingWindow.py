@@ -60,6 +60,7 @@ class SlidingWindow(Module):
     pad_bottom: int
     pad_left: int
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -81,7 +82,6 @@ class SlidingWindow(Module):
 
         # perform basic module initialisation
         Module.__post_init__(self)
-
 
     def rows_out(self):
         return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom+1)/self.stride[0])
@@ -179,36 +179,41 @@ class SlidingWindow(Module):
                 "BRAM18"    : np.array([0]),
             }
 
-    def rsc(self,coef=None):
+    def get_pred_array(self):
+        return np.array([
+        self.data_width, self.data_width//2,
+        self.channels, self.rows, self.cols,
+        self.kernel_size[0], self.kernel_size[1],
+        self.stride[0], self.stride[1],
+        ]).reshape(1,-1)
 
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
+    def rsc(self,coef=None, model=None):
 
         # get the linear model estimation
-        rsc = Module.rsc(self, coef)
+        rsc = Module.rsc(self, coef, model)
 
-        # get the line buffer BRAM estimate
-        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels
-        if self.kernel_size[0] > 1 and line_buffer_depth > 256:
-            line_buffer_bram =  bram_memory_resource_model(
-                line_buffer_depth, (self.kernel_size[0]-1)*self.data_width)
-        else:
-            line_buffer_bram = 0
+        if self.regression_model == "linear_regression":
+            # get the line buffer BRAM estimate
+            line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels
+            if self.kernel_size[0] > 1 and line_buffer_depth > 256:
+                line_buffer_bram =  bram_memory_resource_model(
+                    line_buffer_depth, (self.kernel_size[0]-1)*self.data_width)
+            else:
+                line_buffer_bram = 0
 
-        # get the window buffer BRAM estimate
-        window_buffer_depth = self.channels
-        if self.kernel_size[1] > 1 and window_buffer_depth > 256:
-            window_buffer_bram = self.kernel_size[0]*bram_memory_resource_model(
-                    window_buffer_depth, (self.kernel_size[1]-1)*self.data_width)
-        else:
-            window_buffer_bram = 0
+            # get the window buffer BRAM estimate
+            window_buffer_depth = self.channels
+            if self.kernel_size[1] > 1 and window_buffer_depth > 256:
+                window_buffer_bram = self.kernel_size[0]*bram_memory_resource_model(
+                        window_buffer_depth, (self.kernel_size[1]-1)*self.data_width)
+            else:
+                window_buffer_bram = 0
 
-        # add the bram estimation
-        rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+            # add the bram estimation
+            rsc["BRAM"] = line_buffer_bram + window_buffer_bram
 
-        # ensure zero DSPs
-        rsc["DSP"] = 0
+            # ensure zero DSPs
+            rsc["DSP"] = 0
 
         # return the resource usage
         return rsc

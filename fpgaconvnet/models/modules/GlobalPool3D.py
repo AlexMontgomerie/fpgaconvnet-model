@@ -19,6 +19,7 @@ from fpgaconvnet.models.modules import GlobalPool
 @dataclass
 class GlobalPool3D(Module3D):
     backend: str = "chisel"
+    regression_model: str = "linear_regression"
     acc_width: int = 32
 
     def __post_init__(self):
@@ -41,6 +42,18 @@ class GlobalPool3D(Module3D):
         # call the 2D utilisation model instead
         return GlobalPool.utilisation_model(param)
 
+    def get_pred_array(self):
+
+        # load utilisation model from the 2D model
+        self.data_width = self.data_width # hack to do with it not being initialised
+        param = namedtuple('GlobalPoolParam', self.__dict__.keys())(*self.__dict__.values())
+
+        # fold the depth dimension into the col dimension
+        param._replace(cols=param.cols * param.depth)
+
+        # call the 2D utilisation model instead
+        return GlobalPool.get_pred_array(param)
+
     def depth_out(self):
         return 1
 
@@ -56,23 +69,16 @@ class GlobalPool3D(Module3D):
         # return the info
         return info
 
-    def rsc(self,coef=None):
-        # use module resource coefficients if none are given
-        if coef == None:
-            coef = self.rsc_coef
-        # get the average polling buffer BRAM estimate
-        avgpool_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
+    def rsc(self, coef=None, model=None):
 
-        # get the linear model estimation
-        rsc = Module3D.rsc(self, coef)
+        # get the regression model estimation
+        rsc = Module3D.rsc(self, coef, model)
 
-        # add the bram estimation
-        rsc["BRAM"] = avgpool_buffer_bram
+        if self.regression_model == "linear_regression":
+            # get the dsp usage
+            rsc["DSP"] = dsp_multiplier_resource_model(
+                    self.data_width, self.acc_width)
 
-        # add the dsp estimation
-        rsc["DSP"] = 1
-
-        # return the resource usage
         return rsc
 
     def visualise(self, name):

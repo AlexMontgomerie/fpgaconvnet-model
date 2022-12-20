@@ -49,6 +49,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             backend: str = "chisel", # default to no bias for old configs
+            regression_model: str = "linear_regression",
             double_buffered: bool = True,
             stream_weights: bool = False,
         ):
@@ -91,55 +92,59 @@ class ConvolutionLayer(Layer):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
                 self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
                 self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
-                backend=self.backend)
+                backend=self.backend, regression_model=self.regression_model)
 
         if self.backend == "hls":
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.kernel_size, self.coarse_out, backend=self.backend)
+                    self.kernel_size, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
             self.modules["Conv"] = Conv(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.filters//(self.coarse_out*self.groups), self.kernel_size,
-                    backend=self.backend)
+                    backend=self.backend, regression_model=self.regression_model)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.groups),
                     self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend)
+                    backend=self.backend, regression_model=self.regression_model)
 
         elif self.backend == "chisel":
 
             self.modules["squeeze"] = Squeeze(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.kernel_size[0]*self.kernel_size[1], self.fine,
-                    backend=self.backend)
+                    backend=self.backend, regression_model=self.regression_model)
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    [self.fine, 1], self.coarse_out, backend=self.backend)
+                    [self.fine, 1], self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
             self.modules["vector_dot"] = VectorDot(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.filters//(self.coarse_out*self.groups), self.fine,
-                    backend=self.backend)
+                    backend=self.backend, regression_model=self.regression_model)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                     (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
                         self.fine*self.coarse_in*self.groups),
                     self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend)
+                    backend=self.backend, regression_model=self.regression_model)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
                 int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out,
-                backend=self.backend) # TODO
+                backend=self.backend, regression_model=self.regression_model) # TODO
 
         self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters,
-                backend=self.backend) # TODO
+                backend=self.backend, regression_model=self.regression_model) # TODO
 
         # update modules
         self.update()

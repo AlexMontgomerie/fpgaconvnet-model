@@ -35,7 +35,8 @@ class PoolingLayer3D(Layer3D):
             pad_back: int = 0,
             fine: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel"
+            backend: str = "chisel",
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -63,6 +64,10 @@ class PoolingLayer3D(Layer3D):
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
 
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
+
         # init modules
         self.modules["sliding_window3d"] = SlidingWindow3D(self.rows_in(),
                 self.cols_in(), self.depth_in(),
@@ -70,8 +75,8 @@ class PoolingLayer3D(Layer3D):
                 self.kernel_rows, self.kernel_cols, self.kernel_depth,
                 self.stride_rows, self.stride_cols, self.stride_depth,
                 self.pad_top, self.pad_right, self.pad_front,
-                self.pad_bottom, self.pad_left, self.pad_back, backend=self.backend)
-        self.modules["pool3d"] = Pool3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out()//self.coarse, self.kernel_rows, self.kernel_cols, self.kernel_depth, pool_type=self.pool_type, backend=self.backend)
+                self.pad_bottom, self.pad_left, self.pad_back, backend=self.backend, regression_model=self.regression_model)
+        self.modules["pool3d"] = Pool3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out()//self.coarse, self.kernel_rows, self.kernel_cols, self.kernel_depth, pool_type=self.pool_type, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 

@@ -19,7 +19,7 @@ import fpgaconvnet.tools.layer_enum as layer_enum
 
 class ParsePrototxtNode:
 
-    def __init__(self, n, dimensionality=2, backend="hls"):
+    def __init__(self, n, dimensionality=2, backend="hls", regression_model="linear_regression"):
 
         self.dimensionality = dimensionality
 
@@ -28,6 +28,9 @@ class ParsePrototxtNode:
 
         # backend string
         self.backend = backend
+
+        # regression string
+        self.regression_model = regression_model
 
         # get name of node
         self.name = n.name
@@ -115,6 +118,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_group=self.node.parameters.coarse_group,
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -142,6 +146,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_group=self.node.parameters.coarse_group,
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         else:
             raise NotImplementedError
@@ -169,6 +174,7 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 coarse_out  =self.node.parameters.coarse_out,
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
@@ -181,6 +187,7 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 coarse_out  =self.node.parameters.coarse_out,
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         else:
             raise NotImplementedError
@@ -235,6 +242,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 pad_right   =self.node.parameters.pad_right,
                 coarse  =self.node.parameters.coarse,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         elif self.dimensionality == 3:
             return PoolingLayer3D(
@@ -257,6 +265,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 pad_back    =self.node.parameters.pad_back,
                 coarse  =self.node.parameters.coarse,
                 backend =self.backend,
+                regression =self.regression_model,
             )
         else:
             raise NotImplementedError
@@ -273,6 +282,7 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
             coarse_in   =self.node.parameters.coarse_in,
             coarse_out  =self.node.parameters.coarse_out,
             backend =self.backend,
+            regression =self.regression_model,
         )
 
 class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
@@ -285,6 +295,7 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             backend =self.backend,
+            regression =self.regression_model,
         )
 
 class ParsePrototxtEltWiseNode(ParsePrototxtNode):
@@ -299,6 +310,7 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
             ports_in=self.node.parameters.ports_in,
             op_type="sum", # TODO
             backend =self.backend,
+            regression =self.regression_model,
         )
 
 class ParsePrototxtSplitNode(ParsePrototxtNode):
@@ -312,6 +324,7 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
             self.node.parameters.channels_in,
             ports_out=self.node.parameters.ports_out,
             backend =self.backend,
+            regression =self.regression_model,
         )
 
 
