@@ -60,6 +60,9 @@ class Pool3D(Module3D):
         self.data_width = self.data_width # hack to do with it not being initialised
         param = namedtuple('PoolParam', self.__dict__.keys())(*self.__dict__.values())
 
+        # fold the kernel depth dimension into the kernel col dimension
+        param = param._replace(kernel_size=[self.kernel_rows, self.kernel_cols * self.kernel_depth])
+
         # call the 2D utilisation model instead
         return Pool.get_pred_array(param)
 
