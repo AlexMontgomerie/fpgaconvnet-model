@@ -927,5 +927,28 @@ def fuse_mul_sigmoid_into_hardswish(model):
 
     return model
 
+def fuse_relu_into_previous(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a relu node
+        if node.op_type != "Relu":
+            continue
+
+        prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+        next_nodes = filter(lambda x: (x.input[0] == node.output[0]) or (x.input[1] == node.output[0]) if len(x.input) > 1 else x.input[0] == node.output[0], model.graph.node)
+
+        # Connect the previous node output to the next node(s) input
+        for next_node in next_nodes:
+            input_idx = list(next_node.input).index(node.output[0])
+            next_node.input.remove(node.output[0])
+            next_node.input.insert(input_idx, prev_node.output[0])
+
+        # Remove the current node
+        model.graph.node.remove(node)
+
+    return model
+
 def convert_to_version_14(model):
     return onnx.version_converter.convert_version(model, 14)

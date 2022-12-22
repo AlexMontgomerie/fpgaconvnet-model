@@ -90,6 +90,10 @@ class Parser:
         # minimum supported opset version
         self.onnx_opset_version = 14
 
+    def add_onnx_optimization_passes(self, passes):
+        for pass_name in passes:
+            self.fpgaconvnet_pre_onnx_passes.append(pass_name)
+
     def optimize_onnx(self, model, passes):
         model_opt = model
         for opt_pass in passes:
