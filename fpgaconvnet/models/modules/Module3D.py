@@ -81,7 +81,7 @@ class Module3D:
                     # get the coefficients from the cache path and load
                     model_path = os.path.join(rsc_cache_path,
                             f"{module_identifier}_{rsc_type}.json".lower())
-                    model = XGBRegressor()
+                    model = XGBRegressor(n_jobs=4)
                     model.load_model(model_path)
                     self.rsc_coef[rsc_type] = model
 
