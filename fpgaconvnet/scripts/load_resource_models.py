@@ -9,19 +9,32 @@ from fpgaconvnet.tools.resource_regression_model import ModuleModel
 from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, r2_score, mean_absolute_percentage_error
 
 # Available regression models: linear_regression, xgboost
-REGRESSOR = "xgboost"
+REGRESSOR = "linear_regression"
+
+# CHISEL_MODULES = {
+#         "Accum": "AccumFixed",
+#         "Fork": "ForkFixed",
+#         "Glue": "GlueFixed",
+#         # "SlidingWindow": "SlidingWindowFixed",
+#         "SlidingWindow3D": "SlidingTensorFixed",
+#         "Squeeze": "SqueezeFixed",
+#         "VectorDot": "VectorDotFixed",
+#         "Pool": "MaxPoolFixed",
+#         # "GlobalPool": "AveragePoolFixed",
+#         # "Bias": "BiasFixed"
+# }
 
 CHISEL_MODULES = {
-        "Accum": "AccumFixed",
-        "Fork": "ForkFixed",
-        "Glue": "GlueFixed",
-        "SlidingWindow": "SlidingWindowFixed",
-        "SlidingWindow3D": "SlidingTensorFixed",
-        "Squeeze": "SqueezeFixed",
-        "VectorDot": "VectorDotFixed",
-        "Pool": "MaxPoolFixed",
-        "GlobalPool": "AveragePoolFixed",
-        "Bias": "BiasFixed"
+        "Accum": "Accum",
+        "Fork": "Fork",
+        "Glue": "Glue",
+        # "SlidingWindow": "SlidingWindowFixed",
+        "SlidingWindow3D": "SlidingTensor",
+        "Squeeze": "Squeeze",
+        "VectorDot": "VectorDot",
+        "Pool": "MaxPool",
+        # "GlobalPool": "AveragePoolFixed",
+        # "Bias": "BiasFixed"
 }
 
 # CHISEL_MODULES = [ "AveragePool" ]
@@ -181,10 +194,10 @@ for module, identifier in CHISEL_MODULES.items():
     rsc_model.fit_model(from_cache=False)
 
     # save coefficeints
-    # cache_path = os.path.join(
-    #         os.path.dirname(__file__),
-    #         f"../coefficients/{REGRESSOR}/chisel")
-    # rsc_model.save_coef(cache_path)
+    cache_path = os.path.join(
+            os.path.dirname(__file__),
+            f"../coefficients/{REGRESSOR}/chisel")
+    rsc_model.save_coef(cache_path)
 
     # get modelled resources
     hw_model = getattr(importlib.import_module(
@@ -215,7 +228,7 @@ for module, identifier in CHISEL_MODULES.items():
         match REGRESSOR:
             case "linear_regression":
                 rsc = m.rsc(coef=rsc_model.coef)
-            case "xgboost":
+            case "xgboost" | "xgboost-kernel":
                 rsc = m.rsc(model=rsc_model.coef)
 
         for rsc_type in predicted.keys():

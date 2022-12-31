@@ -83,6 +83,7 @@ class SlidingWindow3D(Module3D):
     pad_back: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
 
     @property
     def kernel_size(self):
@@ -163,19 +164,22 @@ class SlidingWindow3D(Module3D):
             pass # TODO
         elif self.backend == "chisel":
             # TODO Update this to use the new resource model for 3D version FIXME
-            line_buffer_depth = self.cols*self.depth*self.channels
+            line_buffer_depth = self.channels * \
+                                (self.depth) * \
+                                (self.cols)
             line_buffer_lutram = queue_lutram_resource_model(
-                        line_buffer_depth, self.data_width)
+                        line_buffer_depth, self.streams*self.data_width)
             if line_buffer_depth > 256:
                 line_buffer_lutram = 0
-            window_buffer_depth = self.depth*self.channels
+            window_buffer_depth = self.channels * \
+                                  (self.depth)
             window_buffer_lutram = queue_lutram_resource_model(
-                        window_buffer_depth, self.data_width)
+                        window_buffer_depth, self.streams*self.data_width)
             if window_buffer_depth > 256:
                 window_buffer_lutram = 0
             tensor_buffer_depth = self.channels
             tensor_buffer_lutram = queue_lutram_resource_model(
-                        tensor_buffer_depth, self.data_width)
+                        tensor_buffer_depth, self.streams*self.data_width)
             if tensor_buffer_depth > 256:
                 tensor_buffer_lutram = 0
             return {
@@ -187,26 +191,25 @@ class SlidingWindow3D(Module3D):
                     int2bits(self.depth), # depth cntr
                     (self.kernel_size[0]-1),
                     (self.kernel_size[0]-2), # line buffer ready
-                    self.data_width*(self.kernel_size[0]-1),
+                    self.streams*self.data_width*(self.kernel_size[0]-1),
                     self.kernel_size[0]*(self.kernel_size[1]-1),
                     self.kernel_size[0]*(self.kernel_size[1]-2), # window buffer ready
                     self.kernel_size[0], # window buffer ready
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
                     self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1),
                     self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-2), # tensor buffer ready
                     self.kernel_size[0]*self.kernel_size[1], # tensor buffer ready
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1),
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1),
                     self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2], # frame out logic
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
                     (self.kernel_size[0]-1)*line_buffer_lutram, # line buffer
-                    self.kernel_size[0]*(self.kernel_size[1]-1)*\
-                            window_buffer_lutram, # window buffer
-                    self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1)*\
-                            tensor_buffer_lutram, # tensor buffer
-                    self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2]*\
-                            queue_lutram_resource_model(2, self.data_width), # frame buffer
+                    self.kernel_size[0]*(self.kernel_size[1]-1)*window_buffer_lutram, # window buffer
+                    self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1)*tensor_buffer_lutram, # tensor buffer
+                    self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2]*queue_lutram_resource_model(2, self.streams*self.data_width), # frame buffer
+                    queue_lutram_resource_model(2, self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2]*self.streams*self.data_width), # filter buffer
+                    1,
                 ]),
                 "LUT_SR"    : np.array([1]),
                 "FF"        : np.array([
@@ -214,27 +217,39 @@ class SlidingWindow3D(Module3D):
                     int2bits(self.cols), # col_cntr
                     int2bits(self.channels), # channel_cntr
                     int2bits(self.depth), # depth cntr
-                    self.data_width, # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*\
-                            self.kernel_size[2], # output buffer (data)
-                    self.kernel_size[0]*self.kernel_size[1]*\
-                            self.kernel_size[2], # output buffer (valid)
-                    self.data_width*(self.kernel_size[0]-1), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*\
-                            (self.kernel_size[2]-1), # tensor buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2], # frame buffer
+                    self.streams*self.data_width, # input buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2], # output buffer (data)
+                    self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2], # output buffer (valid)
+                    self.streams*self.data_width*(self.kernel_size[0]-1), # line buffer
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1), # tensor buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2], # frame buffer
                     1,
                 ]),
                 "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                "BRAM36"    : np.array([
+                    self.streams*self.data_width*(self.kernel_size[0]-1), # line buffer (width)
+                    line_buffer_depth, # line buffer (depth)
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer (width)
+                    window_buffer_depth, # window buffer (depth)
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1), # tensor buffer (width)
+                    tensor_buffer_depth,
+                ]),
+                "BRAM18"    : np.array([
+                    self.streams*self.data_width*(self.kernel_size[0]-1), # line buffer (width)
+                    line_buffer_depth, # line buffer (depth)
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer (width)
+                    window_buffer_depth, # window buffer (depth)
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1]*(self.kernel_size[2]-1), # tensor buffer (width)
+                    tensor_buffer_depth,
+                ]),
             }
 
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.channels, self.rows, self.cols, self.depth,
+        self.channels, self.rows, self.cols,
+        self.depth, self.streams,
         self.kernel_rows, self.kernel_cols,
         self.kernel_depth, self.stride_rows,
         self.stride_cols, self.stride_depth,
@@ -252,7 +267,7 @@ class SlidingWindow3D(Module3D):
                                 (self.cols + self.pad_left + self.pad_right)
             if self.kernel_rows > 1 and line_buffer_depth > 256:
                 line_buffer_bram =  bram_memory_resource_model(
-                    line_buffer_depth, (self.kernel_rows-1)*self.data_width)
+                    line_buffer_depth, self.streams*(self.kernel_rows-1)*self.data_width)
             else:
                 line_buffer_bram = 0
 
@@ -261,7 +276,7 @@ class SlidingWindow3D(Module3D):
                                   (self.depth + self.pad_front + self.pad_back)
             if self.kernel_cols > 1 and window_buffer_depth > 256:
                 window_buffer_bram = self.kernel_rows*bram_memory_resource_model(
-                        window_buffer_depth, (self.kernel_cols-1)*self.data_width)
+                        window_buffer_depth, self.streams*(self.kernel_cols-1)*self.data_width)
             else:
                 window_buffer_bram = 0
 
@@ -269,7 +284,7 @@ class SlidingWindow3D(Module3D):
             tensor_buffer_depth = self.channels
             if self.kernel_depth > 1 and tensor_buffer_depth > 256:
                 tensor_buffer_bram = self.kernel_rows*self.kernel_cols*bram_memory_resource_model(
-                        tensor_buffer_depth, (self.kernel_depth-1)*self.data_width)
+                        tensor_buffer_depth, self.streams*(self.kernel_depth-1)*self.data_width)
             else:
                 tensor_buffer_bram = 0
 

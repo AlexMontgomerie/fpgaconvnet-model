@@ -23,6 +23,9 @@ class Glue(Module):
     coarse_out: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
+    latency: int = False
+    block: int = False
 
     def channels_in(self):
         return self.filters
@@ -49,14 +52,14 @@ class Glue(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    self.data_width*self.coarse_in, # tree buffer
-                    self.data_width*int2bits(self.coarse_in), # tree buffer
+                    self.streams*self.data_width*self.coarse_in, # tree buffer
+                    self.streams*self.data_width*int2bits(self.coarse_in), # tree buffer
                     self.coarse_in, # input ready
                     1,
                 ]),
                 "LUT_RAM" : np.array([
                     queue_lutram_resource_model(
-                        int2bits(self.coarse_in)+1, self.data_width), # buffer
+                        int2bits(self.coarse_in)+1, self.streams*self.data_width), # buffer
                     1,
                 ]),
                 "LUT_SR" : np.array([
@@ -64,14 +67,26 @@ class Glue(Module):
                     1,
                 ]),
                 "FF" : np.array([
-                    self.data_width, # output buffer
+                    self.coarse_in, # coarse in parameter
+                    self.streams*self.data_width, # output buffer
                     int2bits(self.coarse_in), # tree buffer valid
-                    self.data_width*(2**(int2bits(self.coarse_in))), # tree buffer registers
+                    self.streams*self.data_width*(2**(int2bits(self.coarse_in))), # tree buffer registers
+                    self.streams*self.data_width*self.coarse_in, # tree buffer registers
                     1,
                 ]),
                 "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                "BRAM36"    : np.array([
+                    0,
+                    # self.streams*self.data_width*self.coarse_in, # buffer words
+                    # int2bits(self.coarse_in) + 1, # buffer depth
+                    # 1,
+                ]),
+                "BRAM18"    : np.array([
+                    0,
+                    # self.streams*self.data_width*self.coarse_in, # buffer words
+                    # int2bits(self.coarse_in) + 1, # buffer depth
+                    # 1,
+                ]),
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
@@ -79,7 +94,7 @@ class Glue(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.coarse_in,
+        self.streams, self.coarse_in,
         ]).reshape(1,-1)
 
     def visualise(self, name):

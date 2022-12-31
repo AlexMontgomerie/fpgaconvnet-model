@@ -81,7 +81,7 @@ class Module:
                     coef_path = os.path.join(rsc_cache_path,
                             f"{module_identifier}_{rsc_type}.npy".lower())
                     self.rsc_coef[rsc_type] = np.load(coef_path)
-                case "xgboost":
+                case "xgboost" | "xgboost-kernel":
                     # get the coefficients from the cache path and load
                     model_path = os.path.join(rsc_cache_path,
                             f"{module_identifier}_{rsc_type}.json".lower())
@@ -119,6 +119,10 @@ class Module:
                 util_model = self.utilisation_model()
                 rsc = { rsc_type: int(np.dot(util_model[rsc_type],
                     coef[rsc_type])) for rsc_type in coef.keys()}
+            case "xgboost-kernel":
+                util_model = self.utilisation_model()
+                rsc = { rsc_type: int(model[rsc_type].predict(
+                    np.expand_dims(util_model[rsc_type], axis=0))) for rsc_type in model.keys()}
             case "xgboost":
                 pred_array = self.get_pred_array()
                 rsc = { rsc_type: int(model[rsc_type].predict(pred_array)) for rsc_type in model.keys()}

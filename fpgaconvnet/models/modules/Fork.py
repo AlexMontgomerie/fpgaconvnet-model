@@ -25,6 +25,9 @@ class Fork(Module):
     coarse: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
+    latency: int = False
+    block: int = False
 
     def __post_init__(self):
 
@@ -54,19 +57,24 @@ class Fork(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
-                    self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[0]*self.kernel_size[1], # input buffer ready
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
-                    self.kernel_size[0]*self.kernel_size[1], # input buffer valid
-                    self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer ready
+                    self.streams*np.prod(self.kernel_size), # input buffer
+                    self.streams*self.data_width*np.prod(self.kernel_size), # input buffer
+                    self.streams*np.prod(self.kernel_size)*self.coarse, # output buffer
+                    self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer
+
+#                     self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
+#                     self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[0]*self.kernel_size[1], # input buffer ready
+#                     self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
+#                     self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
+#                     self.kernel_size[0]*self.kernel_size[1], # input buffer valid
+#                     self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer ready
                     1,
                 ]),
                 "LUT_RAM"   : np.array([0]),
                 "LUT_SR"    : np.array([0]),
                 "FF"    : np.array([
-                    self.kernel_size[0]*self.kernel_size[1], # input buffer (ready)
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer (data)
+                    self.streams*np.prod(self.kernel_size), # input buffer (ready)
+                    self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer (data)
                     # self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer (valid)
                     1,
                 ]),
@@ -80,7 +88,7 @@ class Fork(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.coarse, np.prod(self.kernel_size),
+        self.coarse, np.prod(self.kernel_size), self.streams
         ]).reshape(1,-1)
 
     def visualise(self, name):

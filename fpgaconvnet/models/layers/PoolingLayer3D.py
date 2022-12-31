@@ -290,6 +290,7 @@ class PoolingLayer3D(Layer3D):
         self.modules['sliding_window3d'].depth    = self.depth_in()
         self.modules['sliding_window3d'].channels = int(self.channels_in()/self.coarse)
         self.modules['sliding_window3d'].data_width = self.data_t.width
+        self.modules['sliding_window3d'].streams = self.coarse
         # pool 3d
         self.modules['pool3d'].rows     = self.rows_out()
         self.modules['pool3d'].cols     = self.cols_out()
@@ -307,13 +308,13 @@ class PoolingLayer3D(Layer3D):
 
         # Total
         return {
-            "LUT"  :  sw_rsc['LUT']*self.coarse +
+            "LUT"  :  sw_rsc['LUT'] +
                       pool_rsc['LUT']*self.coarse,
-            "FF"   :  sw_rsc['FF']*self.coarse +
+            "FF"   :  sw_rsc['FF'] +
                       pool_rsc['FF']*self.coarse,
-            "BRAM" :  sw_rsc['BRAM']*self.coarse +
+            "BRAM" :  sw_rsc['BRAM'] +
                       pool_rsc['BRAM']*self.coarse,
-            "DSP" :   sw_rsc['DSP']*self.coarse +
+            "DSP" :   sw_rsc['DSP'] +
                       pool_rsc['DSP']*self.coarse
         }
 

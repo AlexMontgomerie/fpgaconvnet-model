@@ -19,6 +19,9 @@ class Squeeze(Module):
     coarse_out: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
+    latency: int = False
+    block: int = False
 
     def module_info(self):
         # get the base module fields
@@ -76,7 +79,7 @@ class Squeeze(Module):
     def get_pred_array(self):
         return np.array([
         self.data_width, self.data_width//2,
-        self.coarse_in, self.coarse_out,
+        self.coarse_in, self.coarse_out, self.streams
         ]).reshape(1,-1)
 
     def visualise(self, name):
