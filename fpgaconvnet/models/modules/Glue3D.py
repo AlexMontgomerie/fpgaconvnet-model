@@ -38,6 +38,9 @@ class Glue3D(Module3D):
         # load resource coefficients
         self.load_resource_coefficients(self.module_identifier)
 
+    def pipeline_depth(self):
+        return self.coarse_in
+
     def channels_in(self):
         return self.filters
 

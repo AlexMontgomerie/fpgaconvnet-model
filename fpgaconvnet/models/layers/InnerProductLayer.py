@@ -123,6 +123,7 @@ class InnerProductLayer(Layer):
         self.modules['fork'].channels = self.channels_in()//self.coarse_in
         self.modules['fork'].coarse   = self.coarse_out
         self.modules['fork'].data_width = self.input_t.width
+        self.modules['fork'].streams = self.coarse_in
         if self.backend == "hls":
             # conv
             self.modules['conv'].rows     = 1
@@ -213,7 +214,7 @@ class InnerProductLayer(Layer):
             weights_memory_depth *= 2
 
         weights_bram_usage = bram_memory_resource_model(
-                    int(weights_memory_depth), self.weight_t.width) * self.coarse_in * self.coarse_out
+                    int(weights_memory_depth), self.weight_t.width * self.coarse_in * self.coarse_out)
 
         if self.stream_weights:
             weights_bram_usage = 0

@@ -18,6 +18,9 @@ class VectorDot(Module):
     latency: int = False
     block: int = False
 
+    def pipeline_depth(self):
+        return self.fine
+
     def rate_in(self):
         return 1.0/float(self.filters)
 

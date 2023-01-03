@@ -30,6 +30,9 @@ class VectorDot3D(Module3D):
         # load resource coefficients
         self.load_resource_coefficients(self.module_identifier)
 
+    def pipeline_depth(self):
+        return self.fine
+
     def module_info(self):
         return {
             'type'      : self.__class__.__name__.upper(),

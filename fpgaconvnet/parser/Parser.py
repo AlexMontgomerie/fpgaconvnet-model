@@ -39,7 +39,8 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 
 class Parser:
 
-    def __init__(self, backend="chisel", regression_model="linear_regression", quant_mode="auto", batch_size=1):
+    def __init__(self, backend="chisel", regression_model="linear_regression",
+            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False):
 
         # set the backend string
         self.backend = backend
@@ -80,7 +81,7 @@ class Parser:
             "convert_pool_to_global_pool",
             "convert_reshape_to_flatten",
             "convert_transpose_flatten_gemm_to_flatten_gemm",
-            "rename_all_nodes"
+            "rename_all_nodes",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
@@ -89,6 +90,9 @@ class Parser:
 
         # minimum supported opset version
         self.onnx_opset_version = 14
+
+        # flag to convert InnerProduct to Convolution
+        self.convert_gemm_to_conv = convert_gemm_to_conv
 
     def add_onnx_optimization_passes(self, passes):
         for pass_name in passes:
@@ -163,7 +167,8 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, dimensionality, backend=self.backend, regression_model=self.regression_model)
+            return converter[node_type](graph, node, dimensionality, backend=self.backend,
+                    regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
             raise TypeError(f"{node.op_type} not supported, exiting now")
 

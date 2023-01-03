@@ -27,6 +27,9 @@ class Glue(Module):
     latency: int = False
     block: int = False
 
+    def pipeline_depth(self):
+        return self.coarse_in
+
     def channels_in(self):
         return self.filters
 

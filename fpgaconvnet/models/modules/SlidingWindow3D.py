@@ -116,7 +116,8 @@ class SlidingWindow3D(Module3D):
     def pipeline_depth(self):
         return (self.cols+self.pad_left+self.pad_right)*(self.depth+self.pad_front+self.pad_back)*(self.channels)*(self.kernel_rows-1) +\
                (self.depth+self.pad_front+self.pad_back)*(self.channels)*(self.kernel_cols-1) +\
-               self.channels*((self.kernel_rows-1)*self.kernel_cols*self.kernel_depth + (self.kernel_cols-1)*self.kernel_depth + (self.kernel_depth-1))
+               (self.channels)*(self.kernel_depth-1)
+               # self.channels*((self.kernel_rows-1)*self.kernel_cols*self.kernel_depth + (self.kernel_cols-1)*self.kernel_depth + (self.kernel_depth-1))
 
     def wait_depth(self):
         """
