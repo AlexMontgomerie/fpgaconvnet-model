@@ -246,25 +246,6 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                 )
             else:
                 raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
-            return ConvolutionLayer(
-                self.output_shape[1],
-                self.input_shape[2],
-                self.input_shape[3],
-                self.input_shape[1],
-                kernel_rows=self.attr["kernel_shape"][0],
-                kernel_cols=self.attr["kernel_shape"][1],
-                stride_rows=self.attr["strides"][0],
-                stride_cols=self.attr["strides"][1],
-                pad_top     = self.attr["pads"][0],
-                pad_left    = self.attr["pads"][1],
-                pad_bottom  = self.attr["pads"][2],
-                pad_right   = self.attr["pads"][3],
-                groups = self.attr["group"],
-                has_bias = len(self.inputs) == 3,
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
