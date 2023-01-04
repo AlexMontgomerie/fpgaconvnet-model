@@ -104,11 +104,11 @@ class SlidingWindow3D(Module3D):
     def depth_out(self):
         return int((self.depth_in()-self.kernel_depth+self.pad_back+self.pad_front)/self.stride_depth+1)
 
-    # def rate_in(self):
-    #     return (self.rows_in()*self.cols_in()*self.depth_in())/float(
-    #             (self.rows_in()+self.pad_top+self.pad_bottom)*\
-    #             (self.cols_in()+self.pad_left+self.pad_right)*\
-    #             (self.depth_in()+self.pad_front+self.pad_back))
+    def rate_in(self):
+        return (self.rows_in()*self.cols_in()*self.depth_in())/float(
+                (self.rows_in()+self.pad_top+self.pad_bottom)*\
+                (self.cols_in()+self.pad_left+self.pad_right)*\
+                (self.depth_in()+self.pad_front+self.pad_back))
 
     def rate_out(self):
         return (self.rows_out()*self.cols_out()*self.depth_out())/float(self.rows*self.cols*self.depth)
