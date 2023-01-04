@@ -9,6 +9,8 @@ from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow3D
 from fpgaconvnet.models.modules import Pool3D
+from fpgaconvnet.models.modules import Pad3D
+
 from fpgaconvnet.models.layers import Layer3D
 
 class PoolingLayer3D(Layer3D):
@@ -69,14 +71,29 @@ class PoolingLayer3D(Layer3D):
         self.regression_model = regression_model
 
         # init modules
-        self.modules["sliding_window3d"] = SlidingWindow3D(self.rows_in(),
-                self.cols_in(), self.depth_in(),
+        self.modules["pad3d"] = Pad3D(
+                self.rows_in(), self.cols_in(), self.depth_in(),
+                self.channels_in()//self.coarse,
+                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right,
+                self.pad_front, self.pad_back, backend=self.backend,
+                regression_model=self.regression_model)
+
+        self.modules["sliding_window3d"] = SlidingWindow3D(
+                self.rows_in() +self.pad_top + self.pad_bottom,
+                self.cols_in() + self.pad_left + self.pad_right,
+                self.depth_in() + self.pad_front + self.pad_back,
                 self.channels_in()//self.coarse,
                 self.kernel_rows, self.kernel_cols, self.kernel_depth,
                 self.stride_rows, self.stride_cols, self.stride_depth,
-                self.pad_top, self.pad_right, self.pad_front,
-                self.pad_bottom, self.pad_left, self.pad_back, backend=self.backend, regression_model=self.regression_model)
-        self.modules["pool3d"] = Pool3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out()//self.coarse, self.kernel_rows, self.kernel_cols, self.kernel_depth, pool_type=self.pool_type, backend=self.backend, regression_model=self.regression_model)
+                0, 0, 0, 0, 0, 0, backend=self.backend,
+                regression_model=self.regression_model)
+
+        self.modules["pool3d"] = Pool3D(
+                self.rows_out(), self.cols_out(), self.depth_out(),
+                self.channels_out()//self.coarse, self.kernel_rows,
+                self.kernel_cols, self.kernel_depth,
+                pool_type=self.pool_type, backend=self.backend,
+                regression_model=self.regression_model)
 
         self.update()
 
@@ -284,18 +301,49 @@ class PoolingLayer3D(Layer3D):
         parameters.pad_back     = self.pad_back
 
     def update(self):
-        # sliding window 3d
-        self.modules['sliding_window3d'].rows     = self.rows_in()
-        self.modules['sliding_window3d'].cols     = self.cols_in()
-        self.modules['sliding_window3d'].depth    = self.depth_in()
-        self.modules['sliding_window3d'].channels = int(self.channels_in()/self.coarse)
+
+        # pad
+        self.modules['pad3d'].rows     = self.rows
+        self.modules['pad3d'].cols     = self.cols
+        self.modules['pad3d'].depth    = self.depth
+        self.modules['pad3d'].channels = self.channels//self.coarse
+        self.modules['pad3d'].data_width = self.data_t.width
+        self.modules['pad3d'].streams = self.coarse
+        self.modules['pad3d'].pad_top = self.pad_top
+        self.modules['pad3d'].pad_bottom = self.pad_bottom
+        self.modules['pad3d'].pad_left = self.pad_left
+        self.modules['pad3d'].pad_right = self.pad_right
+        self.modules['pad3d'].pad_front = self.pad_front
+        self.modules['pad3d'].pad_back = self.pad_back
+
+        # sliding window
+        self.modules['sliding_window3d'].rows     = self.rows + self.pad_top + self.pad_bottom
+        self.modules['sliding_window3d'].cols     = self.cols + self.pad_left + self.pad_right
+        self.modules['sliding_window3d'].depth    = self.depth + self.pad_front + self.pad_back
+        self.modules['sliding_window3d'].channels = self.channels//self.coarse
+        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
+        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
+        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
+        self.modules['sliding_window3d'].stride_cols = self.stride_cols
+        self.modules['sliding_window3d'].stride_rows = self.stride_rows
+        self.modules['sliding_window3d'].stride_depth= self.stride_depth
         self.modules['sliding_window3d'].data_width = self.data_t.width
         self.modules['sliding_window3d'].streams = self.coarse
+        self.modules['sliding_window3d'].pad_top = 0
+        self.modules['sliding_window3d'].pad_bottom = 0
+        self.modules['sliding_window3d'].pad_left = 0
+        self.modules['sliding_window3d'].pad_right = 0
+        self.modules['sliding_window3d'].pad_front = 0
+        self.modules['sliding_window3d'].pad_back = 0
+
         # pool 3d
         self.modules['pool3d'].rows     = self.rows_out()
         self.modules['pool3d'].cols     = self.cols_out()
         self.modules['pool3d'].depth    = self.depth_out()
         self.modules['pool3d'].channels = int(self.channels_in()/self.coarse)
+        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
+        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
+        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
         self.modules['pool3d'].data_width = self.data_t.width
 
     def get_fine_feasible(self):

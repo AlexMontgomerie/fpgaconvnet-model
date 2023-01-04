@@ -28,7 +28,7 @@ class Accum(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency: int = False
+    latency_mode: int = False
     block: int = False
 
     def channels_in(self):

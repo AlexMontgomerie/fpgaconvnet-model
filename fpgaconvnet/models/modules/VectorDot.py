@@ -15,7 +15,7 @@ class VectorDot(Module):
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
     streams: int = 1
-    latency: int = False
+    latency_mode: int = False
     block: int = False
 
     def pipeline_depth(self):

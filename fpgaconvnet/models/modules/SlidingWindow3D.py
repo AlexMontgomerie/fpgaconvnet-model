@@ -104,11 +104,11 @@ class SlidingWindow3D(Module3D):
     def depth_out(self):
         return int((self.depth_in()-self.kernel_depth+self.pad_back+self.pad_front)/self.stride_depth+1)
 
-    def rate_in(self):
-        return (self.rows_in()*self.cols_in()*self.depth_in())/float(
-                (self.rows_in()+self.pad_top+self.pad_bottom)*\
-                (self.cols_in()+self.pad_left+self.pad_right)*\
-                (self.depth_in()+self.pad_front+self.pad_back))
+    # def rate_in(self):
+    #     return (self.rows_in()*self.cols_in()*self.depth_in())/float(
+    #             (self.rows_in()+self.pad_top+self.pad_bottom)*\
+    #             (self.cols_in()+self.pad_left+self.pad_right)*\
+    #             (self.depth_in()+self.pad_front+self.pad_back))
 
     def rate_out(self):
         return (self.rows_out()*self.cols_out()*self.depth_out())/float(self.rows*self.cols*self.depth)
@@ -276,8 +276,9 @@ class SlidingWindow3D(Module3D):
             window_buffer_depth = self.channels * \
                                   (self.depth + self.pad_front + self.pad_back)
             if self.kernel_cols > 1 and window_buffer_depth > 256:
-                window_buffer_bram = self.kernel_rows*bram_memory_resource_model(
-                        window_buffer_depth, self.streams*(self.kernel_cols-1)*self.data_width)
+                window_buffer_bram = bram_memory_resource_model(
+                        window_buffer_depth, self.kernel_rows*self.streams*\
+                                (self.kernel_cols-1)*self.data_width)
             else:
                 window_buffer_bram = 0
 
@@ -285,7 +286,8 @@ class SlidingWindow3D(Module3D):
             tensor_buffer_depth = self.channels
             if self.kernel_depth > 1 and tensor_buffer_depth > 256:
                 tensor_buffer_bram = self.kernel_rows*self.kernel_cols*bram_memory_resource_model(
-                        tensor_buffer_depth, self.streams*(self.kernel_depth-1)*self.data_width)
+                        tensor_buffer_depth, self.kernel_rows*self.kernel_cols*\
+                                self.streams*(self.kernel_depth-1)*self.data_width)
             else:
                 tensor_buffer_bram = 0
 

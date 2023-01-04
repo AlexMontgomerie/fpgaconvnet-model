@@ -24,7 +24,7 @@ class Glue(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency: int = False
+    latency_mode: int = False
     block: int = False
 
     def pipeline_depth(self):
@@ -36,7 +36,7 @@ class Glue(Module):
     def channels_out(self):
         return self.filters
 
-    def get_latency(self):
+    def latency(self):
         return self.rows *self.cols *self.filters / self.coarse_out
 
     def module_info(self):

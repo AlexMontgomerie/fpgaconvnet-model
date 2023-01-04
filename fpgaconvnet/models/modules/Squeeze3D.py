@@ -18,7 +18,7 @@ class Squeeze3D(Module3D):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency: int = False
+    latency_mode: int = False
     block: int = False
 
     def __post_init__(self):

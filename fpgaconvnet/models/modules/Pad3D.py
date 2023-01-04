@@ -1,5 +1,5 @@
 """
-The Glue module is used to combine streams
+The Pad module is used to combine streams
 used for channel parallelism in the
 Convolution layer together.
 
@@ -16,13 +16,16 @@ import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
 
-from fpgaconvnet.models.modules import Glue
+# from fpgaconvnet.models.modules import Pad
 
 @dataclass
-class Glue3D(Module3D):
-    filters: int
-    coarse_in: int
-    coarse_out: int
+class Pad3D(Module3D):
+    pad_top: int
+    pad_bottom: int
+    pad_left: int
+    pad_right: int
+    pad_front: int
+    pad_back: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     data_width: int = field(default=32, init=False)
@@ -31,58 +34,48 @@ class Glue3D(Module3D):
     block: int = False
 
     def __post_init__(self):
+        pass
 
-        # get the module identifer
-        self.module_identifier = "Glue"
+    def rsc(self, coef=None, model=None):
+        """
+        Returns
+        -------
+        dict
+            estimated resource usage of the module. Uses the
+            resource coefficients for the estimate.
+        """
+        return {
+            "LUT"   : 16,
+            "FF"    : 35,
+            "BRAM"  : 0,
+            "DSP"   : 0
+        }
 
-        # load resource coefficients
-        self.load_resource_coefficients(self.module_identifier)
+    def rows_out(self):
+        return (self.rows_in()+self.pad_top+self.pad_bottom)
 
-    def pipeline_depth(self):
-        return self.coarse_in
+    def cols_out(self):
+        return (self.cols_in()+self.pad_left+self.pad_right)
 
-    def channels_in(self):
-        return self.filters
+    def depth_out(self):
+        return (self.depth_in()+self.pad_back+self.pad_front)
 
-    def channels_out(self):
-        return self.filters
-
-    def latency(self):
-        return self.rows * self.cols * self.depth * self.filters / self.coarse_out
+    def rate_in(self):
+        return (self.rows_in()*self.cols_in()*self.depth_in())/float(
+                (self.rows_out()*self.cols_out()*self.depth_out()))
 
     def module_info(self):
         # get the base module fields
         info = Module3D.module_info(self)
         # add module-specific info fields
-        info["filters"] = self.filters
-        info["coarse_in"] = self.coarse_in
-        info["coarse_out"] = self.coarse_out
+        info["pad_top"]     = self.pad_top
+        info["pad_bottom"]  = self.pad_bottom
+        info["pad_left"]    = self.pad_left
+        info["pad_right"]   = self.pad_right
+        info["pad_front"]   = self.pad_front
+        info["pad_back"]    = self.pad_back
         # return the info
         return info
-
-    def utilisation_model(self):
-
-        # load utilisation model from the 2D model
-        self.data_width = self.data_width # hack to do with it not being initialised
-        param = namedtuple('GlueParam', self.__dict__.keys())(*self.__dict__.values())
-
-        # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols * param.depth)
-
-        # call the 2D utilisation model instead
-        return Glue.utilisation_model(param)
-
-    def get_pred_array(self):
-
-        # load utilisation model from the 2D model
-        self.data_width = self.data_width # hack to do with it not being initialised
-        param = namedtuple('GlueParam', self.__dict__.keys())(*self.__dict__.values())
-
-        # fold the depth dimension into the col dimension
-        param._replace(cols=param.cols * param.depth)
-
-        # call the 2D utilisation model instead
-        return Glue.get_pred_array(param)
 
     def visualise(self, name):
         return pydot.Node(name,label="glue3d", shape="box",
