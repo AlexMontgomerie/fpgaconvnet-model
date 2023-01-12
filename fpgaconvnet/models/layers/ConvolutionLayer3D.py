@@ -681,9 +681,12 @@ class ConvolutionLayer3D(Layer3D):
         if self.double_buffered:
             weight_memory_depth *= 2
 
+        # weights_bram_usage = bram_memory_resource_model(
+        #             int(weight_memory_depth), self.weight_t.width*self.fine) * \
+        #         self.coarse_in*self.coarse_out*self.coarse_group
         weights_bram_usage = bram_memory_resource_model(
-                    int(weight_memory_depth), self.weight_t.width*self.fine) * \
-                self.coarse_in*self.coarse_out*self.coarse_group
+                    int(weight_memory_depth), self.weight_t.width*
+                        self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
 
         # if streaming weights, set to zero
         if self.stream_weights:

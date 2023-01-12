@@ -123,6 +123,7 @@ class InnerProductLayer3D(Layer3D):
         self.modules['fork3d'].channels = self.channels_in()//self.coarse_in
         self.modules['fork3d'].coarse   = self.coarse_out
         self.modules['fork3d'].data_width = self.input_t.width
+        self.modules['fork3d'].streams = self.coarse_in
         if self.backend == "hls":
             # conv
             self.modules['conv3d'].rows     = 1
@@ -147,6 +148,7 @@ class InnerProductLayer3D(Layer3D):
             self.modules['vector_dot3d'].data_width     = self.input_t.width
             self.modules['vector_dot3d'].weight_width   = self.weight_t.width
             self.modules['vector_dot3d'].acc_width      = self.acc_t.width
+            self.modules['vector_dot3d'].streams = self.coarse_in*self.coarse_out
         # accum
         self.modules['accum3d'].rows     = 1
         self.modules['accum3d'].cols     = 1
@@ -155,6 +157,7 @@ class InnerProductLayer3D(Layer3D):
             self.rows_in()*self.cols_in()*self.depth_in()*self.channels_in()//self.coarse_in
         self.modules['accum3d'].filters  = self.filters//self.coarse_out
         self.modules['accum3d'].data_width = self.acc_t.width
+        self.modules['accum3d'].streams = self.coarse_in*self.coarse_out
         # glue
         self.modules['glue3d'].rows = 1
         self.modules['glue3d'].cols = 1
@@ -163,6 +166,7 @@ class InnerProductLayer3D(Layer3D):
         self.modules['glue3d'].coarse_in  = self.coarse_in
         self.modules['glue3d'].coarse_out = self.coarse_out
         self.modules['glue3d'].data_width = self.acc_t.width
+        self.modules['glue3d'].streams = self.coarse_out
         # bias
         self.modules['bias3d'].rows           = 1 #self.rows_out()
         self.modules['bias3d'].cols           = 1 #self.cols_out()
@@ -204,12 +208,18 @@ class InnerProductLayer3D(Layer3D):
 
         if self.backend == "chisel":
             # accumulate resource usage based on coarse factors
+            # rsc = { rsc_type: (
+            #     fork_rsc[rsc_type]*self.coarse_in +
+            #     vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+            #     accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+            #     glue_rsc[rsc_type]*self.coarse_out +
+            #     bias_rsc[rsc_type]*self.coarse_out
+            # ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
             rsc = { rsc_type: (
-                fork_rsc[rsc_type]*self.coarse_in +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
-                glue_rsc[rsc_type]*self.coarse_out +
-                bias_rsc[rsc_type]*self.coarse_out
+                fork_rsc[rsc_type] +
+                vector_dot_rsc[rsc_type] +
+                accum_rsc[rsc_type] +
+                glue_rsc[rsc_type]
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         elif self.backend == "hls":
@@ -231,7 +241,7 @@ class InnerProductLayer3D(Layer3D):
             weights_memory_depth *= 2
 
         weights_bram_usage = bram_memory_resource_model(
-                    int(weights_memory_depth), self.weight_t.width) * self.coarse_in * self.coarse_out
+                    int(weights_memory_depth), self.weight_t.width * self.coarse_in * self.coarse_out)
 
         if self.stream_weights:
             weights_bram_usage = 0
@@ -242,7 +252,7 @@ class InnerProductLayer3D(Layer3D):
                     int(bias_memory_depth),self.acc_t.width) * self.coarse_out
 
         # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+        rsc["BRAM"] += weights_bram_usage # + biases_bram_usage
 
         # return total resource
         return rsc
