@@ -20,7 +20,7 @@ from fpgaconvnet.models.modules import Fork3D
 from fpgaconvnet.models.modules import Accum3D
 from fpgaconvnet.models.modules import Glue3D
 from fpgaconvnet.models.modules import Bias3D
-
+from fpgaconvnet.models.modules import Pad3D
 
 class ConvolutionLayer3D(Layer3D):
 
@@ -102,32 +102,84 @@ class ConvolutionLayer3D(Layer3D):
         self.backend = backend
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"{regression_model} is an invalid regression model"
         self.regression_model = regression_model
 
-        self.modules["sliding_window3d"] = SlidingWindow3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_rows, self.kernel_cols, self.kernel_depth, self.stride_rows, self.stride_cols, self.stride_depth, self.pad_top, self.pad_right, self.pad_front, self.pad_bottom, self.pad_left, self.pad_back, backend=self.backend, regression_model=self.regression_model)
+        self.modules["pad3d"] = Pad3D(
+                self.rows_in(), self.cols_in(), self.depth_in(),
+                self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right,
+                self.pad_front, self.pad_back, backend=self.backend,
+                regression_model=self.regression_model)
+
+        self.modules["sliding_window3d"] = SlidingWindow3D(
+                self.rows_in() +self.pad_top + self.pad_bottom,
+                self.cols_in() + self.pad_left + self.pad_right,
+                self.depth_in() + self.pad_front + self.pad_back,
+                self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.kernel_rows, self.kernel_cols, self.kernel_depth,
+                self.stride_rows, self.stride_cols, self.stride_depth,
+                0, 0, 0, 0, 0, 0, backend=self.backend,
+                regression_model=self.regression_model)
 
         if self.backend == "hls":
 
-            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_rows, self.kernel_cols, self.kernel_depth, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
+            self.modules["fork3d"] = Fork3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.kernel_rows, self.kernel_cols, self.kernel_depth,
+                    self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["conv3d"] = Conv3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.kernel_rows, self.kernel_cols, self.kernel_depth, backend=self.backend, regression_model=self.regression_model)
+            self.modules["conv3d"] = Conv3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.filters//(self.coarse_out*self.groups),
+                    self.kernel_rows, self.kernel_cols, self.kernel_depth,
+                    backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend, regression_model=self.regression_model)
+            self.modules["accum3d"] = Accum3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.groups),
+                    self.filters//(self.coarse_out*self.groups), 1,
+                    backend=self.backend, regression_model=self.regression_model)
 
         elif self.backend == "chisel":
 
-            self.modules["squeeze3d"] = Squeeze3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_rows*self.kernel_cols*self.kernel_depth, self.fine, backend=self.backend, regression_model=self.regression_model)
+            self.modules["squeeze3d"] = Squeeze3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.kernel_rows*self.kernel_cols*self.kernel_depth,
+                    self.fine, backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["fork3d"] = Fork3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.fine, 1, 1, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
+            self.modules["fork3d"] = Fork3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.fine, 1, 1, self.coarse_out, backend=self.backend,
+                    regression_model=self.regression_model)
 
-            self.modules["vector_dot3d"] = VectorDot3D(self.rows_out(), self.cols_out(), self.depth_out(), self.channels_in()//(self.coarse_in*self.coarse_group), self.filters//(self.coarse_out*self.groups), self.fine, backend=self.backend, regression_model=self.regression_model)
+            self.modules["vector_dot3d"] = VectorDot3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.filters//(self.coarse_out*self.groups), self.fine,
+                    backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["accum3d"] = Accum3D(self.rows_out(), self.cols_out(), self.depth_out(), (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in())//(self.fine*self.coarse_in*self.groups), self.filters//(self.coarse_out*self.groups), 1, backend=self.backend, regression_model=self.regression_model)
+            self.modules["accum3d"] = Accum3D(
+                    self.rows_out(), self.cols_out(), self.depth_out(),
+                    (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()
+                        )//(self.fine*self.coarse_in*self.groups),
+                    self.filters//(self.coarse_out*self.groups), 1,
+                    backend=self.backend, regression_model=self.regression_model)
 
-        self.modules["glue3d"] = Glue3D(self.rows_out(), self.cols_out(), self.depth_out(), 1, int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, backend=self.backend, regression_model=self.regression_model) # TODO
+        self.modules["glue3d"] = Glue3D(
+                self.rows_out(), self.cols_out(), self.depth_out(),
+                1, int(self.filters/self.coarse_out), self.coarse_in,
+                self.coarse_out, backend=self.backend,
+                regression_model=self.regression_model) # TODO
 
-        self.modules["bias3d"] = Bias3D(self.rows_out(), self.cols_out(), self.depth_out(), 1, self.filters, backend=self.backend, regression_model=self.regression_model) # TODO
+        self.modules["bias3d"] = Bias3D(
+                self.rows_out(), self.cols_out(), self.depth_out(),
+                1, self.filters, backend=self.backend,
+                regression_model=self.regression_model) # TODO
 
         # update modules
         self.update()
@@ -329,12 +381,39 @@ class ConvolutionLayer3D(Layer3D):
 
     def update(self):
 
+        # pad
+        self.modules['pad3d'].rows     = self.rows
+        self.modules['pad3d'].cols     = self.cols
+        self.modules['pad3d'].depth    = self.depth
+        self.modules['pad3d'].channels = self.channels//(self.coarse_in*self.coarse_group)
+        self.modules['pad3d'].data_width = self.input_t.width
+        self.modules['pad3d'].streams = self.coarse_in*self.coarse_group
+        self.modules['pad3d'].pad_top = self.pad_top
+        self.modules['pad3d'].pad_bottom = self.pad_bottom
+        self.modules['pad3d'].pad_left = self.pad_left
+        self.modules['pad3d'].pad_right = self.pad_right
+        self.modules['pad3d'].pad_front = self.pad_front
+        self.modules['pad3d'].pad_back = self.pad_back
+
         # sliding window
-        self.modules['sliding_window3d'].rows     = self.rows
-        self.modules['sliding_window3d'].cols     = self.cols
-        self.modules['sliding_window3d'].depth    = self.depth
+        self.modules['sliding_window3d'].rows     = self.rows + self.pad_top + self.pad_bottom
+        self.modules['sliding_window3d'].cols     = self.cols + self.pad_left + self.pad_right
+        self.modules['sliding_window3d'].depth    = self.depth + self.pad_front + self.pad_back
         self.modules['sliding_window3d'].channels = self.channels//(self.coarse_in*self.coarse_group)
-        self.modules['sliding_window3d'].data_width   = self.input_t.width
+        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
+        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
+        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
+        self.modules['sliding_window3d'].stride_cols = self.stride_cols
+        self.modules['sliding_window3d'].stride_rows = self.stride_rows
+        self.modules['sliding_window3d'].stride_depth= self.stride_depth
+        self.modules['sliding_window3d'].data_width = self.input_t.width
+        self.modules['sliding_window3d'].streams = self.coarse_in*self.coarse_group
+        self.modules['sliding_window3d'].pad_top = 0
+        self.modules['sliding_window3d'].pad_bottom = 0
+        self.modules['sliding_window3d'].pad_left = 0
+        self.modules['sliding_window3d'].pad_right = 0
+        self.modules['sliding_window3d'].pad_front = 0
+        self.modules['sliding_window3d'].pad_back = 0
 
         if self.backend == "chisel":
             # squeeze3d
@@ -342,8 +421,10 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['squeeze3d'].cols     = self.cols_out()
             self.modules['squeeze3d'].depth    = self.depth_out()
             self.modules['squeeze3d'].channels = self.channels//(self.coarse_in*self.coarse_group)
+            self.modules['squeeze3d'].coarse_in  = self.kernel_rows*self.kernel_cols*self.kernel_depth
             self.modules['squeeze3d'].coarse_out = self.fine
             self.modules['squeeze3d'].data_width = self.input_t.width
+            self.modules['squeeze3d'].streams = self.coarse_in*self.coarse_group
 
         # fork3d
         self.modules['fork3d'].rows     = self.rows_out()
@@ -352,6 +433,7 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['fork3d'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
         self.modules['fork3d'].coarse   = self.coarse_out
         self.modules['fork3d'].data_width     = self.input_t.width
+        self.modules['fork3d'].streams = self.coarse_in*self.coarse_group
         if self.backend == "chisel":
             self.modules['fork3d'].kernel_rows = self.fine
             self.modules['fork3d'].kernel_cols = 1
@@ -381,6 +463,7 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['vector_dot3d'].data_width     = self.input_t.width
             self.modules['vector_dot3d'].weight_width   = self.weight_t.width
             self.modules['vector_dot3d'].acc_width      = self.acc_t.width
+            self.modules['vector_dot3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
 
         # accum3d
         self.modules['accum3d'].rows     = self.rows_out()
@@ -388,6 +471,7 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['accum3d'].depth    = self.depth_out()
         self.modules['accum3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum3d'].data_width    = self.acc_t.width
+        self.modules['accum3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
         if self.backend == "hls":
             # TODO: check the group parameter
             self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
@@ -405,12 +489,13 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['glue3d'].coarse_in  = self.coarse_in
         self.modules['glue3d'].coarse_out = self.coarse_out
         self.modules['glue3d'].data_width = self.acc_t.width
+        self.modules['glue3d'].streams = self.coarse_group*self.coarse_out
 
         # bias3d
         self.modules['bias3d'].rows           = self.rows_out()
         self.modules['bias3d'].cols           = self.cols_out()
         self.modules['bias3d'].depth          = self.depth_out()
-        self.modules['bias3d'].filters        = self.filters
+        self.modules['bias3d'].filters        = self.filters//(self.coarse_group*self.coarse_out)
         self.modules['bias3d'].data_width     = self.output_t.width
         self.modules['bias3d'].biases_width   = self.acc_t.width
 
@@ -516,7 +601,7 @@ class ConvolutionLayer3D(Layer3D):
             vector_dot_rsc  = self.modules['vector_dot3d'].rsc()
             accum_rsc       = self.modules['accum3d'].rsc()
             glue_rsc        = self.modules['glue3d'].rsc()
-            bias_rsc        = self.modules['bias3d'].rsc()
+            # bias_rsc        = self.modules['bias3d'].rsc()
 
             # remove redundant modules
             if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
@@ -529,18 +614,27 @@ class ConvolutionLayer3D(Layer3D):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.has_bias:
-                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            # if self.has_bias:
+            #     bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
+            # rsc = { rsc_type: (
+            #     sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+            #     squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+            #     fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+            #     vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+            #     accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+            #     glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+            #     bias_rsc[rsc_type]*self.coarse_out
+            # ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
             rsc = { rsc_type: (
-                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                bias_rsc[rsc_type]*self.coarse_out
+                sw_rsc[rsc_type] +
+                squeeze_rsc[rsc_type] +
+                fork_rsc[rsc_type] +
+                vector_dot_rsc[rsc_type] +
+                accum_rsc[rsc_type] +
+                glue_rsc[rsc_type] #+
+                # bias_rsc[rsc_type]*self.coarse_out*self.coarse_group
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         elif self.backend == "hls":
@@ -588,9 +682,9 @@ class ConvolutionLayer3D(Layer3D):
             weight_memory_depth *= 2
 
         weights_bram_usage = bram_array_resource_model(
-                    int(weight_memory_depth), self.weight_t.width*self.fine,
-                    'memory') * \
-                self.coarse_in*self.coarse_out*self.coarse_group
+                    int(weight_memory_depth), 
+                    self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
+                    'memory')
 
         # if streaming weights, set to zero
         if self.stream_weights:

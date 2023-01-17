@@ -9,7 +9,6 @@ from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
-from fpgaconvnet.models.modules import MaxPool
 from fpgaconvnet.models.layers import Layer
 
 class PoolingLayer(Layer):

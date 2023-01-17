@@ -31,6 +31,9 @@ class Fork3D(Module3D):
     coarse: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
+    latency_mode: int = False
+    block: int = False
 
     def __post_init__(self):
 

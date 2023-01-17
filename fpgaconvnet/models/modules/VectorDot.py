@@ -14,6 +14,12 @@ class VectorDot(Module):
     regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
+    streams: int = 1
+    latency_mode: int = False
+    block: int = False
+
+    def pipeline_depth(self):
+        return self.fine
 
     def channels_out(self):
         return self.filters
@@ -41,16 +47,16 @@ class VectorDot(Module):
             return {
                 "Logic_LUT" : np.array([
                     self.fine, self.data_width, self.weight_width,
-                    self.data_width*self.fine,
-                    self.weight_width*self.fine,
-                    self.acc_width*self.fine, # adder tree
+                    self.streams*self.data_width*self.fine,
+                    self.streams*self.weight_width*self.fine,
+                    self.streams*self.acc_width*self.fine, # adder tree
                     self.filters, # ready logic
                     int2bits(self.filters), # filter counter
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
                     queue_lutram_resource_model(
-                        int2bits(self.fine)+3, self.acc_width), # buffer
+                        int2bits(self.fine)+1, self.streams*self.acc_width), # buffer
                     1,
                 ]),
                 "LUT_SR"    : np.array([
@@ -58,14 +64,16 @@ class VectorDot(Module):
                 ]),
                 "FF"    : np.array([
                     self.acc_width, # output buffer TODO
+                    self.filters, self.fine, # parameters
                     int2bits(self.filters), # filter counter
                     int2bits(self.fine)+1, # tree buffer valid
-                    self.acc_width*self.fine, # adder tree reg
+                    self.streams*self.acc_width*self.fine, # adder tree reg
+                    self.streams*self.acc_width, # output buffer
                     # self.acc_width*(2**(int2bits(self.fine))), # tree buffer registers
                     # self.acc_width*int2bits(self.fine), # tree buffer
                     1,
                 ]),
-                "DSP"       : np.array([self.fine]),
+                "DSP"       : np.array([self.streams*self.fine]),
                 "BRAM36"    : np.array([0]),
                 "BRAM18"    : np.array([0]),
             }
@@ -74,10 +82,10 @@ class VectorDot(Module):
 
     def get_pred_array(self):
         return np.array([
-        self.data_width, self.data_width//2,
-        self.filters, self.fine,
-        self.acc_width, self.acc_width//2,
-        self.weight_width, self.weight_width//2,
+            self.data_width, self.data_width//2,
+            self.filters, self.fine, self.streams,
+            self.acc_width, self.acc_width//2,
+            self.weight_width, self.weight_width//2,
         ]).reshape(1,-1)
 
     def memory_usage(self):
@@ -93,9 +101,8 @@ class VectorDot(Module):
 
         if self.regression_model == "linear_regression":
             # get the dsp usage
-            dsp = self.fine*dsp_multiplier_resource_model(
+            dsp = self.streams*self.fine*dsp_multiplier_resource_model(
                     self.data_width, self.weight_width)
-
             rsc["DSP"] = dsp
 
         return rsc

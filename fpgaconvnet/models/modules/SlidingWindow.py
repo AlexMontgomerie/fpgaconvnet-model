@@ -100,7 +100,8 @@ class SlidingWindow(Module):
         return (self.rows_out()*self.cols_out())/float(self.rows*self.cols)
 
     def pipeline_depth(self):
-        return (self.cols+self.pad_left+self.pad_right)*(self.channels)*(self.kernel_size[0]-1)+self.channels*self.kernel_size[0]*(self.kernel_size[1]-1)
+        return (self.cols+self.pad_left+self.pad_right)*(self.channels)*(self.kernel_size[0]-1)+\
+                self.channels*(self.kernel_size[1]-1)
 
     def wait_depth(self):
         """

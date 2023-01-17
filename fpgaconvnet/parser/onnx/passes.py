@@ -952,3 +952,28 @@ def fuse_relu_into_previous(model):
 
 def convert_to_version_14(model):
     return onnx.version_converter.convert_version(model, 14)
+
+
+def convert_gemm_to_conv(model):
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a gemm node
+        if node.op_type != "Gemm":
+            continue
+
+        # create a new conv node
+        new_node = onnx.helper.make_node(
+            "Conv",
+            name=node.name,
+            inputs=node.input,
+            outputs=node.output,
+            kernel_shape=[1,1,1],
+        )
+
+        # Remove the gemm node and add conv node
+        model.graph.node.remove(node)
+        model.graph.node.insert(index, new_node)
+
+    return model
+

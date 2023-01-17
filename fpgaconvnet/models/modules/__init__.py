@@ -48,3 +48,4 @@ from .Bias3D import Bias3D
 from .VectorDot3D import VectorDot3D
 from .GlobalPool3D import GlobalPool3D
 from .EltWise3D import EltWise3D
+from .Pad3D import Pad3D

@@ -18,6 +18,9 @@ class VectorDot3D(Module3D):
     regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
+    streams: int = 1
+    latency_mode: int = False
+    block: int = False
 
     def __post_init__(self):
 
@@ -26,6 +29,9 @@ class VectorDot3D(Module3D):
 
         # load resource coefficients
         self.load_resource_coefficients(self.module_identifier)
+
+    def pipeline_depth(self):
+        return self.fine
 
     def module_info(self):
         return {
@@ -84,7 +90,7 @@ class VectorDot3D(Module3D):
 
         if self.regression_model == "linear_regression":
             # get the dsp usage
-            dsp = self.fine*dsp_multiplier_resource_model(
+            dsp = self.streams*self.fine*dsp_multiplier_resource_model(
                     self.data_width, self.data_width)
             rsc["DSP"] = dsp
 

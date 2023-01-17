@@ -27,6 +27,9 @@ class Accum(Module):
     groups: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
+    latency_mode: int = False
+    block: int = False
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups
@@ -79,20 +82,28 @@ class Accum(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    self.filters, self.channels,
-                    self.data_width, int2bits(self.channels),
-                    int2bits(self.filters), 1,
+                    self.filters, self.channels, # parameter logic
+                    self.streams*self.data_width, # input word logic
+                    self.streams, # input streams logic
+                    int2bits(self.channels), # channel cntr
+                    int2bits(self.filters), # filter cntr
+                    1, # extra
                 ]),
                 "LUT_RAM"   : np.array([
                     queue_lutram_resource_model(
-                        2, self.data_width), # output buffer
-                    self.data_width*self.filters, # filter memory memory
+                        2, self.streams*self.data_width), # output buffer
+                    self.streams*self.data_width*self.filters, # filter memory memory (size)
+                    self.streams*self.data_width, # filter memory memory (word width)
+                    self.filters, # filter memory memory (depth)
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
                     self.data_width,  # input val cache
+                    self.streams*self.data_width,  # input val cache
                     int2bits(self.channels), # channel_cntr
                     int2bits(self.filters), # filter cntr
+                    self.channels, # channel parameter reg
+                    self.filters, # filter parameter reg
                     1, # other registers
                 ]),
                 "DSP"       : np.array([0]),
@@ -105,8 +116,8 @@ class Accum(Module):
 
     def get_pred_array(self):
         return np.array([
-        self.data_width, self.data_width//2,
-        self.channels, self.filters
+            self.data_width, self.data_width//2,
+            self.channels, self.filters, self.streams
         ]).reshape(1,-1)
 
     def visualise(self, name):

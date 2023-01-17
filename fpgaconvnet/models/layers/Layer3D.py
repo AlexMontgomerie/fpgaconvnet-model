@@ -219,7 +219,9 @@ class Layer3D:
 
             default is 1.0
         """
-        return abs(balance_module_rates(self.build_rates_graph())[0,0])
+        latency = max([m.latency() for m in self.modules.values()])
+        return self.workload_in()/(latency * self.streams_in())
+        # return abs(balance_module_rates(self.build_rates_graph())[0,0])
 
     def rate_out(self) -> float:
         """
@@ -231,8 +233,10 @@ class Layer3D:
 
             default is 1.0
         """
-        return abs(balance_module_rates(
-            self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
+        latency = max([m.latency() for m in self.modules.values()])
+        return self.workload_out()/(latency*self.streams_out())
+        # return abs(balance_module_rates(
+        #     self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
 
     def streams_in(self) -> int:
         """

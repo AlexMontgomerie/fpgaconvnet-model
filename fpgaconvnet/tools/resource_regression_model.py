@@ -25,7 +25,7 @@ class ModuleModel:
         self.identifier = identifier
         self.module = module
         self.backend = backend
-        assert regression_model in ["linear_regression", "xgboost"], f"regression model {regression_model} not supported"
+        assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"regression model {regression_model} not supported"
         self.regression_model = regression_model
 
         if self.backend == "chisel":
@@ -42,19 +42,19 @@ class ModuleModel:
     def get_module_parameter_list(self):
         match self.module:
             case "Accum":
-                return ["data_width", "binary_point", "channels", "filters"]
+                return ["data_width", "binary_point", "channels", "filters", "streams"]
             case "Fork":
-                return ["data_width", "binary_point", "coarse", "fine"]
+                return ["data_width", "binary_point", "coarse", "fine", "streams"]
             case "Glue":
-                return ["data_width", "binary_point", "coarse"]
+                return ["data_width", "binary_point", "streams", "coarse"]
             case "SlidingWindow":
                 return ["data_width", "binary_point", "channels", "rows", "cols", "kernel_size", "stride"]
             case "SlidingWindow3D":
-                return ["data_width", "binary_point", "channels", "rows", "cols", "depth", "kernel_rows", "kernel_cols", "kernel_depth", "stride_rows", "stride_cols", "stride_depth"]
+                return ["data_width", "binary_point", "channels", "rows", "cols", "depth", "streams", "kernel_rows", "kernel_cols", "kernel_depth", "stride_rows", "stride_cols", "stride_depth"]
             case "Squeeze":
-                return ["data_width", "binary_point", "coarse_in", "coarse_out"]
+                return ["data_width", "binary_point", "coarse_in", "coarse_out", "streams"]
             case "VectorDot":
-                return ["data_width", "binary_point", "filters", "fine", "acc_width", "acc_binary_point", "weight_width", "weight_binary_point"]
+                return ["data_width", "binary_point", "filters", "fine", "streams", "acc_width", "acc_binary_point", "weight_width", "weight_binary_point"]
             case "Pool":
                 return ["data_width", "binary_point", "kernel_size"]
             case "GlobalPool":
@@ -88,7 +88,8 @@ class ModuleModel:
             filter = {
                 "name" : self.identifier, # specific module
                 # "parameters.data_width": 16, # only 16-bit input shapes
-                "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
+                # "time_stamp.commit_hash": "08bf16da9441d36e01d9cf1021e7602bf9e738fd", # specific commit hash
+                "time_stamp.commit_hash": "f50131b9dcc6ce25a737d77bd702892a58a5d57e", # specific commit hash
                 # filter resources
                 "resources.LUT" : { "$lt" : int(461000*0.8) },
                 "resources.FF"  : { "$lt" : int(504000*0.8) },
@@ -135,7 +136,7 @@ class ModuleModel:
                     for rsc_type in self.rsc_types:
                         with open(f"{cache_path}/{self.module.lower()}_{rsc_type.lower()}.npy", "wb") as f:
                             self.coef[rsc_type] = np.save(f)
-                case "xgboost":
+                case "xgboost" | "xgboost-kernel":
                     cache_path = os.path.dirname(__file__) + f"/../coefficients/{self.regression_model}/{self.backend}"
 
                     # iterate over resource types
@@ -159,7 +160,7 @@ class ModuleModel:
                 point_obj = namedtuple('ParameterPoint', point.keys())(*point.values())
                 for rsc_type in self.rsc_types:
                     match self.regression_model:
-                        case "linear_regression":
+                        case "linear_regression" | "xgboost-kernel":
                             self.model[rsc_type].append(utilisation_model(point_obj)[rsc_type])
                         case "xgboost":
                             tmp = [p for k, p in point.items() if k in self.get_module_parameter_list()]
@@ -178,7 +179,7 @@ class ModuleModel:
                         self.coef[rsc_type] = self.get_nnls_coef(
                                 np.array(self.model[rsc_type]),
                                 np.array(self.actual[rsc_type]))
-                    case "xgboost":
+                    case "xgboost" | "xgboost-kernel":
                         self.coef[rsc_type] = self.get_nnls_model(
                                 np.array(self.model[rsc_type]),
                                 np.array(self.actual[rsc_type]))
@@ -227,7 +228,7 @@ class ModuleModel:
                 case "linear_regression":
                     filepath = os.path.join(outpath, f"{self.module}_{rsc_type}.npy".lower())
                     np.save(filepath, self.coef[rsc_type])
-                case "xgboost":
+                case "xgboost" | "xgboost-kernel":
                     filepath = os.path.join(outpath, f"{self.module}_{rsc_type}.json".lower())
                     self.coef[rsc_type].save_model(filepath)
 

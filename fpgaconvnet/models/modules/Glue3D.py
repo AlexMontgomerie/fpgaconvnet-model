@@ -25,6 +25,10 @@ class Glue3D(Module3D):
     coarse_out: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    data_width: int = field(default=32, init=False)
+    streams: int = 1
+    latency_mode: int = False
+    block: int = False
 
     def __post_init__(self):
 
@@ -34,13 +38,16 @@ class Glue3D(Module3D):
         # load resource coefficients
         self.load_resource_coefficients(self.module_identifier)
 
+    def pipeline_depth(self):
+        return self.coarse_in
+
     def channels_in(self):
         return self.filters
 
     def channels_out(self):
         return self.filters
 
-    def get_latency(self):
+    def latency(self):
         return self.rows * self.cols * self.depth * self.filters / self.coarse_out
 
     def module_info(self):

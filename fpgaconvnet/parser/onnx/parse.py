@@ -19,7 +19,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, dimensionality=2, backend="hls", regression_model="linear_regression"):
+    def __init__(self, graph, n, dimensionality=2, backend="hls",
+            regression_model="linear_regression", convert_gemm_to_conv=False):
 
         # model dimensionality
         self.dimensionality = dimensionality
@@ -50,6 +51,9 @@ class ParseOnnxNode:
 
         # get attributes
         self.attr = onnx_helper.format_attr(n.attribute)
+
+        # flag to convert gemm nodes to convolution
+        self.convert_gemm_to_conv = convert_gemm_to_conv
 
         # get hardware
         self.hw = self.get_hardware()
@@ -189,26 +193,61 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
             self.attr.setdefault("dilations", [1,1,1])
 
         # return hardware
-        if self.dimensionality == 2:
-            return InnerProductLayer(
-                self.output_shape[1],
-                1, 1,
-                np.prod(self.input_shape[1:]),
-                has_bias = len(self.inputs) == 3,
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return InnerProductLayer3D(
-                self.output_shape[1],
-                1, 1, 1,
-                np.prod(self.input_shape[1:]),
-                has_bias = len(self.inputs) == 3,
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
+        if not self.convert_gemm_to_conv:
+            if self.dimensionality == 2:
+                return InnerProductLayer(
+                    self.output_shape[1],
+                    1, 1,
+                    np.prod(self.input_shape[1:]),
+                    has_bias = len(self.inputs) == 3,
+                    backend=self.backend,
+                    regression_model=self.regression_model
+                )
+            elif self.dimensionality == 3:
+                return InnerProductLayer3D(
+                    self.output_shape[1],
+                    1, 1, 1,
+                    np.prod(self.input_shape[1:]),
+                    has_bias = len(self.inputs) == 3,
+                    backend=self.backend,
+                    regression_model=self.regression_model
+                )
+            else:
+                raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
         else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
+            # change the layer type
+            self.layer_type = LAYER_TYPE.Convolution
+            if self.dimensionality == 2:
+                return ConvolutionLayer(
+                    self.output_shape[1],
+                    1, 1,
+                    np.prod(self.input_shape[1:]),
+                    kernel_rows=1, kernel_cols=1,
+                    stride_rows=1, stride_cols=1,
+                    pad_top=0, pad_bottom=0,
+                    pad_left=0, pad_right=0,
+                    groups = 1,
+                    has_bias = len(self.inputs) == 3,
+                    backend=self.backend,
+                    regression_model=self.regression_model,
+                    )
+            elif self.dimensionality == 3:
+                return ConvolutionLayer3D(
+                    self.output_shape[1],
+                    1, 1, 1,
+                    np.prod(self.input_shape[1:]),
+                    kernel_rows=1, kernel_cols=1, kernel_depth=1,
+                    stride_rows=1, stride_cols=1, stride_depth=1,
+                    pad_top=0, pad_bottom=0,
+                    pad_left=0, pad_right=0,
+                    pad_front=0, pad_back=0,
+                    groups = 1,
+                    has_bias = len(self.inputs) == 3,
+                    backend=self.backend,
+                    regression_model=self.regression_model,
+                )
+            else:
+                raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -326,6 +365,9 @@ class ParseOnnxNOPNode(ParseOnnxNode):
     def get_hardware(self):
 
         print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
+
+        # # change the layer type
+        # self.layer_type = LAYER_TYPE.Squeeze
 
         # create pooling layer hardware
         if self.dimensionality == 2:
