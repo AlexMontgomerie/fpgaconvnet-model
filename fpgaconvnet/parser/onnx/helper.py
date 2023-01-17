@@ -191,6 +191,8 @@ def format_attr(attribute):
             attr_out[attr.name] = [ int(i) for i in attr.ints ]
         elif attr.type == 2: #(INT)
             attr_out[attr.name] = attr.i
+        elif attr.type == 1: #(FLOAT)
+            attr_out[attr.name] = attr.f
     return attr_out
 
 def format_onnx_name(node):

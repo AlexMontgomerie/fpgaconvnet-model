@@ -13,7 +13,7 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
 
 @dataclass
@@ -285,10 +285,10 @@ class Layer:
         return self.data_t.width
 
     def latency_in(self):
-        return abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in())))
+        return int(abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in()))))
 
     def latency_out(self):
-        return abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out())))
+        return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
 
     def latency(self):
         return max(self.latency_in(), self.latency_out())
@@ -303,7 +303,7 @@ class Layer:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_t.width)*self.streams_in(),
+            "BRAM"  : 0, #bram_array_resource_model(self.buffer_depth,self.data_t.width, "fifo")*self.streams_in(),
             "DSP"   : 0
         }
 

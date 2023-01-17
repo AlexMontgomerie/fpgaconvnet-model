@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module3D, MODULE_3D_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model, bram_efficient_resource_model, queue_lutram_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, queue_lutram_resource_model
 
 @dataclass
 class SlidingWindow3D(Module3D):
@@ -250,28 +250,19 @@ class SlidingWindow3D(Module3D):
             line_buffer_depth = self.channels * \
                                 (self.depth + self.pad_front + self.pad_back) * \
                                 (self.cols + self.pad_left + self.pad_right)
-            if self.kernel_rows > 1 and line_buffer_depth > 256:
-                line_buffer_bram =  bram_memory_resource_model(
-                    line_buffer_depth, (self.kernel_rows-1)*self.data_width)
-            else:
-                line_buffer_bram = 0
+            line_buffer_bram =  bram_array_resource_model(
+                line_buffer_depth, (self.kernel_rows-1)*self.data_width, 'fifo')
 
             # get the window buffer BRAM estimate
             window_buffer_depth = self.channels * \
                                   (self.depth + self.pad_front + self.pad_back)
-            if self.kernel_cols > 1 and window_buffer_depth > 256:
-                window_buffer_bram = self.kernel_rows*bram_memory_resource_model(
-                        window_buffer_depth, (self.kernel_cols-1)*self.data_width)
-            else:
-                window_buffer_bram = 0
+            window_buffer_bram = self.kernel_rows*bram_memory_resource_model(
+                    window_buffer_depth, (self.kernel_cols-1)*self.data_width, 'fifo')
 
             # get the tensor buffer BRAM estimate
             tensor_buffer_depth = self.channels
-            if self.kernel_depth > 1 and tensor_buffer_depth > 256:
-                tensor_buffer_bram = self.kernel_rows*self.kernel_cols*bram_memory_resource_model(
-                        tensor_buffer_depth, (self.kernel_depth-1)*self.data_width)
-            else:
-                tensor_buffer_bram = 0
+            tensor_buffer_bram = self.kernel_rows*self.kernel_cols*bram_memory_resource_model(
+                    tensor_buffer_depth, (self.kernel_depth-1)*self.data_width, 'fifo')
 
             # add the bram estimation
             rsc["BRAM"] = line_buffer_bram + window_buffer_bram + tensor_buffer_bram

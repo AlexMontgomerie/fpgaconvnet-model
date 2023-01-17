@@ -9,11 +9,12 @@ import torch
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import VectorDot
+from fpgaconvnet.models.modules import SparseVectorDot
 from fpgaconvnet.models.modules import Conv
 from fpgaconvnet.models.modules import Squeeze
 from fpgaconvnet.models.modules import Fork
@@ -48,10 +49,9 @@ class ConvolutionLayer(Layer):
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
+            sparsity: float = 0.0,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression",
-            double_buffered: bool = True,
-            stream_weights: bool = False,
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -66,6 +66,9 @@ class ConvolutionLayer(Layer):
 
         # save bias flag
         self.has_bias = has_bias
+
+        # save sparsity
+        self.sparsity = sparsity
 
         # init variables
         self._kernel_rows = kernel_rows
@@ -84,13 +87,19 @@ class ConvolutionLayer(Layer):
         # check if the layer is depthwise
         self.depthwise = (groups == channels) and (groups == filters)
 
-        # weights buffering flag
-        self.double_buffered = double_buffered
-        self.stream_weights = stream_weights
-
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
+
+        # weights buffering flag
+        if self.backend == "hls":
+            self.double_buffered = False
+            self.stream_weights = False
+            self.data_packing = False
+        elif self.backend == "chisel":
+            self.double_buffered = True
+            self.stream_weights = False
+            self.data_packing = True
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -109,12 +118,15 @@ class ConvolutionLayer(Layer):
 
             self.modules["Conv"] = Conv(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.groups), self.kernel_size,
+                    self.filters//(self.coarse_out*self.coarse_group), 
+                    self.fine, self.kernel_size, 
+                    self.groups//self.coarse_group,
                     backend=self.backend, regression_model=self.regression_model)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
-                    self.channels_in()//(self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1,
+                    self.channels_in()//(self.coarse_in*self.coarse_group),
+                    self.filters//(self.coarse_out*self.coarse_group), 
+                    self.groups//self.coarse_group,
                     backend=self.backend, regression_model=self.regression_model)
 
         elif self.backend == "chisel":
@@ -128,22 +140,35 @@ class ConvolutionLayer(Layer):
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     [self.fine, 1], self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["vector_dot"] = VectorDot(self.rows_out(), self.cols_out(),
+            if self.sparsity == 0.0:
+                self.modules["vector_dot"] = VectorDot(self.rows_out(), self.cols_out(),
+                        (self.channels*self.kernel_size[0]*self.kernel_size[1])//(
+                            self.fine*self.coarse_in*self.coarse_group),
+                        self.filters//(self.coarse_out*self.groups), self.fine,
+                        backend=self.backend, regression_model=self.regression_model)
+
+                self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
+                        (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
+                            self.fine*self.coarse_in*self.coarse_group),
+                        self.filters//(self.coarse_out*self.groups), 1,
+                        backend=self.backend, regression_model=self.regression_model)
+            else:
+                self.modules["vector_dot"] = SparseVectorDot(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.groups), self.fine,
+                    self.filters//(self.coarse_out*self.groups),
+                    self.kernel_size, self.sparsity, self.fine,
                     backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
-                    (self.kernel_size[0]*self.kernel_size[1]*self.channels_in())//(
-                        self.fine*self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend, regression_model=self.regression_model)
+                self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
+                        self.channels_in()//(self.coarse_in*self.coarse_group),
+                        self.filters//(self.coarse_out*self.groups), 1,
+                        backend=self.backend, regression_model=self.regression_model)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
-                int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out,
+                int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, self.coarse_group,
                 backend=self.backend, regression_model=self.regression_model) # TODO
 
-        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters,
+        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
                 backend=self.backend, regression_model=self.regression_model) # TODO
 
         # update modules
@@ -322,6 +347,18 @@ class ConvolutionLayer(Layer):
         """
         return self.coarse_out*self.coarse_group
 
+    def set_sparse_fine(self):
+        fine_feasible = self.get_fine_feasible() 
+        fine_feasible = list(range(min(fine_feasible), max(fine_feasible)+1))
+        fine_feasible = filter(lambda x:x<=self.fine, fine_feasible)
+        fine_feasible = sorted(fine_feasible)
+
+        for fine in fine_feasible:
+            if self.modules['vector_dot'].rate_kernel_sparsity(fine) >= 1:
+                return fine
+
+        return self.fine
+
     def update(self):
 
         # sliding window
@@ -353,6 +390,7 @@ class ConvolutionLayer(Layer):
             self.modules['conv'].cols     = self.cols_out()
             self.modules['conv'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
             self.modules['conv'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['conv'].groups = self.groups // self.coarse_group
             self.modules['conv'].fine     = self.fine
             self.modules['conv'].data_width     = self.input_t.width
             self.modules['conv'].weight_width   = self.weight_t.width
@@ -361,28 +399,38 @@ class ConvolutionLayer(Layer):
             # kernel dot
             self.modules['vector_dot'].rows     = self.rows_out()
             self.modules['vector_dot'].cols     = self.cols_out()
-            self.modules['vector_dot'].channels = (
-                    self.channels*self.kernel_size[0]*self.kernel_size[1])//(
-                    self.fine*self.coarse_in*self.groups)
-            self.modules['vector_dot'].filters  = self.filters//(self.coarse_out*self.coarse_group)
-            self.modules['vector_dot'].fine     = self.fine
+            self.modules['vector_dot'].filters  = self.filters//(self.coarse_out*self.groups)
             self.modules['vector_dot'].data_width     = self.input_t.width
             self.modules['vector_dot'].weight_width   = self.weight_t.width
             self.modules['vector_dot'].acc_width      = self.acc_t.width
 
+            if self.sparsity == 0.0:
+                self.modules['vector_dot'].channels = (
+                    self.channels*self.kernel_size[0]*self.kernel_size[1])//(
+                    self.fine*self.coarse_in*self.coarse_group)
+                self.modules['vector_dot'].fine     = self.fine
+            else:
+                self.modules['vector_dot'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+                self.modules['vector_dot'].fine     = self.set_sparse_fine()
+
+
         # accum
         self.modules['accum'].rows     = self.rows_out()
         self.modules['accum'].cols     = self.cols_out()
-        self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum'].data_width    = self.acc_t.width
         if self.backend == "hls":
-            # TODO: check the group parameter
-            self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['accum'].filters  = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['accum'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['accum'].groups   = self.groups//self.coarse_group
         elif self.backend == "chisel":
-            self.modules['accum'].channels = (
+            self.modules['accum'].filters  = self.filters//(self.coarse_out*self.groups)
+            self.modules['accum'].groups   = 1
+            if self.sparsity == 0.0:
+                self.modules['accum'].channels = (
                     self.channels*self.kernel_size[0]*self.kernel_size[1])//(
                     self.fine*self.coarse_in*self.coarse_group)
-            self.modules['accum'].groups   = 1
+            else:
+                self.modules['accum'].channels = self.channels//(self.coarse_in*self.coarse_group)
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -390,12 +438,15 @@ class ConvolutionLayer(Layer):
         self.modules['glue'].filters    = self.filters//self.coarse_group
         self.modules['glue'].coarse_in  = self.coarse_in
         self.modules['glue'].coarse_out = self.coarse_out
+        self.modules['glue'].coarse_group = self.coarse_group
         self.modules['glue'].data_width = self.acc_t.width
 
         # bias
         self.modules['bias'].rows           = self.rows_out()
         self.modules['bias'].cols           = self.cols_out()
-        self.modules['bias'].filters        = self.filters
+        self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+        self.modules['bias'].coarse_out = self.coarse_out
+        self.modules['bias'].coarse_group = self.coarse_group
         self.modules['bias'].data_width     = self.output_t.width
         self.modules['bias'].biases_width   = self.acc_t.width
 
@@ -416,6 +467,12 @@ class ConvolutionLayer(Layer):
         parameters.pad_bottom   = self.pad_bottom
         parameters.pad_left     = self.pad_left
         parameters.has_bias     = self.has_bias
+        parameters.sparsity     = self.sparsity
+        if self.backend == "hls":
+            parameters.module_fine = self.modules["conv"].fine
+        elif self.backend == "chisel":
+            parameters.module_fine = self.modules["vector_dot"].fine
+
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
@@ -489,8 +546,8 @@ class ConvolutionLayer(Layer):
                 fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                bias_rsc[rsc_type]*self.coarse_out
+                glue_rsc[rsc_type] +
+                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
@@ -503,17 +560,25 @@ class ConvolutionLayer(Layer):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        weights_bram_usage = bram_memory_resource_model(
-                    int(weight_memory_depth), self.weight_t.width*self.fine) * \
-                self.coarse_in*self.coarse_out*self.coarse_group
+        if self.data_packing:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weight_memory_depth), self.weight_t.width*self.fine,
+                        "memory") * \
+                    self.coarse_in*self.coarse_out*self.coarse_group
+        else:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weight_memory_depth), self.weight_t.width,
+                        "memory") * \
+                    self.coarse_in*self.coarse_out*self.coarse_group*self.fine
 
         if self.stream_weights:
             weights_bram_usage = 0
 
         # bias usage FIXME depth, FIXME bram usage
-        bias_memory_depth = float(self.filters) / float(self.coarse_out)
-        biases_bram_usage = bram_memory_resource_model(
-                    int(bias_memory_depth),self.acc_t.width) * self.coarse_out
+        bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+        biases_bram_usage = bram_array_resource_model(
+                    int(bias_memory_depth),self.acc_t.width,
+                    "memory") * self.coarse_out * self.coarse_group
 
         # add weights and bias to resources
         rsc["BRAM"] += weights_bram_usage + biases_bram_usage

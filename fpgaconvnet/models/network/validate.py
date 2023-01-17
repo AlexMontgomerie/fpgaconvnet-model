@@ -16,39 +16,17 @@ def check_ports(self):
 
 def check_resources(self):
     # iterate over partitions
-    for partition in self.partitions:
+    for partition_index, partition in enumerate(self.partitions):
         # get the resource usage for the platform
         partition_resource_usage = partition.get_resource_usage()
         assert partition_resource_usage['FF']   <= \
-                (self.rsc_allocation*self.platform.get_ff()), "ERROR: FF usage exceeded"
+                (self.rsc_allocation*self.platform.get_ff()), "ERROR: FF usage exceeded, partition: {partition_index}" 
         assert partition_resource_usage['LUT']  <= \
-                (self.rsc_allocation*self.platform.get_lut()), "ERROR: LUT usage exceeded"
+                (self.rsc_allocation*self.platform.get_lut()), "ERROR: LUT usage exceeded, partition: {partition_index}" 
         assert partition_resource_usage['DSP']  <= \
-                (self.rsc_allocation*self.platform.get_dsp()) , "ERROR: DSP usage exceeded"
+                (self.rsc_allocation*self.platform.get_dsp()) , "ERROR: DSP usage exceeded, partition: {partition_index}" 
         assert partition_resource_usage['BRAM'] <= \
-                (self.rsc_allocation*self.platform.get_bram()), "ERROR: BRAM usage exceeded"
-
-#def get_resources_bad_partitions(self):
-#    bad_partitions = {}
-
-#    # iterate over partitions
-#    for partition_index, partition in enumerate(self.partitions):
-#        bad_resource = {}
-#        # get the resource usage for the platform
-#        partition_resource_usage = partition.get_resource_usage()
-#        #if partition_resource_usage['FF']   > (self.platform['constraints']['FF']):
-#        #    bad_resource['FF'] = partition_resource_usage['FF']
-#        #if partition_resource_usage['LUT']  > (self.platform['constraints']['LUT']):
-#        #    bad_resource['LUT'] = partition_resource_usage['LUT']
-#        if partition_resource_usage['DSP']  > (self.rsc_allocation*self.platform['constraints']['DSP']):
-#            bad_resource['DSP'] = partition_resource_usage['DSP']
-#        if partition_resource_usage['BRAM'] > (self.rsc_allocation*self.platform['constraints']['BRAM']):
-#            bad_resource['BRAM'] = partition_resource_usage['BRAM']
-
-#        if len(bad_resource) > 0:
-#            bad_partitions[partition_index] = bad_resource
-
-#    return bad_partitions
+                (self.rsc_allocation*self.platform.get_bram()), "ERROR: BRAM usage exceeded, partition: {partition_index}" 
 
 def check_workload(self):
     workload_total = np.zeros( shape=( len(self.edge_list),len(self.node_list) ) , dtype=float )

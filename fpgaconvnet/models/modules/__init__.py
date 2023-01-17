@@ -27,6 +27,7 @@ from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze
 from .Bias import Bias
 from .VectorDot import VectorDot
+from .SparseVectorDot import SparseVectorDot
 from .GlobalPool import GlobalPool
 from .Concat import Concat
 from .EltWise import EltWise

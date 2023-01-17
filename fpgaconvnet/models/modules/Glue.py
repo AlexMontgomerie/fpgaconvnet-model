@@ -21,6 +21,7 @@ class Glue(Module):
     filters: int
     coarse_in: int
     coarse_out: int
+    coarse_group: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
 
@@ -31,7 +32,7 @@ class Glue(Module):
         return self.filters
 
     def get_latency(self):
-        return self.rows *self.cols *self.filters / self.coarse_out
+        return self.rows *self.cols *self.filters / (self.coarse_out * self.coarse_group)
 
     def module_info(self):
         # get the base module fields
@@ -40,6 +41,7 @@ class Glue(Module):
         info["filters"] = self.filters
         info["coarse_in"] = self.coarse_in
         info["coarse_out"] = self.coarse_out
+        info["coarse_group"] = self.coarse_group
         # return the info
         return info
 

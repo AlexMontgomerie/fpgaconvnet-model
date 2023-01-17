@@ -11,7 +11,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
 @dataclass
 class EltWise3D(Module3D):
@@ -39,7 +39,7 @@ class EltWise3D(Module3D):
             resource coefficients for the estimate.
         """
         # get the channel buffer BRAM estimate
-        channel_buffer_bram = bram_memory_resource_model(int(self.channels), self.data_width)
+        channel_buffer_bram = bram_array_resource_model(int(self.channels), self.data_width, 'fifo')
 
         return {
             "LUT"   : 49,

@@ -3,7 +3,7 @@ import math
 import tempfile
 import pydot
 
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
 from fpgaconvnet.models.modules import BatchNorm
 from fpgaconvnet.models.layers import Layer
@@ -82,8 +82,7 @@ class BatchNormLayer(Layer):
         bn_rsc      = self.modules['batch_norm'].rsc()
 
         # get bram usage of scale parameter
-        weights_bram_usage = bram_memory_resource_models(self.channels//self.coarse,self.data_width)*self.coarse
-
+        weights_bram_usage = bram_array_resource_model(self.channels//self.coarse, self.data_width, 'memory')*self.coarse
         # Total
         return {
             "LUT"  :  bn_rsc['LUT']*self.coarse,

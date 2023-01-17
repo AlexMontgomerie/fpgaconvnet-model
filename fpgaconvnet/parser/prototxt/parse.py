@@ -117,6 +117,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_out  =self.node.parameters.coarse_out,
                 coarse_group=self.node.parameters.coarse_group,
                 has_bias    =self.node.parameters.has_bias,
+                sparsity    =self.node.parameters.sparsity,
                 backend =self.backend,
                 regression =self.regression_model,
             )

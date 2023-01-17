@@ -107,6 +107,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
             self.attr.setdefault("strides", [1,1])
             self.attr.setdefault("pads", [0,0,0,0])
             self.attr.setdefault("dilations", [1,1])
+            self.attr.setdefault("input sparsity", 0.0)
         else:
             self.attr.setdefault("group", 1)
             self.attr.setdefault("strides", [1,1,1])
@@ -130,6 +131,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 pad_right   = self.attr["pads"][3],
                 groups = self.attr["group"],
                 has_bias = len(self.inputs) == 3,
+                sparsity = self.attr["input sparsity"],
                 backend=self.backend,
                 regression_model=self.regression_model
             )

@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
-from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.data_types import FixedPoint
@@ -434,8 +434,8 @@ class MultiPortLayer3D:
 
     def resource(self):
         # bram for fifos
-        fifo_bram = sum([bram_stream_resource_model(
-                self.buffer_depth[i], self.data_t.width
+        fifo_bram = sum([bram_array_resource_model(
+                self.buffer_depth[i], self.data_t.width, 'fifo'
             )*self.streams_in(i) for i in range(self.ports_in) ])
         return {
             "LUT"   : 0,

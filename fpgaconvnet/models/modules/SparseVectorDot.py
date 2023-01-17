@@ -1,25 +1,31 @@
 import numpy as np
 import math
 import os
+from typing import Union, List
 from dataclasses import dataclass, field
 
 from fpgaconvnet.models.modules import int2bits, Module
 from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_model, queue_lutram_resource_model
 
 @dataclass
-class VectorDot(Module):
+class SparseVectorDot(Module):
     filters: int
+    kernel_size: Union[List[int], int]
+    sparsity: float
     fine: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
 
-    def channels_out(self):
-        return self.filters
+    def rate_kernel_sparsity(self, fine):
+        return 1.0/math.ceil(float(self.kernel_size[0]*self.kernel_size[1]*(1-self.sparsity))/fine)
 
     def rate_in(self):
-        return 1.0/float(self.filters)
+        return 1.0/float(self.filters)*self.rate_kernel_sparsity(self.fine)
+
+    def rate_out(self):
+        return self.rate_kernel_sparsity(self.fine)
 
     def module_info(self):
         return {

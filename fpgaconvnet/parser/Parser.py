@@ -100,7 +100,7 @@ class Parser:
             model_opt = getattr(onnx_passes, opt_pass)(model_opt)
         return model_opt
 
-    def load_onnx_model(self, onnx_filepath):
+    def load_onnx_model(self, onnx_filepath, custom_onnx=True):
 
         # load onnx model
         model = onnx.load(onnx_filepath)
@@ -110,11 +110,14 @@ class Parser:
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
 
-        # simplify model
-        model_opt, _ = simplify(model)
+        if custom_onnx:
+            model_opt = model
+        else:
+            # simplify model
+            model_opt, _ = simplify(model)
 
-        # validate model
-        onnx.checker.check_model(model_opt)
+            # validate model
+            onnx.checker.check_model(model_opt)
 
         # remove doc strings
         onnx.helper.strip_doc_string(model_opt)
@@ -138,8 +141,9 @@ class Parser:
         # infer shapes of optimised model
         self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # check optimized model
-        onnx.checker.check_model(model_opt)
+        if not custom_onnx:
+            # check optimized model
+            onnx.checker.check_model(model_opt)
 
         return model_opt, dimensionality
 

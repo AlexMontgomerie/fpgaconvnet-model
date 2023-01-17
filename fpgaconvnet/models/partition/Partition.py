@@ -46,6 +46,8 @@ class Partition():
         self.max_streams_in     = self.ports_in*int(self.port_width/16)
         self.max_streams_out    = self.ports_out*int(self.port_width/16)
 
+        self.need_optimise = True
+
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
     from fpgaconvnet.models.partition.auxiliary import remove_node_by_type
@@ -56,6 +58,7 @@ class Partition():
     # metrics
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
     from fpgaconvnet.models.partition.metrics import get_interval
+    from fpgaconvnet.models.partition.metrics import get_cycle
     from fpgaconvnet.models.partition.metrics import get_latency
     from fpgaconvnet.models.partition.metrics import get_total_operations
     from fpgaconvnet.models.partition.metrics import get_bandwidth_in
@@ -112,12 +115,10 @@ class Partition():
         return cluster, input_node_vis, output_node_vis
 
     def max_compute_node_latency(self):
-        # return max([ self.graph.nodes[node]["hw"].get_latency() for node in
-        #              self.graph.nodes() ])
         max_latency = 0
         for node in self.graph.nodes():
             if self.graph.nodes[node]["type"] != LAYER_TYPE.Squeeze:
-                latency = self.graph.nodes[node]["hw"].get_latency()
+                latency = self.graph.nodes[node]["hw"].latency()
                 if latency > max_latency:
                     max_latency = latency
 
@@ -132,7 +133,7 @@ class Partition():
                 return False
 
         return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and \
-                self.graph.nodes[input_node]["hw"].get_latency() > max_compute_latency
+                self.graph.nodes[input_node]["hw"].latency() > max_compute_latency
 
     def is_output_memory_bound(self):
         output_node  = graphs.get_output_nodes(self.graph)[0]
@@ -143,20 +144,7 @@ class Partition():
                 return False
 
         return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and \
-                self.graph.nodes[output_node]["hw"].get_latency() > max_compute_latency
-
-    def reset(self):
-        self.remove_squeeze()
-        self.remove_weights_reloading_transform()
-
-        for node in self.graph.nodes():
-            self.graph.nodes[node]["hw"].coarse_in = 1
-            self.graph.nodes[node]["hw"].coarse_out = 1
-            self.graph.nodes[node]["hw"].coarse_group = 1
-
-            if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution:
-                self.graph.nodes[node]["hw"].fine = 1
-
+                self.graph.nodes[output_node]["hw"].latency() > max_compute_latency
 
     def get_wr_layer(self):
         # all transformable layer types

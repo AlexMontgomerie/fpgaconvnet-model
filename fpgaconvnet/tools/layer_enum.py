@@ -13,6 +13,7 @@ class LAYER_TYPE(Enum):
     ReLU         =18
     Sigmoid      =19
     Softmax      =20
+    LogSoftmax   =21
     Split        =22
     EltWise      =25
     # Not Enumerated
@@ -92,6 +93,7 @@ def from_onnx_op_type(op_type):
         "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
         "HardSwish" : LAYER_TYPE.SiLU,
         "Softmax" : LAYER_TYPE.NOP, # TODO: move to CPU
+        "LogSoftmax" : LAYER_TYPE.NOP, # TODO: move to CPU
         "Dropout" : LAYER_TYPE.Dropout,
         # shape operations
         "Transpose" : LAYER_TYPE.Transpose,

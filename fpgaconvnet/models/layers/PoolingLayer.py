@@ -68,7 +68,7 @@ class PoolingLayer(Layer):
                 self.cols_in(), self.channels_in()//self.coarse,
                 self.kernel_size, self.stride, self.pad_top,
                 self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend, regression_model=self.regression_model)
-        self.modules["pool"] = MaxPool(self.rows_out(), self.cols_out(),
+        self.modules["pool"] = Pool(self.rows_out(), self.cols_out(),
                 self.channels_out()//self.coarse, self.kernel_size, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
