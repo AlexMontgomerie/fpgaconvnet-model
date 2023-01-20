@@ -97,7 +97,7 @@ class ConvolutionLayer(Layer):
             self.stream_weights = False
             self.data_packing = False
         elif self.backend == "chisel":
-            self.double_buffered = True
+            self.double_buffered = False
             self.stream_weights = False
             self.data_packing = True
 
@@ -562,14 +562,13 @@ class ConvolutionLayer(Layer):
 
         if self.data_packing:
             weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width*self.fine,
-                        "memory") * \
-                    self.coarse_in*self.coarse_out*self.coarse_group
+                        int(weight_memory_depth), self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
+                        "memory")                
         else:
             weights_bram_usage = bram_array_resource_model(
                         int(weight_memory_depth), self.weight_t.width,
                         "memory") * \
-                    self.coarse_in*self.coarse_out*self.coarse_group*self.fine
+                    self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
         if self.stream_weights:
             weights_bram_usage = 0

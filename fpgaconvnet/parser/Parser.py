@@ -56,6 +56,7 @@ class Parser:
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
+            "extract_constant_to_initializer",
             "fuse_bn_into_conv",
             "fuse_consecutive_transposes",
             "fuse_transpose_into_gemm",

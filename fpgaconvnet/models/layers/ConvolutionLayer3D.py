@@ -54,9 +54,7 @@ class ConvolutionLayer3D(Layer3D):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression",
-            double_buffered: bool = True,
-            stream_weights: bool = False,
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -93,13 +91,19 @@ class ConvolutionLayer3D(Layer3D):
         # check if the layer is depthwise
         self.depthwise = (groups == channels) and (groups == filters)
 
-        # weights buffering flag
-        self.double_buffered = double_buffered
-        self.stream_weights = stream_weights
-
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
+
+        # weights buffering flag
+        if self.backend == "hls":
+            self.double_buffered = False
+            self.stream_weights = False
+            self.data_packing = False
+        elif self.backend == "chisel":
+            self.double_buffered = False
+            self.stream_weights = False
+            self.data_packing = True
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"{regression_model} is an invalid regression model"
@@ -681,10 +685,16 @@ class ConvolutionLayer3D(Layer3D):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        weights_bram_usage = bram_array_resource_model(
-                    int(weight_memory_depth), 
-                    self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
-                    'memory')
+        if self.data_packing:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weight_memory_depth), 
+                        self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
+                        'memory')
+        else:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weight_memory_depth), self.weight_t.width,
+                        "memory") * \
+                    self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
         # if streaming weights, set to zero
         if self.stream_weights:
