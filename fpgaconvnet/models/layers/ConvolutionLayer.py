@@ -455,7 +455,6 @@ class ConvolutionLayer(Layer):
         parameters.filters      = self.filters
         parameters.groups       = self.groups
         parameters.coarse_group = self.coarse_group
-        parameters.fine         = self.fine
         parameters.kernel_size.extend(self.kernel_size)
         parameters.kernel_rows  = self.kernel_rows
         parameters.kernel_cols  = self.kernel_cols
@@ -468,10 +467,11 @@ class ConvolutionLayer(Layer):
         parameters.pad_left     = self.pad_left
         parameters.has_bias     = self.has_bias
         parameters.sparsity     = self.sparsity
-        if self.backend == "hls":
-            parameters.module_fine = self.modules["conv"].fine
-        elif self.backend == "chisel":
-            parameters.module_fine = self.modules["vector_dot"].fine
+        if self.sparsity == 0.0:
+            parameters.fine  = self.fine
+        else:
+            assert self.backend == "chisel"
+            parameters.fine = self.modules["vector_dot"].fine
 
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
