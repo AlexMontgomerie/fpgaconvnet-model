@@ -127,14 +127,6 @@ class SlidingWindow(Module):
         # return the info
         return info
 
-    def memory_usage(self):
-        if self.backend == "chisel":
-            return self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels) + \
-                self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels) + \
-                self.data_width*self.kernel_size[0]*self.kernel_size[1]
-        else:
-            raise NotImplementedError
-
     def utilisation_model(self):
         if self.backend == "hls":
             pass # TODO
@@ -222,13 +214,6 @@ class SlidingWindow(Module):
 
         # return the resource usage
         return rsc
-
-
-    def memory_usage(self):
-        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
-        window_buffer_depth = self.channels+1
-        return (self.kernel_size[0]-1)*line_buffer_depth*self.data_width + \
-            self.kernel_size[0]*(self.kernel_size[1]-1)*window_buffer_depth*self.data_width
 
     def visualise(self, name):
         return pydot.Node(name,label="slwin", shape="box",
