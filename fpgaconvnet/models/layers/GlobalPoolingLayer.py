@@ -17,6 +17,7 @@ class GlobalPoolingLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
+            data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
@@ -27,7 +28,7 @@ class GlobalPoolingLayer(Layer):
         self.acc_t = acc_t
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse, coarse)
+        super().__init__(rows, cols, channels, coarse, coarse, data_t=data_t)
 
         # update flags
         # self.flags['transformable'] = True

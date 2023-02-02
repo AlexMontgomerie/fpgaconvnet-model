@@ -32,8 +32,6 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_pro
 from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
 from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
 
-from fpgaconvnet.parser.quant import quantise
-
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
 
@@ -152,7 +150,7 @@ class Parser:
 
         return model_opt, dimensionality
 
-    def get_hardware_from_onnx_node(self, graph, node, dimensionality):
+    def get_hardware_from_onnx_node(self, graph, node, quant_format, dimensionality):
 
         # register converters
         converter = {
@@ -172,7 +170,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, dimensionality, backend=self.backend,
+            return converter[node_type](graph, node, quant_format, dimensionality, backend=self.backend,
                     regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
             raise TypeError(f"{node.op_type} not supported, exiting now")
@@ -210,10 +208,11 @@ class Parser:
 
         # add nodes from onnx to the graph
         for node in onnx_model.graph.node:
+            node_name = onnx_helper.format_onnx_name(node)
 
             # get the hardware for the node
             hardware = self.get_hardware_from_onnx_node(
-                    onnx_model.graph, node, dimensionality)
+                    onnx_model.graph, node, quant_format[node_name], dimensionality)
 
             # add node to graph
             graph.add_node(hardware.name,
@@ -225,9 +224,6 @@ class Parser:
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
-
-        # apply quantisation to the graph
-        quantise(graph, quant_format)
 
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
