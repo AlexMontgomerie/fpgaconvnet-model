@@ -245,6 +245,10 @@ class Parser:
         # get the node type
         node_type = from_proto_layer_type(node.type)
 
+        # todo: fix activation layer
+        if node_type == [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU]:
+            node_type = LAYER_TYPE.ReLU
+
         # try converter
         try:
             return converter[node_type](node, backend=self.backend, regression_model=self.regression_model)
