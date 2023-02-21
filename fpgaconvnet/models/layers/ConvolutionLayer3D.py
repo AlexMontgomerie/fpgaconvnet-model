@@ -785,7 +785,8 @@ class ConvolutionLayer3D(Layer3D):
         convolution_layer = torch.nn.Conv3d(self.channels_in(), self.filters, (self.kernel_depth, self.kernel_rows, self.kernel_cols), stride=(self.stride_depth, self.stride_rows, self.stride_cols), padding=0, groups=self.groups, bias=True)
 
         # update weights
-        convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
+        convolution_layer.weight = torch.nn.Parameter(
+                torch.from_numpy(np.moveaxis(weights,-1,-3)))
 
         # update bias
         convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
