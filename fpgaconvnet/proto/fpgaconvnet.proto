@@ -74,7 +74,7 @@ message parameter {
     optional quant_format outnput_quant = 54;
     optional quant_format weight_quant  = 55;
     optional quant_format bias_quant    = 56;
-
+    optional float sparsity = 57;
 }
 
 message layer {

@@ -48,6 +48,9 @@ class VectorDot3D(Module3D):
             'channels_out'  : self.channels_out()
         }
 
+    def channels_out(self):
+        return self.filters
+
     def rate_in(self):
         return 1.0/float(self.filters)
 

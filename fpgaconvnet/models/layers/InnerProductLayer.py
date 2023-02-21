@@ -4,7 +4,7 @@ import pydot
 import torch
 
 from fpgaconvnet.models.layers.utils import get_factors
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import Layer
 
@@ -31,9 +31,7 @@ class InnerProductLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0,
             backend: str = "chisel",
-            regression_model: str = "linear_regression",
-            double_buffered: bool = True,
-            stream_weights: bool = False,
+            regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
@@ -56,13 +54,19 @@ class InnerProductLayer(Layer):
         # save parameters
         self._filters = filters
 
-        # weights buffering flag
-        self.double_buffered = double_buffered
-        self.stream_weights = stream_weights
-
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
         self.backend = backend
+
+        # weights buffering flag
+        if self.backend == "hls":
+            self.double_buffered = False
+            self.stream_weights = False
+            self.data_packing = False
+        elif self.backend == "chisel":
+            self.double_buffered = False
+            self.stream_weights = False
+            self.data_packing = True
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -82,9 +86,9 @@ class InnerProductLayer(Layer):
         self.modules["accum"] = Accum(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters, 1, backend=self.backend, regression_model=self.regression_model)
         self.modules["glue"] = Glue(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, self.coarse_in, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
+                self.filters, self.coarse_in, self.coarse_out, 1, backend=self.backend, regression_model=self.regression_model)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
-                self.filters, backend=self.backend, regression_model=self.regression_model)
+                self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 
@@ -163,7 +167,7 @@ class InnerProductLayer(Layer):
         # bias
         self.modules['bias'].rows           = 1#self.rows_out()
         self.modules['bias'].cols           = 1#self.cols_out()
-        self.modules['bias'].filters        = self.filters
+        self.modules['bias'].filters        = self.filters//self.coarse_out
 
     def get_weights_reloading_feasible(self):
         return get_factors(int(self.filters/self.coarse_out))
@@ -213,16 +217,20 @@ class InnerProductLayer(Layer):
         if self.double_buffered:
             weights_memory_depth *= 2
 
-        weights_bram_usage = bram_memory_resource_model(
-                    int(weights_memory_depth), self.weight_t.width * self.coarse_in * self.coarse_out)
+        if self.data_packing:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weights_memory_depth), self.weight_t.width * self.coarse_in * self.coarse_out, 'memory')
+        else:
+            weights_bram_usage = bram_array_resource_model(
+                        int(weights_memory_depth), self.weight_t.width, 'memory') * self.coarse_in * self.coarse_out
 
         if self.stream_weights:
             weights_bram_usage = 0
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out)
-        biases_bram_usage = bram_memory_resource_model(
-                    int(bias_memory_depth),self.acc_t.width) * self.coarse_out
+        biases_bram_usage = bram_array_resource_model(
+                    int(bias_memory_depth), self.acc_t.width, 'memory') * self.coarse_out
 
         # add weights and bias to resources
         rsc["BRAM"] += weights_bram_usage + biases_bram_usage

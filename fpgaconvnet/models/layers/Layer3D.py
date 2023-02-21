@@ -13,7 +13,7 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.models.layers.utils import balance_module_rates
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from fpgaconvnet.tools.resource_analytical_model import bram_stream_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
 from fpgaconvnet.data_types import FixedPoint
 
@@ -339,7 +339,7 @@ class Layer3D:
         return {
             "LUT"   : 0,
             "FF"    : 0,
-            "BRAM"  : 0, #bram_stream_resource_model(self.buffer_depth,self.data_t)*self.streams_in(),
+            "BRAM"  : 0, #bram_array_resource_model(self.buffer_depth,self.data_t,'fifo')*self.streams_in(),
             "DSP"   : 0
         }
 

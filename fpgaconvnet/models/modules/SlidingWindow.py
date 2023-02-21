@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, bram_stream_resource_model, bram_efficient_resource_model, queue_lutram_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, queue_lutram_resource_model
 
 @dataclass
 class SlidingWindow(Module):
@@ -80,6 +80,8 @@ class SlidingWindow(Module):
         else:
             raise TypeError
 
+        self.data_packing = (self.backend == "chisel")
+
         # perform basic module initialisation
         Module.__post_init__(self)
 
@@ -98,8 +100,8 @@ class SlidingWindow(Module):
         return (self.rows_out()*self.cols_out())/float(self.rows*self.cols)
 
     def pipeline_depth(self):
-        return (self.cols+self.pad_left+self.pad_right)*(self.channels)*(self.kernel_rows-1)+\
-                self.channels*(self.kernel_cols-1)
+        return (self.cols+self.pad_left+self.pad_right)*(self.channels)*(self.kernel_size[0]-1)+\
+                self.channels*(self.kernel_size[1]-1)
 
     def wait_depth(self):
         """
@@ -124,14 +126,6 @@ class SlidingWindow(Module):
         info["pad_left"] = self.pad_left
         # return the info
         return info
-
-    def memory_usage(self):
-        if self.backend == "chisel":
-            return self.data_width*(self.kernel_size[0]-1)*(self.cols*self.channels) + \
-                self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1)*(self.channels) + \
-                self.data_width*self.kernel_size[0]*self.kernel_size[1]
-        else:
-            raise NotImplementedError
 
     def utilisation_model(self):
         if self.backend == "hls":
@@ -195,20 +189,22 @@ class SlidingWindow(Module):
 
         if self.regression_model == "linear_regression":
             # get the line buffer BRAM estimate
-            line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels
-            if self.kernel_size[0] > 1 and line_buffer_depth > 256:
-                line_buffer_bram =  bram_memory_resource_model(
-                    line_buffer_depth, (self.kernel_size[0]-1)*self.data_width)
+            line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
+            if self.data_packing:
+                line_buffer_bram =  bram_array_resource_model(
+                    line_buffer_depth, (self.kernel_size[0]-1)*self.data_width, "fifo")
             else:
-                line_buffer_bram = 0
+                line_buffer_bram =  (self.kernel_size[0]-1) * bram_array_resource_model(
+                    line_buffer_depth, self.data_width, "fifo")
 
             # get the window buffer BRAM estimate
-            window_buffer_depth = self.channels
-            if self.kernel_size[1] > 1 and window_buffer_depth > 256:
-                window_buffer_bram = self.kernel_size[0]*bram_memory_resource_model(
-                        window_buffer_depth, (self.kernel_size[1]-1)*self.data_width)
+            window_buffer_depth = self.channels+1
+            if self.data_packing:
+                window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
+                        window_buffer_depth, (self.kernel_size[1]-1)*self.data_width, "fifo")
             else:
-                window_buffer_bram = 0
+                window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1)*bram_array_resource_model(
+                        window_buffer_depth, self.data_width, "fifo")
 
             # add the bram estimation
             rsc["BRAM"] = line_buffer_bram + window_buffer_bram
@@ -218,13 +214,6 @@ class SlidingWindow(Module):
 
         # return the resource usage
         return rsc
-
-
-    def memory_usage(self):
-        line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
-        window_buffer_depth = self.channels+1
-        return (self.kernel_size[0]-1)*line_buffer_depth*self.data_width + \
-            self.kernel_size[0]*(self.kernel_size[1]-1)*window_buffer_depth*self.data_width
 
     def visualise(self, name):
         return pydot.Node(name,label="slwin", shape="box",

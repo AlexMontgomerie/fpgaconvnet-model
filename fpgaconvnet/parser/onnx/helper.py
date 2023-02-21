@@ -134,7 +134,7 @@ def add_input_from_initializer(model : onnx.ModelProto):
 def update_batch_size(model, batch_size):
     # get the input shape
     input_shape = get_input_shape(model, model.graph.input[0].name)
-    batch_size_param = model.graph.input[0].type.tensor_type.shape.dim[0]
+    batch_size_param = model.graph.input[0].type.tensor_type.shape.dim[0].dim_param
     if model.graph.input[0].type.tensor_type.shape.dim[0] == "":
         print(f"CRITICAL WARNING: batch size dimension already fixed to {input_shape[0]}")
         return model
@@ -191,6 +191,8 @@ def format_attr(attribute):
             attr_out[attr.name] = [ int(i) for i in attr.ints ]
         elif attr.type == 2: #(INT)
             attr_out[attr.name] = attr.i
+        elif attr.type == 1: #(FLOAT)
+            attr_out[attr.name] = attr.f
     return attr_out
 
 def format_onnx_name(node):

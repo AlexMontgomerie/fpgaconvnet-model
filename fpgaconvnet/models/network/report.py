@@ -19,7 +19,9 @@ def create_report(self, output_path):
             "performance" : {
                 "latency" : self.get_latency(),
                 "throughput" : self.get_throughput(),
-                "performance" : total_operations/self.get_latency()
+                "performance" : total_operations/self.get_latency(),
+                "cycles" : self.get_cycle(),
+                "reconf_time" : self.get_reconf_time()
             },
             "num_partitions" : len(self.partitions),
             "max_resource_usage" : {
@@ -42,6 +44,7 @@ def create_report(self, output_path):
             "batch_size" : self.partitions[i].batch_size,
             "num_layers" : len(self.partitions[i].graph.nodes()),
             "latency" : latency,
+            "cycles" : self.partitions[i].get_cycle(),
             "weights_reloading_factor" : self.partitions[i].wr_factor,
             "weights_reloading_layer" : self.partitions[i].wr_layer,
             "resource_usage" : {
@@ -63,7 +66,7 @@ def create_report(self, output_path):
             report["partitions"][i]["layers"][node] = {
                 "type" : str(self.partitions[i].graph.nodes[node]['type']),
                 "interval" : hw.latency(), #TODO
-                "latency" : hw.latency(),
+                "cycle" : hw.latency(),
                 "resource_usage" : {
                     "LUT" : resource_usage["LUT"],
                     "FF" : resource_usage["FF"],

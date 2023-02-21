@@ -15,44 +15,52 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32):
 
         # get the formatted name for the node
         node_name = onnx_helper.format_onnx_name(node)
+        attr = onnx_helper.format_attr(node.attribute)
+        attr.setdefault("data_width", data_width)
+        attr.setdefault("acc_width", acc_width)
 
         # default quant param
         quant_param[node_name] = {
             "input_t" : {
-                "width" : data_width,
-                "binary_point": data_width//2,
+                "width" : attr["data_width"],
+                "binary_point": attr["data_width"]//2,
             },
             "output_t" : {
-                "width" : data_width,
-                "binary_point": data_width//2,
+                "width" : attr["data_width"],
+                "binary_point": attr["data_width"]//2,
             },
             "data_t" : {
-                "width" : data_width,
-                "binary_point": data_width//2,
+                "width" : attr["data_width"],
+                "binary_point": attr["data_width"]//2,
+            },
+            "acc_t" : {
+                "width" : attr["acc_width"],
+                "binary_point": attr["acc_width"]//2,
             },
         }
-
+            
         # special case for convolution and inner product
         if node.op_type in [ "Conv", "Gemm" ]:
+            attr.setdefault("weight_width", weight_width)
 
             # get the max abs value from the weights
             weights = onnx_helper.get_model_initializer(model, node.input[1])
             weights_max = np.amax(np.absolute(weights))
 
             # get the weight binary point
-            weight_binary_point = weight_width - max(1,
+            weight_binary_point = attr["weight_width"] - max(1,
                     int(math.ceil(math.log(weights_max, 2)))+1)
 
             # get the accumulation binary point
-            acc_binary_point = weight_binary_point + data_width//2
+            acc_binary_point = weight_binary_point + attr["data_width"]//2
 
             # adjust data types
             quant_param[node_name]["weight_t"] = {
-                "width" : weight_width,
+                "width" : attr["weight_width"],
                 "binary_point": weight_binary_point,
             }
             quant_param[node_name]["acc_t"] = {
-                "width" : acc_width,
+                "width" : attr["acc_width"],
                 "binary_point": acc_binary_point,
             }
 

@@ -38,6 +38,20 @@ def get_interval(self):
     # return the overall interval
     return np.max(np.absolute(interval_matrix))
 
+def get_cycle(self):
+    # get the interval for the partition
+    interval = self.get_interval()
+    # get pipeline depth of partition
+    input_node = graphs.get_input_nodes(self.graph)[0]
+    pipeline_depth = self.get_pipeline_depth(input_node) # TODO: find max of all input nodes
+    # return the latency (in seconds)
+    batch_size  = int(self.batch_size)
+    wr_factor   = self.wr_factor
+    size_wr     = self.size_wr
+
+    batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
+    return batch_cycle
+
 def get_latency(self, frequency):
     """
     Parameters
@@ -50,17 +64,7 @@ def get_latency(self, frequency):
     int
         the latency of running the partition, in seconds.
     """
-    # get the interval for the partition
-    interval = self.get_interval()
-    # get pipeline depth of partition
-    input_node = graphs.get_input_nodes(self.graph)[0]
-    pipeline_depth = self.get_pipeline_depth(input_node) # TODO: find max of all input nodes
-    # return the latency (in seconds)
-    batch_size  = int(self.batch_size)
-    wr_factor   = self.wr_factor
-    size_wr     = self.size_wr
-    return ( (interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr )/(frequency*1000000)
-    # return ( (interval*batch_size)*wr_factor + (wr_factor-1)*size_wr )/(frequency*1000000)
+    return self.get_cycle()/(frequency*1000000)
 
 def get_bandwidth_in(self,freq):
     # get the interval for the partition

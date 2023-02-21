@@ -19,7 +19,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
-from fpgaconvnet.tools.resource_analytical_model import bram_memory_resource_model, queue_lutram_resource_model
+from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_model
 
 @dataclass
 class Accum(Module):

@@ -118,6 +118,24 @@ class Network():
 
         return math.ceil(((max_input_size + max_output_size)*2)) # TODO *self.data_width)/8)
 
+    def get_reconf_time(self, partition_list=None):
+        if partition_list == None:
+            partition_list = list(range(len(self.partitions)))
+        return (len(partition_list)-1)*self.platform.reconf_time
+
+    def get_cycle(self, partition_list=None):
+        if partition_list == None:
+            partition_list = list(range(len(self.partitions)))
+        cycle = 0
+        # iterate over partitions:
+        for partition_index, partition in enumerate(self.partitions):
+            if partition_index not in partition_list:
+                continue
+            # accumulate cycle for each partition
+            cycle += partition.get_cycle()
+        # return the total cycle as well as reconfiguration time
+        return cycle
+
     def get_latency(self, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
@@ -129,7 +147,7 @@ class Network():
             # accumulate latency for each partition
             latency += partition.get_latency(self.platform.board_freq)
         # return the total latency as well as reconfiguration time
-        return latency + (len(partition_list)-1)*self.platform.reconf_time
+        return latency + self.get_reconf_time(partition_list)
 
     def get_throughput(self, partition_list=None):
         if partition_list == None:

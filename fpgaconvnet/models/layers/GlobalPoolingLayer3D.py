@@ -18,6 +18,7 @@ class GlobalPoolingLayer3D(Layer3D):
             depth: int,
             channels: int,
             coarse: int = 1,
+            data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel",
             regression_model: str = "linear_regression"
@@ -27,7 +28,7 @@ class GlobalPoolingLayer3D(Layer3D):
         self.acc_t = acc_t
 
         # initialise parent class
-        super().__init__(rows, cols, depth, channels, coarse, coarse)
+        super().__init__(rows, cols, depth, channels, coarse, coarse, data_t=data_t)
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
