@@ -35,6 +35,8 @@ class EltWiseLayer3D(MultiPortLayer3D):
                 [channels]*ports_in, [coarse]*ports_in,
                 [coarse]*ports_out, ports_in=ports_in, ports_out=ports_out, data_t=data_t)
 
+        self.mem_bw_in = [100.0/self.ports_in] * self.ports_in
+        
         self.acc_t = acc_t
 
         # parameters

@@ -66,6 +66,8 @@ class SplitLayer(MultiPortLayer):
         super().__init__([rows], [cols], [channels], [coarse], [coarse],
                 ports_out=ports_out, data_t=data_t)
 
+        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out        
+        
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
