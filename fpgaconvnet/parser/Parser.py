@@ -16,6 +16,7 @@ import numpy as np
 
 from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.models.network import Network
+from fpgaconvnet.models.layers import SplitLayer
 # from ..models.partition.Partition import Partition
 # from ..models.network.Network import Network
 
@@ -192,6 +193,37 @@ class Parser:
         # return model and quantisation
         return model_opt, quant_format
 
+    def add_split(self, graph):
+        # iterate over nodes in the graph
+        nodes = list(graph.nodes())
+        for node in nodes:
+            # get the nodes out
+            nodes_out = graphs.get_next_nodes(graph, node)
+            # add a split layer if there are more than 1 nodes out
+            if len(nodes_out) > 1:
+                # create a split node
+                split_node  = f"{node}_split"
+                graph.add_node(split_node,
+                    type=LAYER_TYPE.Split,
+                    onnx_node=graph.nodes[node]["onnx_node"],
+                    hw=SplitLayer(
+                        graph.nodes[node]['hw'].rows_out(),
+                        graph.nodes[node]['hw'].cols_out(),
+                        graph.nodes[node]['hw'].channels_out(),
+                        graph.nodes[node]['hw'].streams_out(),
+                        len(nodes_out)
+                    )
+                )
+                # iterate over nodes out
+                for node_out in nodes_out:
+                    # remove edge from original node
+                    graph.remove_edge(node, node_out)
+                    # add edge to split node
+                    graph.add_edge(split_node, node_out)
+                # add edge from original node to split node
+                graph.add_edge(node, split_node)
+        return graph
+
     def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
 
         # load the onnx model
@@ -224,6 +256,9 @@ class Parser:
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+
+        # add split nodes to the graph
+        graph = self.add_split(graph)
 
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
