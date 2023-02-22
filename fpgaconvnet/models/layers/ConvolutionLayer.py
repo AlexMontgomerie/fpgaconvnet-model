@@ -118,14 +118,14 @@ class ConvolutionLayer(Layer):
 
             self.modules["Conv"] = Conv(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.coarse_group), 
-                    self.fine, self.kernel_size, 
+                    self.filters//(self.coarse_out*self.coarse_group),
+                    self.fine, self.kernel_size,
                     self.groups//self.coarse_group,
                     backend=self.backend, regression_model=self.regression_model)
 
             self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.coarse_group), 
+                    self.filters//(self.coarse_out*self.coarse_group),
                     self.groups//self.coarse_group,
                     backend=self.backend, regression_model=self.regression_model)
 
@@ -348,7 +348,7 @@ class ConvolutionLayer(Layer):
         return self.coarse_out*self.coarse_group
 
     def set_sparse_fine(self):
-        fine_feasible = self.get_fine_feasible() 
+        fine_feasible = self.get_fine_feasible()
         fine_feasible = list(range(min(fine_feasible), max(fine_feasible)+1))
         fine_feasible = filter(lambda x:x<=self.fine, fine_feasible)
         fine_feasible = sorted(fine_feasible)
@@ -358,6 +358,15 @@ class ConvolutionLayer(Layer):
                 return fine
 
         return self.fine
+
+    # def pipeline_depth(self):
+    #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
+    #     # plus the words needed to fill the accum buffer
+    #     return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+    #             (self.kernel_cols-1)*self.channels//self.coarse_in - \
+    #             ( self.pad_top * self.cols * self.channels//self.coarse_in + \
+    #             (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
+    #             self.channels//self.coarse_in
 
     def update(self):
 
@@ -563,7 +572,7 @@ class ConvolutionLayer(Layer):
         if self.data_packing:
             weights_bram_usage = bram_array_resource_model(
                         int(weight_memory_depth), self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
-                        "memory")                
+                        "memory")
         else:
             weights_bram_usage = bram_array_resource_model(
                         int(weight_memory_depth), self.weight_t.width,

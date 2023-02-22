@@ -41,7 +41,8 @@ class Accum(Module):
         return (self.groups)/float(self.channels)
 
     def pipeline_depth(self):
-        return (self.channels*self.filters)//(self.groups*self.groups)
+        # return (self.channels*self.filters)//(self.groups*self.groups)
+        return self.channels//self.groups
 
     def module_info(self):
         # get the base module fields
