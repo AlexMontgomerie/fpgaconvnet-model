@@ -105,3 +105,11 @@ def from_onnx_op_type(op_type):
     }
 
     return layer_types.get(op_type, lambda: TypeError)
+
+def from_cfg_type(op_type): 
+    if op_type == "*":
+        return "*"
+    elif op_type == "Split":
+        return LAYER_TYPE.Split
+    else:
+        return from_onnx_op_type(op_type)

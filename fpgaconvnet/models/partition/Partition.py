@@ -52,8 +52,6 @@ class Partition():
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
     from fpgaconvnet.models.partition.auxiliary import remove_node_by_type
     from fpgaconvnet.models.partition.auxiliary import remove_squeeze
-    from fpgaconvnet.models.partition.auxiliary import add_split
-    from fpgaconvnet.models.partition.auxiliary import remove_split
 
     # metrics
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
@@ -153,6 +151,8 @@ class Partition():
         # iterative function to find weights reloading layer
         def _wr_layer(layer):
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.Concat:
+                return None
+            if self.graph.nodes[layer]['type'] == LAYER_TYPE.EltWise:
                 return None
             if self.graph.nodes[layer]['type'] in transformable_layers:
                 return layer
