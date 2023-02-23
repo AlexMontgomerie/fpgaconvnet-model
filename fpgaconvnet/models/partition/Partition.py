@@ -65,6 +65,7 @@ class Partition():
 
     # update
     from fpgaconvnet.models.partition.update import update
+    from fpgaconvnet.models.partition.update import update_eltwise_buffer_depth
 
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index),label=f"partition: {partition_index}",
