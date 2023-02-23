@@ -99,7 +99,10 @@ class ConvolutionLayer(Layer):
         elif self.backend == "chisel":
             self.double_buffered = False
             self.stream_weights = False
-            self.data_packing = True
+            if self.sparsity == 0.0:
+                self.data_packing = True
+            else:
+                self.data_packing = False
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
