@@ -25,20 +25,18 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False)
     repeated_bram = math.ceil(width/max_width)
     width = min(max_width, width)
 
-    # find the closest depth from the BRAM configuration
-    if depth in list(BRAM_CONF_DEPTH.keys()):
-        bram_depth = depth
-    elif depth > sorted(list(BRAM_CONF_DEPTH.keys()))[-1]:
-        bram_depth = sorted(list(BRAM_CONF_DEPTH.keys()))[-1]
+    # find the closest width from the BRAM configuration
+    if width in list(BRAM_CONF_WIDTH.keys()):
+        bram_width = width
     else:
-        bram_depth = sorted(list(BRAM_CONF_DEPTH.keys()))[
-                bisect.bisect_right(sorted(list(BRAM_CONF_DEPTH.keys())), depth)]
+        bram_width = sorted(list(BRAM_CONF_WIDTH.keys()))[
+                bisect.bisect_right(sorted(list(BRAM_CONF_WIDTH.keys())), width)]
 
     # get the depth for the bram
-    bram_width = BRAM_CONF_DEPTH[bram_depth]
-    
+    bram_depth = BRAM_CONF_WIDTH[bram_width]
+
     # return the ceiling
-    return repeated_bram*math.ceil(width/bram_width)
+    return repeated_bram*math.ceil(depth/bram_depth)
 
 def queue_lutram_resource_model(depth, width):
 
