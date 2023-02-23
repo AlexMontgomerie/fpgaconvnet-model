@@ -15,7 +15,7 @@ def int2bits(n):
 
 from .Module import Module
 from .Accum import Accum
-from .BatchNorm import BatchNorm
+from .ShiftScale import ShiftScale
 from .Conv import Conv
 from .Fork import Fork
 from .Glue import Glue

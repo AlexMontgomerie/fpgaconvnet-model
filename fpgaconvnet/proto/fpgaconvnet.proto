@@ -76,6 +76,7 @@ message parameter {
     optional quant_format bias_quant    = 56;
     optional float sparsity = 57;
     optional bool use_uram = 58;
+    optional bool block_floating_point = 59;
 }
 
 message layer {

@@ -21,6 +21,7 @@ from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.modules import Accum
 from fpgaconvnet.models.modules import Glue
 from fpgaconvnet.models.modules import Bias
+from fpgaconvnet.models.modules import ShiftScale
 
 
 class ConvolutionLayer(Layer):
@@ -50,6 +51,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             sparsity: float = 0.0,
+            block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
         ):
@@ -63,6 +65,7 @@ class ConvolutionLayer(Layer):
         self.output_t = output_t
         self.weight_t = weight_t
         self.acc_t = acc_t
+        self.block_floating_point = block_floating_point
 
         # save bias flag
         self.has_bias = has_bias
@@ -175,6 +178,8 @@ class ConvolutionLayer(Layer):
 
         self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
                 backend=self.backend, regression_model=self.regression_model) # TODO
+
+        self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group))
 
         # update modules
         self.update()
@@ -459,11 +464,16 @@ class ConvolutionLayer(Layer):
         self.modules['bias'].rows           = self.rows_out()
         self.modules['bias'].cols           = self.cols_out()
         self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['bias'].coarse_out = self.coarse_out
-        self.modules['bias'].coarse_group = self.coarse_group
         self.modules['bias'].data_width     = self.output_t.width
         self.modules['bias'].biases_width   = self.acc_t.width
 
+        # shift scale
+        self.modules['shift_scale'].rows           = self.rows_out()
+        self.modules['shift_scale'].cols           = self.cols_out()
+        self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+        self.modules['shift_scale'].data_width     = self.output_t.width
+        self.modules['shift_scale'].biases_width   = self.acc_t.width
+        
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters      = self.filters
@@ -487,6 +497,7 @@ class ConvolutionLayer(Layer):
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
         parameters.use_uram     = self.use_uram
+        parameters.block_floating_point    = self.block_floating_point
 
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
@@ -539,6 +550,7 @@ class ConvolutionLayer(Layer):
             accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
             bias_rsc        = self.modules['bias'].rsc()
+            shift_scale_rsc = self.modules['shift_scale'].rsc()
 
             # remove redundant modules
             if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
@@ -551,8 +563,10 @@ class ConvolutionLayer(Layer):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.has_bias:
+            if self.has_bias == 0:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.block_floating_point:
+                shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
             rsc = { rsc_type: (
@@ -562,7 +576,8 @@ class ConvolutionLayer(Layer):
                 vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 glue_rsc[rsc_type] +
-                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group
+                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
@@ -598,14 +613,26 @@ class ConvolutionLayer(Layer):
         else:
             weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
 
-        # bias usage FIXME depth, FIXME bram usage
-        bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
-        biases_bram_usage = bram_array_resource_model(
-                    int(bias_memory_depth),self.acc_t.width,
-                    "memory") * self.coarse_out * self.coarse_group
+        # bias usage
+        if self.has_bias:
+            bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            biases_bram_usage = bram_array_resource_model(
+                        int(bias_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * self.coarse_group
+        else:
+            biases_bram_usage = 0
 
-        # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+        # bfp shift scale usage
+        if self.block_floating_point:
+            shift_scale_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            shift_scale_bram_usage = bram_array_resource_model(
+                        int(shift_scale_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * self.coarse_group * 2
+        else:
+            shift_scale_bram_usage = 0
+
+        # add weight, bias, shift_scale to resources
+        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
 
         # return total resource
         return rsc

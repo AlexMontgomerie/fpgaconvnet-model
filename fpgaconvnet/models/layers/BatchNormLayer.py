@@ -5,7 +5,7 @@ import pydot
 
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
-from fpgaconvnet.models.modules import BatchNorm
+from fpgaconvnet.models.modules import ShiftScale
 from fpgaconvnet.models.layers import Layer
 
 class BatchNormLayer(Layer):
@@ -28,7 +28,7 @@ class BatchNormLayer(Layer):
         self.scale_layer = None
 
         # modules
-        self.modules["batch_norm"] = BatchNorm(self.rows, self.cols, self.channels)
+        self.modules["shift_scale"] = ShiftScale(self.rows, self.cols, self.channels)
 
         # update modules
         self.update()
@@ -72,23 +72,23 @@ class BatchNormLayer(Layer):
 
     def update(self):
         # batch norm
-        self.modules['batch_norm'].rows     = self.rows_in()
-        self.modules['batch_norm'].cols     = self.cols_in()
-        self.modules['batch_norm'].channels = self.channels_in()//self.coarse
+        self.modules['shift_scale'].rows     = self.rows_in()
+        self.modules['shift_scale'].cols     = self.cols_in()
+        self.modules['shift_scale'].channels = self.channels_in()//self.coarse
 
     def resource(self):
 
         # get batch norm layer usage
-        bn_rsc      = self.modules['batch_norm'].rsc()
+        shift_scale_rsc      = self.modules['shift_scale'].rsc()
 
-        # get bram usage of scale parameter
-        weights_bram_usage = bram_array_resource_model(self.channels//self.coarse, self.data_width, 'memory')*self.coarse
+        # get bram usage of scale, bias parameter
+        weights_bram_usage = bram_array_resource_model(self.channels//self.coarse, self.data_width, 'memory')*self.coarse*2
         # Total
         return {
-            "LUT"  :  bn_rsc['LUT']*self.coarse,
-            "FF"   :  bn_rsc['FF']*self.coarse,
-            "BRAM" :  bn_rsc['BRAM']*self.coarse + weights_bram_usage,
-            "DSP" :   bn_rsc['DSP']*self.coarse
+            "LUT"  :  shift_scale_rsc['LUT']*self.coarse,
+            "FF"   :  shift_scale_rsc['FF']*self.coarse,
+            "BRAM" :  shift_scale_rsc['BRAM']*self.coarse + weights_bram_usage,
+            "DSP" :   shift_scale_rsc['DSP']*self.coarse
         }
 
     def functional_model(self,data,gamma,beta,batch_size=1):
