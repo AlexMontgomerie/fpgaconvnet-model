@@ -32,6 +32,10 @@ def create_report(self, output_path):
             }
         }
     }
+
+    if self.platform.get_uram() > 0:
+        report["network"]["max_resource_usage"]["URAM"] = max([ partition.get_resource_usage()["URAM"] for partition in self.partitions ])
+
     # add information for each partition
     report["partitions"] = {}
     for i in range(len(self.partitions)):
@@ -58,6 +62,9 @@ def create_report(self, output_path):
                 "out" : self.partitions[i].get_bandwidth_out(self.platform.board_freq)
             }
         }
+        if self.platform.get_uram() > 0:
+            report["partitions"][i]["resource_usage"]["URAM"] = resource_usage["URAM"]
+
         # add information for each layer of the partition
         report["partitions"][i]["layers"] = {}
         for node in self.partitions[i].graph.nodes():
@@ -74,6 +81,8 @@ def create_report(self, output_path):
                     "DSP" : resource_usage["DSP"]
                 }
             }
+            if "URAM" in resource_usage.keys():
+                report["partitions"][i]["layers"][node]["resource_usage"]["URAM"] = resource_usage["URAM"]
     # save as json
     with open(output_path,"w") as f:
         json.dump(report,f,indent=2)

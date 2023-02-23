@@ -9,7 +9,7 @@ import torch
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
@@ -96,6 +96,7 @@ class ConvolutionLayer(Layer):
             self.double_buffered = False
             self.stream_weights = False
             self.data_packing = False
+            self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
             self.stream_weights = False
@@ -103,6 +104,7 @@ class ConvolutionLayer(Layer):
                 self.data_packing = True
             else:
                 self.data_packing = False
+            self.use_uram = False
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -484,6 +486,7 @@ class ConvolutionLayer(Layer):
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
+        parameters.use_uram     = self.use_uram
 
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
@@ -572,18 +575,28 @@ class ConvolutionLayer(Layer):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        if self.data_packing:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
-                        "memory")
+        if self.use_uram:
+            array_resource_model = bram_array_resource_model
         else:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width,
-                        "memory") * \
-                    self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+            array_resource_model = uram_array_resource_model
+
+        if self.data_packing:
+            weight_array_depth = int(weight_memory_depth)
+            weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+            weight_array_num = 1
+        else:
+            weight_array_depth = int(weight_memory_depth)
+            weight_array_width = self.weight_t.width
+            weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
         if self.stream_weights:
             weights_bram_usage = 0
+        elif self.use_uram:
+            weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
+            rsc["URAM"] = weights_uram_usage
+            weights_bram_usage = 0
+        else:
+            weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
 
         # bias usage FIXME depth, FIXME bram usage
         bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)

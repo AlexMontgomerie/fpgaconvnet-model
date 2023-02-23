@@ -38,6 +38,9 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False)
     # return the ceiling
     return repeated_bram*math.ceil(depth/bram_depth)
 
+def uram_array_resource_model(depth, width):
+    return math.ceil(depth/4096)*math.ceil(width/72)
+
 def queue_lutram_resource_model(depth, width):
 
     # find the closest depth from the LUTRAM configuration

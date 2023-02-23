@@ -39,6 +39,9 @@ class Platform:
     def get_bram(self):
         return self.resources.get("BRAM", 0)
 
+    def get_uram(self):
+        return self.resources.get("URAM", 0)
+
     def get_lut(self):
         return self.resources.get("LUT", 0)
 
