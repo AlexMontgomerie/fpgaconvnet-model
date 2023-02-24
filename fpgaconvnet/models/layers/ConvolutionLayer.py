@@ -568,12 +568,18 @@ class ConvolutionLayer(Layer):
             if not self.block_floating_point:
                 shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
+            # dsp packing
+            if self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
+            elif self.weight_t.width <= 4 and self.input_t.width <= 4:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
+
             # accumulate resource usage based on coarse factors
             rsc = { rsc_type: (
                 sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                math.ceil(vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group) +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 glue_rsc[rsc_type] +
                 bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
