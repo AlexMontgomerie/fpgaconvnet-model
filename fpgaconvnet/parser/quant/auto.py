@@ -5,7 +5,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
-def get_quant_param(model, data_width=16, weight_width=16, acc_width=32):
+def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, block_floating_point=False):
 
     # dictionary of quantisation parameters
     quant_param = {}
@@ -42,6 +42,7 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32):
         # special case for convolution and inner product
         if node.op_type in [ "Conv", "Gemm" ]:
             attr.setdefault("weight_width", weight_width)
+            attr.setdefault("block_floating_point", block_floating_point)
 
             # get the max abs value from the weights
             weights = onnx_helper.get_model_initializer(model, node.input[1])
@@ -63,6 +64,8 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32):
                 "width" : attr["acc_width"],
                 "binary_point": acc_binary_point,
             }
+            quant_param[node_name]["block_floating_point"] = attr["block_floating_point"]
+
 
     # return the quant format
     return quant_param

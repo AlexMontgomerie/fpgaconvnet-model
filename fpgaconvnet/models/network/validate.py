@@ -27,6 +27,8 @@ def check_resources(self):
                 (self.rsc_allocation*self.platform.get_dsp()) , "ERROR: DSP usage exceeded, partition: {partition_index}" 
         assert partition_resource_usage['BRAM'] <= \
                 (self.rsc_allocation*self.platform.get_bram()), "ERROR: BRAM usage exceeded, partition: {partition_index}" 
+        assert partition_resource_usage['URAM'] <= \
+                (self.rsc_allocation*self.platform.get_uram()), "ERROR: URAM usage exceeded, partition: {partition_index}"
 
 def check_workload(self):
     workload_total = np.zeros( shape=( len(self.edge_list),len(self.node_list) ) , dtype=float )

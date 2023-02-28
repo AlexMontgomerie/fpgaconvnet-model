@@ -30,7 +30,6 @@ def update(self):
     self.streams_out = max([ s for s in streams_out_valid if s <= streams_out_max ])
 
     ## add auxiliary layers
-    self.add_split()
     self.add_squeeze()
 
     ## update streams in and out

@@ -9,7 +9,7 @@ import torch
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
@@ -21,6 +21,7 @@ from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.modules import Accum
 from fpgaconvnet.models.modules import Glue
 from fpgaconvnet.models.modules import Bias
+from fpgaconvnet.models.modules import ShiftScale
 
 
 class ConvolutionLayer(Layer):
@@ -50,6 +51,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             sparsity: float = 0.0,
+            block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
         ):
@@ -63,6 +65,7 @@ class ConvolutionLayer(Layer):
         self.output_t = output_t
         self.weight_t = weight_t
         self.acc_t = acc_t
+        self.block_floating_point = block_floating_point
 
         # save bias flag
         self.has_bias = has_bias
@@ -96,10 +99,15 @@ class ConvolutionLayer(Layer):
             self.double_buffered = False
             self.stream_weights = False
             self.data_packing = False
+            self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
             self.stream_weights = False
-            self.data_packing = True
+            if self.sparsity == 0.0:
+                self.data_packing = True
+            else:
+                self.data_packing = False
+            self.use_uram = False
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -170,6 +178,8 @@ class ConvolutionLayer(Layer):
 
         self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
                 backend=self.backend, regression_model=self.regression_model) # TODO
+
+        self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group))
 
         # update modules
         self.update()
@@ -454,11 +464,16 @@ class ConvolutionLayer(Layer):
         self.modules['bias'].rows           = self.rows_out()
         self.modules['bias'].cols           = self.cols_out()
         self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['bias'].coarse_out = self.coarse_out
-        self.modules['bias'].coarse_group = self.coarse_group
         self.modules['bias'].data_width     = self.output_t.width
         self.modules['bias'].biases_width   = self.acc_t.width
 
+        # shift scale
+        self.modules['shift_scale'].rows           = self.rows_out()
+        self.modules['shift_scale'].cols           = self.cols_out()
+        self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+        self.modules['shift_scale'].data_width     = self.output_t.width
+        self.modules['shift_scale'].biases_width   = self.acc_t.width
+        
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters      = self.filters
@@ -481,6 +496,8 @@ class ConvolutionLayer(Layer):
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
+        parameters.use_uram     = self.use_uram
+        parameters.block_floating_point    = self.block_floating_point
 
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
@@ -533,6 +550,7 @@ class ConvolutionLayer(Layer):
             accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
             bias_rsc        = self.modules['bias'].rsc()
+            shift_scale_rsc = self.modules['shift_scale'].rsc()
 
             # remove redundant modules
             if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
@@ -545,18 +563,27 @@ class ConvolutionLayer(Layer):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.has_bias:
+            if self.has_bias == 0:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.block_floating_point:
+                shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+
+            # dsp packing
+            if self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
+            elif self.weight_t.width <= 4 and self.input_t.width <= 4:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
 
             # accumulate resource usage based on coarse factors
             rsc = { rsc_type: (
                 sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                 fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                math.ceil(vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group) +
                 accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
                 glue_rsc[rsc_type] +
-                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group
+                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
@@ -569,27 +596,49 @@ class ConvolutionLayer(Layer):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        if self.data_packing:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
-                        "memory")
+        if self.use_uram:
+            array_resource_model = bram_array_resource_model
         else:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width,
-                        "memory") * \
-                    self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+            array_resource_model = uram_array_resource_model
+
+        if self.data_packing:
+            weight_array_depth = int(weight_memory_depth)
+            weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+            weight_array_num = 1
+        else:
+            weight_array_depth = int(weight_memory_depth)
+            weight_array_width = self.weight_t.width
+            weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
         if self.stream_weights:
             weights_bram_usage = 0
+        elif self.use_uram:
+            weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
+            rsc["URAM"] = weights_uram_usage
+            weights_bram_usage = 0
+        else:
+            weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
 
-        # bias usage FIXME depth, FIXME bram usage
-        bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
-        biases_bram_usage = bram_array_resource_model(
-                    int(bias_memory_depth),self.acc_t.width,
-                    "memory") * self.coarse_out * self.coarse_group
+        # bias usage
+        if self.has_bias:
+            bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            biases_bram_usage = bram_array_resource_model(
+                        int(bias_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * self.coarse_group
+        else:
+            biases_bram_usage = 0
 
-        # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+        # bfp shift scale usage
+        if self.block_floating_point:
+            shift_scale_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            shift_scale_bram_usage = bram_array_resource_model(
+                        int(shift_scale_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * self.coarse_group * 2
+        else:
+            shift_scale_bram_usage = 0
+
+        # add weight, bias, shift_scale to resources
+        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
 
         # return total resource
         return rsc
