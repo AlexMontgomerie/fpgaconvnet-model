@@ -14,6 +14,10 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False)
     #assert width <= 36, "width must be less than 36"
     assert array_type in ['fifo', 'memory']
 
+    # cannot synthesise BRAM if the address width is less than 5
+    if math.ceil(math.log(depth, 2)) < 5:
+        return 0
+
     # based on vivado behaviour, hls prediction may differ
     if (depth == 0) or (width == 0) or \
         (array_type == 'fifo' and not force_bram_pragma and width * depth <= 1024) or \
@@ -36,7 +40,7 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False)
 
     # get the depth for the bram
     bram_width = BRAM_CONF_DEPTH[bram_depth]
-    
+
     # return the ceiling
     return repeated_bram*math.ceil(width/bram_width)
 
