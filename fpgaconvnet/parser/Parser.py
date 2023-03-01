@@ -61,6 +61,7 @@ class Parser:
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
             "set_unique_name_for_nodes",
+            "eliminate_nop_pad",
             "fuse_pad_into_conv",
             "fuse_pad_into_pool",
         ]
@@ -73,6 +74,7 @@ class Parser:
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
+            "eliminate_nop_pad",
             "fuse_mul_sigmoid_into_hardswish",
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
@@ -150,6 +152,8 @@ class Parser:
         if not custom_onnx:
             # check optimized model
             onnx.checker.check_model(model_opt)
+
+        onnx.save(model_opt, "tmp.onnx")
 
         return model_opt, dimensionality
 

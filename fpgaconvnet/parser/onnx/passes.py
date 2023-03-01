@@ -977,3 +977,28 @@ def convert_gemm_to_conv(model):
 
     return model
 
+def eliminate_nop_pad(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a pad node
+        if node.op_type != "Pad":
+            continue
+
+        # get the pad attribute
+        pads = onnx_helper.get_model_initializer(model,
+                node.input[1], to_tensor=True)
+
+        # check if they are all zero
+        if pads.any():
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # remove dropout node
+        model.graph.node.remove(node)
+        next_node.input[0] = node.input[0]
+
+    return model
