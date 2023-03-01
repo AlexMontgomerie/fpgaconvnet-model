@@ -61,6 +61,8 @@ class Parser:
             "fuse_transpose_into_gemm",
             "fuse_matmul_add_bias_into_gemm",
             "set_unique_name_for_nodes",
+            "fuse_pad_into_conv",
+            "fuse_pad_into_pool",
         ]
 
         # passes for fpgaconvnet onnx optimizer
@@ -75,7 +77,7 @@ class Parser:
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
-            "remove_redundant_pooling",
+            "eliminate_nop_pool",
             "make_clip_min_max_scalar",
             "remove_training_nodes",
             "convert_pool_to_global_pool",
