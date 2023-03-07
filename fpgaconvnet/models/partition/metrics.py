@@ -48,7 +48,6 @@ def get_cycle(self):
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
     size_wr     = self.size_wr
-
     batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
     return batch_cycle
 

@@ -37,6 +37,7 @@ def update(self):
     self.output_nodes = graphs.get_output_nodes(self.graph)
 
     ## update sizes
+    self.wr_layer = self.wr_layer if self.wr_layer != "None" else None
     self.size_in  = self.graph.nodes[self.input_nodes[0]]['hw'].size_in()
     self.size_out = self.graph.nodes[self.input_nodes[0]]['hw'].size_out()
     if self.wr_layer != None:

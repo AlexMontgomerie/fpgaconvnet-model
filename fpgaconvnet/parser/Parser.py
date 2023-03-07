@@ -39,7 +39,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 class Parser:
 
     def __init__(self, backend="chisel", regression_model="linear_regression",
-            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False):
+            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=True):
 
         # set the backend string
         self.backend = backend
@@ -52,6 +52,9 @@ class Parser:
 
         # batch size
         self.batch_size = batch_size
+
+        # custom onnx flag
+        self.custom_onnx = custom_onnx
 
         # passes for onnx optimizer
         self.onnxoptimizer_passes = [
@@ -108,7 +111,7 @@ class Parser:
             model_opt = getattr(onnx_passes, opt_pass)(model_opt)
         return model_opt
 
-    def load_onnx_model(self, onnx_filepath, custom_onnx=True):
+    def load_onnx_model(self, onnx_filepath):
 
         # load onnx model
         model = onnx.load(onnx_filepath)
@@ -118,7 +121,7 @@ class Parser:
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
 
-        if custom_onnx:
+        if self.custom_onnx:
             model_opt = model
         else:
             # simplify model
@@ -149,11 +152,9 @@ class Parser:
         # infer shapes of optimised model
         self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        if not custom_onnx:
+        if not self.custom_onnx:
             # check optimized model
             onnx.checker.check_model(model_opt)
-
-        onnx.save(model_opt, "tmp.onnx")
 
         return model_opt, dimensionality
 
@@ -292,7 +293,8 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, backend=self.backend, regression_model=self.regression_model)
+            return converter[node_type](node, backend=self.backend,
+                    regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 

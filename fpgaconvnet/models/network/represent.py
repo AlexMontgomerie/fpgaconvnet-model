@@ -92,6 +92,8 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
             layer = partition.layers.add()
             # layer.name = onnx_helper.format_onnx_name(node)
             layer.name = node
+            if self.partitions[i].graph.nodes[node]['type'] == [ LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU ]:
+                self.partitions[i].graph.nodes[node]['type'] = LAYER_TYPE.ReLU
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(
                     self.partitions[i].graph.nodes[node]['type'])
             layer.onnx_node = self.partitions[i].graph.nodes[node]['onnx_node']

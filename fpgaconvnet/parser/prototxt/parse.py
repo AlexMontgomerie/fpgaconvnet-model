@@ -211,6 +211,7 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.input_shape[2] if len(self.input_shape) == 4 else 1,
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
+                coarse=self.node.parameters.coarse,
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
@@ -218,6 +219,7 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.input_shape[4] if len(self.input_shape) == 5 else 1,
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
+                coarse=self.node.parameters.coarse,
             )
         else:
             raise NotImplementedError
@@ -296,6 +298,7 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             backend =self.backend,
+            coarse=self.node.parameters.coarse,
             regression_model =self.regression_model,
         )
 
@@ -309,8 +312,8 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_in=self.node.parameters.ports_in,
-            op_type="sum", # TODO
-            backend =self.backend,
+            op_type="sum", backend =self.backend,
+            coarse=self.node.parameters.coarse,
             regression_model =self.regression_model,
         )
 
@@ -324,6 +327,7 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_out=self.node.parameters.ports_out,
+            coarse=self.node.parameters.coarse,
             backend =self.backend,
             regression_model =self.regression_model,
         )
