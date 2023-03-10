@@ -8,12 +8,13 @@ def create_report(self, output_path):
     # create report dictionary
     total_operations = sum([partition.get_total_operations() for partition in self.partitions])
     #total_dsps = np.average([partition.get_resource_usage()["DSP"]) for partition in self.partitions])
+    report = {}
     report = {
         "name" : self.name,
         "date_created" : str(datetime.datetime.now()),
         "total_iterations" : 0, # TODO
         "platform" : asdict(self.platform),
-        "total_operations" : total_operations,
+        "total_operations" : float(total_operations),
         "network" : {
             "memory_usage" : self.get_memory_usage_estimate(),
             "performance" : {
