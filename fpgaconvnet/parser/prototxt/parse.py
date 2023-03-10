@@ -208,17 +208,17 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
         # return hardware
         if self.dimensionality == 2:
             return ReLULayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
-                self.input_shape[3] if len(self.input_shape) == 5 else 1,
-                self.input_shape[4] if len(self.input_shape) == 5 else 1,
-                self.input_shape[2] if len(self.input_shape) == 5 else 1,
-                self.input_shape[1],
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
             )
         else:

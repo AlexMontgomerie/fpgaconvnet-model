@@ -1,6 +1,7 @@
 import json
 import math
 import copy
+import itertools
 
 import numpy as np
 import networkx as nx
@@ -49,6 +50,10 @@ def update(self):
     for node in self.graph.nodes:
         self.graph.nodes[node]["hw"].update()
 
+    ## add auxiliary layers
+    self.remove_squeeze()
+    self.add_squeeze()
+
     ## update buffer depths
     for node in self.graph.nodes:
         if self.graph.nodes[node]["type"] == LAYER_TYPE.EltWise:
@@ -74,6 +79,11 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
         # get the hardware model for each node in the path
         node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
+        # print([ self.graph.nodes[node]["type"] for node in path ])
+        # print([ self.graph.nodes[node]["hw"].size_in() for node in path ])
+        # print([ self.graph.nodes[node]["hw"].size_out() for node in path ])
+        # print([ self.graph.nodes[node]["hw"].coarse_in for node in path ])
+        # print([ self.graph.nodes[node]["hw"].coarse_out for node in path ])
 
         # get expansion of each node in path
         expansion = [ n.size_in() / n.size_out() for n in node_hw ]
@@ -97,3 +107,53 @@ def update_eltwise_buffer_depth(self, eltwise_node):
         # buffer depth is difference of max depth with the paths depth
         self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i])
 
+def reduce_squeeze_fanout(self):
+    """
+    method to change the parallelism of modules between convolution layers to
+    reduce the fanout of the squeeze module. This improves the frequency of the
+    design.
+    """
+
+    # remove all the squeeze nodes
+    self.remove_squeeze()
+
+    # get all the convolution and inner product layers in graph
+    find_conv = lambda node: self.graph.nodes[node]["type"] in \
+            [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
+    all_conv = filter(find_conv, self.graph.nodes)
+
+    # get all pairs of conv modules
+    all_conv_pairs = itertools.combinations(all_conv, 2)
+
+    # get all the paths for these pairs
+    all_conv_paths = [ nx.all_simple_paths(self.graph,
+        source=pair[0], target=pair[1]) for pair in all_conv_pairs ]
+    all_conv_paths = [ path for paths in all_conv_paths for path in paths ]
+
+    # filter out paths with only two conv/ inner-prod layers in
+    filter_conv_pairs = lambda path: len([ node for node in path if find_conv(node) ]) == 2
+    conv_paths = filter(filter_conv_pairs, all_conv_paths)
+
+    # iterate over the conv paths
+    for path in conv_paths:
+
+        # get nodes in and out
+        node_in = path[0]
+        node_out = path[-1]
+
+        # get coarse between conv layers
+        coarse_start = self.graph.nodes[node_in]["hw"].coarse_out
+        coarse_end = self.graph.nodes[node_out]["hw"].coarse_in
+
+        # choose the min of coarse factors
+        coarse_between = min(coarse_start, coarse_end)
+
+        # iterate over the nodes inbetween
+        for node in path[1:-1]:
+
+            # update the coarse factor for in-between nodes
+            self.graph.nodes[node_out]["hw"].coarse = coarse_between
+            self.graph.nodes[node]["hw"].update()
+
+    # add back the squeeze modules
+    self.add_squeeze()
