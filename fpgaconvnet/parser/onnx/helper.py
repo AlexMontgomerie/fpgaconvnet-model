@@ -189,10 +189,14 @@ def format_attr(attribute):
     for attr in attribute:
         if attr.type == 7: # (INTS) TODO: find enumeration
             attr_out[attr.name] = [ int(i) for i in attr.ints ]
+        elif attr.type == 6: #(FLOATS)
+            attr_out[attr.name] = [ float(i) for i in attr.floats ]
         elif attr.type == 2: #(INT)
             attr_out[attr.name] = attr.i
         elif attr.type == 1: #(FLOAT)
             attr_out[attr.name] = attr.f
+        else:
+            assert False, f"Unsupported attribute type {attr.type}"
     return attr_out
 
 def format_onnx_name(node):

@@ -50,7 +50,7 @@ class ConvolutionLayer(Layer):
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
-            sparsity: float = 0.0,
+            sparsity: list = [],
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
@@ -71,6 +71,10 @@ class ConvolutionLayer(Layer):
         self.has_bias = has_bias
 
         # save sparsity
+        if len(sparsity) > 0:
+            # reject if pointwise or low sparsity
+            if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
+                self.sparsity = []
         self.sparsity = sparsity
 
         # init variables
@@ -103,10 +107,7 @@ class ConvolutionLayer(Layer):
         elif self.backend == "chisel":
             self.double_buffered = False
             self.stream_weights = False
-            if self.sparsity == 0.0:
-                self.data_packing = True
-            else:
-                self.data_packing = False
+            self.data_packing = True
             self.use_uram = False
 
         # regression model
@@ -148,7 +149,7 @@ class ConvolutionLayer(Layer):
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     [self.fine, 1], self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
-            if self.sparsity == 0.0:
+            if len(self.sparsity) == 0:
                 self.modules["vector_dot"] = VectorDot(self.rows_out(), self.cols_out(),
                         (self.channels*self.kernel_size[0]*self.kernel_size[1])//(
                             self.fine*self.coarse_in*self.coarse_group),
@@ -324,11 +325,23 @@ class ConvolutionLayer(Layer):
         self._filters = val
         # self.update()
 
+    @Layer.coarse_in.setter
+    def coarse_in(self, val: int) -> None:
+        assert(val in self.get_coarse_in_feasible())
+        self._coarse_in = val
+
+        if len(self.sparsity) > 0:
+            # module sparsity depends on number of streams
+            self.update()
+
     @coarse_group.setter
     def coarse_group(self, val: int) -> None:
         assert(val in self.get_coarse_group_feasible())
         self._coarse_group = val
-        # self.update()
+
+        if len(self.sparsity) > 0:
+            # module sparsity depends on number of streams
+            self.update()
 
     def rows_out(self) -> int:
         return self.modules["sliding_window"].rows_out()
@@ -357,17 +370,17 @@ class ConvolutionLayer(Layer):
         """
         return self.coarse_out*self.coarse_group
 
-    def set_sparse_fine(self):
-        fine_feasible = self.get_fine_feasible()
-        fine_feasible = list(range(min(fine_feasible), max(fine_feasible)+1))
-        fine_feasible = filter(lambda x:x<=self.fine, fine_feasible)
-        fine_feasible = sorted(fine_feasible)
-
-        for fine in fine_feasible:
-            if self.modules['vector_dot'].rate_kernel_sparsity(fine) >= 1:
-                return fine
-
-        return self.fine
+    def get_stream_sparsity(self, interleave=True):
+        if interleave:
+            indices = np.argsort(self.sparsity)
+            indices = np.reshape(indices, (self.channels_in()//self.streams_in(), self.streams_in()))
+            indices[1::2, :] = indices[1::2, ::-1] # reverse every other row
+            indices = indices.flatten()
+        else:
+            indices = list(range(self.channels_in()))
+        
+        stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
+        return stream_sparsity
 
     # def pipeline_depth(self):
     #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
@@ -422,16 +435,15 @@ class ConvolutionLayer(Layer):
             self.modules['vector_dot'].data_width     = self.input_t.width
             self.modules['vector_dot'].weight_width   = self.weight_t.width
             self.modules['vector_dot'].acc_width      = self.acc_t.width
+            self.modules['vector_dot'].fine     = self.fine
 
-            if self.sparsity == 0.0:
+            if len(self.sparsity) == 0:
                 self.modules['vector_dot'].channels = (
                     self.channels*self.kernel_size[0]*self.kernel_size[1])//(
                     self.fine*self.coarse_in*self.coarse_group)
-                self.modules['vector_dot'].fine     = self.fine
             else:
                 self.modules['vector_dot'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
-                self.modules['vector_dot'].fine     = self.set_sparse_fine()
-
+                self.modules['vector_dot'].sparsity = min(self.get_stream_sparsity())
 
         # accum
         self.modules['accum'].rows     = self.rows_out()
@@ -444,7 +456,7 @@ class ConvolutionLayer(Layer):
         elif self.backend == "chisel":
             self.modules['accum'].filters  = self.filters//(self.coarse_out*self.groups)
             self.modules['accum'].groups   = 1
-            if self.sparsity == 0.0:
+            if len(self.sparsity) == 0:
                 self.modules['accum'].channels = (
                     self.channels*self.kernel_size[0]*self.kernel_size[1])//(
                     self.fine*self.coarse_in*self.coarse_group)
@@ -490,12 +502,13 @@ class ConvolutionLayer(Layer):
         parameters.pad_bottom   = self.pad_bottom
         parameters.pad_left     = self.pad_left
         parameters.has_bias     = self.has_bias
-        parameters.sparsity     = self.sparsity
-        if self.sparsity == 0.0:
+        if len(self.sparsity) == 0:
             parameters.fine  = self.fine
+            parameters.sparsity     = 0
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
+            parameters.sparsity = self.modules["vector_dot"].sparsity
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
 
@@ -516,7 +529,10 @@ class ConvolutionLayer(Layer):
 
     def get_fine_feasible(self):
         if self.backend == "chisel":
-            return get_factors(self.kernel_size[0]*self.kernel_size[1])
+            if len(self.sparsity) == 0:
+                return get_factors(self.kernel_size[0]*self.kernel_size[1])
+            else:
+                return list(range(1,self.kernel_size[0]*self.kernel_size[1]+1))
         elif self.backend == "hls":
             if self.kernel_size[0] != self.kernel_size[1]:
                 # assert(self.kernel_size[0] == 1 or self.kernel_size[1] == 1)
@@ -602,11 +618,15 @@ class ConvolutionLayer(Layer):
             array_resource_model = uram_array_resource_model
 
         if self.data_packing:
-            weight_array_depth = int(weight_memory_depth)
-            weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
-            weight_array_num = 1
+            weight_array_depth = math.ceil(weight_memory_depth)
+            if len(self.sparsity) == 0:
+                weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+                weight_array_num = 1
+            else:
+                weight_array_width = self.weight_t.width*self.fine*self.coarse_out*self.coarse_group
+                weight_array_num = self.coarse_in
         else:
-            weight_array_depth = int(weight_memory_depth)
+            weight_array_depth = math.ceil(weight_memory_depth)
             weight_array_width = self.weight_t.width
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 

@@ -116,7 +116,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
             self.attr.setdefault("strides", [1,1])
             self.attr.setdefault("pads", [0,0,0,0])
             self.attr.setdefault("dilations", [1,1])
-            self.attr.setdefault("input sparsity", 0.0)
+            self.attr.setdefault("input sparsity", [])
         else:
             self.attr.setdefault("group", 1)
             self.attr.setdefault("strides", [1,1,1])

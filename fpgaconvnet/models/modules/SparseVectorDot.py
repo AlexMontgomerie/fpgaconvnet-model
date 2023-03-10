@@ -18,14 +18,14 @@ class SparseVectorDot(Module):
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
 
-    def rate_kernel_sparsity(self, fine):
-        return 1.0/math.ceil(float(self.kernel_size[0]*self.kernel_size[1]*(1-self.sparsity))/fine)
+    def rate_kernel_sparsity(self):
+        return min(1.0, 1.0/(float(self.kernel_size[0]*self.kernel_size[1]*(1-self.sparsity))/self.fine))
 
     def rate_in(self):
-        return 1.0/float(self.filters)*self.rate_kernel_sparsity(self.fine)
+        return 1.0/float(self.filters)*self.rate_kernel_sparsity()
 
     def rate_out(self):
-        return self.rate_kernel_sparsity(self.fine)
+        return self.rate_kernel_sparsity()
 
     def module_info(self):
         return {
