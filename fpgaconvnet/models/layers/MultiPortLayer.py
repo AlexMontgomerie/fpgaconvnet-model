@@ -60,7 +60,7 @@ class MultiPortLayer:
     mem_bw_out: List[float] = field(default_factory=lambda: [100.0], init=True)
     ports_in: int = field(default=1, init=True)
     ports_out: int = field(default=1, init=True)
-    data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
     def __post_init__(self):
