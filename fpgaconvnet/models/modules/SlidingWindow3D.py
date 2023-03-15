@@ -272,12 +272,12 @@ class SlidingWindow3D(Module3D):
             # get the window buffer BRAM estimate
             window_buffer_depth = self.channels * \
                                   (self.depth + self.pad_front + self.pad_back)
-            window_buffer_bram = bram_memory_resource_model(
+            window_buffer_bram = bram_array_resource_model(
                     window_buffer_depth, self.kernel_rows*self.streams*(self.kernel_cols-1)*self.data_width, 'fifo')
 
             # get the tensor buffer BRAM estimate
             tensor_buffer_depth = self.channels
-            tensor_buffer_bram = bram_memory_resource_model(
+            tensor_buffer_bram = bram_array_resource_model(
                     tensor_buffer_depth, self.kernel_rows*self.kernel_cols*self.streams*(self.kernel_depth-1)*self.data_width, 'fifo')
 
             # add the bram estimation
