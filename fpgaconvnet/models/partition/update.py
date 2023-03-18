@@ -66,9 +66,14 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
     # search back in the graph for the split layer
     split_node = eltwise_node
-    while split_node := graphs.get_prev_nodes(self.graph, split_node)[0]:
+    while self.graph.in_degree(split_node) > 0:
+        split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
         if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split:
             break
+
+    # cannot find split layer, maybe it is vertical split
+    if self.graph.nodes[split_node]["type"] != LAYER_TYPE.Split:
+        return
 
     # get all the paths split layer and eltwise layer
     all_paths = list(nx.all_simple_paths(self.graph, source=split_node, target=eltwise_node))

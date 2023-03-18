@@ -44,17 +44,17 @@ def split_graph_horizontal(graph,edge):
 
 def split_graph_vertical(graph, nodes):
     input_node = get_input_nodes(graph)[0]
+    output_node = get_output_nodes(graph)[0]
     # find left side graph
-    left_nodes = []
+    left_nodes = [input_node, nodes[0][0]]
     for node in nodes[0]:
         left_nodes.extend( get_next_nodes_all(graph,node) )
-    left_nodes.extend(input_node)
     left_graph = graph.subgraph(left_nodes).copy()
     # find right side graph
-    right_nodes = []
+    right_nodes = [nodes[1][0]]
     for node in nodes[1]:
         right_nodes.extend( get_next_nodes_all(graph,node) )
-    right_nodes.extend(input_node)
+    right_nodes = [node for node in right_nodes if node != output_node]
     right_graph = graph.subgraph(right_nodes).copy()
     return left_graph, right_graph
 
