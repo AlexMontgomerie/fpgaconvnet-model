@@ -571,7 +571,8 @@ class ConvolutionLayer(Layer):
             # remove redundant modules
             if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
                 sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.fine == self.kernel_size[0]*self.kernel_size[1]:
+            if self.fine == self.kernel_size[0]*self.kernel_size[1] or len(self.sparsity) > 0:
+                # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
                 squeeze_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
