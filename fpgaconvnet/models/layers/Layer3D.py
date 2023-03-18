@@ -62,7 +62,7 @@ class Layer3D:
     _coarse_out: int
     mem_bw_in: float = field(default=100.0, init=True)
     mem_bw_out: float = field(default=100.0, init=True)
-    data_t: FixedPoint = field(default=FixedPoint(16,8), init=True)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
     buffer_depth: int = field(default=0, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
