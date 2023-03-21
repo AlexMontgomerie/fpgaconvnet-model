@@ -378,7 +378,7 @@ class ConvolutionLayer(Layer):
             indices = indices.flatten()
         else:
             indices = list(range(self.channels_in()))
-        
+
         stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         return stream_sparsity
 
@@ -485,7 +485,7 @@ class ConvolutionLayer(Layer):
         self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['shift_scale'].data_width     = self.output_t.width
         self.modules['shift_scale'].biases_width   = self.acc_t.width
-        
+
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters      = self.filters
@@ -552,7 +552,11 @@ class ConvolutionLayer(Layer):
         }
 
     def get_operations(self):
-        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        # return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out() + self.filters
+
+    def get_sparse_operations(self):
+        return self.get_operations()*np.average(self.sparsity)
 
     def resource(self):
 

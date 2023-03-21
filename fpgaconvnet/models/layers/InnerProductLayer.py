@@ -92,6 +92,9 @@ class InnerProductLayer(Layer):
 
         self.update()
 
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.filters
+
     @property
     def filters(self) -> int:
         return self._filters

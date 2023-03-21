@@ -94,6 +94,9 @@ def get_bandwidth_out(self,freq):
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])
 
+def get_total_sparse_operations(self):
+    return sum([self.graph.nodes[node]['hw'].get_sparse_operations() for node in self.graph.nodes])
+
 def get_resource_usage(self):
         # initialise resource usage at 0
         resource_usage = { # TODO: initialise with partition resource usage

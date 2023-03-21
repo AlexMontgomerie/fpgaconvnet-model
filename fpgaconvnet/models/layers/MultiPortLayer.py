@@ -437,6 +437,9 @@ class MultiPortLayer:
     def get_operations(self):
         return 0
 
+    def get_sparse_operations(self):
+        return self.get_operations()
+
     def layer_info_dict(self):
         # get parameters
         parameter = fpgaconvnet_pb2.parameter()

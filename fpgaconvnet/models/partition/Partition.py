@@ -59,6 +59,7 @@ class Partition():
     from fpgaconvnet.models.partition.metrics import get_cycle
     from fpgaconvnet.models.partition.metrics import get_latency
     from fpgaconvnet.models.partition.metrics import get_total_operations
+    from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
     from fpgaconvnet.models.partition.metrics import get_bandwidth_in
     from fpgaconvnet.models.partition.metrics import get_bandwidth_out
     from fpgaconvnet.models.partition.metrics import get_resource_usage

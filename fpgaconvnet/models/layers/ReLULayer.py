@@ -42,6 +42,9 @@ class ReLULayer(Layer):
 
         self.update()
 
+    def get_operations(self):
+        return self.rows_in()*self.cols_in()*self.channels_in()
+
     @property
     def coarse(self) -> int:
         return self._coarse
