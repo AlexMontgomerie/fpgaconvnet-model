@@ -13,7 +13,8 @@ class Partition():
             streams_out=1,
             batch_size=1,
             wr_factor=1,
-            port_width=64
+            port_width=64,
+            data_width=16
         ):
 
         ## graph for partition
@@ -27,8 +28,8 @@ class Partition():
         self.ports_out  = ports_out
 
         ## streams in and out
-        self.streams_in  = streams_in
-        self.streams_out = streams_out
+        self.streams_in  = [streams_in]
+        self.streams_out = [streams_out]
 
         ## weights reloading
         self.wr_layer   = self.get_wr_layer()
@@ -41,10 +42,11 @@ class Partition():
 
         ## bitwidths
         self.port_width     = port_width
+        self.data_width     = data_width
 
         # maximum streams in and out (TODO: turn into function calls)
-        self.max_streams_in     = self.ports_in*int(self.port_width/16)
-        self.max_streams_out    = self.ports_out*int(self.port_width/16)
+        self.max_streams_in     = self.ports_in*int(self.port_width/self.data_width)
+        self.max_streams_out    = self.ports_out*int(self.port_width/self.data_width)
 
         self.need_optimise = True
 

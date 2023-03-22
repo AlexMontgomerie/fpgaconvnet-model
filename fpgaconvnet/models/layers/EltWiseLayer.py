@@ -32,7 +32,7 @@ class EltWiseLayer(MultiPortLayer):
                 [channels]*ports_in, [coarse]*ports_in,
                 [coarse]*ports_in, ports_in=ports_in, data_t=data_t)
 
-        self.mem_bw_in = [100.0/self.ports_in] * self.ports_in
+        self.mem_bw_in = [100.0] * self.ports_in
 
         self.acc_t = acc_t
 

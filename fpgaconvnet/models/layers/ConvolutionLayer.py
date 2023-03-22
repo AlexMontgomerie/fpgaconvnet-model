@@ -58,7 +58,7 @@ class ConvolutionLayer(Layer):
 
         # initialise parent class
         super().__init__(rows, cols, channels,
-                coarse_in, coarse_out)
+                coarse_in, coarse_out, data_t=input_t)
 
         # save data types
         self.input_t = input_t
