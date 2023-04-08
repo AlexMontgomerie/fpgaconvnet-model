@@ -40,7 +40,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 class Parser:
 
     def __init__(self, backend="chisel", regression_model="linear_regression",
-            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=True):
+            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=False):
 
         # set the backend string
         self.backend = backend
