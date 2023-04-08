@@ -4,7 +4,6 @@ from typing import Union, List
 
 import pydot
 import numpy as np
-import torch
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -378,7 +377,7 @@ class ConvolutionLayer(Layer):
             indices = indices.flatten()
         else:
             indices = list(range(self.channels_in()))
-        
+
         stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         return stream_sparsity
 
@@ -485,7 +484,7 @@ class ConvolutionLayer(Layer):
         self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['shift_scale'].data_width     = self.output_t.width
         self.modules['shift_scale'].biases_width   = self.acc_t.width
-        
+
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters      = self.filters
@@ -721,6 +720,7 @@ class ConvolutionLayer(Layer):
         """
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"

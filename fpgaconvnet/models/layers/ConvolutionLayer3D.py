@@ -4,7 +4,6 @@ from typing import Union, List
 
 import pydot
 import numpy as np
-import torch
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -687,7 +686,7 @@ class ConvolutionLayer3D(Layer3D):
 
         if self.data_packing:
             weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), 
+                        int(weight_memory_depth),
                         self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
                         'memory')
         else:
@@ -771,6 +770,7 @@ class ConvolutionLayer3D(Layer3D):
         return cluster, np.array(slwin_name).flatten().tolist(), np.array(bias_name).flatten().tolist()
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"
