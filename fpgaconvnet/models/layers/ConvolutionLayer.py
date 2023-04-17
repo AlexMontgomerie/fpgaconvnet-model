@@ -51,6 +51,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             sparsity: list = [],
+            window_sparsity: list = [],
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
@@ -75,8 +76,9 @@ class ConvolutionLayer(Layer):
             # reject if pointwise or low sparsity
             if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
                 self.sparsity = []
+                self.window_sparsity = []
         self.sparsity = sparsity
-
+        self.window_sparsity = window_sparsity
         # init variables
         self._kernel_rows = kernel_rows
         self._kernel_cols = kernel_cols
@@ -378,9 +380,13 @@ class ConvolutionLayer(Layer):
             indices = indices.flatten()
         else:
             indices = list(range(self.channels_in()))
-        
+
         stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
-        return stream_sparsity
+        if len(self.window_sparsity) > 0:
+            stream_window_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
+        else:
+            stream_window_sparsity = 0
+        return stream_sparsity, stream_window_sparsity
 
     # def pipeline_depth(self):
     #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
@@ -443,7 +449,8 @@ class ConvolutionLayer(Layer):
                     self.fine*self.coarse_in*self.coarse_group)
             else:
                 self.modules['vector_dot'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
-                self.modules['vector_dot'].sparsity = min(self.get_stream_sparsity())
+                self.modules['vector_dot'].sparsity = self.get_stream_sparsity()[0]
+                self.modules['vector_dot'].window_sparsity = self.get_stream_sparsity()[1]
 
         # accum
         self.modules['accum'].rows     = self.rows_out()
@@ -485,7 +492,7 @@ class ConvolutionLayer(Layer):
         self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['shift_scale'].data_width     = self.output_t.width
         self.modules['shift_scale'].biases_width   = self.acc_t.width
-        
+
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters      = self.filters
@@ -504,11 +511,16 @@ class ConvolutionLayer(Layer):
         parameters.has_bias     = self.has_bias
         if len(self.sparsity) == 0:
             parameters.fine  = self.fine
-            parameters.sparsity     = 0
+            parameters.sparsity     = []
+            parameters.window_sparsity = []
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
             parameters.sparsity = self.modules["vector_dot"].sparsity
+            if len(self.window_sparsity) == 0:
+                parameters.window_sparsity = []
+            else:
+                parameters.window_sparsity = self.modules["vector_dot"].window_sparsity
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
 
