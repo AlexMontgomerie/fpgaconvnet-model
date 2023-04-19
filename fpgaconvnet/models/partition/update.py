@@ -8,27 +8,34 @@ import networkx as nx
 
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+from fpgaconvnet.models.layers import SqueezeLayer
 
 def update(self):
 
     ## remove auxiliary layers
     self.remove_squeeze()
 
-    ## update streams in and out
-    input_node  = graphs.get_input_nodes(self.graph)[0]
-    output_node = graphs.get_output_nodes(self.graph)[0]
-
-    ## get valid streams in and out
-    streams_in_valid = self.graph.nodes[input_node]["hw"].get_coarse_in_feasible()
-    streams_out_valid = self.graph.nodes[output_node]["hw"].get_coarse_out_feasible()
-
-    # get the max stream values in and out
-    streams_in_max = min(self.max_streams_in, self.graph.nodes[input_node]["hw"].streams_in())
-    streams_out_max = min(self.max_streams_out, self.graph.nodes[output_node]["hw"].streams_out())
-
-    # choose the max of all the valid stream values, below the max
-    self.streams_in = max([ s for s in streams_in_valid if s <= streams_in_max ])
-    self.streams_out = max([ s for s in streams_out_valid if s <= streams_out_max ])
+    ## update streams in
+    self.streams_in = []
+    inputs = graphs.get_input_nodes(self.graph)
+    for i, input_node in enumerate(inputs):
+        ## get valid streams in
+        streams_in_valid = self.graph.nodes[input_node]["hw"].get_coarse_in_feasible()
+        # get the max stream values in
+        streams_in_max = min(self.max_streams_in//len(inputs), self.graph.nodes[input_node]["hw"].streams_in())
+        # choose the max of all the valid stream values, below the max
+        self.streams_in.append(max([ s for s in streams_in_valid if s <= streams_in_max ]))
+        
+    ## update streams out
+    self.streams_out = []
+    outputs = graphs.get_output_nodes(self.graph)
+    for i, output_node in enumerate(outputs):
+        ## get valid streams out
+        streams_out_valid = self.graph.nodes[output_node]["hw"].get_coarse_out_feasible()
+        # get the max stream values out
+        streams_out_max = min(self.max_streams_out//len(outputs), self.graph.nodes[output_node]["hw"].streams_out())
+        # choose the max of all the valid stream values, below the max
+        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))    
 
     ## add auxiliary layers
     self.add_squeeze()
@@ -66,10 +73,14 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
     # search back in the graph for the split layer
     split_node = eltwise_node
-    if graphs.get_prev_nodes(self.graph, split_node):
-        while split_node := graphs.get_prev_nodes(self.graph, split_node)[0]:
-            if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split or split_node in graphs.get_input_nodes(self.graph):
-                break
+    while self.graph.in_degree(split_node) > 0:
+        split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
+        if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split:
+            break
+
+    # cannot find split layer, maybe it is vertical split
+    if self.graph.nodes[split_node]["type"] != LAYER_TYPE.Split:
+        return
 
     # get all the paths split layer and eltwise layer
     all_paths = list(nx.all_simple_paths(self.graph, source=split_node, target=eltwise_node))
@@ -168,12 +179,50 @@ def reduce_squeeze_fanout(self):
     design.
     """
 
-    # remove all the squeeze nodes
+    def _add_dummy_squeeze():
+        inputs = graphs.get_input_nodes(self.graph)
+        for i, input_node in enumerate(inputs):
+            # add node to graph
+            new_node  = "_".join([input_node,"squeeze"])
+            # add node to node info
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                hw=SqueezeLayer(
+                    self.graph.nodes[input_node]['hw'].rows_in(),
+                    self.graph.nodes[input_node]['hw'].cols_in(),
+                    self.graph.nodes[input_node]['hw'].channels_in(),
+                    self.max_streams_in//len(inputs),
+                    self.max_streams_in//len(inputs)
+                )
+            )
+            # add edge to graph
+            self.graph.add_edge(new_node,input_node)
+        # check difference in output streams
+        outputs = graphs.get_output_nodes(self.graph)
+        for i, output_node in enumerate(outputs):
+            # add node to graph
+            new_node  = "_".join(["squeeze",output_node])
+            # add node to node info
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                hw=SqueezeLayer(
+                    self.graph.nodes[output_node]['hw'].rows_out(),
+                    self.graph.nodes[output_node]['hw'].cols_out(),
+                    self.graph.nodes[output_node]['hw'].channels_out(),
+                    self.max_streams_out//len(outputs),
+                    self.max_streams_out//len(outputs)
+                )
+            )
+            self.graph.add_edge(output_node,new_node)
+
     self.remove_squeeze()
+    _add_dummy_squeeze()
 
     # get all the convolution and inner product layers in graph
     find_conv = lambda node: self.graph.nodes[node]["type"] in \
-            [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
+            [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct, LAYER_TYPE.Squeeze ]
     all_conv = filter(find_conv, self.graph.nodes)
 
     # get all pairs of conv modules
@@ -196,8 +245,8 @@ def reduce_squeeze_fanout(self):
         node_out = path[-1]
 
         # get coarse between conv layers
-        coarse_start = self.graph.nodes[node_in]["hw"].coarse_out
-        coarse_end = self.graph.nodes[node_out]["hw"].coarse_in
+        coarse_start = self.graph.nodes[node_in]["hw"].streams_out()
+        coarse_end = self.graph.nodes[node_out]["hw"].streams_in()
 
         # choose the min of coarse factors
         coarse_between = min(coarse_start, coarse_end)
@@ -206,8 +255,12 @@ def reduce_squeeze_fanout(self):
         for node in path[1:-1]:
 
             # update the coarse factor for in-between nodes
-            self.graph.nodes[node_out]["hw"].coarse = coarse_between
+            if self.graph.nodes[node]["hw"]._coarse < coarse_between:
+                self.graph.nodes[node]["hw"].coarse_in = coarse_between
+            if self.graph.nodes[node]["hw"]._coarse < coarse_between:
+                self.graph.nodes[node]["hw"].coarse_out = coarse_between
             self.graph.nodes[node]["hw"].update()
 
-    # add back the squeeze modules
+    # remove the dummy squeeze nodes
+    self.remove_squeeze()
     self.add_squeeze()

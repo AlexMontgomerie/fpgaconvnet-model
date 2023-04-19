@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import pydot
-import torch
 from typing import Union, List
 
 from fpgaconvnet.models.modules import Concat

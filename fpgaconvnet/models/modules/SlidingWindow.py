@@ -131,20 +131,48 @@ class SlidingWindow(Module):
         # return the info
         return info
 
+    def buffer_estimate(self):
+        # line buffer
+        line_buffer_depth = self.cols*self.channels
+        if self.data_packing:
+            line_buffer_bram =  bram_array_resource_model(
+                line_buffer_depth, (self.kernel_size[0]-1)*self.data_width, "fifo")
+        else:
+            line_buffer_bram =  (self.kernel_size[0]-1) * bram_array_resource_model(
+                line_buffer_depth, self.data_width, "fifo")
+        if line_buffer_bram == 0:
+            line_buffer_lutram =  (self.kernel_size[0]-1) * queue_lutram_resource_model(
+                line_buffer_depth, self.data_width)
+        else:
+            line_buffer_lutram = 0
+
+        # window buffer
+        window_buffer_depth = self.channels
+        if self.data_packing:
+            window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
+                    window_buffer_depth, (self.kernel_size[1]-1)*self.data_width, "fifo")
+        else:
+            window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1)*bram_array_resource_model(
+                    window_buffer_depth, self.data_width, "fifo")
+        if window_buffer_bram == 0:            
+            window_buffer_lutram = self.kernel_size[0]*(self.kernel_size[1]-1)*queue_lutram_resource_model(
+                        window_buffer_depth, self.data_width)
+        else:
+            window_buffer_lutram = 0
+
+        # frame buffer
+        frame_buffer_lutram = self.kernel_size[0]*self.kernel_size[1]*\
+                            queue_lutram_resource_model(2, self.data_width)
+    
+        return line_buffer_bram, line_buffer_lutram, window_buffer_bram, window_buffer_lutram, frame_buffer_lutram
+
     def utilisation_model(self):
+        # get the buffer estimates
+        _, line_buffer_lutram, _, window_buffer_lutram, frame_buffer_lutram = \
+            self.buffer_estimate()
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
-            line_buffer_depth = self.cols*self.channels
-            line_buffer_lutram = queue_lutram_resource_model(
-                        line_buffer_depth, self.data_width)
-            if line_buffer_depth <= 256:
-                line_buffer_lutram = 0
-            window_buffer_depth = self.channels
-            window_buffer_lutram = queue_lutram_resource_model(
-                        window_buffer_depth, self.data_width)
-            if window_buffer_depth <= 256:
-                window_buffer_lutram = 0
             return {
                 "Logic_LUT" : np.array([
                     self.data_width,
@@ -154,11 +182,9 @@ class SlidingWindow(Module):
                     self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
                 ]),
                 "LUT_RAM"   : np.array([
-                    (self.kernel_size[0]-1)*line_buffer_lutram, # line buffer
-                    self.kernel_size[0]*(self.kernel_size[1]-1)*\
-                            window_buffer_lutram, # window buffer
-                    self.kernel_size[0]*self.kernel_size[1]*\
-                            queue_lutram_resource_model(2, self.data_width), # frame buffer
+                    line_buffer_lutram, # line buffer
+                    window_buffer_lutram, # window buffer
+                    frame_buffer_lutram, # frame buffer
                 ]),
                 "LUT_SR"    : np.array([1]),
                 "FF"        : np.array([
@@ -192,23 +218,8 @@ class SlidingWindow(Module):
         rsc = Module.rsc(self, coef, model)
 
         if self.regression_model == "linear_regression":
-            # get the line buffer BRAM estimate
-            line_buffer_depth = (self.cols+self.pad_left+self.pad_right)*self.channels+1
-            if self.data_packing:
-                line_buffer_bram =  bram_array_resource_model(
-                    line_buffer_depth, (self.kernel_size[0]-1)*self.data_width, "fifo")
-            else:
-                line_buffer_bram =  (self.kernel_size[0]-1) * bram_array_resource_model(
-                    line_buffer_depth, self.data_width, "fifo")
-
-            # get the window buffer BRAM estimate
-            window_buffer_depth = self.channels+1
-            if self.data_packing:
-                window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
-                        window_buffer_depth, (self.kernel_size[1]-1)*self.data_width, "fifo")
-            else:
-                window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1)*bram_array_resource_model(
-                        window_buffer_depth, self.data_width, "fifo")
+            # get the buffer estimates
+            line_buffer_bram, _, window_buffer_bram, _, _ = self.buffer_estimate()
 
             # add the bram estimation
             rsc["BRAM"] = line_buffer_bram + window_buffer_bram

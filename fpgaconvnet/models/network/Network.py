@@ -7,7 +7,6 @@ import copy
 import math
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
@@ -24,11 +23,9 @@ from fpgaconvnet.models.layers import SqueezeLayer
 
 from fpgaconvnet.models.partition import Partition
 
-from fpgaconvnet.platform import Platform
-
 class Network():
 
-    def __init__(self, name, model, graph, dimensionality=2, batch_size=1,
+    def __init__(self, name, model, graph, platform, dimensionality=2, batch_size=1,
             rsc_allocation=1.0, backend="hls"):
 
         # backend
@@ -57,11 +54,15 @@ class Network():
         self.node_list = list(self.graph.nodes())
         self.edge_list = list(self.graph.edges())
 
-        # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph)) ]
-
         # platform
-        self.platform = Platform()
+        self.platform = platform
+
+        # get the input data width
+        input_node  = graphs.get_input_nodes(self.graph)[0]
+        self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
+
+        # partitions
+        self.partitions = [ Partition(copy.deepcopy(self.graph), port_width=self.platform.port_width, data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)

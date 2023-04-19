@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import pydot
-import torch
 
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
@@ -282,6 +281,7 @@ class InnerProductLayer(Layer):
         return cluster, fork_name, bias_name
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"

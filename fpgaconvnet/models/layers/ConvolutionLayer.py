@@ -4,7 +4,6 @@ from typing import Union, List
 
 import pydot
 import numpy as np
-import torch
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -58,7 +57,7 @@ class ConvolutionLayer(Layer):
 
         # initialise parent class
         super().__init__(rows, cols, channels,
-                coarse_in, coarse_out)
+                coarse_in, coarse_out, data_t=input_t)
 
         # save data types
         self.input_t = input_t
@@ -575,7 +574,8 @@ class ConvolutionLayer(Layer):
             # remove redundant modules
             if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
                 sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.fine == self.kernel_size[0]*self.kernel_size[1]:
+            if self.fine == self.kernel_size[0]*self.kernel_size[1] or len(self.sparsity) > 0:
+                # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
                 squeeze_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
@@ -724,6 +724,7 @@ class ConvolutionLayer(Layer):
         """
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"

@@ -6,7 +6,6 @@ import math
 import os
 from dataclasses import dataclass, field
 
-import torch
 import numpy as np
 import pydot
 
@@ -65,6 +64,8 @@ class Activation3D(Module3D):
                 fontsize=MODULE_3D_FONTSIZE)
 
     def functional_model(self, data):
+        import torch
+
         # check input dimensionality
         assert data.shape[0] == self.rows     , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols     , "ERROR: invalid column dimension"

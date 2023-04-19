@@ -20,6 +20,7 @@ from fpgaconvnet.models.layers import SplitLayer
 # from ..models.partition.Partition import Partition
 # from ..models.network.Network import Network
 
+from fpgaconvnet.platform import Platform
 
 import fpgaconvnet.tools.graphs as graphs
 
@@ -39,7 +40,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2
 class Parser:
 
     def __init__(self, backend="chisel", regression_model="linear_regression",
-            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=True):
+            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=False):
 
         # set the backend string
         self.backend = backend
@@ -231,7 +232,7 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, save_opt_model=True):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
@@ -268,7 +269,9 @@ class Parser:
         graph = self.add_split(graph)
 
         # return the graph
-        return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
+        platform = Platform()
+        platform.update(platform_filepath)
+        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality)
 
     def get_hardware_from_prototxt_node(self, node):
 
@@ -327,7 +330,7 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph)
+            new_partition = Partition(graph, port_width=net.platform.port_width)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)

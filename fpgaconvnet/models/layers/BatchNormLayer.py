@@ -92,7 +92,7 @@ class BatchNormLayer(Layer):
         }
 
     def functional_model(self,data,gamma,beta,batch_size=1):
-
+        import torch
 
         assert data.shape[0] == self.rows    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR (data): invalid column dimension"

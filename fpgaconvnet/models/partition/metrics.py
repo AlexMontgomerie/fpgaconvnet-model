@@ -69,27 +69,33 @@ def get_bandwidth_in(self,freq):
     # get the interval for the partition
     interval = self.get_interval()
     # get workload and streams in
-    input_node = graphs.get_input_nodes(self.graph)[0]
-    workload = self.graph.nodes[input_node]["hw"].workload_in()
-    streams = self.streams_in
-    # calculate rate from interval
-    rate = workload / (interval*streams)
-    # get bandwidth (GB/s)
-    # return (rate*streams*self.data_width*freq)/8000
-    return (rate*streams*16*freq)/8000
+    bw_in = []
+    inputs = graphs.get_input_nodes(self.graph)
+    for i, input_node in enumerate(inputs):
+        workload = self.graph.nodes[input_node]["hw"].workload_in()
+        streams = self.streams_in[i]
+        # calculate rate from interval
+        rate = workload / (interval*streams)
+        # get bandwidth (GB/s)
+        # return (rate*streams*self.data_width*freq)/8000
+        bw_in.append((rate*streams*self.data_width*freq)/8000)
+    return bw_in
 
 def get_bandwidth_out(self,freq):
     # get the interval for the partition
     interval = self.get_interval()
     # get workload and streams out
-    output_node = graphs.get_output_nodes(self.graph)[0]
-    workload = self.graph.nodes[output_node]["hw"].workload_out()
-    streams = self.streams_out
-    # calculate rate from interval
-    rate = workload / (interval*streams)
-    # get bandwidth (GB/s)
-    # return (rate*streams*self.data_width*freq)/8000
-    return (rate*streams*16*freq)/8000
+    bw_out = []
+    outputs = graphs.get_output_nodes(self.graph)
+    for i, output_node in enumerate(outputs):
+        workload = self.graph.nodes[output_node]["hw"].workload_out()
+        streams = self.streams_out[i]
+        # calculate rate from interval
+        rate = workload / (interval*streams)
+        # get bandwidth (GB/s)
+        # return (rate*streams*self.data_width*freq)/8000
+        bw_out.append((rate*streams*self.data_width*freq)/8000)
+    return bw_out
 
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])
