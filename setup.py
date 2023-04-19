@@ -3,6 +3,9 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open('requirements.txt') as f:
+    required_packages = f.read().splitlines()
+
 setuptools.setup(
     name="fpgaconvnet-model", # Replace with your own username
     version="0.1.4.1",
@@ -20,29 +23,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.9',
-    # install_requires=[
-    #     "networkx>=2.5",
-    #     "numpy>=1.19.2",
-    #     "protobuf>=3.12.2, <=3.20.1",
-    #     "torch>=1.7.1",
-    #     "pyyaml>=5.1.0",
-    #     "scipy>=1.2.1",
-    #     "torchvision>=0.8.2",
-    #     "onnx>=1.12.0",
-    #     "onnxruntime>=1.12.0",
-    #     "graphviz>=0.16",
-    #     "pydot>=1.4.2",
-    #     "onnxoptimizer==0.3.8",
-    #     "ddt>=1.4.2",
-    #     "sklearn",
-    #     "toml",
-    #     "matplotlib",
-    #     "coverage==5.5",
-    #     "onnxsim==0.4.17",
-    #     "fpbinary>=1.5.3",
-    #     "pyparsing<3",
-    #     "tqdm",
-    #     "pymongo",
-    #     "xgboost",
-    # ]
+    install_requires=required_packages,
 )

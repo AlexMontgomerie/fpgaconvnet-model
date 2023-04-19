@@ -7,6 +7,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.parser.onnx.passes as onnx_passes
 
+from fpgaconvnet.models.layers import BatchNormLayer
+
 def get_quant_param(model):
 
     # dictionary of quantisation parameters
@@ -25,15 +27,19 @@ def get_quant_param(model):
         # default quant param
         quant_param[node_name] = {
             "input_t" : {
-                "width" : 8,
+                "width" : 9,
                 "binary_point": 0,
             },
             "output_t" : {
-                "width" : 8,
+                "width" : 32,
                 "binary_point": 0,
             },
             "data_t" : {
-                "width" : 8,
+                "width" : 32,
+                "binary_point": 0,
+            },
+            "acc_t" : {
+                "width" : 32,
                 "binary_point": 0,
             },
         }
@@ -77,8 +83,8 @@ def get_quant_param(model):
 
                 # update quant parameters
                 quant_param[node_name]["output_quant"] = {
-                    "scale": onnx.numpy_helper.to_array(scale).item(),
-                    "zero_point": onnx.numpy_helper.to_array(zero_point).item(),
+                    "scale": onnx.numpy_helper.to_array(scale),
+                    "zero_point": onnx.numpy_helper.to_array(zero_point),
                 }
 
         except StopIteration:
@@ -107,7 +113,53 @@ def get_quant_param(model):
                 "binary_point": 0,
             }
 
+            # get the scale and zero points for weights
+            scale = onnx_helper.get_model_initializer(model,
+                    weight_node.input[1], to_tensor=False)
+            zero_point = onnx_helper.get_model_initializer(model,
+                    weight_node.input[2], to_tensor=False)
+
+            # update quant parameters
+            quant_param[node_name]["weight_quant"] = {
+                "scale": onnx.numpy_helper.to_array(scale),
+                "zero_point": onnx.numpy_helper.to_array(zero_point),
+            }
+
+
     # return quantisation parameters
     return quant_param
 
+def get_scale_shift_node(quant_param, hw_node):
+
+    # get the scale and shift
+    input_scale  = quant_param["input_quant"]["scale"]
+    weight_scale = np.atleast_1d(quant_param["weight_quant"]["scale"])
+    output_scale = quant_param["output_quant"]["scale"]
+
+    # get the per-channel scale and shift
+    quant_scale = []
+    quant_shift = []
+    for ws in weight_scale:
+
+        # get significand and exponent for output scale
+        effective_os = input_scale * ws / output_scale
+        man, exp = math.frexp(effective_os)
+
+        # convert to quantised multiplication
+        quant_scale.append(man * (1 << 31)) # TODO: handle edge cases, like https://github.com/tensorflow/tflite-micro/blob/365a9f3fbaa2fccd732315ac42ab6a13dff455cf/tensorflow/lite/kernels/internal/quantization_util.cc#L53-L105
+        quant_shift.append(31 - exp)
+
+    # create a batch norm layer
+    bn_node = BatchNormLayer(
+        hw_node.hw.rows_out(),
+        hw_node.hw.cols_out(),
+        hw_node.hw.channels_out()
+    )
+
+    # add scale and shift
+    bn_node.scale = quant_scale
+    bn_node.shift = quant_shift
+
+    # return the batch norm layer
+    return { "type": LAYER_TYPE.BatchNorm, "hw": bn_node, "onnx_node": hw_node.name }
 

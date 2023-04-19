@@ -6,8 +6,8 @@ message fixed_point {
 }
 
 message quant_format {
-    required float scale = 1;
-    required int32 zero_point = 2;
+    repeated float scale = 1;
+    repeated int32 zero_point = 2;
 }
 
 message stream {
@@ -77,6 +77,10 @@ message parameter {
     optional float sparsity = 57;
     optional bool use_uram = 58;
     optional bool block_floating_point = 59;
+    repeated float scale = 60;
+    repeated float shift = 61;
+    optional fixed_point scale_t = 62;
+    optional fixed_point shift_t = 63;
 }
 
 message layer {

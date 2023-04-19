@@ -1,3 +1,5 @@
+import math
+
 import onnx
 import numpy as np
 
@@ -533,7 +535,7 @@ def rename_all_nodes(model):
 
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
-        model.graph.node[index].name = onnx_helper.format_onnx_name(node)
+        model.graph.node[index].name = f"{model.graph.node[index].op_type}_{index}"
 
     # return the new model
     return model
@@ -660,12 +662,14 @@ def fuse_mul_add_into_bn(model):
         if node.op_type != "Mul":
             continue
 
+
         # get the next node
         try:
-            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+            next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
         except StopIteration:
             continue
 
+        print(node)
         # check noext node is add
         if next_node.op_type != "Add":
             continue
@@ -1000,5 +1004,96 @@ def eliminate_nop_pad(model):
         # remove dropout node
         model.graph.node.remove(node)
         next_node.input[0] = node.input[0]
+
+    return model
+
+def move_relu_after_quant(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a pad node
+        if node.op_type != "Relu":
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # check next node is quantize linear
+        if next_node.op_type != "QuantizeLinear":
+            continue
+
+        # get the next next node
+        next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+
+        # move the relu after quantize
+        next_node.input[0] = node.input[0]
+        node.input[0] = next_node.output[0]
+        next_next_node.input[0] = node.output[0]
+
+        # find relu output value info
+        node_vi = next(filter(lambda x: x.name == node.output[0], model.graph.value_info))
+        next_node_vi = next(filter(lambda x: x.name == next_node.output[0], model.graph.value_info))
+
+        # update the output type
+        node_vi.type.tensor_type.elem_type = next_node_vi.type.tensor_type.elem_type
+
+    return model
+
+def insert_scale_shift_quant(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find Gemm and Conv nodes
+        if node.op_type not in ["Gemm", "Conv"]:
+            continue
+
+        # get quant and dequant layers
+        input_quant = next(filter(lambda x: \
+                x.output[0] == node.input[0], model.graph.node))
+        weight_quant = next(filter(lambda x: \
+                x.output[0] == node.input[1], model.graph.node))
+        output_quant = next(filter(lambda x: \
+                x.input[0] == node.output[0], model.graph.node))
+
+        # get input, weight and output scale
+        input_scale = onnx_helper.get_model_initializer(model,
+                        input_quant.input[1], to_tensor=True)
+        weight_scale = np.atleast_1d(onnx_helper.get_model_initializer(model,
+                        weight_quant.input[1], to_tensor=True))
+        output_scale = onnx_helper.get_model_initializer(model,
+                        output_quant.input[1], to_tensor=True)
+
+        # get the per-channel scale and shift
+        quant_scale = []
+        quant_shift = []
+        for ws in weight_scale:
+
+            # get significand and exponent for output scale
+            effective_os = input_scale * ws / output_scale
+            man, exp = math.frexp(effective_os)
+
+            # convert to quantised multiplication
+            quant_scale.append(man * (1 << 31))
+            quant_shift.append(31 - exp)
+
+        # # add an empty bias term
+        # quant_scale_init = onnx.helper.make_tensor(
+        #     name="_".join([node.input[1],"bias"]),
+        #     data_type=init.data_type,
+        #     dims=(weights.shape[0],),
+        #     vals=np.zeros(weights.shape[0]).flatten().tolist())
+        # new_bias_value_info = onnx.helper.make_tensor_value_info(
+        #         new_bias.name,
+        #         onnx.TensorProto.FLOAT,
+        #         [weights.shape[0]])
+        #     # update the graph
+        #     model.graph.initializer.insert(-1,new_bias)
+        #     model.graph.input.insert(-1,new_bias_value_info)
+
+        # # create batch norm node
+
+        # print(quant_scale, quant_shift)
 
     return model

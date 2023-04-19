@@ -17,9 +17,6 @@ import numpy as np
 from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.models.layers import SplitLayer
-# from ..models.partition.Partition import Partition
-# from ..models.network.Network import Network
-
 from fpgaconvnet.platform import Platform
 
 import fpgaconvnet.tools.graphs as graphs
@@ -30,9 +27,10 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-
 from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
 from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
+
+from fpgaconvnet.parser.quant.int import get_scale_shift_node
 
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
@@ -90,9 +88,11 @@ class Parser:
             "convert_reshape_to_flatten",
             "convert_transpose_flatten_gemm_to_flatten_gemm",
             "rename_all_nodes",
+            "move_relu_after_quant",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
+            # "insert_scale_shift_quant",
             "remove_quant_nodes",
         ]
 
@@ -144,6 +144,8 @@ class Parser:
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
 
+        onnx.save(model_opt, "model_opt.onnx")
+
         # infer shapes before manual optimisations
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
@@ -151,11 +153,12 @@ class Parser:
         model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_post_onnx_passes)
 
         # infer shapes of optimised model
-        self.model_opt = onnx.shape_inference.infer_shapes(model_opt)
+        model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         if not self.custom_onnx:
             # check optimized model
             onnx.checker.check_model(model_opt)
+
 
         return model_opt, dimensionality
 
@@ -246,8 +249,13 @@ class Parser:
         # create a networkx graph
         graph = nx.DiGraph()
 
+        # extra quantisation nodes
+        extra_quant_nodes = []
+
         # add nodes from onnx to the graph
         for node in onnx_model.graph.node:
+
+            # get the node name
             node_name = onnx_helper.format_onnx_name(node)
 
             # get the hardware for the node
@@ -261,6 +269,29 @@ class Parser:
             # get edges from the hardware
             for edge in hardware.get_edges_in(onnx_model):
                 graph.add_edge(*edge)
+
+            # add extra quantisation hardware
+            if "weight_quant" in quant_format[node_name]: # TODO: check all in
+                extra_quant_nodes.append((hardware, quant_format[node_name]))
+
+        # add the extra quantisation nodes
+        for node, quant_format in extra_quant_nodes:
+
+            # get the batch norm node
+            bn_node = get_scale_shift_node(quant_format, node)
+
+            # add node to graph
+            graph.add_node(f"{node.name}_scale_shift", **bn_node)
+
+            # insert the bn node after the node
+            for node_out in graphs.get_next_nodes(graph, node.name):
+
+                # remove previous edge, and add new
+                graph.add_edge(f"{node.name}_scale_shift", node_out)
+                graph.remove_edge(node.name, node_out)
+
+            # connect batch norm to node
+            graph.add_edge(node.name, f"{node.name}_scale_shift")
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
