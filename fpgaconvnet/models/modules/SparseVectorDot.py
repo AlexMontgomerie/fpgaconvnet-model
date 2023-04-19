@@ -22,9 +22,9 @@ class SparseVectorDot(Module):
     def rate_kernel_sparsity(self):
         assert len(self.window_sparsity) == len(self.sparsity)
         upper_bound_rates = 1.0/(1-np.array(self.window_sparsity))
-        mac_rates = 1.0/(self.kernel_size[0]*self.kernel_size[1]*(1-np.array(self.sparsity))/self.fine)
+        mac_rates = np.minimum(1, 1.0/(self.kernel_size[0]*self.kernel_size[1]*(1-np.array(self.sparsity))/self.fine))
 
-        rates = np.vstack((upper_bound_rates, mac_rates)).min(axis = 0)
+        rates = np.multiply(upper_bound_rates, mac_rates)
         return rates.min()
 
     def rate_in(self):

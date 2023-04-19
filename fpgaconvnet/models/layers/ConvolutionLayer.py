@@ -173,7 +173,7 @@ class ConvolutionLayer(Layer):
 
                 self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                         self.channels_in()//(self.coarse_in*self.coarse_group),
-                        self.filters//(self.coarse_out*self.groups), 1,
+                        self.filters//(self.coarse_out*self.groups), 1, window_sparsity = self.window_sparsity,
                         backend=self.backend, regression_model=self.regression_model)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
@@ -470,6 +470,7 @@ class ConvolutionLayer(Layer):
                     self.fine*self.coarse_in*self.coarse_group)
             else:
                 self.modules['accum'].channels = self.channels//(self.coarse_in*self.coarse_group)
+                self.modules['accum'].window_sparsity = self.get_stream_sparsity()[1]
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
