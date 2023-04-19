@@ -108,8 +108,11 @@ class MultiPortLayer:
 
     @channels.setter
     def channels(self, val: List[int]) -> None:
-        assert(len(val) == self.ports_in)
-        self._channels = val
+        # assert(len(val) == self.ports_in)
+        if isinstance(val, list):
+            self._channels = val
+        else:
+            self._channels = [val]
         # self.update()
 
     @coarse_in.setter

@@ -1,2 +1,2 @@
 #!/bin/bash
-protoc --python_out=. fpgaconvnet.proto
+~/.local/bin/protoc --python_out=. fpgaconvnet.proto

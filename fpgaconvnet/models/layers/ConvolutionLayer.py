@@ -79,6 +79,7 @@ class ConvolutionLayer(Layer):
                 self.window_sparsity = []
         self.sparsity = sparsity
         self.window_sparsity = window_sparsity
+        assert len(self.window_sparsity) == len(self.sparsity)
         # init variables
         self._kernel_rows = kernel_rows
         self._kernel_cols = kernel_cols
@@ -167,7 +168,7 @@ class ConvolutionLayer(Layer):
                 self.modules["vector_dot"] = SparseVectorDot(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.filters//(self.coarse_out*self.groups),
-                    self.kernel_size, self.sparsity, self.fine,
+                    self.kernel_size, self.sparsity, self.window_sparsity, self.fine,
                     backend=self.backend, regression_model=self.regression_model)
 
                 self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
@@ -383,7 +384,7 @@ class ConvolutionLayer(Layer):
 
         stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         if len(self.window_sparsity) > 0:
-            stream_window_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
+            stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         else:
             stream_window_sparsity = 0
         return stream_sparsity, stream_window_sparsity
@@ -511,16 +512,16 @@ class ConvolutionLayer(Layer):
         parameters.has_bias     = self.has_bias
         if len(self.sparsity) == 0:
             parameters.fine  = self.fine
-            parameters.sparsity     = []
-            parameters.window_sparsity = []
+            parameters.sparsity.extend([])
+            parameters.window_sparsity.extend([])
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
-            parameters.sparsity = self.modules["vector_dot"].sparsity
+            parameters.sparsity.extend(self.modules["vector_dot"].sparsity)
             if len(self.window_sparsity) == 0:
-                parameters.window_sparsity = []
+                parameters.window_sparsity.extend([])
             else:
-                parameters.window_sparsity = self.modules["vector_dot"].window_sparsity
+                parameters.window_sparsity.extend(self.modules["vector_dot"].window_sparsity)
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
 
