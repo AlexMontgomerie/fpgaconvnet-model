@@ -32,6 +32,7 @@ class Partition():
         self.streams_out = [streams_out]
 
         ## weights reloading
+        self.enable_wr  = True
         self.wr_layer   = self.get_wr_layer()
         self.wr_factor  = wr_factor
 
@@ -149,6 +150,8 @@ class Partition():
                 self.graph.nodes[output_node]["hw"].latency() > max_compute_latency
 
     def get_wr_layer(self):
+        if not self.enable_wr:
+            return None
         # all transformable layer types
         transformable_layers = [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
         # iterative function to find weights reloading layer

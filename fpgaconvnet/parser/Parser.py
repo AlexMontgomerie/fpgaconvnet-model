@@ -232,7 +232,7 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, save_opt_model=True):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, multi_fpga, save_opt_model=True):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
@@ -271,7 +271,7 @@ class Parser:
         # return the graph
         platform = Platform()
         platform.update(platform_filepath)
-        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality)
+        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality, multi_fpga=multi_fpga)
 
     def get_hardware_from_prototxt_node(self, node):
 

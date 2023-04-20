@@ -75,9 +75,27 @@ class Platform:
         self.reconf_time = conf["system"].get("reconfiguration_time", 0.0) # in seconds
         self.port_width  = conf["system"].get("port_width", 512) # in bits
 
+        ## ethernet
+        if "ethernet" in conf.keys():
+            self.eth_bw = conf["ethernet"]["bandwidth"] # in Gbps
+            self.eth_port_width = self.calculate_eth_port_width() # in bits
+            self.eth_delay = conf["ethernet"]["latency"] # in seconds
+
         # perform post initialisation again
         self.__post_init__()
 
     def get_memory_bandwidth(self):
         pl_bw = 2*16*self.port_width*self.board_freq/1000.0 # TODO: get the data type
         return min(pl_bw, self.mem_bw)
+
+    def calculate_eth_port_width(self):
+        # equivalent ethernet port width from async fifo
+        mac_head = 10  # Bytes
+        ip_head = 20  # Bytes
+        udp_head = 8  # Bytes
+        max_packet_size = 576  # Bytes, reassembly buffer size
+        
+        # todo: apply the constraint as bandwidth instead of port width
+        eff_bw = self.eth_bw * (max_packet_size - mac_head - ip_head - udp_head) / max_packet_size 
+        eth_port_width = eff_bw / (self.board_freq / 1000)  # in bits
+        return int(eth_port_width)
