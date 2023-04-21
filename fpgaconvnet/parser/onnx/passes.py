@@ -1023,6 +1023,9 @@ def move_relu_after_quant(model):
         if next_node.op_type != "QuantizeLinear":
             continue
 
+        # get the index of next node
+        next_index = list(model.graph.node).index(next_node)
+
         # get the next next node
         next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
 
@@ -1030,6 +1033,13 @@ def move_relu_after_quant(model):
         next_node.input[0] = node.input[0]
         node.input[0] = next_node.output[0]
         next_next_node.input[0] = node.output[0]
+
+        # swap order of relu and dequant
+        node = model.graph.node.pop(index)
+        next_node = model.graph.node.pop(next_index-1)
+        model.graph.node.insert(index, next_node)
+        model.graph.node.insert(next_index, node)
+
 
         # find relu output value info
         node_vi = next(filter(lambda x: x.name == node.output[0], model.graph.value_info))

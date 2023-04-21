@@ -144,7 +144,7 @@ class Parser:
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
 
-        onnx.save(model_opt, "model_opt.onnx")
+        # onnx.save(model_opt, "model_opt.onnx")
 
         # infer shapes before manual optimisations
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
@@ -154,6 +154,8 @@ class Parser:
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
+
+        # onnx.save(model_opt, "model_opt.onnx")
 
         if not self.custom_onnx:
             # check optimized model
@@ -271,7 +273,9 @@ class Parser:
                 graph.add_edge(*edge)
 
             # add extra quantisation hardware
-            if "weight_quant" in quant_format[node_name]: # TODO: check all in
+            # if "weight_quant" in quant_format[node_name]: # TODO: check all in
+            if self.quant_mode == "int" and hardware.layer_type in [LAYER_TYPE.Convolution,
+                    LAYER_TYPE.InnerProduct, LAYER_TYPE.GlobalPooling ]: # TODO: check all in
                 extra_quant_nodes.append((hardware, quant_format[node_name]))
 
         # add the extra quantisation nodes

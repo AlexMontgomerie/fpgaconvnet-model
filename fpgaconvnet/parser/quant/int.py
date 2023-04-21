@@ -131,35 +131,76 @@ def get_quant_param(model):
 
 def get_scale_shift_node(quant_param, hw_node):
 
-    # get the scale and shift
-    input_scale  = quant_param["input_quant"]["scale"]
-    weight_scale = np.atleast_1d(quant_param["weight_quant"]["scale"])
-    output_scale = quant_param["output_quant"]["scale"]
+    if hw_node.layer_type in [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
 
-    # get the per-channel scale and shift
-    quant_scale = []
-    quant_shift = []
-    for ws in weight_scale:
+        # get the scale and shift
+        input_scale  = quant_param["input_quant"]["scale"]
+        weight_scale = np.atleast_1d(quant_param["weight_quant"]["scale"])
+        output_scale = quant_param["output_quant"]["scale"]
+
+        # get the per-channel scale and shift
+        quant_scale = []
+        quant_shift = []
+        for ws in weight_scale:
+
+            # get significand and exponent for output scale
+            effective_os = input_scale * ws / output_scale
+            man, exp = math.frexp(effective_os)
+
+            # convert to quantised multiplication
+            quant_scale.append(man * (1 << 31)) # TODO: handle edge cases, like https://github.com/tensorflow/tflite-micro/blob/365a9f3fbaa2fccd732315ac42ab6a13dff455cf/tensorflow/lite/kernels/internal/quantization_util.cc#L53-L105
+            quant_shift.append(31 - exp)
+
+        if len(quant_scale) == 1:
+
+            # create a batch norm layer
+            bn_node = BatchNormLayer(
+                hw_node.hw.rows_out(),
+                hw_node.hw.cols_out()*hw_node.hw.channels_out(),
+                1
+            )
+
+        else:
+
+            # create a batch norm layer
+            bn_node = BatchNormLayer(
+                hw_node.hw.rows_out(),
+                hw_node.hw.cols_out(),
+                hw_node.hw.channels_out()
+            )
+
+        # add scale and shift
+        bn_node.scale = quant_scale
+        bn_node.shift = quant_shift
+
+        # return the batch norm layer
+        return { "type": LAYER_TYPE.BatchNorm, "hw": bn_node, "onnx_node": hw_node.name }
+
+    elif hw_node.layer_type in [ LAYER_TYPE.GlobalPooling ]:
+
+        # get the scale and shift
+        input_scale  = quant_param["input_quant"]["scale"]
+        output_scale = quant_param["output_quant"]["scale"]
 
         # get significand and exponent for output scale
-        effective_os = input_scale * ws / output_scale
+        effective_os = input_scale / output_scale
         man, exp = math.frexp(effective_os)
 
         # convert to quantised multiplication
-        quant_scale.append(man * (1 << 31)) # TODO: handle edge cases, like https://github.com/tensorflow/tflite-micro/blob/365a9f3fbaa2fccd732315ac42ab6a13dff455cf/tensorflow/lite/kernels/internal/quantization_util.cc#L53-L105
-        quant_shift.append(31 - exp)
+        quant_scale = [ man * (1 << 31) ]
+        quant_shift = [ 31 - exp ]
 
-    # create a batch norm layer
-    bn_node = BatchNormLayer(
-        hw_node.hw.rows_out(),
-        hw_node.hw.cols_out(),
-        hw_node.hw.channels_out()
-    )
+        # create a batch norm layer
+        bn_node = BatchNormLayer(
+            hw_node.hw.rows_out(),
+            hw_node.hw.cols_out()*hw_node.hw.channels_out(),
+            1
+        )
 
-    # add scale and shift
-    bn_node.scale = quant_scale
-    bn_node.shift = quant_shift
+        # add scale and shift
+        bn_node.scale = quant_scale
+        bn_node.shift = quant_shift
 
-    # return the batch norm layer
-    return { "type": LAYER_TYPE.BatchNorm, "hw": bn_node, "onnx_node": hw_node.name }
+        # return the batch norm layer
+        return { "type": LAYER_TYPE.BatchNorm, "hw": bn_node, "onnx_node": hw_node.name }
 
