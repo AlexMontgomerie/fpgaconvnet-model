@@ -20,12 +20,11 @@ class SparseVectorDot(Module):
     acc_width: int = field(default=32, init=False)
 
     def rate_kernel_sparsity(self):
-        assert len(self.window_sparsity) == len(self.sparsity)
         upper_bound_rates = 1.0/(1-np.array(self.window_sparsity))
-        mac_rates = np.minimum(1, 1.0/(self.kernel_size[0]*self.kernel_size[1]*(1-np.array(self.sparsity))/self.fine))
-
-        rates = np.multiply(upper_bound_rates, mac_rates)
-        return rates.min()
+        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
+        cycles_per_bin[-1] = 1.0
+        rate_per_stream = np.multipy(upper_bound_rates, 1.0 / np.sum(cycles_per_bin*self.sparsity, axis = 1))
+        return min(rate_per_stream)
 
     def rate_in(self):
         return 1.0/float(self.filters)*self.rate_kernel_sparsity()
