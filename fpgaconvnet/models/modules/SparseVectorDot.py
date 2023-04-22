@@ -23,7 +23,7 @@ class SparseVectorDot(Module):
         upper_bound_rates = 1.0/(1-np.array(self.window_sparsity))
         cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
         cycles_per_bin[-1] = 1.0
-        rate_per_stream = np.multipy(upper_bound_rates, 1.0 / np.sum(cycles_per_bin*self.sparsity, axis = 1))
+        rate_per_stream = np.multiply(upper_bound_rates, 1.0 / np.sum(cycles_per_bin*self.sparsity, axis = 1))
         return min(rate_per_stream)
 
     def rate_in(self):
