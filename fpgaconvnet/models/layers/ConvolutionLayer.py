@@ -77,8 +77,8 @@ class ConvolutionLayer(Layer):
             self.sparsity = np.array(sparsity).reshape((channels, kernel_rows*kernel_cols+1))
             self.window_sparsity = np.copy(np.squeeze(self.sparsity[:, -1]))
             weights = np.arange(self.sparsity.shape[1])
-            self.avg_sparsity = np.sum(weights * self.sparsity, axis = 1)/(self.sparsity.shape[1] - 1)
-            if kernel_rows == 1 and kernel_cols == 1 or np.mean(self.avg_sparsitysparsity) < 0.1:
+            avg_sparsity = np.sum(weights * self.sparsity, axis = 1)/(self.sparsity.shape[1] - 1)
+            if kernel_rows == 1 and kernel_cols == 1 or np.mean(avg_sparsity) < 0.1:
                 self.window_sparsity = []
                 self.avg_sparsity = []
             else:
