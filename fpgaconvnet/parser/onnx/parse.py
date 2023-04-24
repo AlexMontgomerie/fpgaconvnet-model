@@ -321,14 +321,22 @@ class ParseOnnxActivationNode(ParseOnnxNode):
             activation_type = "relu"
         elif self.layer_type == LAYER_TYPE.Sigmoid:
             activation_type = "sigmoid"
-        elif self.layer_type == LAYER_TYPE.SiLU:
-            activation_type = "silu"
+        elif self.layer_type == LAYER_TYPE.HardSigmoid:
+            activation_type = "hardsigmoid"
+        elif self.layer_type == LAYER_TYPE.HardSwish:
+            activation_type = "hardswish"
         else:
             raise Exception("Unsupported activation function: {}".format(self.layer_type))
 
         # return hardware
         if self.dimensionality == 2:
-            raise NotImplementedError("Activation layer not implemented for 2D")
+            # todo: Activation layer not implemented for 2D
+            return ReLULayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+            )
         elif self.dimensionality == 3:
             return ActivationLayer3D(
                 self.input_shape[3] if len(self.input_shape) == 5 else 1,

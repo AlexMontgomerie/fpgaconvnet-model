@@ -168,9 +168,10 @@ class Parser:
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
-            LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.ReLU: ParseOnnxActivationNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
-            LAYER_TYPE.SiLU: ParseOnnxActivationNode,
+            LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.HardSwish: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -289,10 +290,6 @@ class Parser:
 
         # get the node type
         node_type = from_proto_layer_type(node.type)
-
-        # todo: fix activation layer
-        if node_type == [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU]:
-            node_type = LAYER_TYPE.ReLU
 
         # try converter
         try:
