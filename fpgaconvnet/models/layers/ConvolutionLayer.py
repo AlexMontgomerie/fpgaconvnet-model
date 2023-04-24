@@ -518,12 +518,14 @@ class ConvolutionLayer(Layer):
         if len(self.sparsity) == 0:
             parameters.fine  = self.fine
             parameters.sparsity.extend([])
-            parameters.window_sparsity.extend([])
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
-            parameters.sparsity.extend(self.sparsity.flatten())
-            parameters.window_sparsity.extend(self.window_sparsity)
+            if len(self.window_sparsity) == 0:
+                parameters.sparsity.extend(self.sparsity.flatten())
+            else:
+                original_sparsity = np.hstack((self.sparsity[:, :-1], self.window_sparsity[:, np.newaxis]))
+                parameters.sparsity.extend(original_sparsity.flatten())
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
 
