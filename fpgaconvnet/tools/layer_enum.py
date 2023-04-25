@@ -114,7 +114,7 @@ def from_cfg_type(op_type):
         return "*"
     elif op_type == "Split":
         return LAYER_TYPE.Split
-    elif op_type == "EltWise":
-        return LAYER_TYPE.EltWise
+    elif op_type == "Add" or op_type == "Mul":
+        return op_type.lower()
     else:
         return from_onnx_op_type(op_type)

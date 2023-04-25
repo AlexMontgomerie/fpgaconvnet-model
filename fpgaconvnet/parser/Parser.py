@@ -79,7 +79,7 @@ class Parser:
 
         self.fpgaconvnet_post_onnx_passes = [
             "eliminate_nop_pad",
-            "fuse_mul_sigmoid_into_hardswish",
+            "fuse_mul_sigmoid_into_hardswish", # todo: HardSwish is not exact SiLU
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
