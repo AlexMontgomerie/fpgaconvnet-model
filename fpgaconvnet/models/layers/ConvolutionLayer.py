@@ -382,7 +382,9 @@ class ConvolutionLayer(Layer):
         return self.coarse_out*self.coarse_group
 
     def get_stream_sparsity(self, interleave=True):
-        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
+        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine) 
+        if not (self.skipping_windows):
+            cycles_per_bin[-1] = 1
         rate_per_channel = 1 / np.sum(cycles_per_bin*self.sparsity, axis = 1)
         if interleave:
             indices = np.argsort(rate_per_channel)
