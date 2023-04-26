@@ -77,6 +77,7 @@ message parameter {
     repeated float sparsity = 57;
     optional bool use_uram = 58;
     optional bool block_floating_point = 59;
+    optional bool skipping_windows = 60;
 }
 
 message layer {

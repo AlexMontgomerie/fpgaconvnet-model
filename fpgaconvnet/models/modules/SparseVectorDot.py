@@ -13,6 +13,7 @@ class SparseVectorDot(Module):
     kernel_size: Union[List[int], int]
     sparsity: List[float]
     window_sparsity: List[float]
+    skipping_windows: bool
     fine: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
@@ -20,11 +21,15 @@ class SparseVectorDot(Module):
     acc_width: int = field(default=32, init=False)
 
     def rate_kernel_sparsity(self):
-        upper_bound_rates = 1.0/(1-np.array(self.window_sparsity))
-        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
-        cycles_per_bin[-1] = 1.0
-        rate_per_stream = np.multiply(upper_bound_rates, 1.0 / np.sum(cycles_per_bin*self.sparsity, axis = 1))
+        if (self.skipping_windows):
+            cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)[:-1]
+            rate_per_stream = 1.0 / np.sum(cycles_per_bin*self.sparsity[:, :-1], axis = 1)
+        else:
+            cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
+            cycles_per_bin[-1] = 1.0
+            rate_per_stream = 1.0 / np.sum(cycles_per_bin*self.sparsity, axis = 1)
         return min(rate_per_stream)
+
 
     def rate_in(self):
         return 1.0/float(self.filters)*self.rate_kernel_sparsity()

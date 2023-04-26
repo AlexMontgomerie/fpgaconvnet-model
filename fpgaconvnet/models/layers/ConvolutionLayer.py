@@ -51,6 +51,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             sparsity: list = [],
+            skipping_windows: bool = False,
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
@@ -69,20 +70,23 @@ class ConvolutionLayer(Layer):
 
         # save bias flag
         self.has_bias = has_bias
+        self.skipping_windows = skipping_windows
 
+        self.window_sparsity = []
+        self.sparsity = sparsity
         # save sparsity
-        self.sparsity = []
         if len(sparsity) > 0:
+            #Ensure histogram data provided
+            assert (len(sparsity) == channels*(kernel_cols*kernel_rows+1))
             # reject if pointwise or low sparsity
             self.sparsity = np.array(sparsity).reshape((channels, kernel_rows*kernel_cols+1))
             self.window_sparsity = np.copy(np.squeeze(self.sparsity[:, -1]))
             weights = np.arange(self.sparsity.shape[1])
             avg_sparsity = np.sum(weights * self.sparsity, axis = 1)/(self.sparsity.shape[1] - 1)
             if kernel_rows == 1 and kernel_cols == 1 or np.mean(avg_sparsity) < 0.1:
-                self.window_sparsity = []
-                self.avg_sparsity = []
-            else:
-                self.sparsity[:, -1] = 0
+                    self.skipping_windows = False
+                    self.window_sparsity = []
+                    self.sparsity = []
 
         # init variables
         self._kernel_rows = kernel_rows
@@ -172,13 +176,13 @@ class ConvolutionLayer(Layer):
                 self.modules["vector_dot"] = SparseVectorDot(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.filters//(self.coarse_out*self.groups),
-                    self.kernel_size, self.sparsity, self.window_sparsity, self.fine,
+                    self.kernel_size, self.sparsity, self.window_sparsity, self.skipping_windows, self.fine,
                     backend=self.backend, regression_model=self.regression_model)
 
                 self.modules["accum"] = Accum(self.rows_out(), self.cols_out(),
                         self.channels_in()//(self.coarse_in*self.coarse_group),
-                        self.filters//(self.coarse_out*self.groups), 1, window_sparsity = self.window_sparsity,
-                        backend=self.backend, regression_model=self.regression_model)
+                        self.filters//(self.coarse_out*self.groups), 1, skipping_windows = self.skipping_windows,
+                        window_sparsity = self.window_sparsity, backend=self.backend, regression_model=self.regression_model)
 
         self.modules["glue"] = Glue(self.rows_out(), self.cols_out(), 1,
                 int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, self.coarse_group,
@@ -389,9 +393,8 @@ class ConvolutionLayer(Layer):
             indices = list(range(self.channels_in()))
 
         stream_sparsity = np.reshape([self.sparsity[i, :] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in(), self.kernel_size[0]*self.kernel_size[1]+1)).mean(axis=0)
-        stream_window_sparsity = stream_sparsity[:, -1]
-
-        return list(stream_sparsity), list(stream_window_sparsity)
+        stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis = 0)
+        return stream_sparsity, stream_window_sparsity
 
     # def pipeline_depth(self):
     #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
@@ -447,6 +450,7 @@ class ConvolutionLayer(Layer):
             self.modules['vector_dot'].weight_width   = self.weight_t.width
             self.modules['vector_dot'].acc_width      = self.acc_t.width
             self.modules['vector_dot'].fine     = self.fine
+            self.modules['vector_dot'].skipping_windows     = self.skipping_windows
 
             if len(self.sparsity) == 0:
                 self.modules['vector_dot'].channels = (
@@ -521,13 +525,14 @@ class ConvolutionLayer(Layer):
         else:
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
-            if len(self.window_sparsity) == 0:
-                parameters.sparsity.extend(self.sparsity.flatten())
-            else:
+            if (self.skipping_windows):
                 original_sparsity = np.hstack((self.sparsity[:, :-1], self.window_sparsity[:, np.newaxis]))
                 parameters.sparsity.extend(original_sparsity.flatten())
+            else:
+                parameters.sparsity.extend(self.sparsity.flatten())
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
+        parameters.skipping_windows = self.skipping_windows
 
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
