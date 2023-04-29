@@ -27,8 +27,8 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
-from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
+from fpgaconvnet.parser.onnx.parse import *
+from fpgaconvnet.parser.prototxt.parse import *
 
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
 
@@ -71,7 +71,7 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
-            "convert_to_version_14",
+            # "convert_to_version_14",
             "fuse_mul_add_into_bn",
         ]
 
@@ -173,6 +173,7 @@ class Parser:
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
+            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.SiLU: ParseOnnxActivationNode,
@@ -187,7 +188,7 @@ class Parser:
             return converter[node_type](graph, node, quant_format, dimensionality, backend=self.backend,
                     regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
-            raise TypeError(f"{node.op_type} not supported, exiting now")
+            raise TypeError(f"{node_type} not supported, exiting now")
 
     def get_quantisation(self, model, **kwargs):
 
@@ -394,9 +395,9 @@ class Parser:
                 # add squeeze nodes to list
                 remove_nodes.append(node)
                 # place edge back
-                prev_node = graphs.get_prev_nodes(graph,node)[0]
-                next_node = graphs.get_next_nodes(graph,node)[0]
-                graph.add_edge(prev_node,next_node)
+                for prev_node in graphs.get_prev_nodes(graph, node):
+                    for next_node in graphs.get_next_nodes(graph, node):
+                        graph.add_edge(prev_node,next_node)
         # remove squeeze nodes
         graph.remove_nodes_from(remove_nodes)
         # return the graph

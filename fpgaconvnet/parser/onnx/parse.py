@@ -11,6 +11,7 @@ from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
+from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 
 from fpgaconvnet.data_types import FixedPoint
@@ -529,6 +530,38 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 backend=self.backend,
                 regression_model=self.regression_model
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+
+
+    def get_edges_in(self, model):
+        try:
+            edges = []
+            prev_nodes = filter(lambda x: x.output[0] in self.node.input, model.graph.node)
+            for prev_node in prev_nodes:
+                edges.append((onnx_helper.format_onnx_name(prev_node), self.name))
+            return edges
+        except StopIteration:
+            return []
+
+class ParseOnnxConcatNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # create Average pooling layer hardware
+        if self.dimensionality == 2:
+            return ConcatLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                [self.input_shape[1]]*len(self.inputs),
+                ports_in=len(self.inputs),
+                # data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                #     self.quant_format["data_t"]["binary_point"]),
+                # backend=self.backend,
+                # regression_model=self.regression_model
+            )
+        elif self.dimensionality == 3:
+            raise NotImplementedError
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 
