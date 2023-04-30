@@ -2,6 +2,8 @@
 Layers are comprised of modules. They have the same functionality of the equivalent layers of the CNN model.
 """
 
+from dataclasses import dataclass, field
+
 from .Layer import FixedPoint
 
 from .Layer import Layer
@@ -30,3 +32,12 @@ from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
 from .GlobalPoolingLayer3D import GlobalPoolingLayer3D
+
+@dataclass
+class LayerFlag:
+    dimensionality: int = 2
+    sparsity: bool = False
+    data_packing: bool = True
+    latency: bool = False
+    uram: bool = False
+    backend: str = "chisel"

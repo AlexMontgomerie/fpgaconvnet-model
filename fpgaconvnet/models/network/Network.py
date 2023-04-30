@@ -7,7 +7,6 @@ import copy
 import math
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix

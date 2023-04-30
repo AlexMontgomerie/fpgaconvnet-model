@@ -91,6 +91,58 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
         # get the hardware model for each node in the path
         node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
+
+        # get the size in
+        size_in = [ n.size_in() for n in node_hw ]
+
+        # get the size out
+        size_out = [ n.size_out() for n in node_hw ]
+
+        # get the latency
+        latency = [ n.latency() for n in node_hw ]
+
+        # get the pipeline depth of each node
+        node_depth = [ n.pipeline_depth() for n in node_hw ]
+
+        # get the path depth
+        path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+                np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+                    ]) for j in range(len(node_hw)) ])
+
+    # get all prev nodes of the eltwise layer
+    eltwise_prev_nodes = graphs.get_prev_nodes(self.graph, eltwise_node)
+
+    # update the buffer depths for eltwise layer
+    for i, path in enumerate(all_paths):
+
+        # get the input index
+        idx = eltwise_prev_nodes.index(path[-2])
+
+        # buffer depth is difference of max depth with the paths depth
+        self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i])
+
+"""
+def update_eltwise_buffer_depth(self, eltwise_node):
+
+    # check the eltwise node is actually eltwise
+    assert self.graph.nodes[eltwise_node]["type"] == LAYER_TYPE.EltWise, "node is not of type EltWise"
+
+    # search back in the graph for the split layer
+    split_node = eltwise_node
+    if graphs.get_prev_nodes(self.graph, split_node):
+        while split_node := graphs.get_prev_nodes(self.graph, split_node)[0]:
+            if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split or split_node in graphs.get_input_nodes(self.graph):
+                break
+
+    # get all the paths split layer and eltwise layer
+    all_paths = list(nx.all_simple_paths(self.graph, source=split_node, target=eltwise_node))
+
+    # calculate the depth for each path
+    path_depths = [0]*len(all_paths)
+    for i, path in enumerate(all_paths):
+
+        # get the hardware model for each node in the path
+        node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
         # print([ self.graph.nodes[node]["type"] for node in path ])
         # print([ self.graph.nodes[node]["hw"].size_in() for node in path ])
         # print([ self.graph.nodes[node]["hw"].size_out() for node in path ])
@@ -118,6 +170,7 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
         # buffer depth is difference of max depth with the paths depth
         self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i])
+"""
 
 def reduce_squeeze_fanout(self):
     """

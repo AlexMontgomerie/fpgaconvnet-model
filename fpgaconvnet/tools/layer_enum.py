@@ -31,6 +31,8 @@ class LAYER_TYPE(Enum):
     HardSwish    = 51 
     Reshape = 52
     NOP     = 53
+    LeakyReLU   = 54
+    Resize      = 55
 
     @classmethod
     def get_type(cls, t):
@@ -90,6 +92,7 @@ def from_onnx_op_type(op_type):
         "Mul" : LAYER_TYPE.EltWise,
         "Concat" : LAYER_TYPE.Concat,
         # Activations
+        "LeakyRelu" : LAYER_TYPE.ReLU,
         "Relu" : LAYER_TYPE.ReLU,
         "Clip" : LAYER_TYPE.ReLU, # TODO: implement
         "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement
@@ -105,11 +108,13 @@ def from_onnx_op_type(op_type):
         "Flatten" : LAYER_TYPE.NOP, # NOTE: only "shape" layer supported
         "Reshape" : LAYER_TYPE.Reshape,
         "Shape" : LAYER_TYPE.Shape,
+        "Resize" : LAYER_TYPE.NOP,
+        "Split" : LAYER_TYPE.NOP,
     }
 
     return layer_types.get(op_type, lambda: TypeError)
 
-def from_cfg_type(op_type): 
+def from_cfg_type(op_type):
     if op_type == "*":
         return "*"
     elif op_type == "Split":

@@ -86,10 +86,10 @@ class SlidingWindow(Module):
         Module.__post_init__(self)
 
     def rows_out(self):
-        return int((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom+1)/self.stride[0])
+        return math.ceil((self.rows_in()-self.kernel_size[0]+self.pad_top+self.pad_bottom+1)/self.stride[0])
 
     def cols_out(self):
-        return int((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right+1)/self.stride[1])
+        return math.ceil((self.cols_in()-self.kernel_size[1]+self.pad_left+self.pad_right+1)/self.stride[1])
 
     def rate_in(self):
         padded_size = (self.rows_in()+self.pad_top+self.pad_bottom)*(self.cols_in()+self.pad_left+self.pad_right)

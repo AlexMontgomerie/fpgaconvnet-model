@@ -11,6 +11,7 @@ from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
+from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 
 from fpgaconvnet.data_types import FixedPoint
@@ -139,13 +140,17 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 pad_bottom  = self.attr["pads"][2],
                 pad_right   = self.attr["pads"][3],
                 groups = self.attr["group"],
-                input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                    self.quant_format["input_t"]["binary_point"]),
+                output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                    self.quant_format["output_t"]["binary_point"]),
+                weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                    self.quant_format["weight_t"]["binary_point"]),
+                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 has_bias = len(self.inputs) == 3,
                 sparsity = self.attr["input sparsity"],
-                block_floating_point = self.quant_format["block_floating_point"],
+                # block_floating_point = self.quant_format["block_floating_point"],
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -169,10 +174,14 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 pad_bottom  = self.attr["pads"][4],
                 pad_right   = self.attr["pads"][5],
                 groups = self.attr["group"],
-                input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                    self.quant_format["input_t"]["binary_point"]),
+                output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                    self.quant_format["output_t"]["binary_point"]),
+                weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                    self.quant_format["weight_t"]["binary_point"]),
+                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend,
                 regression_model=self.regression_model
@@ -213,10 +222,14 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     self.output_shape[1],
                     1, 1,
                     np.prod(self.input_shape[1:]),
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model
@@ -226,10 +239,14 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     self.output_shape[1],
                     1, 1, 1,
                     np.prod(self.input_shape[1:]),
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model
@@ -249,10 +266,14 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     pad_top=0, pad_bottom=0,
                     pad_left=0, pad_right=0,
                     groups = 1,
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model,
@@ -268,10 +289,14 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     pad_left=0, pad_right=0,
                     pad_front=0, pad_back=0,
                     groups = 1,
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"], self.quant_format["input_t"]["binary_point"]), 
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"], self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"], self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model,
@@ -299,7 +324,8 @@ class ParseOnnxReLUNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 4 else 1,
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"])
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
@@ -307,7 +333,8 @@ class ParseOnnxReLUNode(ParseOnnxNode):
                 self.input_shape[4] if len(self.input_shape) == 5 else 1,
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"])
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
@@ -343,7 +370,8 @@ class ParseOnnxActivationNode(ParseOnnxNode):
                 self.input_shape[4] if len(self.input_shape) == 5 else 1,
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1], activation_type=activation_type,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"])
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ActivationLayer")
@@ -373,7 +401,8 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 pad_left    = self.attr["pads"][1],
                 pad_bottom  = self.attr["pads"][2],
                 pad_right   = self.attr["pads"][3],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -396,7 +425,8 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 pad_back    = self.attr["pads"][3],
                 pad_bottom  = self.attr["pads"][4],
                 pad_right   = self.attr["pads"][5],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -419,7 +449,8 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
                 1, 1,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -430,7 +461,8 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
                 1, 1,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -445,8 +477,10 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 self.input_shape[2],
                 self.input_shape[3],
                 self.input_shape[1],
-                data_t=FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                data_t=FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -456,8 +490,10 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 self.input_shape[4],
                 self.input_shape[2],
                 self.input_shape[1],
-                data_t=FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                data_t=FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -479,8 +515,10 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 op_type=op_type,
                 broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -493,11 +531,45 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 op_type=op_type,
                 broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"], self.quant_format["acc_t"]["binary_point"]),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
                 regression_model=self.regression_model
             )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+
+
+    def get_edges_in(self, model):
+        try:
+            edges = []
+            prev_nodes = filter(lambda x: x.output[0] in self.node.input, model.graph.node)
+            for prev_node in prev_nodes:
+                edges.append((onnx_helper.format_onnx_name(prev_node), self.name))
+            return edges
+        except StopIteration:
+            return []
+
+class ParseOnnxConcatNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # create Average pooling layer hardware
+        if self.dimensionality == 2:
+            return ConcatLayer(
+                self.input_shape[2],
+                self.input_shape[3],
+                [self.input_shape[1]]*len(self.inputs),
+                ports_in=len(self.inputs),
+                # data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                #     self.quant_format["data_t"]["binary_point"]),
+                # backend=self.backend,
+                # regression_model=self.regression_model
+            )
+        elif self.dimensionality == 3:
+            raise NotImplementedError
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 
