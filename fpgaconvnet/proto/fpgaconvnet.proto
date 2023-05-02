@@ -116,8 +116,13 @@ message partition {
     repeated string output_nodes = 5;
     required int32  weights_reloading_factor = 6;
     required string weights_reloading_layer  = 7;
+    optional int32  buffer_depth_in = 8;
+    optional int32  buffer_depth_out = 9;
+    optional fixed_point input_t = 10;
+    optional fixed_point output_t = 11;
+    optional int32  gen_last_width = 12;
 
-    repeated layer layers = 8;
+    repeated layer layers = 13;
 }
 
 message partitions {

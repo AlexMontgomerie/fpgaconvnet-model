@@ -254,6 +254,7 @@ class Parser:
         # extra quantisation nodes
         extra_quant_nodes = []
 
+
         # add nodes from onnx to the graph
         for node in onnx_model.graph.node:
 

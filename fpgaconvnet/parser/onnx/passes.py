@@ -816,16 +816,18 @@ def remove_quant_nodes(model):
         # remove dequantize node
         if node.op_type == "DequantizeLinear":
 
-            # get the next node
-            next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
-            input_idx = list(next_node.input).index(node.output[0])
+            # get the next nodes
+            for next_node in filter(lambda x: node.output[0] in x.input, model.graph.node):
+
+                # get the input index of the next node
+                input_idx = list(next_node.input).index(node.output[0])
+
+                # copy input over
+                next_node.input.remove(node.output[0])
+                next_node.input.insert(input_idx, node.input[0])
 
             # remove dequant node
             model.graph.node.remove(node)
-
-            # copy input over
-            next_node.input.remove(node.output[0])
-            next_node.input.insert(input_idx, node.input[0])
 
             return remove_quant_nodes(model)
 
