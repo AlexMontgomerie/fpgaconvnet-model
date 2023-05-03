@@ -117,7 +117,10 @@ class Parser:
         # load onnx model
         model = onnx.load(onnx_filepath)
         input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
-        dimensionality = len(input_shape) - 2
+        if len(input_shape) <= 4:
+            dimensionality = 2
+        elif len(input_shape) == 5:
+            dimensionality = 3
 
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
