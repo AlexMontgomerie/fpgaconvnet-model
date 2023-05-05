@@ -31,7 +31,8 @@ def add_squeeze(self):
                     self.graph.nodes[start_node]['hw'].cols_out(),
                     self.graph.nodes[start_node]['hw'].channels_out(),
                     self.graph.nodes[start_node]['hw'].streams_out(),
-                    self.graph.nodes[end_node]['hw'].streams_in()
+                    self.graph.nodes[end_node]['hw'].streams_in(),
+                    data_t=self.graph.nodes[end_node]["hw"].data_t,
                 )
             )
             # add node to graph
@@ -54,7 +55,8 @@ def add_squeeze(self):
                     self.graph.nodes[input_node]['hw'].cols_in(),
                     self.graph.nodes[input_node]['hw'].channels_in(),
                     self.streams_in[i],
-                    self.graph.nodes[input_node]['hw'].streams_in()
+                    self.graph.nodes[input_node]['hw'].streams_in(),
+                    data_t=self.graph.nodes[input_node]["hw"].data_t,
                 )
             )
             # add edge to graph
@@ -74,7 +76,8 @@ def add_squeeze(self):
                     self.graph.nodes[output_node]['hw'].cols_out(),
                     self.graph.nodes[output_node]['hw'].channels_out(),
                     self.graph.nodes[output_node]['hw'].streams_out(),
-                    self.streams_out[i]
+                    self.streams_out[i],
+                    data_t=self.graph.nodes[output_node]["hw"].data_t,
                 )
             )
             self.graph.add_edge(output_node,new_node)

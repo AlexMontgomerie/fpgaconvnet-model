@@ -665,11 +665,10 @@ def fuse_mul_add_into_bn(model):
 
         # get the next node
         try:
-            next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
         except StopIteration:
             continue
 
-        print(node)
         # check noext node is add
         if next_node.op_type != "Add":
             continue
@@ -901,8 +900,11 @@ def fuse_mul_sigmoid_into_hardswish(model):
             continue
 
         # get previous nodes
-        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
-        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        try:
+            prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+            prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        except:
+            continue
 
         # # check prev node a has two outputs
         # if len(prev_node_a.input) != 2:
