@@ -17,16 +17,20 @@ class BatchNormLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(32,0)
+            input_t: FixedPoint = FixedPoint(32, 0),
+            output_t: FixedPoint = FixedPoint(9, 0),
+            scale_t: FixedPoint = FixedPoint(32, 0),
+            shift_t: FixedPoint = FixedPoint(8, 0),
         ):
 
         super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
+                coarse, coarse, data_t=input_t)
 
-        self.input_t = FixedPoint(32, 0)
-        self.scale_t = FixedPoint(32, 0)
-        self.shift_t = FixedPoint(8, 0)
-        self.output_t = FixedPoint(9, 0)
+        # get all the data types
+        self.input_t = input_t
+        self.shift_t = shift_t
+        self.scale_t = scale_t
+        self.output_t = output_t
 
         # save parameters
         self._coarse = coarse

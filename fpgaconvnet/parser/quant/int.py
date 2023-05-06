@@ -9,7 +9,9 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.models.layers import BatchNormLayer
 
-def get_quant_param(model):
+from fpgaconvnet.data_types import FixedPoint
+
+def get_quant_param(model, acc_width = 24):
 
     # dictionary of quantisation parameters
     quant_param = {}
@@ -31,15 +33,15 @@ def get_quant_param(model):
                 "binary_point": 0,
             },
             "output_t" : {
-                "width" : 32,
+                "width" : acc_width,
                 "binary_point": 0,
             },
             "data_t" : {
-                "width" : 32,
+                "width" : acc_width,
                 "binary_point": 0,
             },
             "acc_t" : {
-                "width" : 32,
+                "width" : acc_width,
                 "binary_point": 0,
             },
         }
@@ -109,7 +111,7 @@ def get_quant_param(model):
                 "binary_point": 0,
             }
             quant_param[node_name]["acc_t"] = {
-                "width" : 32,
+                "width" : acc_width,
                 "binary_point": 0,
             }
 
@@ -129,7 +131,35 @@ def get_quant_param(model):
     # return quantisation parameters
     return quant_param
 
-def get_scale_shift_node(quant_param, hw_node):
+def quantise_mul(q, scale_width=32):
+
+    # if zero, return zero
+    if q == 0.0:
+        return 0, 0
+
+    # get the mantissa and exponent
+    man, exp = math.frexp(q)
+    man = int(man * (1 << scale_width-1))
+
+    # scale down mantissa if it's the max value
+    if man == ( 1 << (scale_width-1) ):
+        exp += 1
+        man /= 2
+
+    # can't shift below -scale_width
+    if exp < -(scale_width-1):
+        exp = 0
+        man = 0
+
+    # saturate shift past scale_width
+    if exp > scale_width-2:
+        exp = scale_width-2
+        man = ( 1 << (scale_width-1) ) - 1
+
+    # return the mantissa and exponent
+    return man, exp
+
+def get_scale_shift_node(quant_param, hw_node, scale_width=24):
 
     if hw_node.layer_type in [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]:
 
@@ -145,19 +175,20 @@ def get_scale_shift_node(quant_param, hw_node):
 
             # get significand and exponent for output scale
             effective_os = input_scale * ws / output_scale
-            man, exp = math.frexp(effective_os)
+            man, exp = quantise_mul(effective_os, scale_width=scale_width)
 
             # convert to quantised multiplication
-            quant_scale.append(man * (1 << 31)) # TODO: handle edge cases, like https://github.com/tensorflow/tflite-micro/blob/365a9f3fbaa2fccd732315ac42ab6a13dff455cf/tensorflow/lite/kernels/internal/quantization_util.cc#L53-L105
-            quant_shift.append(31 - exp)
+            quant_scale.append(man)
+            quant_shift.append((scale_width-1) - exp)
 
         if len(quant_scale) == 1:
 
             # create a batch norm layer
             bn_node = BatchNormLayer(
                 hw_node.hw.rows_out(),
-                hw_node.hw.cols_out()*hw_node.hw.channels_out(),
-                1
+                hw_node.hw.cols_out()*hw_node.hw.channels_out(), 1,
+                input_t = hw_node.hw.output_t,
+                scale_t = FixedPoint(scale_width, 0),
             )
 
         else:
@@ -166,7 +197,9 @@ def get_scale_shift_node(quant_param, hw_node):
             bn_node = BatchNormLayer(
                 hw_node.hw.rows_out(),
                 hw_node.hw.cols_out(),
-                hw_node.hw.channels_out()
+                hw_node.hw.channels_out(),
+                input_t = hw_node.hw.output_t,
+                scale_t = FixedPoint(scale_width, 0)
             )
 
         # add scale and shift
@@ -184,17 +217,19 @@ def get_scale_shift_node(quant_param, hw_node):
 
         # get significand and exponent for output scale
         effective_os = input_scale / output_scale
-        man, exp = math.frexp(effective_os)
+        man, exp = quantise_mul(effective_os, scale_width=scale_width)
 
         # convert to quantised multiplication
-        quant_scale = [ man * (1 << 31) ]
-        quant_shift = [ 31 - exp ]
+        quant_scale = [ man ]
+        quant_shift = [ (scale_width-1) - exp ]
 
         # create a batch norm layer
         bn_node = BatchNormLayer(
             hw_node.hw.rows_out(),
-            hw_node.hw.cols_out()*hw_node.hw.channels_out(),
-            1
+            hw_node.hw.cols_out()*hw_node.hw.channels_out(), 1,
+            input_t = hw_node.hw.data_t,
+            scale_t = FixedPoint(scale_width, 0)
+
         )
 
         # add scale and shift
