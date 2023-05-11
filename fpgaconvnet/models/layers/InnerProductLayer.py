@@ -30,7 +30,8 @@ class InnerProductLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0,
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_offset: int = 0
         ):
 
         # initialise parent class
@@ -45,6 +46,9 @@ class InnerProductLayer(Layer):
 
         # save bias flag
         self.has_bias = has_bias
+
+        # input offset
+        self.input_offset = input_offset
 
         # update flags
         # self.flags['channel_dependant'] = True
@@ -121,6 +125,7 @@ class InnerProductLayer(Layer):
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+        parameters.input_offset = self.input_offset
 
     def update(self): # TODO: update all parameters
         # fork

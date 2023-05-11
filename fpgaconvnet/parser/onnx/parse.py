@@ -150,8 +150,9 @@ class ParseOnnxConvNode(ParseOnnxNode):
                 has_bias = len(self.inputs) == 3,
                 sparsity = self.attr["input sparsity"],
                 # block_floating_point = self.quant_format["block_floating_point"],
+                input_offset = self.quant_format.get("input_quant", { "zero_point" : 0 })["zero_point"],
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
             )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -230,6 +231,7 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
                         self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
+                    input_offset = self.quant_format.get("input_quant", { "zero_point" : 0 })["zero_point"],
                     backend=self.backend,
                     regression_model=self.regression_model
                 )
@@ -497,6 +499,24 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
             raise TypeError(f"unsported eltwise type {self.node.op_type}")
         op_type = self.node.op_type.lower()
 
+        # get the input and output quantisation info
+        input_offset = [
+            self.quant_format.get(
+                "input_0_quant", { "zero_point" : 0 })["zero_point"],
+            self.quant_format.get(
+                "input_1_quant", { "zero_point" : 0 })["zero_point"],
+        ]
+        input_scale = [
+            self.quant_format.get(
+                "input_0_quant", { "scale" : 1 })["scale"],
+            self.quant_format.get(
+                "input_1_quant", { "scale" : 1 })["scale"],
+        ]
+        output_offset = self.quant_format.get(
+                "output_quant", { "zero_point" : 0 })["zero_point"]
+        output_scale = self.quant_format.get(
+                "output_quant", { "scale" : 1 })["scale"]
+
         # create Average pooling layer hardware
         if self.dimensionality == 2:
             return EltWiseLayer(
@@ -506,12 +526,16 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 op_type=op_type,
                 broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
+                # data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                #     self.quant_format["data_t"]["binary_point"]),
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_offset=input_offset,
+                input_scale=input_scale,
+                output_offset=output_offset,
+                output_scale=output_scale,
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(

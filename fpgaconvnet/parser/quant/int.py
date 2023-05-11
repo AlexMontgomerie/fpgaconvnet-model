@@ -11,6 +11,34 @@ from fpgaconvnet.models.layers import BatchNormLayer
 
 from fpgaconvnet.data_types import FixedPoint
 
+def quantise_mul(q, scale_width=32):
+
+    # if zero, return zero
+    if q == 0.0:
+        return 0, 0
+
+    # get the mantissa and exponent
+    man, exp = math.frexp(q)
+    man = int(man * (1 << scale_width-1))
+
+    # scale down mantissa if it's the max value
+    if man == ( 1 << (scale_width-1) ):
+        exp += 1
+        man /= 2
+
+    # can't shift below -scale_width
+    if exp < -(scale_width-1):
+        exp = 0
+        man = 0
+
+    # saturate shift past scale_width
+    if exp > scale_width-2:
+        exp = scale_width-2
+        man = ( 1 << (scale_width-1) ) - 1
+
+    # return the mantissa and exponent
+    return man, exp
+
 def get_quant_param(model, acc_width = 24):
 
     # dictionary of quantisation parameters
@@ -56,14 +84,14 @@ def get_quant_param(model, acc_width = 24):
 
                 # get scale and zero point
                 scale = onnx_helper.get_model_initializer(model,
-                        prev_node.input[1], to_tensor=False)
+                        prev_node.input[1], to_tensor=True)
                 zero_point = onnx_helper.get_model_initializer(model,
-                        prev_node.input[2], to_tensor=False)
+                        prev_node.input[2], to_tensor=True)
 
                 # update quant parameters
                 quant_param[node_name]["input_quant"] = {
-                    "scale": onnx.numpy_helper.to_array(scale).item(),
-                    "zero_point": onnx.numpy_helper.to_array(zero_point).item(),
+                    "scale": scale.item(),
+                    "zero_point": zero_point.item(),
                 }
 
         except StopIteration:
@@ -79,14 +107,15 @@ def get_quant_param(model, acc_width = 24):
 
                 # get scale and zero point
                 scale = onnx_helper.get_model_initializer(model,
-                        next_node.input[1], to_tensor=False)
-                zero_point = onnx_helper.get_model_initializer(model,
-                        next_node.input[2], to_tensor=False)
+                        next_node.input[1], to_tensor=True)
+                zero_point = np.atleast_1d(
+                        onnx_helper.get_model_initializer(model,
+                            next_node.input[2], to_tensor=True))
 
                 # update quant parameters
                 quant_param[node_name]["output_quant"] = {
-                    "scale": onnx.numpy_helper.to_array(scale),
-                    "zero_point": onnx.numpy_helper.to_array(zero_point),
+                    "scale": scale,
+                    "zero_point": zero_point[0],
                 }
 
         except StopIteration:
@@ -117,47 +146,74 @@ def get_quant_param(model, acc_width = 24):
 
             # get the scale and zero points for weights
             scale = onnx_helper.get_model_initializer(model,
-                    weight_node.input[1], to_tensor=False)
-            zero_point = onnx_helper.get_model_initializer(model,
-                    weight_node.input[2], to_tensor=False)
+                    weight_node.input[1], to_tensor=True)
+            zero_point = np.atleast_1d(
+                    onnx_helper.get_model_initializer(model,
+                        weight_node.input[2], to_tensor=True))
 
             # update quant parameters
             quant_param[node_name]["weight_quant"] = {
-                "scale": onnx.numpy_helper.to_array(scale),
-                "zero_point": onnx.numpy_helper.to_array(zero_point),
+                "scale": scale,
+                "zero_point": zero_point[0],
             }
 
+        # special case for Add
+        if node.op_type == "Add":
+
+            # update the quantisation parameters
+            quant_param[node_name]["acc_t"] = {
+                "width" : acc_width,
+                "binary_point": 0,
+            }
+
+            # get the previous node
+            prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+
+            # get scale and zero point
+            scale = onnx_helper.get_model_initializer(model,
+                    prev_node.input[1], to_tensor=True)
+            zero_point = onnx_helper.get_model_initializer(model,
+                    prev_node.input[2], to_tensor=True)
+
+            # update quant parameters
+            quant_param[node_name]["input_0_quant"] = {
+                "scale": scale.item(),
+                "zero_point": zero_point.item(),
+                }
+
+            # get the previous node
+            prev_node = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+
+            # get scale and zero point
+            scale = onnx_helper.get_model_initializer(model,
+                    prev_node.input[1], to_tensor=True)
+            zero_point = onnx_helper.get_model_initializer(model,
+                    prev_node.input[2], to_tensor=True)
+
+            # update quant parameters
+            quant_param[node_name]["input_1_quant"] = {
+                "scale": scale.item(),
+                "zero_point": zero_point.item(),
+            }
+
+             # get next nodes
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+            # get scale and zero point
+            scale = onnx_helper.get_model_initializer(model,
+                    next_node.input[1], to_tensor=True)
+            zero_point = np.atleast_1d(
+                    onnx_helper.get_model_initializer(model,
+                        next_node.input[2], to_tensor=True))
+
+            # update quant parameters
+            quant_param[node_name]["output_quant"] = {
+                "scale": scale,
+                "zero_point": zero_point[0],
+            }
 
     # return quantisation parameters
     return quant_param
-
-def quantise_mul(q, scale_width=32):
-
-    # if zero, return zero
-    if q == 0.0:
-        return 0, 0
-
-    # get the mantissa and exponent
-    man, exp = math.frexp(q)
-    man = int(man * (1 << scale_width-1))
-
-    # scale down mantissa if it's the max value
-    if man == ( 1 << (scale_width-1) ):
-        exp += 1
-        man /= 2
-
-    # can't shift below -scale_width
-    if exp < -(scale_width-1):
-        exp = 0
-        man = 0
-
-    # saturate shift past scale_width
-    if exp > scale_width-2:
-        exp = scale_width-2
-        man = ( 1 << (scale_width-1) ) - 1
-
-    # return the mantissa and exponent
-    return man, exp
 
 def get_scale_shift_node(quant_param, hw_node, scale_width=24):
 
@@ -189,6 +245,7 @@ def get_scale_shift_node(quant_param, hw_node, scale_width=24):
                 hw_node.hw.cols_out()*hw_node.hw.channels_out(), 1,
                 input_t = hw_node.hw.output_t,
                 scale_t = FixedPoint(scale_width, 0),
+                output_offset = quant_param["output_quant"]["zero_point"],
             )
 
         else:
@@ -199,7 +256,8 @@ def get_scale_shift_node(quant_param, hw_node, scale_width=24):
                 hw_node.hw.cols_out(),
                 hw_node.hw.channels_out(),
                 input_t = hw_node.hw.output_t,
-                scale_t = FixedPoint(scale_width, 0)
+                scale_t = FixedPoint(scale_width, 0),
+                output_offset = quant_param["output_quant"]["zero_point"],
             )
 
         # add scale and shift
@@ -228,7 +286,8 @@ def get_scale_shift_node(quant_param, hw_node, scale_width=24):
             hw_node.hw.rows_out(),
             hw_node.hw.cols_out()*hw_node.hw.channels_out(), 1,
             input_t = hw_node.hw.data_t,
-            scale_t = FixedPoint(scale_width, 0)
+            scale_t = FixedPoint(scale_width, 0),
+            output_offset = quant_param["output_quant"]["zero_point"],
 
         )
 

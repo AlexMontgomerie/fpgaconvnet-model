@@ -52,7 +52,8 @@ class ConvolutionLayer(Layer):
             sparsity: list = [],
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_offset: int = 0,
         ):
 
         # initialise parent class
@@ -68,6 +69,9 @@ class ConvolutionLayer(Layer):
 
         # save bias flag
         self.has_bias = has_bias
+
+        # input offset
+        self.input_offset = input_offset
 
         # save sparsity
         if len(sparsity) > 0:
@@ -516,6 +520,8 @@ class ConvolutionLayer(Layer):
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+
+        parameters.input_offset = self.input_offset
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)

@@ -10,6 +10,8 @@ from fpgaconvnet.models.layers import MultiPortLayer
 
 from fpgaconvnet.models.layers.utils import get_factors
 
+from fpgaconvnet.parser.quant.int import quantise_mul
+
 class EltWiseLayer(MultiPortLayer):
     def __init__(
             self,
@@ -20,10 +22,15 @@ class EltWiseLayer(MultiPortLayer):
             coarse: int = 1,
             op_type: str = "add",
             broadcast: bool = False,
-            data_t: FixedPoint = FixedPoint(16,8),
+            data_t: FixedPoint = FixedPoint(9,0),
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_offset: List[int] = [0],
+            input_scale: List[float] = [0],
+            output_offset: int = 0,
+            output_scale: int = 0,
+            left_shift: int = 20
         ):
 
         # initialise parent class
@@ -40,6 +47,37 @@ class EltWiseLayer(MultiPortLayer):
         self._op_type = op_type
         self._broadcast = broadcast
 
+        # get the input quantisation paramters
+        self.input_offset = input_offset
+        self.input_scale = input_scale
+
+        # get the output quantisation paramters
+        self.output_offset = output_offset
+        self.output_scale = output_scale
+
+        # left shift value
+        self.left_shift = left_shift
+
+        # get the total input scale
+        total_input_scale = max(self.input_scale) * self.ports_in
+
+        # get the input scaling
+        input_multipliers = [ i / total_input_scale for i in self.input_scale ]
+
+        # get the output scaling
+        output_multiplier = total_input_scale / ( ( 1 << self.left_shift ) * self.output_scale )
+
+        # quantise input multipliers
+        self.input_mul = [0]*self.ports_in
+        self.input_shift = [0]*self.ports_in
+        for i, m in enumerate(input_multipliers):
+            self.input_mul[i], self.input_shift[i] = quantise_mul(m, scale_width=acc_t.width)
+            self.input_shift[i] = (acc_t.width-1) - self.input_shift[i]
+
+        # quantise output multipliers
+        self.output_mul, self.output_shift = quantise_mul(output_multiplier, scale_width=acc_t.width)
+        self.output_shift = (acc_t.width-1) - self.output_shift
+
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
@@ -51,7 +89,9 @@ class EltWiseLayer(MultiPortLayer):
         # init modules
         self.modules = {
             "eltwise" : EltWise(self.rows_in(), self.cols_in(),
-                self.channels_in()//self.coarse, self.ports_in, eltwise_type=op_type, broadcast=broadcast, backend=self.backend, regression_model=self.regression_model),
+                self.channels_in()//self.coarse, self.ports_in,
+                eltwise_type=op_type, broadcast=broadcast,
+                backend=self.backend, regression_model=self.regression_model),
         }
 
         # update the layer
@@ -120,6 +160,15 @@ class EltWiseLayer(MultiPortLayer):
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
         self.acc_t.to_protobuf(parameters.acc_t)
+
+        # add quantisation parameters
+        parameters.input_offset_arr.extend(self.input_offset)
+        parameters.output_offset = self.output_offset
+        parameters.input_scale_arr.extend(self.input_mul)
+        parameters.input_shift_arr.extend(self.input_shift)
+        parameters.output_scale = self.output_mul
+        parameters.output_shift = self.output_shift
+
         # remove the repeated rows, cols and channels
         del parameters.rows_in_array[:]
         del parameters.cols_in_array[:]

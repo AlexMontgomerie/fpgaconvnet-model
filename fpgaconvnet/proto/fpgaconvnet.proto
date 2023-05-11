@@ -81,6 +81,17 @@ message parameter {
     repeated float shift = 61;
     optional fixed_point scale_t = 62;
     optional fixed_point shift_t = 63;
+    optional bool use_dsp = 64;
+    optional int32 input_offset  = 65;
+    optional int32 output_offset = 66;
+    repeated int32 input_offset_arr  = 67;
+    repeated int32 output_offset_arr = 68;
+    repeated int32 input_scale_arr = 69;
+    repeated int32 input_shift_arr = 70;
+    optional int32 output_scale = 71;
+    optional int32 output_shift = 72;
+    optional bool fuse_relu = 73;
+
 }
 
 message layer {

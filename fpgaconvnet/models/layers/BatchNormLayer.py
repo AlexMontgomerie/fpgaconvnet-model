@@ -21,6 +21,7 @@ class BatchNormLayer(Layer):
             output_t: FixedPoint = FixedPoint(9, 0),
             scale_t: FixedPoint = FixedPoint(32, 0),
             shift_t: FixedPoint = FixedPoint(8, 0),
+            output_offset: int = 0,
         ):
 
         super().__init__(rows, cols, channels,
@@ -31,6 +32,9 @@ class BatchNormLayer(Layer):
         self.shift_t = shift_t
         self.scale_t = scale_t
         self.output_t = output_t
+
+        # output offset
+        self.output_offset = output_offset
 
         # save parameters
         self._coarse = coarse
@@ -92,6 +96,7 @@ class BatchNormLayer(Layer):
         self.output_t.to_protobuf(parameters.output_t)
         self.scale_t.to_protobuf(parameters.scale_t)
         self.shift_t.to_protobuf(parameters.shift_t)
+        parameters.output_offset = self.output_offset
 
     def update(self):
         # batch norm

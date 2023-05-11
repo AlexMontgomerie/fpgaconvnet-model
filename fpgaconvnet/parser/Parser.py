@@ -240,6 +240,28 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
+    def swap_bn_relu(self, graph):
+
+        # iterate over nodes
+        for node in graph.nodes:
+
+            # find bn node
+            if graph.nodes[node]["type"] != LAYER_TYPE.BatchNorm:
+                continue
+
+            # check only single next node
+            if len(list(graph.successors(node))) != 1:
+                continue
+
+            # get the next node
+            next_node = next(graph.successors(node))
+
+            # check next node is relu
+            if graph.nodes[next_node]["type"] != LAYER_TYPE.ReLU:
+                continue
+
+            print(node, next_node)
+
     def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, save_opt_model=True):
 
         # load the onnx model
@@ -278,8 +300,8 @@ class Parser:
 
             # add extra quantisation hardware
             # if "weight_quant" in quant_format[node_name]: # TODO: check all in
-            if self.quant_mode == "int" and hardware.layer_type in [LAYER_TYPE.Convolution,
-                    LAYER_TYPE.InnerProduct, LAYER_TYPE.GlobalPooling ]: # TODO: check all in
+            if self.quant_mode == "int" and hardware.layer_type in [
+                    LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct, LAYER_TYPE.GlobalPooling ]: # TODO: check all in
                 extra_quant_nodes.append((hardware, quant_format[node_name]))
 
         # add the extra quantisation nodes
@@ -303,6 +325,8 @@ class Parser:
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+
+        # self.swap_bn_relu(graph)
 
         # add split nodes to the graph
         graph = self.add_split(graph)
