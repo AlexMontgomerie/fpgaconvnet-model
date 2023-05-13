@@ -5,6 +5,8 @@ from typing import Union, List
 import pydot
 import numpy as np
 
+from collections.abc import Iterable
+
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
@@ -74,10 +76,13 @@ class ConvolutionLayer(Layer):
         self.input_offset = input_offset
 
         # save sparsity
-        if len(sparsity) > 0:
-            # reject if pointwise or low sparsity
-            if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
-                self.sparsity = []
+        if not isinstance(sparsity, Iterable):
+            sparsity = [sparsity] * channels
+        # reject if pointwise or low sparsity
+        if kernel_rows == 1 and kernel_cols == 1:
+            sparsity = []
+        if len(sparsity) > 0 and np.mean(sparsity) < 0.1:
+            sparsity = []
         self.sparsity = sparsity
 
         # init variables
