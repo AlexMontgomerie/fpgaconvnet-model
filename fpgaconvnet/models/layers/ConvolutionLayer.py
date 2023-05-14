@@ -81,7 +81,7 @@ class ConvolutionLayer(Layer):
         # reject if pointwise or low sparsity
         if kernel_rows == 1 and kernel_cols == 1:
             sparsity = []
-        if len(sparsity) > 0 and np.mean(sparsity) < 0.1:
+        if len(sparsity) > 0 and np.mean(sparsity) < 0.2:
             sparsity = []
         self.sparsity = sparsity
 
