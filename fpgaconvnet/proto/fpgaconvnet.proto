@@ -102,6 +102,7 @@ message layer {
         SPLIT           = 7;
         ELTWISE         = 8;
         AVERAGE_POOLING = 9;
+        RESIZE          = 10;
     }
 
     optional string weights_path = 7;

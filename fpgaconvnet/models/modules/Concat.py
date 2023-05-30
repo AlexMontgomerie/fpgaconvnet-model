@@ -18,6 +18,9 @@ class Concat(Module):
     ports_in: int
     biases_width: int = field(default=16, init=False)
 
+    def __post_init__(self):
+        pass
+
     def channels_in(self, port_index=0):
         return self.channels[port_index]
 

@@ -23,6 +23,7 @@ from .Pool import Pool
 from .MaxPool import MaxPool
 # from .Pool import AvgPool
 from .ReLU import ReLU
+from .ReSize import ReSize
 from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze
 from .Bias import Bias

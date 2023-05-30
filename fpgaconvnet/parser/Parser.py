@@ -27,7 +27,7 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
+from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode, ParseOnnxReSizeNode, ParseOnnxSiLUNode, ParseOnnxConcatNode
 from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
 
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
@@ -71,7 +71,7 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
-            "convert_to_version_14",
+            "convert_to_version_15",
             "fuse_mul_add_into_bn",
         ]
 
@@ -175,7 +175,9 @@ class Parser:
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
-            LAYER_TYPE.SiLU: ParseOnnxActivationNode,
+            LAYER_TYPE.SiLU: ParseOnnxSiLUNode,
+            LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
+            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 

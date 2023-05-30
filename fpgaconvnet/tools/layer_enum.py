@@ -30,6 +30,7 @@ class LAYER_TYPE(Enum):
     SiLU    = 50 # i.e. Swish
     Reshape = 51
     NOP     = 52
+    ReSize  = 53
 
     @classmethod
     def get_type(cls, t):
@@ -52,7 +53,8 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
         LAYER_TYPE.Split            : fpgaconvnet_pb2.layer.layer_type.SPLIT,
         LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
-        LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE
+        LAYER_TYPE.ReSize           : fpgaconvnet_pb2.layer.layer_type.RESIZE,
+        LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -67,7 +69,8 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
         fpgaconvnet_pb2.layer.layer_type.SPLIT              : LAYER_TYPE.Split,
-        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise
+        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise,
+        fpgaconvnet_pb2.layer.layer_type.RESIZE             : LAYER_TYPE.ReSize,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -102,11 +105,12 @@ def from_onnx_op_type(op_type):
         "Flatten" : LAYER_TYPE.NOP, # NOTE: only "shape" layer supported
         "Reshape" : LAYER_TYPE.Reshape,
         "Shape" : LAYER_TYPE.Shape,
+        "Resize" : LAYER_TYPE.ReSize,
     }
 
     return layer_types.get(op_type, lambda: TypeError)
 
-def from_cfg_type(op_type): 
+def from_cfg_type(op_type):
     if op_type == "*":
         return "*"
     elif op_type == "Split":

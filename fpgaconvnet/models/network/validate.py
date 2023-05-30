@@ -20,13 +20,13 @@ def check_resources(self):
         # get the resource usage for the platform
         partition_resource_usage = partition.get_resource_usage()
         assert partition_resource_usage['FF']   <= \
-                (self.rsc_allocation*self.platform.get_ff()), "ERROR: FF usage exceeded, partition: {partition_index}" 
+                (self.rsc_allocation*self.platform.get_ff()), "ERROR: FF usage exceeded, partition: {partition_index}"
         assert partition_resource_usage['LUT']  <= \
-                (self.rsc_allocation*self.platform.get_lut()), "ERROR: LUT usage exceeded, partition: {partition_index}" 
+                (self.rsc_allocation*self.platform.get_lut()), "ERROR: LUT usage exceeded, partition: {partition_index}"
         assert partition_resource_usage['DSP']  <= \
-                (self.rsc_allocation*self.platform.get_dsp()) , "ERROR: DSP usage exceeded, partition: {partition_index}" 
+                (self.rsc_allocation*self.platform.get_dsp()) , "ERROR: DSP usage exceeded, partition: {partition_index}"
         assert partition_resource_usage['BRAM'] <= \
-                (self.rsc_allocation*self.platform.get_bram()), "ERROR: BRAM usage exceeded, partition: {partition_index}" 
+                (self.rsc_allocation*self.platform.get_bram()), "ERROR: BRAM usage exceeded, partition: {partition_index}"
         assert partition_resource_usage['URAM'] <= \
                 (self.rsc_allocation*self.platform.get_uram()), "ERROR: URAM usage exceeded, partition: {partition_index}"
 
@@ -60,9 +60,27 @@ def check_streams(self):
         assert (np.sum(streams_matrix,axis=1) == 0).all(), ""
 
 def check_partitions(self):
+
     # iterate over partitions
     for p in self.partitions:
-        pass
+
+        # check the partition has the right number of edges in and out for each node
+        for node in p.graph:
+            if node in self.graph:
+                # print("checking nodes out")
+                assert(len(graphs.get_next_nodes(p.graph, node)) == \
+                                len(graphs.get_next_nodes(self.graph, node)),
+                                f"inconsistent number of nodes out of node {node}")
+                # print("checking nodes in")
+                assert(len(graphs.get_prev_nodes(p.graph, node)) == \
+                                len(graphs.get_prev_nodes(self.graph, node)),
+                                f"inconsistent number of nodes into node {node}")
+
+def get_prev_nodes(graph, node):
+    return list(graph.predecessors(node))
+
+
+
 
 def check_memory_bandwidth(self):
     # iterate over partitions

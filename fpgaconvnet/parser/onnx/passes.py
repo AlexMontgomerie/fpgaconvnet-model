@@ -666,7 +666,8 @@ def fuse_mul_add_into_bn(model):
         # get the next node
         try:
             next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
-        except StopIteration:
+        # except StopIteration or IndexError:
+        except:
             continue
 
         print(node)
@@ -954,7 +955,7 @@ def fuse_relu_into_previous(model):
 
     return model
 
-def convert_to_version_14(model):
+def convert_to_version_15(model):
     return onnx.version_converter.convert_version(model, 14)
 
 

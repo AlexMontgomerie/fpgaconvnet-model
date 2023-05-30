@@ -3,6 +3,8 @@ import math
 import pydot
 from typing import Union, List
 
+from fpgaconvnet.data_types import FixedPoint
+
 from fpgaconvnet.models.modules import Concat
 from fpgaconvnet.models.layers import MultiPortLayer
 
@@ -16,14 +18,28 @@ class ConcatLayer(MultiPortLayer):
             channels: List[int],
             ports_in: int = 1,
             coarse: int = 1,
+            data_t: FixedPoint = FixedPoint(16,8),
+            backend: str = "chisel", # default to no bias for old configs
+            regression_model: str = "linear_regression"
+
         ):
 
         # initialise parent class
-        super().__init__([rows], [cols], channels, [coarse], [coarse],
-                ports_in=ports_in)
+        super().__init__([rows]*ports_in, [cols]*ports_in, channels,
+                [coarse]*ports_in, [coarse]*ports_in, ports_in=ports_in,
+                data_t=data_t)
 
+        self.mem_bw_in = [100.0] * self.ports_in
         # parameters
         self._coarse = coarse
+
+        # backend flag
+        assert backend in ["chisel"], f"{backend} is an invalid backend"
+        self.backend = backend
+
+        # regression model
+        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
+        self.regression_model = regression_model
 
         # init modules
         self.modules = {
