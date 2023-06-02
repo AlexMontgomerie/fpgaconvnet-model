@@ -676,8 +676,11 @@ def fuse_mul_add_into_bn(model):
             continue
 
         # get the channels
-        channels = onnx_helper.get_model_initializer(
-                model, node.input[1], to_tensor=False).dims[0]
+        constant = onnx_helper.get_model_initializer(
+                model, node.input[1], to_tensor=False)
+        if constant is None:
+            continue
+        channels = constant.dims[0]
 
         # create zero mean
         zero_mean = onnx.helper.make_tensor(

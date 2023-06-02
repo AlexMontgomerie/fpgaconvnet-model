@@ -20,8 +20,7 @@ class ConcatLayer(MultiPortLayer):
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
-
+            regression_model: str = "linear_regression",
         ):
 
         # initialise parent class
@@ -43,7 +42,10 @@ class ConcatLayer(MultiPortLayer):
 
         # init modules
         self.modules = {
-            "concat" : Concat(self.rows_in(), self.cols_in(), self.channels, self.ports_in),
+            # "concat" : Concat(self.rows_in(), self.cols_in(), self.channels, self.ports_in,
+            #     backend=self.backend, regression_model=self.regression_model),
+            "concat" : Concat(self.rows_in(), self.cols_in(), self.channels, self.ports_in,
+                backend=self.backend, regression_model=self.regression_model),
         }
 
         # update the layer
