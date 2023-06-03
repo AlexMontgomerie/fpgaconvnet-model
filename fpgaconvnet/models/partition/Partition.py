@@ -157,6 +157,8 @@ class Partition():
         transformable_layers = [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
         # iterative function to find weights reloading layer
         def _wr_layer(layer):
+            if self.graph.nodes[layer]['type'] == LAYER_TYPE.Split:
+                return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.Concat:
                 return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.EltWise:
