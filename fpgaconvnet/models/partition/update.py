@@ -25,7 +25,7 @@ def update(self):
         streams_in_max = min(self.max_streams_in//len(inputs), self.graph.nodes[input_node]["hw"].streams_in())
         # choose the max of all the valid stream values, below the max
         self.streams_in.append(max([ s for s in streams_in_valid if s <= streams_in_max ]))
-        
+
     ## update streams out
     self.streams_out = []
     outputs = graphs.get_output_nodes(self.graph)
@@ -35,7 +35,7 @@ def update(self):
         # get the max stream values out
         streams_out_max = min(self.max_streams_out//len(outputs), self.graph.nodes[output_node]["hw"].streams_out())
         # choose the max of all the valid stream values, below the max
-        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))    
+        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))
 
     ## add auxiliary layers
     self.add_squeeze()
@@ -63,13 +63,13 @@ def update(self):
 
     ## update buffer depths
     for node in self.graph.nodes:
-        if self.graph.nodes[node]["type"] == LAYER_TYPE.EltWise:
-            self.update_eltwise_buffer_depth(node)
+        if self.graph.nodes[node]["type"] in [LAYER_TYPE.EltWise, LAYER_TYPE.Concat]:
+            self.update_multiport_buffer_depth(node)
 
-def update_eltwise_buffer_depth(self, eltwise_node):
+def update_multiport_buffer_depth(self, eltwise_node):
 
     # check the eltwise node is actually eltwise
-    assert self.graph.nodes[eltwise_node]["type"] == LAYER_TYPE.EltWise, "node is not of type EltWise"
+    assert self.graph.nodes[eltwise_node]["type"] in [LAYER_TYPE.EltWise, LAYER_TYPE.Concat], "node is not of type EltWise"
 
     # search back in the graph for the split layer
     split_node = eltwise_node

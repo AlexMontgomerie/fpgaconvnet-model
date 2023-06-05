@@ -84,6 +84,7 @@ class ReSizeLayer(Layer):
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        parameters.scale.extend(self.scales)
 
     def update(self):
         self.modules['resize'].rows     = self.rows_in()

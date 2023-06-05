@@ -119,6 +119,7 @@ message partition {
     required string weights_reloading_layer  = 7;
 
     repeated layer layers = 8;
+    optional int32 gen_last_width = 9;
 }
 
 message partitions {

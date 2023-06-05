@@ -143,6 +143,7 @@ class Parser:
         # perform onnx optimization passes
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
+        onnx.save(model_opt, "model_opt.onnx")
 
         # onnx.save(model_opt, "model_opt.onnx")
 
@@ -155,7 +156,6 @@ class Parser:
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # onnx.save(model_opt, "model_opt.onnx")
 
         if not self.custom_onnx:
             # check optimized model
