@@ -27,8 +27,8 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
-from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode, ParseOnnxReSizeNode, ParseOnnxSiLUNode, ParseOnnxConcatNode
-from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
+from fpgaconvnet.parser.onnx.parse import *
+from fpgaconvnet.parser.prototxt.parse import *
 
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
 
@@ -77,7 +77,7 @@ class Parser:
 
         self.fpgaconvnet_post_onnx_passes = [
             "eliminate_nop_pad",
-            "fuse_mul_sigmoid_into_hardswish",
+            "fuse_mul_sigmoid_into_hardswish", # todo: HardSwish is not exact SiLU
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
@@ -173,11 +173,13 @@ class Parser:
             LAYER_TYPE.Pooling: ParseOnnxPoolingNode,
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
-            LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.Concat: ParseOnnxConcatNode,
+            LAYER_TYPE.ReLU: ParseOnnxActivationNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
-            LAYER_TYPE.SiLU: ParseOnnxSiLUNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
+            LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.HardSwish: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -189,7 +191,7 @@ class Parser:
             return converter[node_type](graph, node, quant_format, dimensionality, backend=self.backend,
                     regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
-            raise TypeError(f"{node.op_type} not supported, exiting now")
+            raise TypeError(f"{node_type} not supported, exiting now")
 
     def get_quantisation(self, model, **kwargs):
 
@@ -239,7 +241,7 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, save_opt_model=True):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, multi_fpga, save_opt_model=True):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
@@ -308,7 +310,7 @@ class Parser:
         # return the graph
         platform = Platform()
         platform.update(platform_filepath)
-        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality)
+        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality, multi_fpga=multi_fpga)
 
     def get_hardware_from_prototxt_node(self, node):
 
@@ -326,10 +328,6 @@ class Parser:
 
         # get the node type
         node_type = from_proto_layer_type(node.type)
-
-        # todo: fix activation layer
-        if node_type == [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU]:
-            node_type = LAYER_TYPE.ReLU
 
         # try converter
         try:
@@ -396,9 +394,9 @@ class Parser:
                 # add squeeze nodes to list
                 remove_nodes.append(node)
                 # place edge back
-                prev_node = graphs.get_prev_nodes(graph,node)[0]
-                next_node = graphs.get_next_nodes(graph,node)[0]
-                graph.add_edge(prev_node,next_node)
+                for prev_node in graphs.get_prev_nodes(graph, node):
+                    for next_node in graphs.get_next_nodes(graph, node):
+                        graph.add_edge(prev_node,next_node)
         # remove squeeze nodes
         graph.remove_nodes_from(remove_nodes)
         # return the graph

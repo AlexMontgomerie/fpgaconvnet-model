@@ -2,7 +2,7 @@ import numpy as np
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 
-def get_pipeline_depth(self, node): # TODO: change to longest path problem
+def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
     """
     Parameters
     ----------
@@ -15,6 +15,8 @@ def get_pipeline_depth(self, node): # TODO: change to longest path problem
         pipeline depth (in cycles) from the first node
         in the partition to `node`
     """
+    if node is None:
+        node = graphs.get_input_nodes(self.graph)[0]
     # find the pipeline depth of the current node
     pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
     # find the longest path to end from this node

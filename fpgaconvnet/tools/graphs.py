@@ -38,6 +38,10 @@ def ordered_node_list(graph): # TODO: make work for parallel networks
 def split_graph_horizontal(graph,edge):
     prev_nodes = get_prev_nodes_all(graph,edge[1])
     next_nodes = get_next_nodes_all(graph,edge[0])
+    for node in prev_nodes:
+        for nnode in get_next_nodes_all(graph, node):
+            if nnode not in next_nodes and nnode not in prev_nodes:
+                prev_nodes.append(nnode)
     prev_graph = graph.subgraph(prev_nodes).copy()
     next_graph = graph.subgraph(next_nodes).copy()
     return prev_graph, next_graph
@@ -49,12 +53,18 @@ def split_graph_vertical(graph, nodes):
     left_nodes = [input_node, nodes[0][0]]
     for node in nodes[0]:
         left_nodes.extend( get_next_nodes_all(graph,node) )
-    left_graph = graph.subgraph(left_nodes).copy()
     # find right side graph
     right_nodes = [nodes[1][0]]
     for node in nodes[1]:
         right_nodes.extend( get_next_nodes_all(graph,node) )
+    # put output node in the smaller graph
+    left_nodes = [node for node in left_nodes if node != output_node]
     right_nodes = [node for node in right_nodes if node != output_node]
+    if len(left_nodes) > len(right_nodes):
+        right_nodes.append(output_node)
+    else:
+        left_nodes.append(output_node)
+    left_graph = graph.subgraph(left_nodes).copy()
     right_graph = graph.subgraph(right_nodes).copy()
     return left_graph, right_graph
 
