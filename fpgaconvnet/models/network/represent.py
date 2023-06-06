@@ -85,6 +85,8 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
         partition.weights_reloading_factor = self.partitions[i].wr_factor
         partition.weights_reloading_layer  = str(self.partitions[i].wr_layer)
 
+        partition.gen_last_width = 16 # TODO: workout best width
+
         # add all layers (in order)
         for node in graphs.ordered_node_list(self.partitions[i].graph):
 

@@ -115,6 +115,7 @@ class ConcatLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        parameters.coarse       = self._coarse
        # remove the repeated rows, cols and channels
         del parameters.rows_in_array[:]
         del parameters.cols_in_array[:]

@@ -143,9 +143,6 @@ class Parser:
         # perform onnx optimization passes
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
-        onnx.save(model_opt, "model_opt.onnx")
-
-        # onnx.save(model_opt, "model_opt.onnx")
 
         # infer shapes before manual optimisations
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
@@ -156,11 +153,11 @@ class Parser:
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-
         if not self.custom_onnx:
             # check optimized model
             onnx.checker.check_model(model_opt)
 
+        onnx.save(model_opt, "model_opt.onnx")
 
         return model_opt, dimensionality
 
@@ -241,7 +238,8 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath, multi_fpga, save_opt_model=True):
+    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath,
+            multi_fpga=False, save_opt_model=True):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
