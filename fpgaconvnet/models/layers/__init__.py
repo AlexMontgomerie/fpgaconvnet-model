@@ -20,6 +20,8 @@ from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
 from .GlobalPoolingLayer import GlobalPoolingLayer
+from .ReSizeLayer import ReSizeLayer
+from .HardswishLayer import HardswishLayer
 
 # 3D layers
 from .Layer3D import Layer3D

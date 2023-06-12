@@ -119,7 +119,7 @@ def update_multiport_buffer_depth(self, eltwise_node):
         idx = eltwise_prev_nodes.index(path[-2])
 
         # buffer depth is difference of max depth with the paths depth
-        self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i])
+        self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + 64
 
 """
 def update_eltwise_buffer_depth(self, eltwise_node):

@@ -28,7 +28,7 @@ class LAYER_TYPE(Enum):
     Shape     = 48
     GlobalPooling = 49
     HardSigmoid  = 50
-    HardSwish    = 51 
+    HardSwish    = 51
     Reshape = 52
     NOP     = 53
     LeakyReLU   = 54
@@ -110,7 +110,7 @@ def from_onnx_op_type(op_type):
         "Flatten" : LAYER_TYPE.NOP, # NOTE: only "shape" layer supported
         "Reshape" : LAYER_TYPE.Reshape,
         "Shape" : LAYER_TYPE.Shape,
-        "Resize" : LAYER_TYPE.NOP,
+        "Resize" : LAYER_TYPE.ReSize,
         "Split" : LAYER_TYPE.NOP,
     }
 

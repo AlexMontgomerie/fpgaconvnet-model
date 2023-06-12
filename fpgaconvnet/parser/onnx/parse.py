@@ -14,6 +14,8 @@ from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
 from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 from fpgaconvnet.models.layers import ConcatLayer
+from fpgaconvnet.models.layers import ReSizeLayer
+from fpgaconvnet.models.layers import HardswishLayer
 
 from fpgaconvnet.data_types import FixedPoint
 
@@ -340,6 +342,25 @@ class ParseOnnxReLUNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+class ParseOnnxHardSwishNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # return hardware
+        if self.dimensionality == 2:
+            return HardswishLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                input_t = FixedPoint(self.quant_format["input_t"]["width"],
+                    self.quant_format["input_t"]["binary_point"]),
+                output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                    self.quant_format["output_t"]["binary_point"]),
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+
+
 class ParseOnnxActivationNode(ParseOnnxNode):
 
     def get_hardware(self):
@@ -437,23 +458,19 @@ class ParseOnnxReSizeNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
-
         # # change the layer type
         # self.layer_type = LAYER_TYPE.Squeeze
 
-        # create pooling layer hardware
-        if self.dimensionality == 2:
-            return SqueezeLayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                1, 1,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
+        return ReSizeLayer(
+            self.input_shape[2] if len(self.input_shape) == 4 else 1,
+            self.input_shape[3] if len(self.input_shape) == 4 else 1,
+            self.input_shape[1],
+            scales=[1,1,2,2], # TODO: get from the model
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                self.quant_format["data_t"]["binary_point"]),
+            backend=self.backend,
+            regression_model=self.regression_model
+        )
 
 class ParseOnnxNOPNode(ParseOnnxNode):
 
@@ -589,8 +606,8 @@ class ParseOnnxConcatNode(ParseOnnxNode):
                 input_shape[0][3],
                 [ x[1] for x in input_shape ],
                 ports_in=len(self.inputs),
-                # data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                #     self.quant_format["data_t"]["binary_point"]),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 # backend=self.backend,
                 # regression_model=self.regression_model
             )

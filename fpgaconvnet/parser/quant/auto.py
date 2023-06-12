@@ -5,7 +5,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
-def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, block_floating_point=False):
+def get_quant_param(model, data_width=17, weight_width=16,
+        acc_width=40, block_floating_point=False, binary_point_scale=0.5):
 
     # dictionary of quantisation parameters
     quant_param = {}
@@ -23,22 +24,22 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, block_f
         quant_param[node_name] = {
             "input_t" : {
                 "width" : attr["data_width"],
-                "binary_point": attr["data_width"]//2,
+                "binary_point": int(attr["data_width"]*binary_point_scale),
             },
             "output_t" : {
                 "width" : attr["data_width"],
-                "binary_point": attr["data_width"]//2,
+                "binary_point": int(attr["data_width"]*binary_point_scale),
             },
             "data_t" : {
                 "width" : attr["data_width"],
-                "binary_point": attr["data_width"]//2,
+                "binary_point": int(attr["data_width"]*binary_point_scale),
             },
             "acc_t" : {
                 "width" : attr["acc_width"],
-                "binary_point": attr["acc_width"]//2,
+                "binary_point": int(attr["acc_width"]*binary_point_scale),
             },
         }
-            
+
         # special case for convolution and inner product
         if node.op_type in [ "Conv", "Gemm" ]:
             attr.setdefault("weight_width", weight_width)
@@ -53,7 +54,7 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, block_f
                     int(math.ceil(math.log(weights_max, 2)))+1)
 
             # get the accumulation binary point
-            acc_binary_point = weight_binary_point + attr["data_width"]//2
+            acc_binary_point = weight_binary_point + int(attr["data_width"]*binary_point_scale)
 
             # adjust data types
             quant_param[node_name]["weight_t"] = {
@@ -65,7 +66,6 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, block_f
                 "binary_point": acc_binary_point,
             }
             quant_param[node_name]["block_floating_point"] = attr["block_floating_point"]
-
 
     # return the quant format
     return quant_param

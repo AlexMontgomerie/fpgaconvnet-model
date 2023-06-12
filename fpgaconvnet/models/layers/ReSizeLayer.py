@@ -94,15 +94,15 @@ class ReSizeLayer(Layer):
 
     def resource(self):
 
-        # get resize resources
-        resize_rsc = self.modules['resize'].rsc()
+        # # get resize resources
+        # resize_rsc = self.modules['resize'].rsc()
 
         # Total
         return {
-            "LUT"  :  resize_rsc['LUT']*self.coarse,
-            "FF"   :  resize_rsc['FF']*self.coarse,
-            "BRAM" :  resize_rsc['BRAM']*self.coarse,
-            "DSP" :   resize_rsc['DSP']*self.coarse,
+            "LUT"  :  0,
+            "FF"   :  0,
+            "BRAM" :  0,
+            "DSP" :   0,
         }
 
     def visualise(self,name):

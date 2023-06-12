@@ -423,8 +423,10 @@ def convert_reshape_to_flatten(model):
 
         # get input and output shape
         input_shape = onnx_helper.get_input_shape(model, node.input[0])
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
-        output_shape = onnx_helper.get_input_shape(model, next_node.input[0])
+        next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+        next_node_input_idx = next_node.input.index(node.output[0])
+        output_shape = onnx_helper.get_input_shape(model,
+                next_node.input[next_node_input_idx])
 
         # check the output shape is the same as flattened
         if np.prod(input_shape[1:]) != output_shape[1]:
@@ -902,13 +904,23 @@ def fuse_mul_sigmoid_into_hardswish(model):
         if len(node.input) != 2:
             continue
 
-        # get previous nodes
+        # check first mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[0], model.graph.input))):
+            continue
+
+        # check second mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
+            continue
+
+        # get previous node a
         prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
-        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
 
         # # check prev node a has two outputs
-        # if len(prev_node_a.input) != 2:
+        # if len(prev_node_a.output) != 2:
         #     continue
+
+        # get previous node b
+        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
 
         # check prev node b is a sigmoid
         if prev_node_b.op_type != "Sigmoid":

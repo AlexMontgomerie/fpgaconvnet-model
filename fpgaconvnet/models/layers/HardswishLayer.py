@@ -15,17 +15,22 @@ class HardswishLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
+            input_t: FixedPoint = FixedPoint(16,8),
+            output_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
         super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
+                coarse, coarse, data_t=input_t)
 
         # save parameters
         self._coarse = coarse
+
+        # save data types
+        self.input_t = input_t
+        self.output_t = output_t
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -80,6 +85,8 @@ class HardswishLayer(Layer):
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        self.input_t.to_protobuf(parameters.input_t)
+        self.output_t.to_protobuf(parameters.output_t)
 
     def update(self):
         self.modules['hardswish'].rows     = self.rows_in()

@@ -66,8 +66,8 @@ class SplitLayer(MultiPortLayer):
         super().__init__([rows], [cols], [channels], [coarse], [coarse],
                 ports_out=ports_out, data_t=data_t)
 
-        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out        
-        
+        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
+
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
         self.backend = backend
@@ -119,6 +119,16 @@ class SplitLayer(MultiPortLayer):
         self._coarse_in = [val]
         self._coarse_out = [val]*self.ports_out
         # self.update()
+
+    def streams_in(self, port_index=0):
+        """
+        Returns
+        -------
+        int
+            number of parallel streams into the layer.
+        """
+        assert(port_index < self.ports_in)
+        return self._coarse
 
     def rows_out(self, port_index=0) -> int:
         return self.rows[0]

@@ -176,7 +176,7 @@ class Parser:
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
-            LAYER_TYPE.HardSwish: ParseOnnxActivationNode,
+            LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -199,7 +199,7 @@ class Parser:
             raise ModuleNotFoundError(f"quantisation mode {self.quant_mode} not supported")
 
         # get the quantisation format
-        quant_format = quant.get_quant_param(model)
+        quant_format = quant.get_quant_param(model, **kwargs)
 
         # perform fpgaconvnet-based optimization passes (post quantisation)
         model_opt = self.optimize_onnx(model, self.fpgaconvnet_post_quant_passes)
@@ -225,7 +225,8 @@ class Parser:
                         graph.nodes[node]['hw'].cols_out(),
                         graph.nodes[node]['hw'].channels_out(),
                         graph.nodes[node]['hw'].streams_out(),
-                        len(nodes_out)
+                        len(nodes_out),
+                        data_t=graph.nodes[node]['hw'].data_t,
                     )
                 )
                 # iterate over nodes out
@@ -239,7 +240,7 @@ class Parser:
         return graph
 
     def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath,
-            multi_fpga=False, save_opt_model=True):
+            multi_fpga=False, save_opt_model=True, **quantisation_args):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
@@ -248,7 +249,7 @@ class Parser:
             onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
-        onnx_model, quant_format = self.get_quantisation(onnx_model)
+        onnx_model, quant_format = self.get_quantisation(onnx_model, **quantisation_args)
 
         # create a networkx graph
         graph = nx.DiGraph()
@@ -267,8 +268,7 @@ class Parser:
                     onnx_model.graph, node, quant_format[node_name], dimensionality)
 
             # add node to graph
-            graph.add_node(hardware.name,
-                    **hardware.get_node_info())
+            graph.add_node(hardware.name, **hardware.get_node_info())
 
             # get edges from the hardware
             for edge in hardware.get_edges_in(onnx_model):
