@@ -314,7 +314,8 @@ class Parser:
 
         # iterate over partitions
         for i, partition in enumerate(partitions.partition):
-
+            if i == 0:
+                net.batch_size = partition.batch_size
             # add all layers to partition
             graph = nx.DiGraph()
             for layer in partition.layers:
@@ -330,7 +331,9 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph, port_width=net.platform.port_width)
+            print("partitions_id:", partition.id)
+            print("parititon batch_size", partition.batch_size)
+            new_partition = Partition(graph, port_width=net.platform.port_width, batch_size=partition.batch_size)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)
