@@ -1,6 +1,7 @@
 import numpy as np
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
     """
@@ -98,6 +99,13 @@ def get_bandwidth_out(self,freq):
         # return (rate*streams*self.data_width*freq)/8000
         bw_out.append((rate*streams*self.data_width*freq)/8000)
     return bw_out
+
+def get_bandwidth_weight(self):
+    bw_weight = 0
+    for node in self.graph.nodes():
+        if self.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+            bw_weight += self.graph.nodes[node]['hw'].stream_bw()
+    return bw_weight
 
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])

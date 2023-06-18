@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 
 from dataclasses import asdict
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def create_report(self, output_path):
     # create report dictionary
@@ -67,8 +68,9 @@ def create_report(self, output_path):
                 "DSP" : resource_usage["DSP"]
             },
             "bandwidth" : {
-                "in" : self.partitions[i].get_bandwidth_in(self.platform.board_freq),
-                "out" : self.partitions[i].get_bandwidth_out(self.platform.board_freq)
+                "in (GB/s)" : self.partitions[i].get_bandwidth_in(self.platform.board_freq), 
+                "out (GB/s)" : self.partitions[i].get_bandwidth_out(self.platform.board_freq), 
+                "weight (bits per cycle)": self.partitions[i].get_bandwidth_weight()
             }
         }
         if self.platform.get_uram() > 0:
@@ -92,6 +94,8 @@ def create_report(self, output_path):
             }
             if "URAM" in resource_usage.keys():
                 report["partitions"][i]["layers"][node]["resource_usage"]["URAM"] = resource_usage["URAM"]
+            if self.partitions[i].graph.nodes[node]["type"] == LAYER_TYPE.Convolution:
+                report["partitions"][i]["layers"][node]["resource_usage"]["stream_bw"] = hw.stream_bw()
     # save as json
     with open(output_path,"w") as f:
         json.dump(report,f,indent=2)

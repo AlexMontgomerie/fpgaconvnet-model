@@ -66,7 +66,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,
-        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.HardSigmoid, LAYER_TYPE.HardSwish],
+        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : LAYER_TYPE.ReLU,
         fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,

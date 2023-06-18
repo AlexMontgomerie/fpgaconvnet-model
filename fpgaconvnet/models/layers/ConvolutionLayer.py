@@ -100,12 +100,12 @@ class ConvolutionLayer(Layer):
         # weights buffering flag
         if self.backend == "hls":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = 0
             self.data_packing = False
             self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = 0
             self.data_packing = True
             self.use_uram = False
 
@@ -634,14 +634,26 @@ class ConvolutionLayer(Layer):
             weight_array_width = self.weight_t.width
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
-        if self.stream_weights:
-            weights_bram_usage = 0
-        elif self.use_uram:
+        if self.use_uram:
             weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
             rsc["URAM"] = weights_uram_usage
             weights_bram_usage = 0
         else:
             weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
+            weights_bram_usage -= self.stream_weights
+
+        self.weight_array_depth = weight_array_depth
+        self.weight_array_width = weight_array_width * weight_array_num
+        self.weight_array_num = weight_array_num
+        self.weights_bram_usage = weights_bram_usage
+        stream_buffer = 0
+        if weights_bram_usage > 0:
+            bram_details = bram_array_resource_model(weight_array_depth, weight_array_width, "memory", detailed=True) 
+            self.weight_array_unit_depth = bram_details[3]
+            self.weight_array_unit_width = bram_details[1]
+            if self.stream_weights > 0:
+                # buffers for streaming weights
+                stream_buffer = bram_array_resource_model(self.weight_array_unit_depth, weight_array_width, "memory") * weight_array_num
 
         # bias usage
         if self.has_bias:
@@ -662,10 +674,25 @@ class ConvolutionLayer(Layer):
             shift_scale_bram_usage = 0
 
         # add weight, bias, shift_scale to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
+        rsc["BRAM"] += weights_bram_usage + stream_buffer + biases_bram_usage + shift_scale_bram_usage
 
         # return total resource
         return rsc
+
+    def stream_unit(self):
+        unit = self.weight_array_num * math.ceil(self.weight_array_width/self.weight_array_num/self.weight_array_unit_width)
+        return unit
+    
+    def stream_bw(self):
+        if self.stream_weights == 0:
+            return 0
+        else:
+            unit = self.stream_unit()
+            off_chip_bits = (self.stream_weights / unit) * self.weight_array_unit_depth * self.weight_array_num * self.weight_array_width
+            cycles = self.weight_array_depth - (self.stream_weights / unit) * self.weight_array_unit_depth
+            assert cycles > 0
+            stream_bw = off_chip_bits / cycles
+            return stream_bw
 
     def visualise(self, name):
         pass
