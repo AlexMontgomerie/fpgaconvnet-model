@@ -41,7 +41,7 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False,
     else:
         return math.ceil(width/bram_width)*math.ceil(depth/bram_depth)
 
-def uram_array_resource_model(depth, width, extension=True):
+def uram_array_resource_model(depth, width, extension=True, detailed=False):
     if extension:
         max_width = max(URAM_EXT_CONF_WIDTH.keys()) 
         uram_width = min(max_width, width)
@@ -49,9 +49,15 @@ def uram_array_resource_model(depth, width, extension=True):
             uram_width = sorted(list(URAM_EXT_CONF_WIDTH.keys()))[
                     bisect.bisect_right(sorted(list(URAM_EXT_CONF_WIDTH.keys())), uram_width)]
         uram_depth = URAM_EXT_CONF_WIDTH[uram_width]
-        return math.ceil(width/uram_width)*math.ceil(depth/uram_depth)
     else:
-        return math.ceil(depth/4096)*math.ceil(width/72)
+        uram_width = 72
+        uram_depth = 4096
+
+    if detailed:
+        return width, uram_width, depth, uram_depth
+    else:
+        return math.ceil(width/uram_width)*math.ceil(depth/uram_depth)
+
 
 def queue_lutram_resource_model(depth, width):
 
