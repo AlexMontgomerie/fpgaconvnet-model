@@ -73,7 +73,7 @@ class ConvolutionLayer(Layer):
         if len(sparsity) > 0:
             # reject if pointwise or low sparsity
             if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
-                self.sparsity = []
+                sparsity = []
         self.sparsity = sparsity
 
         # init variables
@@ -551,8 +551,10 @@ class ConvolutionLayer(Layer):
         }
 
     def get_operations(self):
-        # return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
-        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out() + self.filters
+        ops = self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        if self.has_bias:
+            ops += self.filters*self.rows_out()*self.cols_out()
+        return ops
 
     def get_sparse_operations(self):
         return self.get_operations()*np.average(self.sparsity)
