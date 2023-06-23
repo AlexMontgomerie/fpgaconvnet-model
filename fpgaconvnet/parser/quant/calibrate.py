@@ -6,7 +6,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 
-def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, calibration_data={}):
+def get_quant_param(model, data_width=16, weight_width=16, acc_width=40, calibration_data={}):
 
     def get_int_bits(node):
         if node in calibration_data:
