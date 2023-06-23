@@ -6,7 +6,16 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 
-def get_quant_param(model, data_width=16, weight_width=16, acc_width=40, calibration_data={}):
+def get_quant_param(model, data_width=16, weight_width=16, acc_width=32, calibration_data={}):
+
+    def get_int_bits(node):
+        if node in calibration_data:
+            neg_int_bits = math.ceil(math.log(abs(float(calibration_data[node]["min_val"]))))
+            pos_int_bits = math.ceil(math.log(float(calibration_data[node]["max_val"])))
+            return max(neg_int_bits, pos_int_bits) + 2
+        else:
+            print(f"WARNING: node {node} not in calibration data")
+            return 0
 
     # dictionary of quantisation parameters
     quant_param = {}
@@ -28,38 +37,22 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=40, calibra
             },
         }
 
-        # get the onnx input node
-        input_node = node.input[0]
-
-        # find the calibration data out
-        in_cal_min_max = calibration_data[input_node]
-
-        # calculate the max integer bits
-        in_neg_int_bits = math.ceil(math.log(abs(float(in_cal_min_max["min_val"]))))
-        in_pos_int_bits = math.ceil(math.log(float(in_cal_min_max["max_val"])))
-        in_int_bits = max(in_neg_int_bits, in_pos_int_bits) + 1
+        # get the input bits
+        input_integer_bits = max([ get_int_bits(n) for n in node.input ])
 
         # update the binary point for the output
         quant_param[node_name]["input_t"] = {
             "width" : data_width,
-            "binary_point": data_width - in_int_bits,
+            "binary_point": data_width - input_integer_bits,
         }
 
-        # get the onnx output node
-        output_node = node.output[0]
-
-        # find the calibration data out
-        out_cal_min_max = calibration_data[output_node]
-
-        # calculate the max integer bits
-        out_neg_int_bits = math.ceil(math.log(abs(float(out_cal_min_max["min_val"]))))
-        out_pos_int_bits = math.ceil(math.log(float(out_cal_min_max["max_val"])))
-        out_int_bits = max(out_neg_int_bits, out_pos_int_bits) + 1
+        # get the output bits
+        output_integer_bits = max([ get_int_bits(n) for n in node.output ])
 
         # update the binary point for the output
         quant_param[node_name]["output_t"] = {
             "width" : data_width,
-            "binary_point": data_width - out_int_bits,
+            "binary_point": data_width - output_integer_bits,
         }
 
         # set data type to same as input type
@@ -91,8 +84,6 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=40, calibra
                 "binary_point": acc_binary_point,
             }
             quant_param[node_name]["block_floating_point"] = attr["block_floating_point"]
-
-    # add the
 
     # return the quant format
     return quant_param

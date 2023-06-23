@@ -94,6 +94,7 @@ class Network():
     from fpgaconvnet.models.network.represent import get_stream_in_coarse
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in
+    from fpgaconvnet.models.network.represent import get_prev_nodes_ordered
     from fpgaconvnet.models.network.represent import save_all_partitions
 
     from fpgaconvnet.models.network.validate import check_ports
@@ -131,7 +132,7 @@ class Network():
         # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
+
         if self.multi_fpga:
             return (len(partition_list)-1)*self.platform.eth_delay
         else:
@@ -165,7 +166,7 @@ class Network():
     def get_latency(self, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
+
         batch_cycle = self.get_cycle(partition_list)
         latency = batch_cycle/(self.platform.board_freq*1000000)
         # return the total latency as well as reconfiguration time

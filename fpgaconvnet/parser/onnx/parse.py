@@ -11,7 +11,6 @@ from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
-from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 from fpgaconvnet.models.layers import ConcatLayer
 from fpgaconvnet.models.layers import ReSizeLayer
@@ -352,10 +351,15 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 4 else 1,
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
-                input_t = FixedPoint(self.quant_format["input_t"]["width"],
-                    self.quant_format["input_t"]["binary_point"]),
-                output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                    self.quant_format["output_t"]["binary_point"]),
+                input_t = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                output_t = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+
+#                 input_t = FixedPoint(self.quant_format["input_t"]["width"],
+#                     self.quant_format["input_t"]["binary_point"]),
+#                 output_t = FixedPoint(self.quant_format["output_t"]["width"],
+#                     self.quant_format["output_t"]["binary_point"]),
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")

@@ -15,6 +15,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
 
+
 def get_model_input_nodes(self, i):
     input_node = self.partitions[i].input_nodes[0]
     onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
@@ -60,6 +61,77 @@ def get_buffer_depth_in(self, node_hw, index):
     else:
         raise NotImplementedError
 
+def get_prev_nodes_ordered(self, node, partition_index):
+
+    # get the previous nodes from the graph
+    prev_nodes = graphs.get_prev_nodes(self.partitions[partition_index].graph, node)
+
+    # get the input nodes from the onnx model
+    onnx_node = self.partitions[partition_index].graph.nodes[node]["onnx_node"]
+
+    # get the previous onnx nodes
+    prev_onnx_nodes = [ self.partitions[partition_index].graph.nodes[prev_node]["onnx_node"] \
+            for prev_node in prev_nodes ]
+
+    # check if prev node is same as current node
+    if onnx_node in prev_onnx_nodes:
+        for prev_node in prev_nodes:
+            yield prev_node
+        return
+
+    # get the onnx inputs for that node
+    onnx_inputs = onnx_helper.get_model_node(self.model, onnx_node).input
+
+    # get the outputs of previous nodes
+    prev_onnx_outputs = [ onnx_helper.get_model_node(self.model, prev_onnx_node).output[0] \
+            for prev_onnx_node in prev_onnx_nodes ]
+
+    # iterate over the onnx nodes
+    for input in onnx_inputs:
+
+        # find the inputs that correspond to prev onnx outputs
+        if input in prev_onnx_outputs:
+
+            # yield the previous node
+            idx = prev_onnx_outputs.index(input)
+            yield prev_nodes[idx]
+
+# def get_next_nodes_ordered(self, node, partition_index):
+
+#     # get the previous nodes from the graph
+#     next_nodes = graphs.get_next_nodes(self.partitions[partition_index].graph, node)
+
+#     # get the input nodes from the onnx model
+#     onnx_node = self.partitions[partition_index].graph.nodes[node]["onnx_node"]
+
+#     # get the previous onnx nodes
+#     next_onnx_nodes = [ self.partitions[partition_index].graph.nodes[next_node]["onnx_node"] \
+#             for next_node in next_nodes ]
+
+#     # check if prev node is same as current node
+#     if onnx_node in next_onnx_nodes:
+#         for next_node in next_nodes:
+#             yield next_node
+#         return
+
+#     # get the onnx inputs for that node
+#     onnx_output = onnx_helper.get_model_node(self.model, onnx_node).output[0]
+
+#     # get the outputs of previous nodes
+#     next_onnx_inputs = [ onnx_helper.get_model_node(self.model, next_onnx_node).inputs \
+#             for next_onnx_node in next_onnx_nodes ]
+
+#     # iterate over the onnx nodes
+#     for input in onnx_inputs:
+
+#         # find the inputs that correspond to prev onnx outputs
+#         if input in prev_onnx_outputs:
+
+#             # yield the previous node
+#             idx = prev_onnx_outputs.index(input)
+#             yield prev_nodes[idx]
+
+
 def save_all_partitions(self, filepath, input_output_from_model=True):
 
     # create protocol buffer
@@ -103,6 +175,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
 
             # nodes into layer
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
+            prev_nodes = list(self.get_prev_nodes_ordered(node, i))
 
             if not prev_nodes:
                 stream_in = layer.streams_in.add()

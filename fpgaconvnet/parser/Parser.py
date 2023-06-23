@@ -77,7 +77,8 @@ class Parser:
 
         self.fpgaconvnet_post_onnx_passes = [
             "eliminate_nop_pad",
-            "fuse_mul_sigmoid_into_hardswish", # todo: HardSwish is not exact SiLU
+            "fuse_mul_sigmoid_into_hardswish",
+            "fuse_add_clip_mul_div_into_hardswish",
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
@@ -144,11 +145,11 @@ class Parser:
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
 
-        # infer shapes before manual optimisations
-        model_opt = onnx.shape_inference.infer_shapes(model_opt)
-
         # perform fpgaconvnet-based optimization passes (post onnx optimizations)
         model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_post_onnx_passes)
+
+        # infer shapes before manual optimisations
+        model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)

@@ -5,8 +5,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
-def get_quant_param(model, data_width=17, weight_width=16,
-        acc_width=40, block_floating_point=False, binary_point_scale=0.5):
+def get_quant_param(model, data_width=32, weight_width=32,
+        acc_width=128, block_floating_point=False, binary_point_scale=0.5):
 
     # dictionary of quantisation parameters
     quant_param = {}
@@ -50,7 +50,7 @@ def get_quant_param(model, data_width=17, weight_width=16,
             weights_max = np.amax(np.absolute(weights))
 
             # get the weight binary point
-            weight_binary_point = attr["weight_width"] - max(1,
+            weight_binary_point = attr["weight_width"] - max(16,
                     int(math.ceil(math.log(weights_max, 2)))+1)
 
             # get the accumulation binary point

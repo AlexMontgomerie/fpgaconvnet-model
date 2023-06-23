@@ -1123,3 +1123,77 @@ def insert_scale_shift_quant(model):
         # print(quant_scale, quant_shift)
 
     return model
+
+def fuse_add_clip_mul_div_into_hardswish(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "Mul":
+            continue
+
+        # check only two inputs
+        if len(node.input) != 2:
+            continue
+
+        # check first mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[0], model.graph.input))):
+            continue
+
+        # check second mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
+            continue
+
+        # get previous node a
+        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+
+        # # check prev node a has two outputs
+        # if len(prev_node_a.output) != 2:
+        #     continue
+
+        # get previous node b
+        clip = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if clip.op_type != "Clip":
+            continue
+
+        # get clip's previous node
+        add = next(filter(lambda x: x.output[0] == clip.input[0], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if add.op_type != "Add":
+            continue
+
+        # check that the current node an prev node b have the same input
+        if node.input[0] != add.input[0]:
+            continue
+
+        # get next node
+        div = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if div.op_type != "Div":
+            continue
+
+        # create a new HardSwish node
+        new_node = onnx.helper.make_node(
+            "HardSwish",
+            name=node.name+"_hard_swish",
+            inputs=[prev_node_a.output[0]],
+            outputs=div.output,
+        )
+
+        # add the node to the graph
+        model.graph.node.insert(index, new_node)
+
+        # remove prev nodes
+        model.graph.node.remove(node)
+        model.graph.node.remove(clip)
+        model.graph.node.remove(add)
+        model.graph.node.remove(div)
+
+    return model
+
+
