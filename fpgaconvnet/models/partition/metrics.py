@@ -24,8 +24,12 @@ def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
     if self.graph.out_degree(node) == 0:
         return pipeline_depth
     else:
+        next_nodes = graphs.get_next_nodes(self.graph,node)
+        if len(next_nodes) > 1:
+            # simple identity cannot be the longest path
+            next_nodes = [node for node in next_nodes if self.graph.nodes[node]['type'] != LAYER_TYPE.EltWise]
         return pipeline_depth + max([
-            self.get_pipeline_depth(edge) for edge in graphs.get_next_nodes(self.graph,node) ])
+            self.get_pipeline_depth(edge) for edge in next_nodes])
 
 def get_interval(self):
     """
