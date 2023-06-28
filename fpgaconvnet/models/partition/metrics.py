@@ -83,9 +83,8 @@ def get_bandwidth_in(self,freq):
         streams = self.streams_in[i]
         # calculate rate from interval
         rate = workload / (interval*streams)
-        # get bandwidth (GB/s)
-        # return (rate*streams*self.data_width*freq)/8000
-        bw_in.append((rate*streams*self.data_width*freq)/8000)
+        # convert bits per cycle to Gbps, freq in MHz   
+        bw_in.append((rate*streams*self.data_width*freq)/1000)
     return bw_in
 
 def get_bandwidth_out(self,freq):
@@ -99,17 +98,28 @@ def get_bandwidth_out(self,freq):
         streams = self.streams_out[i]
         # calculate rate from interval
         rate = workload / (interval*streams)
-        # get bandwidth (GB/s)
-        # return (rate*streams*self.data_width*freq)/8000
-        bw_out.append((rate*streams*self.data_width*freq)/8000)
+        # convert bits per cycle to Gbps, freq in MHz   
+        bw_out.append((rate*streams*self.data_width*freq)/1000)
     return bw_out
 
-def get_bandwidth_weight(self):
-    bw_weight = 0
+def get_bandwidth_weight(self,freq):
+    bw_weight = []
+    latency = []
     for node in self.graph.nodes():
         if self.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
-            bw_weight += self.graph.nodes[node]['hw'].stream_bw()
+            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
+            # convert bits per cycle to Gbps, freq in MHz   
+            bw_weight.append((bits_per_cycle*freq)/1000)
+            latency.append(self.graph.nodes[node]['hw'].latency())
+    # slow down non-crtical nodes
+    bw_weight = [ bw_weight[i]*latency[i]/max(latency) for i in range(len(bw_weight)) ]
     return bw_weight
+
+def get_total_bandwidth(self,freq):
+    bw_in = self.get_bandwidth_in(freq)
+    bw_out = self.get_bandwidth_out(freq)
+    bw_weight = self.get_bandwidth_weight(freq)
+    return sum(bw_in) + sum(bw_out) + sum(bw_weight)
 
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])

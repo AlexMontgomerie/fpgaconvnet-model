@@ -25,23 +25,13 @@ from fpgaconvnet.models.partition import Partition
 
 class Network():
 
-    def __init__(self, name, model, graph, platform, dimensionality=2, batch_size=1,
-            rsc_allocation=1.0, backend="hls", multi_fpga=False):
+    def __init__(self, name, model, graph, dimensionality=2, batch_size=1, backend="hls"):
 
         # backend
         self.backend = backend
 
-        # is multi fpga
-        self.multi_fpga = multi_fpga
-
         # network dimensionality
         self.dimensionality = dimensionality
-
-        # empty transforms configuration
-        self.transforms_config = {}
-
-        ## percentage resource allocation
-        self.rsc_allocation = rsc_allocation
 
         # network name
         self.name = name
@@ -57,16 +47,12 @@ class Network():
         self.node_list = list(self.graph.nodes())
         self.edge_list = list(self.graph.edges())
 
-        # platform
-        self.platform = platform
-
         # get the input data width
         input_node  = graphs.get_input_nodes(self.graph)[0]
         self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
 
         # partitions
-        port_width = platform.eth_port_width if multi_fpga else platform.port_width
-        self.partitions = [ Partition(copy.deepcopy(self.graph), port_width=port_width, data_width=self.data_width) ]
+        self.partitions = [ Partition(copy.deepcopy(self.graph), data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)
@@ -74,8 +60,6 @@ class Network():
 
         # update partitions
         self.update_partitions()
-
-    from fpgaconvnet.models.network.report import create_report
 
     from fpgaconvnet.models.network.scheduler import get_partition_order
     from fpgaconvnet.models.network.scheduler import get_input_base_addr
@@ -95,14 +79,6 @@ class Network():
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in
     from fpgaconvnet.models.network.represent import save_all_partitions
-
-    from fpgaconvnet.models.network.validate import check_ports
-    from fpgaconvnet.models.network.validate import check_resources
-    # from fpgaconvnet.models.network.validate import get_resources_bad_partitions
-    from fpgaconvnet.models.network.validate import check_workload
-    from fpgaconvnet.models.network.validate import check_streams
-    from fpgaconvnet.models.network.validate import check_partitions
-    from fpgaconvnet.models.network.validate import check_memory_bandwidth
 
     from fpgaconvnet.models.network.visualise import plot_latency_per_layer
     from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
@@ -127,21 +103,17 @@ class Network():
 
         return math.ceil(((max_input_size + max_output_size)*2)) # TODO *self.data_width)/8)
 
-    def get_partition_delay(self, partition_list=None):
+    def get_inter_latency(self, delay, partition_list=None):
         # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
-        if self.multi_fpga:
-            return (len(partition_list)-1)*self.platform.eth_delay
-        else:
-            return (len(partition_list)-1)*self.platform.reconf_time
+        return (len(partition_list)-1)*delay
 
-    def get_cycle(self, partition_list=None):
+    def get_cycle(self, pipeline, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
-        if self.multi_fpga:
+        if pipeline:
             # partitions pipelined
             max_interval = 0
             pipeline_depth = 0
@@ -162,21 +134,21 @@ class Network():
         # return the total cycle
         return cycle
 
-    def get_latency(self, partition_list=None):
+    def get_latency(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
         
-        batch_cycle = self.get_cycle(partition_list)
-        latency = batch_cycle/(self.platform.board_freq*1000000)
-        # return the total latency as well as reconfiguration time
-        return latency + self.get_partition_delay(partition_list)
+        batch_cycle = self.get_cycle(pipeline, partition_list)
+        latency = batch_cycle/(freq*1000000)
+        # return the total latency
+        return latency + self.get_inter_latency(delay, partition_list)
 
-    def get_throughput(self, partition_list=None):
+    def get_throughput(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
         # return the frames per second
-        return float(self.batch_size)/self.get_latency(partition_list)
+        return float(self.batch_size)/self.get_latency(freq, pipeline, delay, partition_list)
 
     def get_interval(self, partition_list=None):
         assert self.multi_fpga, "get_interval() only works for multi-fpga implementation"
