@@ -52,7 +52,8 @@ class ConvolutionLayer(Layer):
             sparsity: list = [],
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            stream_weights: int = 0
         ):
 
         # initialise parent class
@@ -105,7 +106,7 @@ class ConvolutionLayer(Layer):
             self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
-            self.stream_weights = 0
+            self.stream_weights = stream_weights
             self.data_packing = True
             self.use_uram = False
 
@@ -508,14 +509,21 @@ class ConvolutionLayer(Layer):
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
             parameters.sparsity = self.modules["vector_dot"].sparsity
-        parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
-
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+        parameters.use_uram     = self.use_uram
+        parameters.on_chip_addr_range = int(self.stream_cycles())
+        parameters.stream_weights = int(self.stream_weights)
+        if self.stream_weights > 0: 
+            parameters.off_chip_buffer_size = self.weight_array_unit_depth
+            parameters.off_chip_interval = math.ceil(self.stream_cycles() / (self.stream_weights / self.stream_unit()))
+        else:
+            parameters.off_chip_buffer_size = 0
+            parameters.off_chip_interval = -1
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
@@ -690,21 +698,33 @@ class ConvolutionLayer(Layer):
         return rsc
 
     def stream_unit(self):
+        '''
+        unit width of streamed weights  
+        '''
         unit = self.weight_array_num * math.ceil(self.weight_array_width/self.weight_array_num/self.weight_array_unit_width)
         return unit
 
     def stream_step(self, level):
-        step = math.ceil(level* math.ceil(self.weight_array_depth/self.weight_array_unit_depth))
+        '''
+        level: 0 ~ 1, percentage of weights streamed in each optimization step
+        return: number of RAM streamed in each optimization step
+        '''
+        step = math.ceil(level * math.ceil(self.weight_array_depth/self.weight_array_unit_depth))
         return step
     
     def stream_bits(self):
-        unit = self.stream_unit()
-        off_chip_bits = (self.stream_weights / unit) * self.weight_array_unit_depth * self.weight_array_num * self.weight_array_width
+        '''
+        self.stream_weights / self.stream_unit(), number of RAM streamed
+        '''
+        off_chip_bits = (self.stream_weights / self.stream_unit()) * self.weight_array_unit_depth * self.weight_array_num * self.weight_array_width
         return off_chip_bits
 
     def stream_cycles(self):
-        unit = self.stream_unit()
-        cycles = self.weight_array_depth - (self.stream_weights / unit) * self.weight_array_unit_depth
+        '''
+        self.stream_weights / self.stream_unit(), number of RAM streamed
+        return: remaining cycles (address depth) after streaming
+        '''
+        cycles = self.weight_array_depth - (self.stream_weights / self.stream_unit()) * self.weight_array_unit_depth
         assert cycles > 0
         return cycles
 
