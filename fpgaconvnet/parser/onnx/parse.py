@@ -3,18 +3,7 @@ import numpy as np
 import importlib
 from dataclasses import dataclass
 
-from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
-from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
-from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
-from fpgaconvnet.models.layers import ActivationLayer3D
-from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
-from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
-from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
-from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
-from fpgaconvnet.models.layers import ConcatLayer
-from fpgaconvnet.models.layers import ReSizeLayer
-from fpgaconvnet.models.layers import HardswishLayer
+from fpgaconvnet.models.layers import *
 
 from fpgaconvnet.data_types import FixedPoint
 
@@ -26,6 +15,9 @@ class ParseOnnxNode:
 
     def __init__(self, graph, n, quant_format, dimensionality=2, backend="hls",
             regression_model="linear_regression", convert_gemm_to_conv=False):
+
+        # refrence of the graph
+        self.graph = graph
 
         # quantisation format
         self.quant_format = quant_format
@@ -104,7 +96,7 @@ class ParseOnnxNode:
     def get_edges_in(self, model):
         try:
             prev_node = next(filter(
-                lambda x: x.output[0] == self.node.input[0], model.graph.node))
+                lambda x: self.node.input[0] in x.output, model.graph.node))
             return [(onnx_helper.format_onnx_name(prev_node), self.name)]
         except StopIteration:
             return []
@@ -364,6 +356,31 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+class ParseOnnxChopNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # get the split data
+        split = onnx.numpy_helper.to_array(next(filter(
+            lambda x: x.name == self.inputs[1].name, self.graph.initializer)))
+
+        # check right number of split values
+        assert len(self.outputs) == len(split)
+        assert sum(split) == self.input_shape[1]
+
+        # return hardware
+        if self.dimensionality == 2:
+            return ChopLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                split,
+                ports_out=len(self.outputs),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
 class ParseOnnxActivationNode(ParseOnnxNode):
 

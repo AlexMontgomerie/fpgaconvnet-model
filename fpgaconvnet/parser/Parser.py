@@ -178,6 +178,7 @@ class Parser:
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
+            LAYER_TYPE.Chop: ParseOnnxChopNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -186,8 +187,9 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, quant_format, dimensionality, backend=self.backend,
-                    regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
+            return converter[node_type](graph, node, quant_format, dimensionality,
+                    backend=self.backend, regression_model=self.regression_model,
+                    convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 
