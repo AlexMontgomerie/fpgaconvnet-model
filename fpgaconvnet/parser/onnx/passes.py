@@ -5,6 +5,8 @@ import numpy as np
 
 from onnxsim import simplify
 
+import onnx_graphsurgeon as gs
+
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 ADD_QUANT_ATTR=False
@@ -1193,6 +1195,52 @@ def fuse_add_clip_mul_div_into_hardswish(model):
         model.graph.node.remove(clip)
         model.graph.node.remove(add)
         model.graph.node.remove(div)
+
+    return model
+
+def add_nop_to_split_output(model):
+
+    # iterate over nodes in the graph
+    for index, node in list(enumerate(model.graph.node)):
+
+        # find a split node
+        if node.op_type != "Split":
+            continue
+
+        # iterate over output nodes
+        for i in range(len(node.output)):
+
+            # create a new NOP (reshape with same shape)
+            shape = onnx_helper.get_input_shape(model, node.output[i])
+            shape_init_name = f"{node.name}_{i}_shape"
+            shape_init = onnx.helper.make_tensor(
+                name=shape_init_name,
+                data_type=onnx.TensorProto.INT32,
+                dims=[len(shape)],
+                vals=shape)
+            model.graph.initializer.insert(-1, shape_init)
+
+            new_node = onnx.helper.make_node(
+                "Reshape",
+                name=node.name+"_nop",
+                inputs=[node.output[i], shape_init_name],
+                outputs=[node.output[i]+"_nop"],
+            )
+
+            # find the next nodes
+            for next_node in list(filter(lambda x: x.input[0] == node.output[i], model.graph.node)):
+
+                # update input
+                next_node.input[0] = node.output[i]+"_nop"
+
+            # append node to graph
+            model.graph.node.insert(index, new_node)
+
+    # topological sort model
+    g = gs.import_onnx(model)
+    # g.cleanup()
+    g.toposort()
+    model = gs.export_onnx(g)
 
     return model
 

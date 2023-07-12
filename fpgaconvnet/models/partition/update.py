@@ -126,7 +126,8 @@ def update_multiport_buffer_depth(self, multiport_node):
             self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + 64
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.Concat:
             n = self.graph.nodes[multiport_node]["hw"]
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + sum(n.channels_in)/n.rate_in + 64
+            extra_cycles = sum([ n.channels_in(i)/n.rate_in(i) for i in range(n.ports_in) ])
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + extra_cycles + 64
 
 def reduce_squeeze_fanout(self):
     """

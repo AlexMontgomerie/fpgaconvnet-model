@@ -90,6 +90,7 @@ class Parser:
             "convert_transpose_flatten_gemm_to_flatten_gemm",
             "rename_all_nodes",
             "move_relu_after_quant",
+            "add_nop_to_split_output",
         ]
 
         self.fpgaconvnet_post_quant_passes = [

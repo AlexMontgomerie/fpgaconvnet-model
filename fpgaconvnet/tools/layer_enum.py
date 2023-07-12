@@ -58,6 +58,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.Split            : fpgaconvnet_pb2.layer.layer_type.SPLIT,
         LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
         LAYER_TYPE.ReSize           : fpgaconvnet_pb2.layer.layer_type.RESIZE,
+        LAYER_TYPE.Chop             : fpgaconvnet_pb2.layer.layer_type.CHOP,
         LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
