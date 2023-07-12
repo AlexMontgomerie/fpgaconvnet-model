@@ -22,6 +22,7 @@ from .EltWiseLayer import EltWiseLayer
 from .GlobalPoolingLayer import GlobalPoolingLayer
 from .ReSizeLayer import ReSizeLayer
 from .HardswishLayer import HardswishLayer
+from .ChopLayer import ChopLayer
 
 # 3D layers
 from .Layer3D import Layer3D
