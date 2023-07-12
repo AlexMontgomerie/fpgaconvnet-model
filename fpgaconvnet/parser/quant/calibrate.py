@@ -10,11 +10,13 @@ def get_quant_param(model, data_width=16, weight_width=16, acc_width=40, calibra
 
     def get_int_bits(node):
         if node in calibration_data:
-            neg_int_bits = math.ceil(math.log(abs(float(calibration_data[node]["min_val"]))))
+            neg_int_bits = math.ceil(math.log(abs(float(calibration_data[node]["min_val"])))) + 1
             pos_int_bits = math.ceil(math.log(float(calibration_data[node]["max_val"])))
-            return max(neg_int_bits, pos_int_bits) + 2
+            # return max(neg_int_bits, pos_int_bits) + 2
+            return 8
         else:
             print(f"WARNING: node {node} not in calibration data")
+            # return data_width//2
             return 0
 
     # dictionary of quantisation parameters
