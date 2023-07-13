@@ -71,17 +71,18 @@ def update(self):
 def update_multiport_buffer_depth(self, multiport_node):
 
     # check the eltwise node is actually eltwise
-    assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS, "node does not have multiple ports in"
+    assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS, \
+            "node does not have multiple ports in"
 
     # search back in the graph for the split layer
     split_node = multiport_node
     while self.graph.in_degree(split_node) > 0:
         split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
-        if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split:
+        if self.graph.nodes[split_node]["type"] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
             break
 
     # cannot find split layer, maybe it is vertical split
-    if self.graph.nodes[split_node]["type"] != LAYER_TYPE.Split:
+    if self.graph.nodes[split_node]["type"] != [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
         return
 
     # get all the paths split layer and eltwise layer

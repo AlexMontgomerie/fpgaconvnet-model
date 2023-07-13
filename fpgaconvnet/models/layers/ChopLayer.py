@@ -106,7 +106,7 @@ class ChopLayer(MultiPortLayer):
         return self.cols[0]
 
     def channels_out(self, port_index=0) -> int:
-        return self.channels[port_index]
+        return self.split[port_index]
 
     def rate_in(self, port_index=0):
         assert(port_index < self.ports_in)

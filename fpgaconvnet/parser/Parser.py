@@ -301,11 +301,12 @@ class Parser:
             # connect batch norm to node
             graph.add_edge(node.name, f"{node.name}_scale_shift")
 
-        # remove NOP nodes from the graph
-        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
-
         # add split nodes to the graph
         graph = self.add_split(graph)
+
+        # remove NOP nodes from the graph
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
 
         # return the graph
         platform = Platform()

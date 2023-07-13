@@ -2,7 +2,7 @@ import numpy as np
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 
-def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
+def get_pipeline_depth(self):
     """
     Parameters
     ----------
@@ -15,16 +15,30 @@ def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
         pipeline depth (in cycles) from the first node
         in the partition to `node`
     """
-    if node is None:
-        node = graphs.get_input_nodes(self.graph)[0]
-    # find the pipeline depth of the current node
-    pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
-    # find the longest path to end from this node
-    if self.graph.out_degree(node) == 0:
-        return pipeline_depth
-    else:
-        return pipeline_depth + max([
-            self.get_pipeline_depth(edge) for edge in graphs.get_next_nodes(self.graph,node) ])
+
+    # memoisation of pipeline depths
+    node_pipeline_depth = {}
+
+    def _pipeline_depth_node(node):
+
+        # find the pipeline depth of the current node
+        pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
+
+        # find the longest path to end from this node
+        if self.graph.out_degree(node) == 0:
+            return pipeline_depth
+        elif node in node_pipeline_depth:
+            return node_pipeline_depth[node]
+        else:
+            node_pipeline_depth[node] = pipeline_depth + max([
+                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+            return node_pipeline_depth[node]
+
+    # get the first node of the graph
+    start_node = graphs.get_input_nodes(self.graph)[0]
+
+    # return pipeline depth from start node
+    return _pipeline_depth_node(start_node)
 
 def get_interval(self):
     """
@@ -45,7 +59,7 @@ def get_cycle(self):
     interval = self.get_interval()
     # get pipeline depth of partition
     input_node = graphs.get_input_nodes(self.graph)[0]
-    pipeline_depth = self.get_pipeline_depth(input_node) # TODO: find max of all input nodes
+    pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # return the latency (in seconds)
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
