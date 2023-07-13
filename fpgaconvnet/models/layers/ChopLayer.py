@@ -124,6 +124,7 @@ class ChopLayer(MultiPortLayer):
         parameters.channels_in  = self.channels_in()
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
+        parameters.split.extend(self.split)
         # remove the repeated rows, cols and channels
         del parameters.rows_in_array[:]
         del parameters.cols_in_array[:]

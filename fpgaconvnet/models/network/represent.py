@@ -83,18 +83,21 @@ def get_prev_nodes_ordered(self, node, partition_index):
     onnx_inputs = onnx_helper.get_model_node(self.model, onnx_node).input
 
     # get the outputs of previous nodes
-    prev_onnx_outputs = [ onnx_helper.get_model_node(self.model, prev_onnx_node).output[0] \
+    prev_onnx_outputs = [ onnx_helper.get_model_node(self.model, prev_onnx_node).output \
             for prev_onnx_node in prev_onnx_nodes ]
 
     # iterate over the onnx nodes
     for input in onnx_inputs:
 
-        # find the inputs that correspond to prev onnx outputs
-        if input in prev_onnx_outputs:
 
-            # yield the previous node
-            idx = prev_onnx_outputs.index(input)
-            yield prev_nodes[idx]
+        # iterate over the previous outputs
+        for idx, prev_onnx_output in enumerate(prev_onnx_outputs):
+
+            # find the inputs that correspond to prev onnx outputs
+            if input in prev_onnx_output:
+
+                # yield the previous node
+                yield prev_nodes[idx]
 
 # def get_next_nodes_ordered(self, node, partition_index):
 

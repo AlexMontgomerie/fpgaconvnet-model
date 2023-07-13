@@ -10,7 +10,8 @@ import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.models.layers import SqueezeLayer
 
-MULTIPORT_LAYERS = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
+MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
+MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
 
 def update(self):
 
@@ -65,24 +66,24 @@ def update(self):
 
     ## update buffer depths
     for node in self.graph.nodes:
-        if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS:
+        if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
             self.update_multiport_buffer_depth(node)
 
 def update_multiport_buffer_depth(self, multiport_node):
 
     # check the eltwise node is actually eltwise
-    assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS, \
+    assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS_IN, \
             "node does not have multiple ports in"
 
     # search back in the graph for the split layer
     split_node = multiport_node
     while self.graph.in_degree(split_node) > 0:
         split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
-        if self.graph.nodes[split_node]["type"] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
+        if self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
             break
 
     # cannot find split layer, maybe it is vertical split
-    if self.graph.nodes[split_node]["type"] != [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
+    if not self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
         return
 
     # get all the paths split layer and eltwise layer
@@ -127,7 +128,7 @@ def update_multiport_buffer_depth(self, multiport_node):
             self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + 64
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.Concat:
             n = self.graph.nodes[multiport_node]["hw"]
-            extra_cycles = sum([ n.channels_in(i)/n.rate_in(i) for i in range(n.ports_in) ])
+            extra_cycles = int(sum([ n.channels_in(i)/n.rate_in(i) for i in range(n.ports_in) ]))
             self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + extra_cycles + 64
 
 def reduce_squeeze_fanout(self):

@@ -82,6 +82,7 @@ message parameter {
     optional fixed_point scale_t = 62;
     optional fixed_point shift_t = 63;
     optional string weights_ram_style = 64;
+    repeated int32 split = 65;
 }
 
 message layer {

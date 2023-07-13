@@ -216,7 +216,7 @@ class Parser:
             # get the nodes out
             nodes_out = graphs.get_next_nodes(graph, node)
             # add a split layer if there are more than 1 nodes out
-            if len(nodes_out) > 1:
+            if len(nodes_out) > 1 and not graph.nodes[node]['type'] == LAYER_TYPE.Chop:
                 # create a split node
                 split_node  = f"{node}_split"
                 graph.add_node(split_node,
@@ -306,7 +306,7 @@ class Parser:
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
-        graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
+        # graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
 
         # return the graph
         platform = Platform()
