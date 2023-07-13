@@ -149,9 +149,6 @@ class Parser:
         # perform fpgaconvnet-based optimization passes (post onnx optimizations)
         model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_post_onnx_passes)
 
-        # infer shapes before manual optimisations
-        model_opt = onnx.shape_inference.infer_shapes(model_opt)
-
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
@@ -180,6 +177,7 @@ class Parser:
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.Chop: ParseOnnxChopNode,
+            LAYER_TYPE.Reshape: ParseOnnxNOPNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 

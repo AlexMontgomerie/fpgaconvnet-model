@@ -41,7 +41,7 @@ class ParseOnnxNode:
         self.layer_type = from_onnx_op_type(n.op_type)
 
         # get inputs and outputs
-        all_tensors = [ *graph.input, *graph.output, *graph.value_info ]
+        all_tensors = [ *graph.input, *graph.output, *graph.value_info, *graph.initializer ]
         self.inputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.input ]
         self.outputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.output]
 

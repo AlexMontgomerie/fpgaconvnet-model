@@ -1215,23 +1215,33 @@ def add_nop_to_split_output(model):
             shape_init_name = f"{node.name}_{i}_shape"
             shape_init = onnx.helper.make_tensor(
                 name=shape_init_name,
-                data_type=onnx.TensorProto.INT32,
+                data_type=onnx.TensorProto.INT64,
                 dims=[len(shape)],
                 vals=shape)
             model.graph.initializer.insert(-1, shape_init)
 
+            shape_init_value_info = onnx.helper.make_tensor_value_info(
+                shape_init_name,
+                onnx.TensorProto.INT64,
+                [len(shape)])
+            model.graph.input.insert(-1, shape_init_value_info)
+
             new_node = onnx.helper.make_node(
                 "Reshape",
-                name=node.name+"_nop",
+                name=f"{node.name}_{i}_nop",
                 inputs=[node.output[i], shape_init_name],
                 outputs=[node.output[i]+"_nop"],
             )
 
             # find the next nodes
-            for next_node in list(filter(lambda x: x.input[0] == node.output[i], model.graph.node)):
+            for next_node in list(filter(lambda x: \
+                    node.output[i] in x.input, model.graph.node)):
+
+                # get index of input
+                input_idx = list(next_node.input).index(node.output[i])
 
                 # update input
-                next_node.input[0] = node.output[i]+"_nop"
+                next_node.input[input_idx] = node.output[i]+"_nop"
 
             # append node to graph
             model.graph.node.insert(index, new_node)
