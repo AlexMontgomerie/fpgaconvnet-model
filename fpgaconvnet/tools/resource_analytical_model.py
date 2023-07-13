@@ -14,6 +14,7 @@ URAM_EXT_CONF_DEPTH={262144:1, 131072:2, 65536:4, 32768:9, 16384:18, 8192:36, 40
 
 def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False, detailed=False):
     # based on xilinx forum post: https://forums.xilinx.com/t5/High-Level-Synthesis-HLS/BRAM-usage-large-for-FIFO/m-p/1247118
+    # Warning: this estimation only works for ultrascale+ devices, for 7 series devices, the depth will be padded to the powers of 2, https://support.xilinx.com/s/article/61995?language=en_US 
 
     assert array_type in ['fifo', 'memory']
 
