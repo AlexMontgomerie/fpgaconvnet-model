@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
@@ -55,6 +56,7 @@ def get_cycle(self):
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
     size_wr     = self.size_wr
+    interval = math.ceil(interval * self.slow_down_factor)
     batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
     return batch_cycle
 
@@ -108,6 +110,7 @@ def get_bandwidth_weight(self,freq):
     for node in self.graph.nodes():
         if self.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
             bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
+            bits_per_cycle = bits_per_cycle / self.slow_down_factor
             # convert bits per cycle to Gbps, freq in MHz   
             bw_weight.append((bits_per_cycle*freq)/1000)
             latency.append(self.graph.nodes[node]['hw'].latency())
