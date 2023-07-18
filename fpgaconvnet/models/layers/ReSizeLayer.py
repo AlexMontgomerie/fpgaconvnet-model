@@ -81,6 +81,12 @@ class ReSizeLayer(Layer):
         self._coarse_out = val
         # self.update()
 
+    def rows_out(self) -> int:
+        return self.modules['resize'].rows_out()
+
+    def cols_out(self) -> int:
+        return self.modules['resize'].cols_out()
+
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse

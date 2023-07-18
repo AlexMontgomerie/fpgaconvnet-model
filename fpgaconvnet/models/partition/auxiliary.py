@@ -26,6 +26,8 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[start_node]["onnx_node"],
+                onnx_input=self.graph.nodes[start_node]["onnx_input"],
+                onnx_output=self.graph.nodes[start_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[start_node]['hw'].rows_out(),
                     self.graph.nodes[start_node]['hw'].cols_out(),
@@ -50,6 +52,8 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                onnx_output=self.graph.nodes[input_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[input_node]['hw'].rows_in(),
                     self.graph.nodes[input_node]['hw'].cols_in(),
@@ -71,6 +75,8 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                onnx_output=self.graph.nodes[output_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[output_node]['hw'].rows_out(),
                     self.graph.nodes[output_node]['hw'].cols_out(),

@@ -222,6 +222,8 @@ class Parser:
                 graph.add_node(split_node,
                     type=LAYER_TYPE.Split,
                     onnx_node=graph.nodes[node]["onnx_node"],
+                    onnx_input=graph.nodes[node]["onnx_input"],
+                    onnx_output=graph.nodes[node]["onnx_output"],
                     hw=SplitLayer(
                         graph.nodes[node]['hw'].rows_out(),
                         graph.nodes[node]['hw'].cols_out(),

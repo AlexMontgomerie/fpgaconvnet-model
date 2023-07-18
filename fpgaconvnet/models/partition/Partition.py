@@ -1,8 +1,9 @@
 import pydot
+import networkx as nx
+
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
-
-import networkx as nx
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 class Partition():
 
@@ -178,5 +179,4 @@ class Partition():
             return output_node
         else:
             return _wr_layer( output_node )
-
 

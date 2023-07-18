@@ -89,7 +89,6 @@ def get_prev_nodes_ordered(self, node, partition_index):
     # iterate over the onnx nodes
     for input in onnx_inputs:
 
-
         # iterate over the previous outputs
         for idx, prev_onnx_output in enumerate(prev_onnx_outputs):
 

@@ -75,19 +75,27 @@ def update_multiport_buffer_depth(self, multiport_node):
     assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS_IN, \
             "node does not have multiple ports in"
 
-    # search back in the graph for the split layer
-    split_node = multiport_node
-    while self.graph.in_degree(split_node) > 0:
-        split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
-        if self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
-            break
+    # find the lowest common (single) ancestor of the multiport node
+
+    ## get all pairs of inputs to the node
+    multiport_prev_nodes = graphs.get_prev_nodes(self.graph, multiport_node)
+    multiport_prev_nodes_pairs = list(itertools.combinations(multiport_prev_nodes, 2))
+
+    ## get all the common ancestors for the node pairs
+    common_ancestors = [ x[1] for x in nx.all_pairs_lowest_common_ancestor(
+        self.graph, multiport_prev_nodes_pairs) ]
+
+    ## topological sort common ancestors and choose the oldest
+    sorted_graph_nodes = list(nx.topological_sort(self.graph))
+    split_node = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))[0]
 
     # cannot find split layer, maybe it is vertical split
     if not self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
         return
 
     # get all the paths split layer and eltwise layer
-    all_paths = list(nx.all_simple_paths(self.graph, source=split_node, target=multiport_node))
+    all_paths = list(nx.all_simple_paths(self.graph,
+        source=split_node, target=multiport_node))
 
     # calculate the depth for each path
     path_depths = [0]*len(all_paths)
@@ -113,23 +121,32 @@ def update_multiport_buffer_depth(self, multiport_node):
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
 
-    # get all prev nodes of the eltwise layer
-    eltwise_prev_nodes = graphs.get_prev_nodes(self.graph, multiport_node)
+    # get the longest depths for each prev node
+    path_depths_max = { n: [] for n in multiport_prev_nodes }
+    for i, path in enumerate(all_paths):
+        path_depths_max[path[-2]].append(path_depths[i])
+    path_depths_max = { n: max(path_depths_max[n]) for n in multiport_prev_nodes }
+
+    # get the overall max depth
+    max_depth = max(path_depths_max.values())
 
     # update the buffer depths for eltwise layer
-    for i, path in enumerate(all_paths):
+    for n, depth in path_depths_max.items():
 
         # get the input index
-        idx = eltwise_prev_nodes.index(path[-2])
+        idx = self.graph.nodes[multiport_node]["onnx_input"].index(
+            self.graph.nodes[n]["onnx_output"][0])
 
         # buffer depth is difference of max depth with the paths depth
-        # self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + 64
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.EltWise:
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + 64
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
+                    math.ceil(max_depth - depth) + 64
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.Concat:
             n = self.graph.nodes[multiport_node]["hw"]
-            extra_cycles = int(sum([ n.channels_in(i)/n.rate_in(i) for i in range(n.ports_in) ]))
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i]) + extra_cycles + 64
+            extra_cycles = int(sum([ n.channels_in(i)/n.rate_in(i) \
+                    for i in range(n.ports_in) ]))
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
+                    math.ceil(max_depth - depth) + extra_cycles + 64
 
 def reduce_squeeze_fanout(self):
     """
