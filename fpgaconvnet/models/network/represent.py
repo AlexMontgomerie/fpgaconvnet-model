@@ -23,7 +23,7 @@ def get_model_input_nodes(self, i):
         input_node = graphs.get_next_nodes(
                 self.partitions[i].graph,input_node)[0]
         onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_input_node).input
+    return [onnx_helper.get_model_node(self.model, onnx_input_node).input[0]]
 
 def get_model_output_nodes(self, i):
     output_node = self.partitions[i].output_nodes[0]

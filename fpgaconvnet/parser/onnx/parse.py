@@ -65,8 +65,8 @@ class ParseOnnxNode:
         return {
             "type" : self.layer_type,
             "onnx_node": self.node.name,
-            "onnx_input": self.node.input,
-            "onnx_output": self.node.output,
+            "onnx_input": list(self.node.input),
+            "onnx_output": list(self.node.output),
             "attr" : self.attr,
             "hw" : self.hw
         }
