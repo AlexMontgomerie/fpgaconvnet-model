@@ -516,11 +516,11 @@ class ConvolutionLayer(Layer):
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
         parameters.use_uram     = self.use_uram
-        parameters.on_chip_addr_range = int(self.stream_cycles())
+        parameters.on_chip_addr_range = int(self.on_chip_addr_range())
         parameters.stream_weights = int(self.stream_weights)
         if self.stream_weights > 0: 
-            parameters.off_chip_buffer_size = self.weight_array_unit_depth
-            parameters.off_chip_interval = math.ceil(self.stream_cycles() / (self.stream_weights / self.stream_unit()))
+            parameters.off_chip_buffer_size = self.off_chip_buffer_size()
+            parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
         else:
             parameters.off_chip_buffer_size = 0
             parameters.off_chip_interval = -1
@@ -626,11 +626,6 @@ class ConvolutionLayer(Layer):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        if self.use_uram:
-            array_resource_model = bram_array_resource_model
-        else:
-            array_resource_model = uram_array_resource_model
-
         if self.data_packing:
             weight_array_depth = math.ceil(weight_memory_depth)
             if len(self.sparsity) == 0:
@@ -653,7 +648,7 @@ class ConvolutionLayer(Layer):
             weights_uram_usage -= self.stream_weights
             self.weights_ram_usage = weights_uram_usage
             weights_bram_usage = 0
-            if weights_uram_usage > 0:
+            if weights_uram_usage + self.stream_weights > 0:
                 uram_details = uram_array_resource_model(weight_array_depth, weight_array_width, detailed=True) 
                 self.weight_array_unit_depth = uram_details[3]
                 self.weight_array_unit_width = uram_details[1]
@@ -665,7 +660,7 @@ class ConvolutionLayer(Layer):
             weights_bram_usage -= self.stream_weights
             self.weights_ram_usage = weights_bram_usage
             weights_uram_usage = 0
-            if weights_bram_usage > 0:
+            if weights_bram_usage + self.stream_weights > 0:
                 bram_details = bram_array_resource_model(weight_array_depth, weight_array_width, "memory", detailed=True) 
                 self.weight_array_unit_depth = bram_details[3]
                 self.weight_array_unit_width = bram_details[1]
@@ -711,21 +706,22 @@ class ConvolutionLayer(Layer):
         '''
         step = math.ceil(level * math.ceil(self.weight_array_depth/self.weight_array_unit_depth))
         return step
+
+    def off_chip_addr_range(self):
+        return min(self.weight_array_depth, (self.stream_weights / self.stream_unit()) * self.weight_array_unit_depth)
+
+    def on_chip_addr_range(self):
+        return self.weight_array_depth - self.off_chip_addr_range()
+    
+    def off_chip_buffer_size(self):
+        return self.weight_array_unit_depth
     
     def stream_bits(self):
-        '''
-        self.stream_weights / self.stream_unit(), number of RAM streamed
-        '''
-        off_chip_bits = (self.stream_weights / self.stream_unit()) * self.weight_array_unit_depth * self.weight_array_num * self.weight_array_width
+        off_chip_bits = self.off_chip_addr_range() * self.weight_array_num * self.weight_array_width
         return off_chip_bits
 
     def stream_cycles(self):
-        '''
-        self.stream_weights / self.stream_unit(), number of RAM streamed
-        return: remaining cycles (address depth) after streaming
-        '''
-        cycles = self.weight_array_depth - (self.stream_weights / self.stream_unit()) * self.weight_array_unit_depth
-        assert cycles > 0
+        cycles = self.on_chip_addr_range() + self.weight_array_unit_depth
         return cycles
 
     def stream_bw(self):
