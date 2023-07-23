@@ -150,7 +150,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     self.quant_format["acc_t"]["binary_point"]),
                 has_bias = len(self.inputs) == 3,
                 sparsity = self.attr["input sparsity"],
-                # block_floating_point = self.quant_format["block_floating_point"],
+                block_floating_point = self.quant_format["block_floating_point"],
                 backend=self.backend,
                 regression_model=self.regression_model
             )
@@ -231,6 +231,7 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
                         self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
+                    block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
                     regression_model=self.regression_model
                 )

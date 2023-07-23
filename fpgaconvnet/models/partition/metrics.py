@@ -108,7 +108,7 @@ def get_bandwidth_weight(self,freq):
     bw_weight = []
     latency = []
     for node in self.graph.nodes():
-        if self.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+        if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
             bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
             bits_per_cycle = bits_per_cycle / self.slow_down_factor
             # convert bits per cycle to Gbps, freq in MHz   

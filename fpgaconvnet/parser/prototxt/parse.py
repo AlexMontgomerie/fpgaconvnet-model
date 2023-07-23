@@ -125,8 +125,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
                 sparsity    =[self.node.parameters.sparsity]*self.node.parameters.channels_in,
+                block_floating_point =self.node.parameters.block_floating_point,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                stream_weights=self.node.stream_weights
             )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -189,8 +191,10 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
                 acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
+                block_floating_point =self.node.parameters.block_floating_point,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                stream_weights=self.node.parameters.stream_weights
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
