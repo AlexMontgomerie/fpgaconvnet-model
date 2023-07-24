@@ -98,7 +98,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
 
         # return hardware
         if self.dimensionality == 2:
-            return ConvolutionLayer(
+            layer = ConvolutionLayer(
                 self.node.parameters.channels_out,
                 self.node.parameters.rows_in,
                 self.node.parameters.cols_in,
@@ -122,6 +122,8 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 backend =self.backend,
                 regression_model =self.regression_model,
             )
+            layer.use_uram = self.node.parameters.use_uram
+            return layer
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 self.node.parameters.channels_out,

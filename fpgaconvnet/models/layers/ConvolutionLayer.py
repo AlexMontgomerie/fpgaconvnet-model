@@ -87,6 +87,9 @@ class ConvolutionLayer(Layer):
                     self.skipping_windows = False
                     self.window_sparsity = []
                     self.sparsity = []
+        else:
+            self.skipping_windows = False
+            self.window_sparsity = []
 
         # init variables
         self._kernel_rows = kernel_rows

@@ -331,8 +331,6 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            print("partitions_id:", partition.id)
-            print("parititon batch_size", partition.batch_size)
             new_partition = Partition(graph, port_width=net.platform.port_width, batch_size=partition.batch_size)
 
             # update partition attributes
