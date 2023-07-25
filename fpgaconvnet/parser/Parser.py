@@ -178,6 +178,7 @@ class Parser:
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.Chop: ParseOnnxChopNode,
             LAYER_TYPE.Reshape: ParseOnnxNOPNode,
+            LAYER_TYPE.Pad: ParseOnnxNOPNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 

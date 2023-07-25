@@ -50,7 +50,7 @@ def get_quant_param(model, data_width=16, weight_width=8,
             weights_max = np.amax(np.absolute(weights))
 
             # get the weight binary point
-            weight_binary_point = attr["weight_width"] - max(16,
+            weight_binary_point = attr["weight_width"] - max(attr["weight_width"],
                     int(math.ceil(math.log(weights_max, 2)))+1)
 
             # get the accumulation binary point
