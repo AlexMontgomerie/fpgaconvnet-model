@@ -29,6 +29,8 @@ def get_pipeline_depth(self):
     longest_path = max(all_paths, key=len)
     all_paths = [max(all_paths, key=len)]
 
+    interval = self.get_interval()
+
     for path in all_paths:
 
         # get the hardware model for each node in the path
@@ -41,7 +43,8 @@ def get_pipeline_depth(self):
         size_out = [ n.size_out() for n in node_hw ]
 
         # get the latency
-        latency = [ n.latency() for n in node_hw ]
+        # latency = [ n.latency() for n in node_hw ]
+        latency = [ interval for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
