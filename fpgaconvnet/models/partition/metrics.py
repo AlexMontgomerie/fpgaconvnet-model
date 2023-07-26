@@ -1,4 +1,6 @@
 import numpy as np
+import networkx as nx
+
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 
@@ -15,6 +17,34 @@ def get_pipeline_depth(self):
         pipeline depth (in cycles) from the first node
         in the partition to `node`
     """
+
+    # # get all the paths between input and output
+    # all_paths = list(nx.all_simple_paths(self.graph,
+    #     source=graphs.get_input_nodes(self.graph)[0],
+    #     target=graphs.get_output_nodes(self.graph)[-1]))
+
+    # # get the longest path
+    # longest_path = max(all_paths, key=len)
+
+    # # get the hardware model for each node in the path
+    # node_hw = [ self.graph.nodes[node]["hw"] for node in longest_path ]
+
+    # # get the size in
+    # size_in = [ n.size_in() for n in node_hw ]
+
+    # # get the size out
+    # size_out = [ n.size_out() for n in node_hw ]
+
+    # # get the latency
+    # latency = [ n.latency() for n in node_hw ]
+
+    # # get the pipeline depth of each node
+    # node_depth = [ n.pipeline_depth() for n in node_hw ]
+
+    # # get the path depth
+    # return sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+    #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+    #             ]) for j in range(len(node_hw)) ])
 
     # memoisation of pipeline depths
     node_pipeline_depth = {}
