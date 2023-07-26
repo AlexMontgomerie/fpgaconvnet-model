@@ -34,6 +34,7 @@ class LAYER_TYPE(Enum):
     LeakyReLU   = 54
     ReSize      = 55
     Chop        = 56
+    Pad = 57
 
     @classmethod
     def get_type(cls, t):
@@ -115,6 +116,7 @@ def from_onnx_op_type(op_type):
         "Shape" : LAYER_TYPE.Shape,
         "Resize" : LAYER_TYPE.ReSize,
         "Split" : LAYER_TYPE.Chop,
+        "Pad" : LAYER_TYPE.NOP,
     }
 
     return layer_types.get(op_type, lambda: TypeError)

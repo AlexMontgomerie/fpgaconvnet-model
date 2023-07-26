@@ -31,7 +31,7 @@ class Hardswish(Module):
             "LUT"   : 16,
             "FF"    : 35,
             "BRAM"  : 0,
-            "DSP"   : 0
+            "DSP"   : 5
         }
 
     def visualise(self, name):

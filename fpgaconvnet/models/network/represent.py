@@ -17,22 +17,16 @@ from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortL
 
 
 def get_model_input_nodes(self, i):
-    input_node = self.partitions[i].input_nodes[0]
-    onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
-    while not onnx_helper.get_model_node(self.model, onnx_input_node):
-        input_node = graphs.get_next_nodes(
-                self.partitions[i].graph,input_node)[0]
-        onnx_input_node = self.partitions[i].graph.nodes[input_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_input_node).input
+    onnx_input_nodes = [ self.partitions[i].graph.nodes[n]["onnx_node"] \
+            for n in self.partitions[i].input_nodes ]
+    return [onnx_helper.get_model_node(self.model,
+        n).input[0] for n in onnx_input_nodes ]
 
 def get_model_output_nodes(self, i):
-    output_node = self.partitions[i].output_nodes[0]
-    onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
-    while not onnx_helper.get_model_node(self.model, onnx_output_node):
-        output_node = graphs.get_prev_nodes(
-                self.partitions[i].graph,output_node)[0]
-        onnx_output_node = self.partitions[i].graph.nodes[output_node]["onnx_node"]
-    return onnx_helper.get_model_node(self.model, onnx_output_node).output
+    onnx_output_nodes = [ self.partitions[i].graph.nodes[n]["onnx_node"] \
+            for n in self.partitions[i].output_nodes ]
+    return [onnx_helper.get_model_node(self.model,
+        n).output[0] for n in onnx_output_nodes ]
 
 def get_stream_in_coarse(self, node_hw, index):
     node_base_type = inspect.getmro(type(node_hw))[-2]
@@ -148,12 +142,8 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
         # add partition info
         partition.id = i
         partition.ports = 1 # TODO
-        if input_output_from_model:
-            partition.input_nodes.extend(self.get_model_input_nodes(i))
-            partition.output_nodes.extend(self.get_model_output_nodes(i))
-        else:
-            partition.input_node  = self.partitions[i].input_nodes[0]
-            partition.output_node = self.partitions[i].output_nodes[0]
+        partition.input_nodes.extend(self.get_model_input_nodes(i))
+        partition.output_nodes.extend(self.get_model_output_nodes(i))
 
         partition.batch_size  = self.partitions[i].batch_size
         partition.weights_reloading_factor = self.partitions[i].wr_factor
