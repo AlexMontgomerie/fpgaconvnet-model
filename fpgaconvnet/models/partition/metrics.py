@@ -18,57 +18,66 @@ def get_pipeline_depth(self):
         in the partition to `node`
     """
 
-    # # get all the paths between input and output
-    # all_paths = list(nx.all_simple_paths(self.graph,
-    #     source=graphs.get_input_nodes(self.graph)[0],
-    #     target=graphs.get_output_nodes(self.graph)[-1]))
+    # get all the paths between input and output
+    all_paths = list(nx.all_simple_paths(self.graph,
+        source=graphs.get_input_nodes(self.graph)[0],
+        target=graphs.get_output_nodes(self.graph)[-1]))
+
+    path_delays = []
 
     # # get the longest path
-    # longest_path = max(all_paths, key=len)
+    longest_path = max(all_paths, key=len)
+    all_paths = [max(all_paths, key=len)]
 
-    # # get the hardware model for each node in the path
-    # node_hw = [ self.graph.nodes[node]["hw"] for node in longest_path ]
+    for path in all_paths:
 
-    # # get the size in
-    # size_in = [ n.size_in() for n in node_hw ]
+        # get the hardware model for each node in the path
+        node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
 
-    # # get the size out
-    # size_out = [ n.size_out() for n in node_hw ]
+        # get the size in
+        size_in = [ n.size_in() for n in node_hw ]
 
-    # # get the latency
-    # latency = [ n.latency() for n in node_hw ]
+        # get the size out
+        size_out = [ n.size_out() for n in node_hw ]
 
-    # # get the pipeline depth of each node
-    # node_depth = [ n.pipeline_depth() for n in node_hw ]
+        # get the latency
+        latency = [ n.latency() for n in node_hw ]
 
-    # # get the path depth
-    # return sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
-    #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-    #             ]) for j in range(len(node_hw)) ])
+        # get the pipeline depth of each node
+        node_depth = [ n.pipeline_depth() for n in node_hw ]
 
-    # memoisation of pipeline depths
-    node_pipeline_depth = {}
+        # get the path depth
+        delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+                np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+                    ]) for j in range(len(node_hw)) ])
+        print(delay)
+        path_delays.append(delay)
 
-    def _pipeline_depth_node(node):
+    return max(path_delays)
 
-        # find the pipeline depth of the current node
-        pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
+    # # memoisation of pipeline depths
+    # node_pipeline_depth = {}
 
-        # find the longest path to end from this node
-        if self.graph.out_degree(node) == 0:
-            return pipeline_depth
-        elif node in node_pipeline_depth:
-            return node_pipeline_depth[node]
-        else:
-            node_pipeline_depth[node] = pipeline_depth + max([
-                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
-            return node_pipeline_depth[node]
+    # def _pipeline_depth_node(node):
 
-    # get the first node of the graph
-    start_node = graphs.get_input_nodes(self.graph)[0]
+    #     # find the pipeline depth of the current node
+    #     pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
 
-    # return pipeline depth from start node
-    return _pipeline_depth_node(start_node)
+    #     # find the longest path to end from this node
+    #     if self.graph.out_degree(node) == 0:
+    #         return pipeline_depth
+    #     elif node in node_pipeline_depth:
+    #         return node_pipeline_depth[node]
+    #     else:
+    #         node_pipeline_depth[node] = pipeline_depth + max([
+    #             _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+    #         return node_pipeline_depth[node]
+
+    # # get the first node of the graph
+    # start_node = graphs.get_input_nodes(self.graph)[0]
+
+    # # return pipeline depth from start node
+    # return _pipeline_depth_node(start_node)
 
 def get_interval(self):
     """
