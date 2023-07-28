@@ -97,6 +97,9 @@ def update_multiport_buffer_depth(self, multiport_node):
     all_paths = list(nx.all_simple_paths(self.graph,
         source=split_node, target=multiport_node))
 
+    # initiation interval of the hardware
+    interval = self.get_interval()
+
     # calculate the depth for each path
     path_depths = [0]*len(all_paths)
     for i, path in enumerate(all_paths):
@@ -113,11 +116,17 @@ def update_multiport_buffer_depth(self, multiport_node):
         # get the latency
         latency = [ n.latency() for n in node_hw ]
 
+        # get the rate in
+        rate_in = [ n.rate_in() for n in node_hw ]
+
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
         # get the path depth
-        path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+        # path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
+        path_depths[i] = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
 

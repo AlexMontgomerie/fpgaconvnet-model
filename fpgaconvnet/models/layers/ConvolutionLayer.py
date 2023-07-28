@@ -381,14 +381,14 @@ class ConvolutionLayer(Layer):
         stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         return stream_sparsity
 
-    # def pipeline_depth(self):
-    #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
-    #     # plus the words needed to fill the accum buffer
-    #     return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
-    #             (self.kernel_cols-1)*self.channels//self.coarse_in - \
-    #             ( self.pad_top * self.cols * self.channels//self.coarse_in + \
-    #             (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
-    #             self.channels//self.coarse_in
+    def pipeline_depth(self):
+        # pipeline depth of the sliding window minus the total words in the pipeline from padding
+        # plus the words needed to fill the accum buffer
+        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+                (self.kernel_cols-1)*self.channels//self.coarse_in - \
+                ( self.pad_top * self.cols * self.channels//self.coarse_in + \
+                (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
+                self.channels//self.coarse_in
 
     def update(self):
 

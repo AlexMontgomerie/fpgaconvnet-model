@@ -27,8 +27,12 @@ def get_pipeline_depth(self):
 
     # # get the longest path
     longest_path = max(all_paths, key=len)
+    longest_paths = filter(lambda l: len(l) == len(longest_path), all_paths)
     all_paths = [max(all_paths, key=len)]
+    # all_paths = longest_paths
+    # all_paths = list(reversed(sorted(all_paths, key=len)))[:500]
 
+    # initiation interval of the hardware
     interval = self.get_interval()
 
     for path in all_paths:
@@ -46,14 +50,21 @@ def get_pipeline_depth(self):
         # latency = [ n.latency() for n in node_hw ]
         latency = [ interval for n in node_hw ]
 
+        rate_in = [ n.rate_in() for n in node_hw ]
+
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
         # get the path depth
-        delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+        # delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+        # delay = sum(node_depth) + sum([ (interval/size_in[j]) * \
+        delay = sum([ node_depth[j]/rate_in[j] + (latency[j]/size_in[j]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
-        print(delay)
+        # delay = sum(node_depth) + sum([ (interval/size_out[j]) * \
+        #         np.prod([ size_out[k]/size_in[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
+        # print(delay, len(path))
         path_delays.append(delay)
 
     return max(path_delays)

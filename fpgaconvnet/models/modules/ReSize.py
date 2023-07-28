@@ -44,6 +44,9 @@ class ReSize(Module):
         # return the info
         return info
 
+    def pipeline_depth(self):
+        return self.cols * self.channels * (self.scales[0]-1) + self.channels * (self.scales[1]-1)
+
     def memory_usage(self):
         return int(self.filters/self.groups)*self.data_width
 
