@@ -115,6 +115,7 @@ def update_multiport_buffer_depth(self, multiport_node):
 
         # get the latency
         latency = [ n.latency() for n in node_hw ]
+        # latency = [ interval for n in node_hw ]
 
         # get the rate in
         rate_in = [ n.rate_in() for n in node_hw ]
@@ -123,12 +124,12 @@ def update_multiport_buffer_depth(self, multiport_node):
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
         # get the path depth
-        # path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
-        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
-        path_depths[i] = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
+        path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
+        # path_depths[i] = sum([ node_depth[j]/rate_in[j] + (latency[j]/size_in[j]) * \
+        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
 
     # get the longest depths for each prev node
     path_depths_max = { n: [] for n in multiport_prev_nodes }

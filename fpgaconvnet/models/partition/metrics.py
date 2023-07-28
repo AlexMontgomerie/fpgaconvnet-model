@@ -19,18 +19,19 @@ def get_pipeline_depth(self):
     """
 
     # get all the paths between input and output
-    all_paths = list(nx.all_simple_paths(self.graph,
-        source=graphs.get_input_nodes(self.graph)[0],
-        target=graphs.get_output_nodes(self.graph)[-1]))
+    # all_paths = list(nx.all_simple_paths(self.graph,
+    #     source=graphs.get_input_nodes(self.graph)[0],
+    #     target=graphs.get_output_nodes(self.graph)[-1]))
 
     path_delays = []
 
-    # # get the longest path
-    longest_path = max(all_paths, key=len)
-    longest_paths = filter(lambda l: len(l) == len(longest_path), all_paths)
-    all_paths = [max(all_paths, key=len)]
+    # # # get the longest path
+    # longest_path = max(all_paths, key=len)
+    # longest_paths = filter(lambda l: len(l) == len(longest_path), all_paths)
+    # all_paths = [max(all_paths, key=len)]
     # all_paths = longest_paths
     # all_paths = list(reversed(sorted(all_paths, key=len)))[:500]
+    all_paths = [nx.dag_longest_path(self.graph)]
 
     # initiation interval of the hardware
     interval = self.get_interval()
@@ -69,29 +70,31 @@ def get_pipeline_depth(self):
 
     return max(path_delays)
 
-    # # memoisation of pipeline depths
-    # node_pipeline_depth = {}
+def get_pipeline_depth_fast(self):
 
-    # def _pipeline_depth_node(node):
+    # memoisation of pipeline depths
+    node_pipeline_depth = {}
 
-    #     # find the pipeline depth of the current node
-    #     pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
+    def _pipeline_depth_node(node):
 
-    #     # find the longest path to end from this node
-    #     if self.graph.out_degree(node) == 0:
-    #         return pipeline_depth
-    #     elif node in node_pipeline_depth:
-    #         return node_pipeline_depth[node]
-    #     else:
-    #         node_pipeline_depth[node] = pipeline_depth + max([
-    #             _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
-    #         return node_pipeline_depth[node]
+        # find the pipeline depth of the current node
+        pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
 
-    # # get the first node of the graph
-    # start_node = graphs.get_input_nodes(self.graph)[0]
+        # find the longest path to end from this node
+        if self.graph.out_degree(node) == 0:
+            return pipeline_depth
+        elif node in node_pipeline_depth:
+            return node_pipeline_depth[node]
+        else:
+            node_pipeline_depth[node] = pipeline_depth + max([
+                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+            return node_pipeline_depth[node]
 
-    # # return pipeline depth from start node
-    # return _pipeline_depth_node(start_node)
+    # get the first node of the graph
+    start_node = graphs.get_input_nodes(self.graph)[0]
+
+    # return pipeline depth from start node
+    return _pipeline_depth_node(start_node)
 
 def get_interval(self):
     """
@@ -107,12 +110,15 @@ def get_interval(self):
     # return the overall interval
     return np.max(np.absolute(interval_matrix))
 
-def get_cycle(self):
+def get_cycle(self, fast=True):
     # get the interval for the partition
     interval = self.get_interval()
     # get pipeline depth of partition
     input_node = graphs.get_input_nodes(self.graph)[0]
-    pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
+    if fast:
+        pipeline_depth = self.get_pipeline_depth_fast() # TODO: find max of all input nodes
+    else:
+        pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # return the latency (in seconds)
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
@@ -120,7 +126,7 @@ def get_cycle(self):
     batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
     return batch_cycle
 
-def get_latency(self, frequency):
+def get_latency(self, frequency, fast=True):
     """
     Parameters
     ----------
@@ -132,7 +138,8 @@ def get_latency(self, frequency):
     int
         the latency of running the partition, in seconds.
     """
-    return self.get_cycle()/(frequency*1000000)
+    return self.get_cycle(fast=fast)/(frequency*1000000)
+
 
 def get_bandwidth_in(self,freq):
     # get the interval for the partition

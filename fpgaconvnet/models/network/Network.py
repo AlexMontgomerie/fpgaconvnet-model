@@ -138,7 +138,7 @@ class Network():
         else:
             return (len(partition_list)-1)*self.platform.reconf_time
 
-    def get_cycle(self, partition_list=None):
+    def get_cycle(self, partition_list=None, fast=True):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
@@ -159,15 +159,15 @@ class Network():
                 if partition_index not in partition_list:
                     continue
                 # accumulate cycle for each partition
-                cycle += partition.get_cycle()
+                cycle += partition.get_cycle(fast=fast)
         # return the total cycle
         return cycle
 
-    def get_latency(self, partition_list=None):
+    def get_latency(self, partition_list=None, fast=True):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
-        batch_cycle = self.get_cycle(partition_list)
+        batch_cycle = self.get_cycle(partition_list, fast=fast)
         latency = batch_cycle/(self.platform.board_freq*1000000)
         # return the total latency as well as reconfiguration time
         return latency + self.get_partition_delay(partition_list)

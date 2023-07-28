@@ -19,7 +19,7 @@ def create_report(self, output_path):
             "memory_usage" : self.get_memory_usage_estimate(),
             "multi_fpga" : self.multi_fpga,
             "performance" : {
-                "latency" : self.get_latency(),
+                "latency" : self.get_latency(fast=False),
                 "throughput" : self.get_throughput(),
                 "performance" : total_operations/self.get_latency(),
                 "cycles" : self.get_cycle(),
@@ -44,7 +44,7 @@ def create_report(self, output_path):
     if self.platform.get_uram() > 0:
         report["network"]["max_resource_usage"]["URAM"] = max([ partition.get_resource_usage()["URAM"] for partition in self.partitions ])
         report["network"]["sum_resource_usage"]["URAM"] = int(np.sum([ partition.get_resource_usage()["URAM"] for partition in self.partitions ]))
-    
+
     # add information for each partition
     report["partitions"] = {}
     for i in range(len(self.partitions)):
