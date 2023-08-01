@@ -484,6 +484,7 @@ class ConvolutionLayer(Layer):
             else:
                 self.modules['accum'].channels = self.channels//(self.coarse_in*self.coarse_group)
                 self.modules['accum'].window_sparsity = self.get_stream_sparsity()[1]
+                self.modules['accum'].skipping_windows = self.skipping_windows
 
         # glue
         self.modules['glue'].rows       = self.rows_out()

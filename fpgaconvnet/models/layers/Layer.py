@@ -291,7 +291,8 @@ class Layer:
         return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
 
     def latency(self):
-        return max(self.latency_in(), self.latency_out())
+        # return max(self.latency_in(), self.latency_out())
+        return max([ self.modules[module].latency() for module in self.modules ])
 
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
