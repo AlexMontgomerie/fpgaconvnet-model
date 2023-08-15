@@ -14,6 +14,7 @@ from fpgaconvnet.models.modules import Accum
 from fpgaconvnet.models.modules import Glue
 from fpgaconvnet.models.modules import Bias
 from fpgaconvnet.models.modules import VectorDot
+from fpgaconvnet.models.modules import ShiftScale
 
 class InnerProductLayer(Layer):
     def __init__(
@@ -29,8 +30,10 @@ class InnerProductLayer(Layer):
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0,
+            block_floating_point: bool = False,
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            stream_weights: int = 0
         ):
 
         # initialise parent class
@@ -42,6 +45,7 @@ class InnerProductLayer(Layer):
         self.output_t = output_t
         self.weight_t = weight_t
         self.acc_t = acc_t
+        self.block_floating_point = block_floating_point
 
         # save bias flag
         self.has_bias = has_bias
@@ -60,12 +64,14 @@ class InnerProductLayer(Layer):
         # weights buffering flag
         if self.backend == "hls":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = 0
             self.data_packing = False
+            self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
             self.stream_weights = False
             self.data_packing = True
+            self.use_uram = False
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -88,7 +94,8 @@ class InnerProductLayer(Layer):
                 self.filters, self.coarse_in, self.coarse_out, 1, backend=self.backend, regression_model=self.regression_model)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
-
+        self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(), 
+                self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
         self.update()
 
     def get_operations(self):
@@ -116,11 +123,21 @@ class InnerProductLayer(Layer):
         Layer.layer_info(self, parameters, batch_size)
         parameters.filters  = self.filters
         parameters.has_bias = self.has_bias
+        parameters.block_floating_point    = self.block_floating_point
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+        parameters.use_uram     = self.use_uram
+        parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        parameters.stream_weights = int(self.stream_weights)
+        if self.stream_weights > 0: 
+            parameters.off_chip_buffer_size = self.off_chip_buffer_size()
+            parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
+        else:
+            parameters.off_chip_buffer_size = 0
+            parameters.off_chip_interval = -1
 
     def update(self): # TODO: update all parameters
         # fork
@@ -167,9 +184,17 @@ class InnerProductLayer(Layer):
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].data_width = self.acc_t.width
         # bias
-        self.modules['bias'].rows           = 1#self.rows_out()
-        self.modules['bias'].cols           = 1#self.cols_out()
+        self.modules['bias'].rows           = 1
+        self.modules['bias'].cols           = 1
         self.modules['bias'].filters        = self.filters//self.coarse_out
+        self.modules['bias'].data_width     = self.output_t.width
+        self.modules['bias'].biases_width   = self.acc_t.width
+        # shift scale
+        self.modules['shift_scale'].rows           = 1
+        self.modules['shift_scale'].cols           = 1
+        self.modules['shift_scale'].filters        = self.filters//self.coarse_out
+        self.modules['shift_scale'].data_width     = self.output_t.width
+        self.modules['shift_scale'].biases_width   = self.acc_t.width
 
     def get_weights_reloading_feasible(self):
         return get_factors(int(self.filters/self.coarse_out))
@@ -192,6 +217,7 @@ class InnerProductLayer(Layer):
             accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
             bias_rsc        = self.modules['bias'].rsc()
+            shift_scale_rsc = self.modules['shift_scale'].rsc()
 
             # remove redundant modules
             if self.coarse_out == 1:
@@ -200,8 +226,16 @@ class InnerProductLayer(Layer):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.has_bias:
+            if self.has_bias == 0:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.block_floating_point:
+                shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+
+            # dsp packing
+            if self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
+            elif self.weight_t.width <= 4 and self.input_t.width <= 4:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
 
             # accumulate resource usage based on coarse factors
             rsc = { rsc_type: (
@@ -213,32 +247,55 @@ class InnerProductLayer(Layer):
             ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
-        weights_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
+        weight_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
                 self.cols_in())/float(self.coarse_in*self.coarse_out)
 
         if self.double_buffered:
-            weights_memory_depth *= 2
+            weight_memory_depth *= 2
 
         if self.data_packing:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weights_memory_depth), self.weight_t.width * self.coarse_in * self.coarse_out, 'memory')
+            weight_array_depth = math.ceil(weight_memory_depth)
+            weight_array_width = self.weight_t.width*self.coarse_in*self.coarse_out
+            weight_array_num = 1
         else:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weights_memory_depth), self.weight_t.width, 'memory') * self.coarse_in * self.coarse_out
+            weight_array_depth = math.ceil(weight_memory_depth)
+            weight_array_width = self.weight_t.width
+            weight_array_num = self.coarse_in*self.coarse_out
 
-        if self.stream_weights:
-            weights_bram_usage = 0
+        self.weight_array_depth = weight_array_depth
+        self.weight_array_width = weight_array_width * weight_array_num
+        self.weight_array_num = weight_array_num
 
-        # bias usage FIXME depth, FIXME bram usage
-        bias_memory_depth = float(self.filters) / float(self.coarse_out)
-        biases_bram_usage = bram_array_resource_model(
-                    int(bias_memory_depth), self.acc_t.width, 'memory') * self.coarse_out
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
+
+        # bias usage
+        if self.has_bias:
+            bias_memory_depth = float(self.filters) / float(self.coarse_out)
+            biases_bram_usage = bram_array_resource_model(
+                        int(bias_memory_depth), self.acc_t.width, 'memory') * self.coarse_out
+        else:
+            biases_bram_usage = 0
+
+        # bfp shift scale usage
+        if self.block_floating_point:
+            shift_scale_memory_depth = float(self.filters) / float(self.coarse_out)
+            shift_scale_bram_usage = bram_array_resource_model(
+                        int(shift_scale_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * 2
+        else:
+            shift_scale_bram_usage = 0
 
         # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage
+        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
+        rsc["URAM"] = weights_uram_usage
 
         # return total resource
         return rsc
+
+    from fpgaconvnet.models.layers.utils import stream_unit, stream_step
+    from fpgaconvnet.models.layers.utils import off_chip_addr_range, on_chip_addr_range, off_chip_buffer_size
+    from fpgaconvnet.models.layers.utils import stream_bits, stream_cycles, stream_bw
+    from fpgaconvnet.models.layers.utils import stream_rsc
 
     def visualise(self, name):
 

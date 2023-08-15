@@ -52,7 +52,8 @@ class ConvolutionLayer(Layer):
             sparsity: list = [],
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            stream_weights: int = 0
         ):
 
         # initialise parent class
@@ -73,7 +74,7 @@ class ConvolutionLayer(Layer):
         if len(sparsity) > 0:
             # reject if pointwise or low sparsity
             if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
-                self.sparsity = []
+                sparsity = []
         self.sparsity = sparsity
 
         # init variables
@@ -100,12 +101,12 @@ class ConvolutionLayer(Layer):
         # weights buffering flag
         if self.backend == "hls":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = 0
             self.data_packing = False
             self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = stream_weights
             self.data_packing = True
             self.use_uram = False
 
@@ -508,14 +509,21 @@ class ConvolutionLayer(Layer):
             assert self.backend == "chisel"
             parameters.fine = self.modules["vector_dot"].fine
             parameters.sparsity = self.modules["vector_dot"].sparsity
-        parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
-
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+        parameters.use_uram     = self.use_uram
+        parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        parameters.stream_weights = int(self.stream_weights)
+        if self.stream_weights > 0: 
+            parameters.off_chip_buffer_size = self.off_chip_buffer_size()
+            parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
+        else:
+            parameters.off_chip_buffer_size = 0
+            parameters.off_chip_interval = -1
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
@@ -551,8 +559,10 @@ class ConvolutionLayer(Layer):
         }
 
     def get_operations(self):
-        # return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
-        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out() + self.filters
+        ops = self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        if self.has_bias:
+            ops += self.filters*self.rows_out()*self.cols_out()
+        return ops
 
     def get_sparse_operations(self):
         return self.get_operations()*np.average(self.sparsity)
@@ -616,11 +626,6 @@ class ConvolutionLayer(Layer):
         if self.double_buffered:
             weight_memory_depth *= 2
 
-        if self.use_uram:
-            array_resource_model = bram_array_resource_model
-        else:
-            array_resource_model = uram_array_resource_model
-
         if self.data_packing:
             weight_array_depth = math.ceil(weight_memory_depth)
             if len(self.sparsity) == 0:
@@ -634,14 +639,7 @@ class ConvolutionLayer(Layer):
             weight_array_width = self.weight_t.width
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
-        if self.stream_weights:
-            weights_bram_usage = 0
-        elif self.use_uram:
-            weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
-            rsc["URAM"] = weights_uram_usage
-            weights_bram_usage = 0
-        else:
-            weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
 
         # bias usage
         if self.has_bias:
@@ -663,9 +661,14 @@ class ConvolutionLayer(Layer):
 
         # add weight, bias, shift_scale to resources
         rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
-
+        rsc["URAM"] = weights_uram_usage
         # return total resource
         return rsc
+
+    from fpgaconvnet.models.layers.utils import stream_unit, stream_step
+    from fpgaconvnet.models.layers.utils import off_chip_addr_range, on_chip_addr_range, off_chip_buffer_size
+    from fpgaconvnet.models.layers.utils import stream_bits, stream_cycles, stream_bw
+    from fpgaconvnet.models.layers.utils import stream_rsc
 
     def visualise(self, name):
         pass

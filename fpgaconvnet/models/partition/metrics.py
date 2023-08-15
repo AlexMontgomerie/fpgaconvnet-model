@@ -1,6 +1,8 @@
+import math
 import numpy as np
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
     """
@@ -23,8 +25,12 @@ def get_pipeline_depth(self, node=None): # TODO: change to longest path problem
     if self.graph.out_degree(node) == 0:
         return pipeline_depth
     else:
+        next_nodes = graphs.get_next_nodes(self.graph,node)
+        if len(next_nodes) > 1:
+            # simple identity cannot be the longest path
+            next_nodes = [node for node in next_nodes if self.graph.nodes[node]['type'] != LAYER_TYPE.EltWise]
         return pipeline_depth + max([
-            self.get_pipeline_depth(edge) for edge in graphs.get_next_nodes(self.graph,node) ])
+            self.get_pipeline_depth(edge) for edge in next_nodes])
 
 def get_interval(self):
     """
@@ -50,6 +56,7 @@ def get_cycle(self):
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
     size_wr     = self.size_wr
+    interval = math.ceil(interval * self.slow_down_factor)
     batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
     return batch_cycle
 
@@ -78,9 +85,8 @@ def get_bandwidth_in(self,freq):
         streams = self.streams_in[i]
         # calculate rate from interval
         rate = workload / (interval*streams)
-        # get bandwidth (GB/s)
-        # return (rate*streams*self.data_width*freq)/8000
-        bw_in.append((rate*streams*self.data_width*freq)/8000)
+        # convert bits per cycle to Gbps, freq in MHz   
+        bw_in.append((rate*streams*self.data_width*freq)/1000)
     return bw_in
 
 def get_bandwidth_out(self,freq):
@@ -94,10 +100,29 @@ def get_bandwidth_out(self,freq):
         streams = self.streams_out[i]
         # calculate rate from interval
         rate = workload / (interval*streams)
-        # get bandwidth (GB/s)
-        # return (rate*streams*self.data_width*freq)/8000
-        bw_out.append((rate*streams*self.data_width*freq)/8000)
+        # convert bits per cycle to Gbps, freq in MHz   
+        bw_out.append((rate*streams*self.data_width*freq)/1000)
     return bw_out
+
+def get_bandwidth_weight(self,freq):
+    bw_weight = []
+    latency = []
+    for node in self.graph.nodes():
+        if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
+            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
+            bits_per_cycle = bits_per_cycle / self.slow_down_factor
+            # convert bits per cycle to Gbps, freq in MHz   
+            bw_weight.append((bits_per_cycle*freq)/1000)
+            latency.append(self.graph.nodes[node]['hw'].latency())
+    # slow down non-crtical nodes
+    bw_weight = [ bw_weight[i]*latency[i]/max(latency) for i in range(len(bw_weight)) ]
+    return bw_weight
+
+def get_total_bandwidth(self,freq):
+    bw_in = self.get_bandwidth_in(freq)
+    bw_out = self.get_bandwidth_out(freq)
+    bw_weight = self.get_bandwidth_weight(freq)
+    return sum(bw_in) + sum(bw_out) + sum(bw_weight)
 
 def get_total_operations(self):
     return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])

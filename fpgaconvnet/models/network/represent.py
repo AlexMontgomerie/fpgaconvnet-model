@@ -93,10 +93,15 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
             # layer.name = onnx_helper.format_onnx_name(node)
             layer.name = node
             # todo: implement these activations
-            if self.partitions[i].graph.nodes[node]['type'] == [ LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.HardSigmoid, LAYER_TYPE.HardSwish]:
-                self.partitions[i].graph.nodes[node]['type'] = LAYER_TYPE.ReLU
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(
                     self.partitions[i].graph.nodes[node]['type'])
+            if self.partitions[i].graph.nodes[node]['type'] == LAYER_TYPE.EltWise:
+                layer.op_type = self.partitions[i].graph.nodes[node]['hw'].op_type
+            elif self.partitions[i].graph.nodes[node]['type'] in [ LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.HardSigmoid, LAYER_TYPE.HardSwish]:
+                layer.op_type = self.partitions[i].graph.nodes[node]['type'].name
+            elif self.partitions[i].graph.nodes[node]['type'] in [LAYER_TYPE.Pooling, LAYER_TYPE.GlobalPooling]:
+                layer.op_type = self.partitions[i].graph.nodes[node]['hw'].pool_type
+
             layer.onnx_node = self.partitions[i].graph.nodes[node]['onnx_node']
 
             # nodes into layer

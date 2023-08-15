@@ -12,14 +12,12 @@ class Platform:
     # system
     board_freq: float = 100.0
     mem_bw: float = 10.0
-    mem_bw_wpc: float = 6.25
     reconf_time: float = 10.0
     port_width: int = 512
 
     def __post_init__(self):
         self.get_name()
         self.get_family()
-        self.get_mem_bw_wpc()
 
     def get_family(self):
         pass
@@ -28,10 +26,6 @@ class Platform:
         if self.board:
             self.name = self.board.split(":")[1]
             return self.name
-
-    def get_mem_bw_wpc(self):
-        # memory bandwidth expressed in words per cycle (assuming 16-bit words)
-        self.mem_bw_wpc = (self.mem_bw * 1e9) / (self.board_freq * 1e6 * 16)
 
     def get_dsp(self):
         return self.resources.get("DSP", 0)
@@ -83,10 +77,6 @@ class Platform:
 
         # perform post initialisation again
         self.__post_init__()
-
-    def get_memory_bandwidth(self):
-        pl_bw = 2*16*self.port_width*self.board_freq/1000.0 # TODO: get the data type
-        return min(pl_bw, self.mem_bw)
 
     def calculate_eth_port_width(self):
         # equivalent ethernet port width from async fifo

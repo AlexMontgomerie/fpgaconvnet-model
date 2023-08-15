@@ -74,22 +74,27 @@ message parameter {
     optional quant_format outnput_quant = 54;
     optional quant_format weight_quant  = 55;
     optional quant_format bias_quant    = 56;
-    optional float sparsity = 57;
-    optional bool use_uram = 58;
-    optional bool block_floating_point = 59;
-    repeated float scale = 60;
-    repeated float shift = 61;
-    optional fixed_point scale_t = 62;
-    optional fixed_point shift_t = 63;
+    optional bool block_floating_point  = 57;
+    repeated float scale = 58;
+    repeated float shift = 59;
+    optional fixed_point scale_t = 60;
+    optional fixed_point shift_t = 61;
+    optional float sparsity = 62;
+    optional bool use_uram = 63;
+    optional int32 on_chip_addr_range = 64;
+    optional int32 off_chip_buffer_size = 65;
+    optional int32 off_chip_interval = 66;
+    optional int32 stream_weights = 67;
 }
 
 message layer {
     required string name = 1;
     required string onnx_node = 2;
     required layer_type type = 3;
-    repeated stream streams_in  = 4;
-    repeated stream streams_out = 5;
-    required parameter parameters = 6;
+    optional string op_type = 4;
+    repeated stream streams_in  = 5;
+    repeated stream streams_out = 6;
+    required parameter parameters = 7;
 
     enum layer_type {
         CONVOLUTION     = 0;
@@ -104,8 +109,8 @@ message layer {
         AVERAGE_POOLING = 9;
     }
 
-    optional string weights_path = 7;
-    optional string bias_path    = 8;
+    optional string weights_path = 8;
+    optional string bias_path    = 9;
 }
 
 message partition {

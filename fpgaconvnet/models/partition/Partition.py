@@ -13,7 +13,6 @@ class Partition():
             streams_out=1,
             batch_size=1,
             wr_factor=1,
-            port_width=64,
             data_width=16
         ):
 
@@ -42,14 +41,11 @@ class Partition():
         self.size_wr    = 0
 
         ## bitwidths
-        self.port_width     = port_width
         self.data_width     = data_width
 
-        # maximum streams in and out (TODO: turn into function calls)
-        self.max_streams_in     = self.ports_in*int(self.port_width/self.data_width)
-        self.max_streams_out    = self.ports_out*int(self.port_width/self.data_width)
-
+        ## flag reserved for solver
         self.need_optimise = True
+        self.slow_down_factor = 1.0
 
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
@@ -65,6 +61,8 @@ class Partition():
     from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
     from fpgaconvnet.models.partition.metrics import get_bandwidth_in
     from fpgaconvnet.models.partition.metrics import get_bandwidth_out
+    from fpgaconvnet.models.partition.metrics import get_bandwidth_weight
+    from fpgaconvnet.models.partition.metrics import get_total_bandwidth
     from fpgaconvnet.models.partition.metrics import get_resource_usage
 
     # update
