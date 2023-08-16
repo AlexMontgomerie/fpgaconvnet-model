@@ -30,6 +30,7 @@ class LAYER_TYPE(Enum):
     SiLU    = 50 # i.e. Swish
     Reshape = 51
     NOP     = 52
+    ThresholdedReLU = 53
 
     @classmethod
     def get_type(cls, t):
@@ -45,6 +46,7 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
         LAYER_TYPE.GlobalPooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
         LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.ThresholdedReLU  : fpgaconvnet_pb2.layer.layer_type.THRESHOLDEDRELU,
         LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.Squeeze          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
@@ -63,6 +65,7 @@ def from_proto_layer_type(layer_type):
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,
         fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU],
+        fpgaconvnet_pb2.layer.layer_type.THRESHOLDEDRELU         : LAYER_TYPE.ThresholdedReLU,
         fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
@@ -89,6 +92,7 @@ def from_onnx_op_type(op_type):
         "Concat" : LAYER_TYPE.Concat,
         # Activations
         "Relu" : LAYER_TYPE.ReLU,
+        "ThresholdedRelu" : LAYER_TYPE.ThresholdedReLU,
         "Clip" : LAYER_TYPE.ReLU, # TODO: implement clip properly
         "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
         "HardSwish" : LAYER_TYPE.SiLU,

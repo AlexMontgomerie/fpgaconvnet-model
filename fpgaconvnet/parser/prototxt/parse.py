@@ -7,6 +7,7 @@ from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
+from fpgaconvnet.models.layers import ThresholdedReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
@@ -226,6 +227,19 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
             )
         else:
             raise NotImplementedError
+
+class ParsePrototxtThresholdedReLUNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        # return hardware
+        return ThresholdedReLULayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in,
+            threshold = self.node.parameters.threshold,
+            coarse=self.node.parameters.coarse,
+        )
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):
 

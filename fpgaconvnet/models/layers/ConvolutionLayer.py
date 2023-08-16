@@ -385,10 +385,17 @@ class ConvolutionLayer(Layer):
         return self.coarse_out*self.coarse_group
 
     def get_stream_sparsity(self, interleave=True):
+        # Cycles taken for a window based on number of non-zeros and fine
         cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine) 
+
+        # If you're not skipping all-zero windows, they still take one cycle
         if not (self.skipping_windows):
             cycles_per_bin[-1] = 1
+
+        # Multiply the cycles per bin by the probability of each number of non-zeros, sum up the cycles and calculate the rate accordingly
         rate_per_channel = 1 / np.sum(cycles_per_bin*self.sparsity, axis = 1)
+
+        #Balance the channels according to their rates
         if interleave:
             indices = np.argsort(rate_per_channel)
             indices = np.reshape(indices, (self.channels_in()//self.streams_in(), self.streams_in()))

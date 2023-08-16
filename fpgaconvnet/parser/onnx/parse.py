@@ -7,6 +7,7 @@ from fpgaconvnet.models.layers import BatchNormLayer
 from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
+from fpgaconvnet.models.layers import ThresholdedReLULayer
 from fpgaconvnet.models.layers import ActivationLayer3D
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
@@ -312,7 +313,19 @@ class ParseOnnxReLUNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
 
+    def get_hardware(self):
+
+        # return hardware
+        return ThresholdedReLULayer(
+            self.input_shape[2] if len(self.input_shape) == 4 else 1,
+            self.input_shape[3] if len(self.input_shape) == 4 else 1,
+            self.input_shape[1],
+            self.attr["alpha"],
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+        )
+       
 class ParseOnnxActivationNode(ParseOnnxNode):
 
     def get_hardware(self):

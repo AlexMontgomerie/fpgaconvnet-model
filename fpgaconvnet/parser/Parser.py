@@ -31,8 +31,8 @@ import fpgaconvnet.parser.onnx.passes as onnx_passes
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
 
 
-from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
-from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
+from fpgaconvnet.parser.onnx.parse import ParseOnnxConvNode, ParseOnnxInnerProductNode, ParseOnnxPoolingNode, ParseOnnxGlobalPoolingNode, ParseOnnxEltWiseNode, ParseOnnxReLUNode, ParseOnnxThresholdedReLUNode, ParseOnnxActivationNode, ParseOnnxNOPNode
+from fpgaconvnet.parser.prototxt.parse import ParsePrototxtConvNode, ParsePrototxtInnerProductNode, ParsePrototxtPoolingNode, ParsePrototxtGlobalPoolingNode, ParsePrototxtEltWiseNode, ParsePrototxtReLUNode, ParsePrototxtThresholdedReLUNode, ParsePrototxtSqueezeNode, ParsePrototxtSplitNode
 
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
@@ -169,6 +169,7 @@ class Parser:
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.ReLU: ParseOnnxReLUNode,
+            LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.SiLU: ParseOnnxActivationNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
@@ -283,6 +284,7 @@ class Parser:
             LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParsePrototxtEltWiseNode,
             LAYER_TYPE.ReLU: ParsePrototxtReLUNode,
+            LAYER_TYPE.ThresholdedReLU: ParsePrototxtThresholdedReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
             LAYER_TYPE.Split: ParsePrototxtSplitNode,
         }
@@ -293,6 +295,8 @@ class Parser:
         # todo: fix activation layer
         if node_type == [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU]:
             node_type = LAYER_TYPE.ReLU
+
+        
 
         # try converter
         try:

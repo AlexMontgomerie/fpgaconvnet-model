@@ -34,7 +34,7 @@ setuptools.setup(
         "pydot>=1.4.2",
         "onnxoptimizer==0.3.8",
         "ddt>=1.4.2",
-        "sklearn",
+        "scikit-learn",
         "toml",
         "matplotlib",
         "coverage==5.5",

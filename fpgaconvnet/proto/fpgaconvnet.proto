@@ -78,6 +78,7 @@ message parameter {
     optional bool use_uram = 58;
     optional bool block_floating_point = 59;
     optional bool skipping_windows = 60;
+    optional float threshold = 61;
 }
 
 message layer {
@@ -99,6 +100,7 @@ message layer {
         SPLIT           = 7;
         ELTWISE         = 8;
         AVERAGE_POOLING = 9;
+        THRESHOLDEDRELU = 10;
     }
 
     optional string weights_path = 7;
