@@ -5,28 +5,32 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.models.modules import ReLU3D
-from fpgaconvnet.models.layers import Layer3D
+from fpgaconvnet.models.modules import Hardswish
+from fpgaconvnet.models.layers import Layer
 
-class ReLULayer3D(Layer3D):
+class HardswishLayer(Layer):
     def __init__(
             self,
             rows: int,
             cols: int,
-            depth: int,
             channels: int,
             coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
+            input_t: FixedPoint = FixedPoint(16,8),
+            output_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression"
         ):
 
         # initialise parent class
-        super().__init__(rows, cols, depth, channels,
-                coarse, coarse, data_t=data_t)
+        super().__init__(rows, cols, channels,
+                coarse, coarse, data_t=input_t)
 
         # save parameters
         self._coarse = coarse
+
+        # save data types
+        self.input_t = input_t
+        self.output_t = output_t
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -37,9 +41,13 @@ class ReLULayer3D(Layer3D):
         self.regression_model = regression_model
 
         # init modules
-        self.modules["relu3d"] = ReLU3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//self.coarse, backend=self.backend, regression_model=self.regression_model)
+        self.modules["hardswish"] = Hardswish(self.rows_in(), self.cols_in(),
+                self.channels_in()//self.coarse, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
+
+    def get_operations(self):
+        return self.rows_in()*self.cols_in()*self.channels_in()
 
     @property
     def coarse(self) -> int:
@@ -75,26 +83,27 @@ class ReLULayer3D(Layer3D):
         # self.update()
 
     def layer_info(self,parameters,batch_size=1):
-        Layer3D.layer_info(self, parameters, batch_size)
+        Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
+        self.input_t.to_protobuf(parameters.input_t)
+        self.output_t.to_protobuf(parameters.output_t)
 
     def update(self):
-        self.modules['relu3d'].rows     = self.rows_in()
-        self.modules['relu3d'].cols     = self.cols_in()
-        self.modules['relu3d'].depth    = self.depth_in()
-        self.modules['relu3d'].channels = int(self.channels_in()/self.coarse)
+        self.modules['hardswish'].rows     = self.rows_in()
+        self.modules['hardswish'].cols     = self.cols_in()
+        self.modules['hardswish'].channels = int(self.channels_in()/self.coarse)
 
     def resource(self):
 
-        # get relu resources
-        relu_rsc = self.modules['relu3d'].rsc()
+        # get hardswish resources
+        hardswish_rsc = self.modules['hardswish'].rsc()
 
         # Total
         return {
-            "LUT"  :  relu_rsc['LUT']*self.coarse,
-            "FF"   :  relu_rsc['FF']*self.coarse,
-            "BRAM" :  relu_rsc['BRAM']*self.coarse,
-            "DSP" :   relu_rsc['DSP']*self.coarse,
+            "LUT"  :  hardswish_rsc['LUT']*self.coarse,
+            "FF"   :  hardswish_rsc['FF']*self.coarse,
+            "BRAM" :  hardswish_rsc['BRAM']*self.coarse,
+            "DSP" :   hardswish_rsc['DSP']*self.coarse,
         }
 
     def visualise(self,name):
@@ -102,29 +111,28 @@ class ReLULayer3D(Layer3D):
                 style="dashed", bgcolor="lightgrey")
 
         # names
-        relu_name = [""]*self.coarse
+        hardswish_name = [""]*self.coarse
 
         for i in range(self.coarse):
-            # get the relu name
-            relu_name[i] = "_".join([name, "relu3d", str(i)])
+            # get the hardswish name
+            hardswish_name[i] = "_".join([name, "hardswish", str(i)])
             # add nodes
-            cluster.add_node(self.modules["relu3d"].visualise(relu_name[i]))
+            cluster.add_node(self.modules["hardswish"].visualise(hardswish_name[i]))
 
-        return cluster, np.array(relu_name).tolist(), np.array(relu_name).tolist()
+        return cluster, np.array(hardswish_name).tolist(), np.array(hardswish_name).tolist()
 
     def functional_model(self,data,batch_size=1):
         import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.depth_in()   , "ERROR: invalid depth dimension"
-        assert data.shape[3] == self.channels_in(), "ERROR: invalid channel dimension"
+        assert data.shape[2] == self.channels_in(), "ERROR: invalid channel dimension"
 
-        # instantiate relu layer
-        relu_layer = torch.nn.ReLU()
+        # instantiate hardswish layer
+        hardswish_layer = torch.nn.Hardswish()
 
         # return output featuremap
-        data = np.moveaxis(data, [-1, -2], [0, 1])
+        data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
-        return relu_layer(torch.from_numpy(data)).detach().numpy()
+        return hardswish_layer(torch.from_numpy(data)).detach().numpy()
 

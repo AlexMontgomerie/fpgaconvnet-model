@@ -4,7 +4,6 @@ from typing import Union, List
 
 import pydot
 import numpy as np
-import torch
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -382,7 +381,7 @@ class ConvolutionLayer(Layer):
         return self.coarse_out*self.coarse_group
 
     def get_stream_sparsity(self, interleave=True):
-        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine) 
+        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
         if not (self.skipping_windows):
             cycles_per_bin[-1] = 1
         rate_per_channel = 1 / np.sum(cycles_per_bin*self.sparsity, axis = 1)
@@ -394,18 +393,20 @@ class ConvolutionLayer(Layer):
         else:
             indices = list(range(self.channels_in()))
 
-        stream_sparsity = np.reshape([self.sparsity[i, :] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in(), self.kernel_size[0]*self.kernel_size[1]+1)).mean(axis=0)
-        stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis = 0)
+        stream_sparsity = np.reshape([self.sparsity[i, :] for i in indices],
+                (self.channels_in()//self.streams_in(), self.streams_in(), self.kernel_size[0]*self.kernel_size[1]+1)).mean(axis=0)
+        stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices],
+                (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis = 0)
         return stream_sparsity, stream_window_sparsity
 
-    # def pipeline_depth(self):
-    #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
-    #     # plus the words needed to fill the accum buffer
-    #     return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
-    #             (self.kernel_cols-1)*self.channels//self.coarse_in - \
-    #             ( self.pad_top * self.cols * self.channels//self.coarse_in + \
-    #             (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
-    #             self.channels//self.coarse_in
+    def pipeline_depth(self):
+        # pipeline depth of the sliding window minus the total words in the pipeline from padding
+        # plus the words needed to fill the accum buffer
+        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+                (self.kernel_cols-1)*self.channels//self.coarse_in - \
+                ( self.pad_top * self.cols * self.channels//self.coarse_in + \
+                (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
+                self.channels//self.coarse_in
 
     def update(self):
 
@@ -576,7 +577,11 @@ class ConvolutionLayer(Layer):
         }
 
     def get_operations(self):
-        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        # return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out() + self.filters
+
+    def get_sparse_operations(self):
+        return self.get_operations()*np.average(self.sparsity)
 
     def resource(self):
 
@@ -745,6 +750,7 @@ class ConvolutionLayer(Layer):
         """
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"

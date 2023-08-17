@@ -1,7 +1,11 @@
+import math
+
 import onnx
 import numpy as np
 
 from onnxsim import simplify
+
+import onnx_graphsurgeon as gs
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
@@ -421,8 +425,10 @@ def convert_reshape_to_flatten(model):
 
         # get input and output shape
         input_shape = onnx_helper.get_input_shape(model, node.input[0])
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
-        output_shape = onnx_helper.get_input_shape(model, next_node.input[0])
+        next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+        next_node_input_idx = next_node.input.index(node.output[0])
+        output_shape = onnx_helper.get_input_shape(model,
+                next_node.input[next_node_input_idx])
 
         # check the output shape is the same as flattened
         if np.prod(input_shape[1:]) != output_shape[1]:
@@ -533,7 +539,7 @@ def rename_all_nodes(model):
 
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
-        model.graph.node[index].name = onnx_helper.format_onnx_name(node)
+        model.graph.node[index].name = f"{model.graph.node[index].op_type}_{index}"
 
     # return the new model
     return model
@@ -660,19 +666,25 @@ def fuse_mul_add_into_bn(model):
         if node.op_type != "Mul":
             continue
 
+
         # get the next node
         try:
-            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
-        except StopIteration:
+            next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
+        # except StopIteration or IndexError:
+        except:
             continue
 
+        print(node)
         # check noext node is add
         if next_node.op_type != "Add":
             continue
 
         # get the channels
-        channels = onnx_helper.get_model_initializer(
-                model, node.input[1], to_tensor=False).dims[0]
+        constant = onnx_helper.get_model_initializer(
+                model, node.input[1], to_tensor=False)
+        if constant is None:
+            continue
+        channels = constant.dims[0]
 
         # create zero mean
         zero_mean = onnx.helper.make_tensor(
@@ -894,13 +906,23 @@ def fuse_mul_sigmoid_into_hardswish(model):
         if len(node.input) != 2:
             continue
 
-        # get previous nodes
+        # check first mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[0], model.graph.input))):
+            continue
+
+        # check second mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
+            continue
+
+        # get previous node a
         prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
-        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
 
         # # check prev node a has two outputs
-        # if len(prev_node_a.input) != 2:
+        # if len(prev_node_a.output) != 2:
         #     continue
+
+        # get previous node b
+        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
 
         # check prev node b is a sigmoid
         if prev_node_b.op_type != "Sigmoid":
@@ -950,7 +972,7 @@ def fuse_relu_into_previous(model):
 
     return model
 
-def convert_to_version_14(model):
+def convert_to_version_15(model):
     return onnx.version_converter.convert_version(model, 14)
 
 
@@ -1002,3 +1024,234 @@ def eliminate_nop_pad(model):
         next_node.input[0] = node.input[0]
 
     return model
+
+def move_relu_after_quant(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a pad node
+        if node.op_type != "Relu":
+            continue
+
+        # get the next node
+        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # check next node is quantize linear
+        if next_node.op_type != "QuantizeLinear":
+            continue
+
+        # get the index of next node
+        next_index = list(model.graph.node).index(next_node)
+
+        # get the next next node
+        next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+
+        # move the relu after quantize
+        next_node.input[0] = node.input[0]
+        node.input[0] = next_node.output[0]
+        next_next_node.input[0] = node.output[0]
+
+        # swap order of relu and dequant
+        node = model.graph.node.pop(index)
+        next_node = model.graph.node.pop(next_index-1)
+        model.graph.node.insert(index, next_node)
+        model.graph.node.insert(next_index, node)
+
+
+        # find relu output value info
+        node_vi = next(filter(lambda x: x.name == node.output[0], model.graph.value_info))
+        next_node_vi = next(filter(lambda x: x.name == next_node.output[0], model.graph.value_info))
+
+        # update the output type
+        node_vi.type.tensor_type.elem_type = next_node_vi.type.tensor_type.elem_type
+
+    return model
+
+def insert_scale_shift_quant(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find Gemm and Conv nodes
+        if node.op_type not in ["Gemm", "Conv"]:
+            continue
+
+        # get quant and dequant layers
+        input_quant = next(filter(lambda x: \
+                x.output[0] == node.input[0], model.graph.node))
+        weight_quant = next(filter(lambda x: \
+                x.output[0] == node.input[1], model.graph.node))
+        output_quant = next(filter(lambda x: \
+                x.input[0] == node.output[0], model.graph.node))
+
+        # get input, weight and output scale
+        input_scale = onnx_helper.get_model_initializer(model,
+                        input_quant.input[1], to_tensor=True)
+        weight_scale = np.atleast_1d(onnx_helper.get_model_initializer(model,
+                        weight_quant.input[1], to_tensor=True))
+        output_scale = onnx_helper.get_model_initializer(model,
+                        output_quant.input[1], to_tensor=True)
+
+        # get the per-channel scale and shift
+        quant_scale = []
+        quant_shift = []
+        for ws in weight_scale:
+
+            # get significand and exponent for output scale
+            effective_os = input_scale * ws / output_scale
+            man, exp = math.frexp(effective_os)
+
+            # convert to quantised multiplication
+            quant_scale.append(man * (1 << 31))
+            quant_shift.append(31 - exp)
+
+        # # add an empty bias term
+        # quant_scale_init = onnx.helper.make_tensor(
+        #     name="_".join([node.input[1],"bias"]),
+        #     data_type=init.data_type,
+        #     dims=(weights.shape[0],),
+        #     vals=np.zeros(weights.shape[0]).flatten().tolist())
+        # new_bias_value_info = onnx.helper.make_tensor_value_info(
+        #         new_bias.name,
+        #         onnx.TensorProto.FLOAT,
+        #         [weights.shape[0]])
+        #     # update the graph
+        #     model.graph.initializer.insert(-1,new_bias)
+        #     model.graph.input.insert(-1,new_bias_value_info)
+
+        # # create batch norm node
+
+        # print(quant_scale, quant_shift)
+
+    return model
+
+def fuse_add_clip_mul_div_into_hardswish(model):
+
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # find a mul node
+        if node.op_type != "Mul":
+            continue
+
+        # check only two inputs
+        if len(node.input) != 2:
+            continue
+
+        # check first mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[0], model.graph.input))):
+            continue
+
+        # check second mul input in graph
+        if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
+            continue
+
+        # get previous node a
+        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+
+        # # check prev node a has two outputs
+        # if len(prev_node_a.output) != 2:
+        #     continue
+
+        # get previous node b
+        clip = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if clip.op_type != "Clip":
+            continue
+
+        # get clip's previous node
+        add = next(filter(lambda x: x.output[0] == clip.input[0], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if add.op_type != "Add":
+            continue
+
+        # check that the current node an prev node b have the same input
+        if node.input[0] != add.input[0]:
+            continue
+
+        # get next node
+        div = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+
+        # check prev node b is a sigmoid
+        if div.op_type != "Div":
+            continue
+
+        # create a new HardSwish node
+        new_node = onnx.helper.make_node(
+            "HardSwish",
+            name=node.name+"_hard_swish",
+            inputs=[prev_node_a.output[0]],
+            outputs=div.output,
+        )
+
+        # add the node to the graph
+        model.graph.node.insert(index, new_node)
+
+        # remove prev nodes
+        model.graph.node.remove(node)
+        model.graph.node.remove(clip)
+        model.graph.node.remove(add)
+        model.graph.node.remove(div)
+
+    return model
+
+def add_nop_to_split_output(model):
+
+    # iterate over nodes in the graph
+    for index, node in list(enumerate(model.graph.node)):
+
+        # find a split node
+        if node.op_type != "Split":
+            continue
+
+        # iterate over output nodes
+        for i in range(len(node.output)):
+
+            # create a new NOP (reshape with same shape)
+            shape = onnx_helper.get_input_shape(model, node.output[i])
+            shape_init_name = f"{node.name}_{i}_shape"
+            shape_init = onnx.helper.make_tensor(
+                name=shape_init_name,
+                data_type=onnx.TensorProto.INT64,
+                dims=[len(shape)],
+                vals=shape)
+            model.graph.initializer.insert(-1, shape_init)
+
+            shape_init_value_info = onnx.helper.make_tensor_value_info(
+                shape_init_name,
+                onnx.TensorProto.INT64,
+                [len(shape)])
+            model.graph.input.insert(-1, shape_init_value_info)
+
+            new_node = onnx.helper.make_node(
+                "Reshape",
+                name=f"{node.name}_{i}_nop",
+                inputs=[node.output[i], shape_init_name],
+                outputs=[node.output[i]+"_nop"],
+            )
+
+            # find the next nodes
+            for next_node in list(filter(lambda x: \
+                    node.output[i] in x.input, model.graph.node)):
+
+                # get index of input
+                input_idx = list(next_node.input).index(node.output[i])
+
+                # update input
+                next_node.input[input_idx] = node.output[i]+"_nop"
+
+            # append node to graph
+            model.graph.node.insert(index, new_node)
+
+    # topological sort model
+    g = gs.import_onnx(model)
+    # g.cleanup()
+    g.toposort()
+    model = gs.export_onnx(g)
+
+    return model
+
+

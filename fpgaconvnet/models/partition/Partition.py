@@ -1,6 +1,9 @@
 import pydot
+import networkx as nx
+
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 class Partition():
 
@@ -32,6 +35,7 @@ class Partition():
         self.streams_out = [streams_out]
 
         ## weights reloading
+        self.enable_wr  = True
         self.wr_layer   = self.get_wr_layer()
         self.wr_factor  = wr_factor
 
@@ -57,17 +61,19 @@ class Partition():
 
     # metrics
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
+    from fpgaconvnet.models.partition.metrics import get_pipeline_depth_fast
     from fpgaconvnet.models.partition.metrics import get_interval
     from fpgaconvnet.models.partition.metrics import get_cycle
     from fpgaconvnet.models.partition.metrics import get_latency
     from fpgaconvnet.models.partition.metrics import get_total_operations
+    from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
     from fpgaconvnet.models.partition.metrics import get_bandwidth_in
     from fpgaconvnet.models.partition.metrics import get_bandwidth_out
     from fpgaconvnet.models.partition.metrics import get_resource_usage
 
     # update
     from fpgaconvnet.models.partition.update import update
-    from fpgaconvnet.models.partition.update import update_eltwise_buffer_depth
+    from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
     from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
 
     def visualise(self, partition_index):
@@ -149,10 +155,14 @@ class Partition():
                 self.graph.nodes[output_node]["hw"].latency() > max_compute_latency
 
     def get_wr_layer(self):
+        if not self.enable_wr:
+            return None
         # all transformable layer types
         transformable_layers = [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
         # iterative function to find weights reloading layer
         def _wr_layer(layer):
+            if self.graph.nodes[layer]['type'] == LAYER_TYPE.Split:
+                return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.Concat:
                 return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.EltWise:
@@ -170,5 +180,4 @@ class Partition():
             return output_node
         else:
             return _wr_layer( output_node )
-
 

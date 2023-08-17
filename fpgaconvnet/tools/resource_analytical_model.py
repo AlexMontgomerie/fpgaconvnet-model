@@ -10,13 +10,7 @@ LUTRAM_CONF_DEPTH={32: 16, 64: 8}
 def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False):
     # based on xilinx forum post: https://forums.xilinx.com/t5/High-Level-Synthesis-HLS/BRAM-usage-large-for-FIFO/m-p/1247118
 
-    #assert width > 0, "width must be greater than zero"
-    #assert width <= 36, "width must be less than 36"
     assert array_type in ['fifo', 'memory']
-
-    # cannot synthesise BRAM if the address width is less than 5
-    if math.ceil(math.log(depth, 2)) < 5:
-        return 0
 
     # based on vivado behaviour, hls prediction may differ
     if (depth == 0) or (width == 0) or \
