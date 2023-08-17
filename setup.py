@@ -23,7 +23,7 @@ setuptools.setup(
     install_requires=[
         "networkx>=2.5",
         "numpy>=1.19.2",
-        "protobuf>=3.12.2, <=3.20.1",
+        "protobuf>=3.12.2, <=3.20.3",
         "torch>=1.7.1",
         "pyyaml>=5.1.0",
         "scipy>=1.2.1",

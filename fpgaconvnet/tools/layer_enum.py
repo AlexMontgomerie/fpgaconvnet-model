@@ -38,15 +38,15 @@ class LAYER_TYPE(Enum):
         elif type(t) is int:
             return cls(t)
 
-def to_proto_layer_type(layer_type):
+def to_proto_layer_type(layer_type, sparse=False):
     layer_types = {
         LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
         LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
         LAYER_TYPE.GlobalPooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
-        LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
-        LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
-        LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.RELU,
+        LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.SIGMOID,
+        LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.SILU,
         LAYER_TYPE.Squeeze          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
         LAYER_TYPE.Concat           : fpgaconvnet_pb2.layer.layer_type.CONCAT,
         LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
@@ -54,8 +54,18 @@ def to_proto_layer_type(layer_type):
         LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
         LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE
     }
-    return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
+    # get the layer type (protobuf)
+    try:
+        layer_type_pb = layer_types[layer_type]
+    except KeyError:
+        raise TypeError("Invalid Layer Type")
+
+    # convert to sparse
+    if sparse and layer_type_pb == fpgaconvnet_pb2.layer.layer_type.CONVOLUTION:
+        layer_type_pb = fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE
+
+    return layer_type_pb
 def from_proto_layer_type(layer_type):
     layer_types = {
         fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
@@ -106,7 +116,7 @@ def from_onnx_op_type(op_type):
 
     return layer_types.get(op_type, lambda: TypeError)
 
-def from_cfg_type(op_type): 
+def from_cfg_type(op_type):
     if op_type == "*":
         return "*"
     elif op_type == "Split":

@@ -99,6 +99,10 @@ message layer {
         SPLIT           = 7;
         ELTWISE         = 8;
         AVERAGE_POOLING = 9;
+        CONVOLUTION_SPARSE = 10;
+        RELU            = 11;
+        SILU            = 12;
+        SIGMOID         = 13;
     }
 
     optional string weights_path = 7;
