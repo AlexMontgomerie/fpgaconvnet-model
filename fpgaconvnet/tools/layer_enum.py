@@ -35,6 +35,8 @@ class LAYER_TYPE(Enum):
     ReSize      = 55
     Chop        = 56
     Pad         = 57
+    SiLU        = 58
+    ConvolutionSparse = 59
 
     @classmethod
     def get_type(cls, t):
@@ -46,6 +48,7 @@ class LAYER_TYPE(Enum):
 def to_proto_layer_type(layer_type, sparse=False):
     layer_types = {
         LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
+        LAYER_TYPE.ConvolutionSparse: fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE,
         LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
         LAYER_TYPE.GlobalPooling    : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
@@ -79,6 +82,7 @@ def to_proto_layer_type(layer_type, sparse=False):
 def from_proto_layer_type(layer_type):
     layer_types = {
         fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
+        fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE : LAYER_TYPE.ConvolutionSparse,
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,

@@ -164,7 +164,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
 
             # nodes into layer
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
-            prev_nodes = list(self.get_prev_nodes_ordered(node, i))
+            # prev_nodes = list(self.get_prev_nodes_ordered(node, i))
 
             if not prev_nodes:
                 stream_in = layer.streams_in.add()
