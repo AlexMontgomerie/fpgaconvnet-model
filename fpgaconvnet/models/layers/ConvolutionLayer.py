@@ -386,7 +386,7 @@ class ConvolutionLayer(Layer):
 
     def get_stream_sparsity(self, interleave=True):
         # Cycles taken for a window based on number of non-zeros and fine
-        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine) 
+        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
 
         # If you're not skipping all-zero windows, they still take one cycle
         if not (self.skipping_windows):
@@ -406,7 +406,7 @@ class ConvolutionLayer(Layer):
 
         stream_sparsity = np.reshape([self.sparsity[i, :] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in(), self.kernel_size[0]*self.kernel_size[1]+1)).mean(axis=0)
         stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis = 0)
-        return stream_sparsity, stream_window_sparsity
+        return stream_sparsity, stream_window_sparsity, indices
 
     # def pipeline_depth(self):
     #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
@@ -532,17 +532,7 @@ class ConvolutionLayer(Layer):
         parameters.pad_bottom   = self.pad_bottom
         parameters.pad_left     = self.pad_left
         parameters.has_bias     = self.has_bias
-        if len(self.sparsity) == 0:
-            parameters.fine  = self.fine
-            parameters.sparsity.extend([])
-        else:
-            assert self.backend == "chisel"
-            parameters.fine = self.modules["vector_dot"].fine
-            if (self.skipping_windows):
-                original_sparsity = np.hstack((self.sparsity[:, :-1], self.window_sparsity[:, np.newaxis]))
-                parameters.sparsity.extend(original_sparsity.flatten())
-            else:
-                parameters.sparsity.extend(self.sparsity.flatten())
+        parameters.fine  = self.fine
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
         parameters.skipping_windows = self.skipping_windows
