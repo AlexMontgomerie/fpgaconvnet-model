@@ -7,7 +7,6 @@ import copy
 import math
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
@@ -27,10 +26,13 @@ from fpgaconvnet.models.partition import Partition
 class Network():
 
     def __init__(self, name, model, graph, platform, dimensionality=2, batch_size=1,
-            rsc_allocation=1.0, backend="hls"):
+            rsc_allocation=1.0, backend="hls", multi_fpga=False):
 
         # backend
         self.backend = backend
+
+        # is multi fpga
+        self.multi_fpga = multi_fpga
 
         # network dimensionality
         self.dimensionality = dimensionality
@@ -63,7 +65,8 @@ class Network():
         self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
 
         # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph), port_width=self.platform.port_width, data_width=self.data_width) ]
+        port_width = platform.eth_port_width if multi_fpga else platform.port_width
+        self.partitions = [ Partition(copy.deepcopy(self.graph), port_width=port_width, data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)
@@ -91,6 +94,7 @@ class Network():
     from fpgaconvnet.models.network.represent import get_stream_in_coarse
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in
+    from fpgaconvnet.models.network.represent import get_prev_nodes_ordered
     from fpgaconvnet.models.network.represent import save_all_partitions
 
     from fpgaconvnet.models.network.validate import check_ports
@@ -124,42 +128,63 @@ class Network():
 
         return math.ceil(((max_input_size + max_output_size)*2)) # TODO *self.data_width)/8)
 
-    def get_reconf_time(self, partition_list=None):
+    def get_partition_delay(self, partition_list=None):
+        # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        return (len(partition_list)-1)*self.platform.reconf_time
 
-    def get_cycle(self, partition_list=None):
+        if self.multi_fpga:
+            return (len(partition_list)-1)*self.platform.eth_delay
+        else:
+            return (len(partition_list)-1)*self.platform.reconf_time
+
+    def get_cycle(self, partition_list=None, fast=True):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        cycle = 0
-        # iterate over partitions:
-        for partition_index, partition in enumerate(self.partitions):
-            if partition_index not in partition_list:
-                continue
-            # accumulate cycle for each partition
-            cycle += partition.get_cycle()
-        # return the total cycle as well as reconfiguration time
+
+        if self.multi_fpga:
+            # partitions pipelined
+            max_interval = 0
+            pipeline_depth = 0
+            for partition_index, partition in enumerate(self.partitions):
+                if partition_index not in partition_list:
+                    continue
+                max_interval = max(max_interval, partition.get_interval())
+                pipeline_depth += partition.get_pipeline_depth()
+            cycle = int(max_interval*self.batch_size+pipeline_depth)
+        else:
+            # partitions sequential scheduled
+            cycle = 0
+            for partition_index, partition in enumerate(self.partitions):
+                if partition_index not in partition_list:
+                    continue
+                # accumulate cycle for each partition
+                cycle += partition.get_cycle(fast=fast)
+        # return the total cycle
         return cycle
 
-    def get_latency(self, partition_list=None):
+    def get_latency(self, partition_list=None, fast=True):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        latency = 0
-        # iterate over partitions:
-        for partition_index, partition in enumerate(self.partitions):
-            if partition_index not in partition_list:
-                continue
-            # accumulate latency for each partition
-            latency += partition.get_latency(self.platform.board_freq)
+
+        batch_cycle = self.get_cycle(partition_list, fast=fast)
+        latency = batch_cycle/(self.platform.board_freq*1000000)
         # return the total latency as well as reconfiguration time
-        return latency + self.get_reconf_time(partition_list)
+        return latency + self.get_partition_delay(partition_list)
 
     def get_throughput(self, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
+
         # return the frames per second
         return float(self.batch_size)/self.get_latency(partition_list)
+
+    def get_interval(self, partition_list=None):
+        assert self.multi_fpga, "get_interval() only works for multi-fpga implementation"
+        intervals = []
+        for i in partition_list:
+            intervals.append(self.partitions[i].get_interval())
+        return max(intervals)
 
     def visualise(self, output_path, mode="dot"):
         g = pydot.Dot(graph_type='digraph', splines="ortho", fontsize=25)

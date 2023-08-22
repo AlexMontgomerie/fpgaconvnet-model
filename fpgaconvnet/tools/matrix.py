@@ -89,7 +89,7 @@ MATRIX TEMPLATE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
-def _matrix(graph,weight_in,weight_out,node_list=[],edge_list=[]):
+def _matrix(graph, weight_in, weight_out, node_list=[], edge_list=[]):
 
     # list of nodes and edges
     if not node_list:
@@ -98,7 +98,7 @@ def _matrix(graph,weight_in,weight_out,node_list=[],edge_list=[]):
         edge_list = get_edge_list_matrix(graph)
 
     # create matrix
-    matrix = np.zeros( shape=( len(edge_list),len(node_list) ) , dtype=float )
+    matrix = np.zeros( shape=( len(edge_list), len(node_list) ), dtype=float )
 
     # nodes in and out
     nodes_in  = graphs.get_input_nodes(graph)
@@ -109,28 +109,31 @@ def _matrix(graph,weight_in,weight_out,node_list=[],edge_list=[]):
         edges_in  = get_edges_in(node_in,edge_list)
         for edge_in in edges_in:
             if edge_in[0] in graph[node_in]:
-                matrix[edge_list.index(edge_in) ,node_list.index('input') ] =   weight_in(graph,node_in,list(graph.predecessors(edge_in[0])).index(node_in))
-                matrix[edge_list.index(edge_in) ,node_list.index(node_in) ] =  -weight_in(graph,node_in,list(graph.predecessors(edge_in[0])).index(node_in))
+                matrix[edge_list.index(edge_in), node_list.index('input')] =  weight_in(graph, node_in, list(graph.predecessors(edge_in[0])).index(node_in))
+                matrix[edge_list.index(edge_in), node_list.index(node_in)] = -weight_in(graph, node_in, list(graph.predecessors(edge_in[0])).index(node_in))
             else:
-                matrix[edge_list.index(edge_in) ,node_list.index('input') ] =   weight_in(graph,node_in,0)
-                matrix[edge_list.index(edge_in) ,node_list.index(node_in) ] =  -weight_in(graph,node_in,0)
+                matrix[edge_list.index(edge_in), node_list.index('input')] =  weight_in(graph, node_in, 0)
+                matrix[edge_list.index(edge_in), node_list.index(node_in)] = -weight_in(graph, node_in, 0)
 
     # output connections
     for node_out in nodes_out:
         edges_out = get_edges_out(node_out,edge_list)
         for edge_out in edges_out:
             if edge_out[1] in graph[node_out]:
-                matrix[edge_list.index(edge_out),node_list.index(node_out)] =   weight_out(graph,node_out,list(graph.successors(node_out)).index(edge_out[1]))
-                matrix[edge_list.index(edge_out),node_list.index('output')] =  -weight_out(graph,node_out,list(graph.successors(node_out)).index(edge_out[1]))
+                matrix[edge_list.index(edge_out), node_list.index(node_out)] =  weight_out(graph, node_out, list(graph.successors(node_out)).index(edge_out[1]))
+                matrix[edge_list.index(edge_out), node_list.index('output')] = -weight_out(graph, node_out, list(graph.successors(node_out)).index(edge_out[1]))
             else:
-                matrix[edge_list.index(edge_out),node_list.index(node_out)] =   weight_out(graph,node_out,0)
-                matrix[edge_list.index(edge_out),node_list.index('output')] =  -weight_out(graph,node_out,0)
+                matrix[edge_list.index(edge_out), node_list.index(node_out)] =  weight_out(graph, node_out, 0)
+                matrix[edge_list.index(edge_out), node_list.index('output')] = -weight_out(graph, node_out, 0)
 
     # internal connections
     for node in graph.nodes():
         for edge in graph.adj[node]:
-            matrix[edge_list.index((node,edge)),node_list.index(node)] =  weight_out(graph,node,list(graph.successors(node)).index(edge))
-            matrix[edge_list.index((node,edge)),node_list.index(edge)] = -weight_in(graph,edge,list(graph.predecessors(edge)).index(node))
+            # matrix[edge_list.index((node, edge)), node_list.index(node)] =  weight_out(graph, node, list(graph.successors(node)).index(edge))
+            matrix[edge_list.index((node, edge)), node_list.index(node)] =  weight_out(graph, node, 0)
+            # matrix[edge_list.index((node, edge)), node_list.index(edge)] = -weight_in(graph, edge, list(graph.predecessors(edge)).index(node))
+            matrix[edge_list.index((node, edge)), node_list.index(edge)] = -weight_in(graph, edge, 0)
+
     return matrix
 
 """

@@ -27,10 +27,17 @@ class LAYER_TYPE(Enum):
     Clip      = 47
     Shape     = 48
     GlobalPooling = 49
-    SiLU    = 50 # i.e. Swish
-    Reshape = 51
-    NOP     = 52
-    ThresholdedReLU = 53
+    HardSigmoid = 50
+    HardSwish   = 51
+    Reshape     = 52
+    NOP         = 53
+    LeakyReLU   = 54
+    ReSize      = 55
+    Chop        = 56
+    Pad         = 57
+    SiLU        = 58
+    ConvolutionSparse = 59
+    ThresholdedReLU = 60
 
     @classmethod
     def get_type(cls, t):
@@ -39,38 +46,62 @@ class LAYER_TYPE(Enum):
         elif type(t) is int:
             return cls(t)
 
-def to_proto_layer_type(layer_type):
+def to_proto_layer_type(layer_type, sparse=False):
     layer_types = {
         LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
+        LAYER_TYPE.ConvolutionSparse: fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE,
         LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
-        LAYER_TYPE.GlobalPooling   : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
-        LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
+        LAYER_TYPE.GlobalPooling    : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
+        LAYER_TYPE.ReLU             : fpgaconvnet_pb2.layer.layer_type.RELU,
+        LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.SIGMOID,
+        LAYER_TYPE.HardSigmoid      : fpgaconvnet_pb2.layer.layer_type.HARD_SIGMOID,
+        LAYER_TYPE.HardSwish        : fpgaconvnet_pb2.layer.layer_type.HARD_SWISH,
+        LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.SILU,
         LAYER_TYPE.ThresholdedReLU  : fpgaconvnet_pb2.layer.layer_type.THRESHOLDEDRELU,
-        LAYER_TYPE.Sigmoid          : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
-        LAYER_TYPE.SiLU             : fpgaconvnet_pb2.layer.layer_type.ACTIVATION,
         LAYER_TYPE.Squeeze          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
         LAYER_TYPE.Concat           : fpgaconvnet_pb2.layer.layer_type.CONCAT,
         LAYER_TYPE.BatchNorm        : fpgaconvnet_pb2.layer.layer_type.BATCH_NORM,
         LAYER_TYPE.Split            : fpgaconvnet_pb2.layer.layer_type.SPLIT,
         LAYER_TYPE.EltWise          : fpgaconvnet_pb2.layer.layer_type.ELTWISE,
-        LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE
+        LAYER_TYPE.ReSize           : fpgaconvnet_pb2.layer.layer_type.RESIZE,
+        LAYER_TYPE.Chop             : fpgaconvnet_pb2.layer.layer_type.CHOP,
+        LAYER_TYPE.Reshape          : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
+        LAYER_TYPE.NOP              : fpgaconvnet_pb2.layer.layer_type.SQUEEZE,
     }
-    return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
+    # get the layer type (protobuf)
+    try:
+        layer_type_pb = layer_types[layer_type]
+    except KeyError:
+        raise TypeError("Invalid Layer Type")
+
+    # convert to sparse
+    if sparse and layer_type_pb == fpgaconvnet_pb2.layer.layer_type.CONVOLUTION:
+        layer_type_pb = fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE
+
+    return layer_type_pb
 def from_proto_layer_type(layer_type):
     layer_types = {
         fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
+        fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE : LAYER_TYPE.ConvolutionSparse,
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,
-        fpgaconvnet_pb2.layer.layer_type.ACTIVATION         : [LAYER_TYPE.ReLU, LAYER_TYPE.Sigmoid, LAYER_TYPE.SiLU],
-        fpgaconvnet_pb2.layer.layer_type.THRESHOLDEDRELU         : LAYER_TYPE.ThresholdedReLU,
+        fpgaconvnet_pb2.layer.layer_type.RELU               : LAYER_TYPE.ReLU,
+        fpgaconvnet_pb2.layer.layer_type.SILU               : LAYER_TYPE.SiLU,
+        fpgaconvnet_pb2.layer.layer_type.SIGMOID            : LAYER_TYPE.Sigmoid,
+        fpgaconvnet_pb2.layer.layer_type.HARD_SIGMOID       : LAYER_TYPE.HardSigmoid,
+        fpgaconvnet_pb2.layer.layer_type.HARD_SWISH         : LAYER_TYPE.HardSwish,
+        fpgaconvnet_pb2.layer.layer_type.RESIZE             : LAYER_TYPE.ReSize,
+        fpgaconvnet_pb2.layer.layer_type.CHOP               : LAYER_TYPE.Chop,
+        fpgaconvnet_pb2.layer.layer_type.THRESHOLDEDRELU    : LAYER_TYPE.ThresholdedReLU,
         fpgaconvnet_pb2.layer.layer_type.SQUEEZE            : LAYER_TYPE.Squeeze,
         fpgaconvnet_pb2.layer.layer_type.CONCAT             : LAYER_TYPE.Concat,
         fpgaconvnet_pb2.layer.layer_type.BATCH_NORM         : LAYER_TYPE.BatchNorm,
         fpgaconvnet_pb2.layer.layer_type.SPLIT              : LAYER_TYPE.Split,
-        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise
+        fpgaconvnet_pb2.layer.layer_type.ELTWISE            : LAYER_TYPE.EltWise,
+        fpgaconvnet_pb2.layer.layer_type.RESIZE             : LAYER_TYPE.ReSize,
     }
     return layer_types.get(layer_type, lambda: "Invalid Layer Type")
 
@@ -91,14 +122,17 @@ def from_onnx_op_type(op_type):
         "Mul" : LAYER_TYPE.EltWise,
         "Concat" : LAYER_TYPE.Concat,
         # Activations
+        "LeakyRelu" : LAYER_TYPE.ReLU,
         "Relu" : LAYER_TYPE.ReLU,
+        "Clip" : LAYER_TYPE.ReLU, # TODO: implement
+        "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement
+        "HardSigmoid" : LAYER_TYPE.HardSigmoid, # TODO: implement
+        "HardSwish" : LAYER_TYPE.HardSwish, # TODO: implement
         "ThresholdedRelu" : LAYER_TYPE.ThresholdedReLU,
-        "Clip" : LAYER_TYPE.ReLU, # TODO: implement clip properly
-        "Sigmoid" : LAYER_TYPE.Sigmoid, # TODO: implement clip properly
-        "HardSwish" : LAYER_TYPE.SiLU,
         "Softmax" : LAYER_TYPE.NOP, # TODO: move to CPU
         "LogSoftmax" : LAYER_TYPE.NOP, # TODO: move to CPU
         "Dropout" : LAYER_TYPE.Dropout,
+        "Silu" : LAYER_TYPE.SiLU, # TODO: Silu does not exist as an onnx operator
         # shape operations
         "Transpose" : LAYER_TYPE.Transpose,
         "Squeeze" : LAYER_TYPE.Squeeze,
@@ -106,16 +140,19 @@ def from_onnx_op_type(op_type):
         "Flatten" : LAYER_TYPE.NOP, # NOTE: only "shape" layer supported
         "Reshape" : LAYER_TYPE.Reshape,
         "Shape" : LAYER_TYPE.Shape,
+        "Resize" : LAYER_TYPE.ReSize,
+        "Split" : LAYER_TYPE.Chop,
+        "Pad" : LAYER_TYPE.NOP,
     }
 
     return layer_types.get(op_type, lambda: TypeError)
 
-def from_cfg_type(op_type): 
+def from_cfg_type(op_type):
     if op_type == "*":
         return "*"
     elif op_type == "Split":
         return LAYER_TYPE.Split
-    elif op_type == "EltWise":
-        return LAYER_TYPE.EltWise
+    elif op_type == "Add" or op_type == "Mul":
+        return op_type.lower()
     else:
         return from_onnx_op_type(op_type)

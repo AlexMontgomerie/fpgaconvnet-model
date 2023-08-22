@@ -6,8 +6,8 @@ message fixed_point {
 }
 
 message quant_format {
-    required float scale = 1;
-    required int32 zero_point = 2;
+    repeated float scale = 1;
+    repeated int32 zero_point = 2;
 }
 
 message stream {
@@ -76,8 +76,15 @@ message parameter {
     optional quant_format bias_quant    = 56;
     optional bool use_uram = 58;
     optional bool block_floating_point = 59;
-    optional bool skipping_windows = 60;
-    optional float threshold = 61;
+    repeated float scale = 60;
+    repeated float shift = 61;
+    optional fixed_point scale_t = 62;
+    optional fixed_point shift_t = 63;
+    optional string weights_ram_style = 64;
+    repeated int32 split = 65;
+    optional bool skipping_windows = 66;
+    optional float threshold = 67;
+
 }
 
 message layer {
@@ -99,7 +106,15 @@ message layer {
         SPLIT           = 7;
         ELTWISE         = 8;
         AVERAGE_POOLING = 9;
-        THRESHOLDEDRELU = 10;
+        CONVOLUTION_SPARSE = 10;
+        RELU            = 11;
+        SILU            = 12;
+        SIGMOID         = 13;
+        HARD_SIGMOID    = 14;
+        HARD_SWISH      = 15;
+        RESIZE          = 16;
+        CHOP            = 17;
+        THRESHOLDEDRELU = 18;
     }
 
     optional string weights_path = 7;
@@ -116,6 +131,7 @@ message partition {
     required string weights_reloading_layer  = 7;
 
     repeated layer layers = 8;
+    optional int32 gen_last_width = 9;
 }
 
 message partitions {

@@ -1,7 +1,6 @@
 import math
 from typing import Union, List
 
-import torch
 import numpy as np
 import pydot
 
@@ -51,6 +50,9 @@ class GlobalPoolingLayer(Layer):
                 backend=self.backend, regression_model=self.regression_model)
 
         self.update()
+
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()
 
     def rows_out(self) -> int:
         return 1

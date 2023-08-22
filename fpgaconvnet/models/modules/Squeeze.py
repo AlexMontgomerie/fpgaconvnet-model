@@ -12,6 +12,15 @@ from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_mo
 def lcm(a, b):
     return abs(a*b) // math.gcd(a, b)
 
+def buffer_estimate(coarse_in, coarse_out, data_width):
+    buffer_size = lcm(coarse_in, coarse_out)
+    buffer_depth = (buffer_size//coarse_in)+1
+    buffer_bram = buffer_size*bram_array_resource_model(buffer_depth, data_width, "fifo")
+    if buffer_bram == 0:
+        buffer_lutram = buffer_size*queue_lutram_resource_model(buffer_depth, data_width)
+    else:
+        buffer_lutram = 0
+    return buffer_bram, buffer_lutram
 
 @dataclass
 class Squeeze(Module):
@@ -32,18 +41,8 @@ class Squeeze(Module):
         # return the info
         return info
 
-    def buffer_estimate(self):
-        buffer_size = lcm(self.coarse_in, self.coarse_out)
-        buffer_depth = (buffer_size//self.coarse_in)+1
-        buffer_bram = buffer_size*bram_array_resource_model(buffer_depth, self.data_width, "fifo")
-        if buffer_bram == 0:
-            buffer_lutram = buffer_size*queue_lutram_resource_model(buffer_depth, self.data_width)
-        else:
-            buffer_lutram = 0
-        return buffer_bram, buffer_lutram
-
     def utilisation_model(self):
-        _, buffer_lutram = self.buffer_estimate()
+        _, buffer_lutram = buffer_estimate(self.coarse_in, self.coarse_out, self.data_width)
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
@@ -120,7 +119,7 @@ class Squeeze(Module):
 
         if self.regression_model == "linear_regression":
             # get the buffer estimates
-            buffer_bram, _ = self.buffer_estimate()
+            buffer_bram, _ = buffer_estimate(self.coarse_in, self.coarse_out, self.data_width)
 
             # add the bram estimation
             rsc["BRAM"] = buffer_bram

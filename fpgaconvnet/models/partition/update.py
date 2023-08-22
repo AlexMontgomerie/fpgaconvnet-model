@@ -10,6 +10,9 @@ import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.models.layers import SqueezeLayer
 
+MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
+MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
+
 def update(self):
 
     ## remove auxiliary layers
@@ -25,7 +28,7 @@ def update(self):
         streams_in_max = min(self.max_streams_in//len(inputs), self.graph.nodes[input_node]["hw"].streams_in())
         # choose the max of all the valid stream values, below the max
         self.streams_in.append(max([ s for s in streams_in_valid if s <= streams_in_max ]))
-        
+
     ## update streams out
     self.streams_out = []
     outputs = graphs.get_output_nodes(self.graph)
@@ -35,7 +38,7 @@ def update(self):
         # get the max stream values out
         streams_out_max = min(self.max_streams_out//len(outputs), self.graph.nodes[output_node]["hw"].streams_out())
         # choose the max of all the valid stream values, below the max
-        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))    
+        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))
 
     ## add auxiliary layers
     self.add_squeeze()
@@ -61,29 +64,41 @@ def update(self):
     self.remove_squeeze()
     self.add_squeeze()
 
-    ## update buffer depths
-    for node in self.graph.nodes:
-        if self.graph.nodes[node]["type"] == LAYER_TYPE.EltWise:
-            self.update_eltwise_buffer_depth(node)
+    # ## update buffer depths
+    # for node in self.graph.nodes:
+    #     if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
+    #         self.update_multiport_buffer_depth(node)
 
-def update_eltwise_buffer_depth(self, eltwise_node):
+def update_multiport_buffer_depth(self, multiport_node):
 
     # check the eltwise node is actually eltwise
-    assert self.graph.nodes[eltwise_node]["type"] == LAYER_TYPE.EltWise, "node is not of type EltWise"
+    assert self.graph.nodes[multiport_node]["type"] in MULTIPORT_LAYERS_IN, \
+            "node does not have multiple ports in"
 
-    # search back in the graph for the split layer
-    split_node = eltwise_node
-    while self.graph.in_degree(split_node) > 0:
-        split_node = graphs.get_prev_nodes(self.graph, split_node)[0]
-        if self.graph.nodes[split_node]["type"] == LAYER_TYPE.Split:
-            break
+    # find the lowest common (single) ancestor of the multiport node
+
+    ## get all pairs of inputs to the node
+    multiport_prev_nodes = graphs.get_prev_nodes(self.graph, multiport_node)
+    multiport_prev_nodes_pairs = list(itertools.combinations(multiport_prev_nodes, 2))
+
+    ## get all the common ancestors for the node pairs
+    common_ancestors = [ x[1] for x in nx.all_pairs_lowest_common_ancestor(
+        self.graph, multiport_prev_nodes_pairs) ]
+
+    ## topological sort common ancestors and choose the oldest
+    sorted_graph_nodes = list(nx.topological_sort(self.graph))
+    split_node = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))[0]
 
     # cannot find split layer, maybe it is vertical split
-    if self.graph.nodes[split_node]["type"] != LAYER_TYPE.Split:
+    if not self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
         return
 
     # get all the paths split layer and eltwise layer
-    all_paths = list(nx.all_simple_paths(self.graph, source=split_node, target=eltwise_node))
+    all_paths = list(nx.all_simple_paths(self.graph,
+        source=split_node, target=multiport_node))
+
+    # initiation interval of the hardware
+    interval = self.get_interval()
 
     # calculate the depth for each path
     path_depths = [0]*len(all_paths)
@@ -91,33 +106,57 @@ def update_eltwise_buffer_depth(self, eltwise_node):
 
         # get the hardware model for each node in the path
         node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
-        # print([ self.graph.nodes[node]["type"] for node in path ])
-        # print([ self.graph.nodes[node]["hw"].size_in() for node in path ])
-        # print([ self.graph.nodes[node]["hw"].size_out() for node in path ])
-        # print([ self.graph.nodes[node]["hw"].coarse_in for node in path ])
-        # print([ self.graph.nodes[node]["hw"].coarse_out for node in path ])
 
-        # get expansion of each node in path
-        expansion = [ n.size_in() / n.size_out() for n in node_hw ]
+        # get the size in
+        size_in = [ n.size_in() for n in node_hw ]
+
+        # get the size out
+        size_out = [ n.size_out() for n in node_hw ]
+
+        # get the latency
+        latency = [ n.latency() for n in node_hw ]
+        # latency = [ interval for n in node_hw ]
+
+        # get the rate in
+        rate_in = [ n.rate_in() for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
         # get the path depth
-        path_depths[i] = node_depth[0] + sum([
-            node_depth[j]*np.prod([ expansion[k] for k in range(j) ]) for j in range(1,len(node_hw)) ])
+        path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+                np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+                    ]) for j in range(len(node_hw)) ])
+        # path_depths[i] = sum([ node_depth[j]/rate_in[j] + (latency[j]/size_in[j]) * \
+        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
 
-    # get all prev nodes of the eltwise layer
-    eltwise_prev_nodes = graphs.get_prev_nodes(self.graph, eltwise_node)
+    # get the longest depths for each prev node
+    path_depths_max = { n: [] for n in multiport_prev_nodes }
+    for i, path in enumerate(all_paths):
+        path_depths_max[path[-2]].append(path_depths[i])
+    path_depths_max = { n: max(path_depths_max[n]) for n in multiport_prev_nodes }
+
+    # get the overall max depth
+    max_depth = max(path_depths_max.values())
 
     # update the buffer depths for eltwise layer
-    for i, path in enumerate(all_paths):
+    for n, depth in path_depths_max.items():
 
         # get the input index
-        idx = eltwise_prev_nodes.index(path[-2])
+        idx = self.graph.nodes[multiport_node]["onnx_input"].index(
+            self.graph.nodes[n]["onnx_output"][0])
 
         # buffer depth is difference of max depth with the paths depth
-        self.graph.nodes[eltwise_node]["hw"].buffer_depth[idx] = math.ceil(max(path_depths) - path_depths[i])
+        if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.EltWise:
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
+                    math.ceil(max_depth - depth) + 64
+        if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.Concat:
+            n = self.graph.nodes[multiport_node]["hw"]
+            extra_cycles = int(sum([ n.channels_in(i)/n.rate_in(i) \
+                    for i in range(n.ports_in) ]))
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
+                    math.ceil(max_depth - depth) + extra_cycles + 64
 
 def reduce_squeeze_fanout(self):
     """

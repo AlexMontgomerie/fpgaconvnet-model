@@ -17,12 +17,13 @@ def create_report(self, output_path):
         "total_operations" : float(total_operations),
         "network" : {
             "memory_usage" : self.get_memory_usage_estimate(),
+            "multi_fpga" : self.multi_fpga,
             "performance" : {
-                "latency" : self.get_latency(),
+                "latency" : self.get_latency(fast=False),
                 "throughput" : self.get_throughput(),
                 "performance" : total_operations/self.get_latency(),
                 "cycles" : self.get_cycle(),
-                "reconf_time" : self.get_reconf_time()
+                "partition_delay" : self.get_partition_delay()
             },
             "num_partitions" : len(self.partitions),
             "max_resource_usage" : {
@@ -30,12 +31,19 @@ def create_report(self, output_path):
                 "FF" : max([ partition.get_resource_usage()["FF"] for partition in self.partitions ]),
                 "BRAM" : max([ partition.get_resource_usage()["BRAM"] for partition in self.partitions ]),
                 "DSP" : max([ partition.get_resource_usage()["DSP"] for partition in self.partitions ])
+            },
+            "sum_resource_usage" : {
+                "LUT" : int(np.sum([ partition.get_resource_usage()["LUT"] for partition in self.partitions ])),
+                "FF" : int(np.sum([ partition.get_resource_usage()["FF"] for partition in self.partitions ])),
+                "BRAM" : int(np.sum([ partition.get_resource_usage()["BRAM"] for partition in self.partitions ])),
+                "DSP" : int(np.sum([ partition.get_resource_usage()["DSP"] for partition in self.partitions ]))
             }
         }
     }
 
     if self.platform.get_uram() > 0:
         report["network"]["max_resource_usage"]["URAM"] = max([ partition.get_resource_usage()["URAM"] for partition in self.partitions ])
+        report["network"]["sum_resource_usage"]["URAM"] = int(np.sum([ partition.get_resource_usage()["URAM"] for partition in self.partitions ]))
 
     # add information for each partition
     report["partitions"] = {}
