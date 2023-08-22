@@ -387,7 +387,8 @@ class ParseOnnxChopNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
-            class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
+
+class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
 
     def get_hardware(self):
 
@@ -399,7 +400,7 @@ class ParseOnnxChopNode(ParseOnnxNode):
             self.attr["alpha"],
             data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
         )
-       
+
 class ParseOnnxActivationNode(ParseOnnxNode):
 
     def get_hardware(self):

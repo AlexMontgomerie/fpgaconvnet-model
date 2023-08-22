@@ -172,6 +172,7 @@ class Parser:
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
+            LAYER_TYPE.ReLU: ParseOnnxReLUNode,
             LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
