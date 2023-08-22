@@ -86,6 +86,9 @@ class ConvolutionLayer(Layer):
                     self.skipping_windows = False
                     self.window_sparsity = []
                     self.sparsity = []
+        else:
+            self.skipping_windows = False
+            self.window_sparsity = []
 
         # init variables
         self._kernel_rows = kernel_rows
@@ -382,9 +385,14 @@ class ConvolutionLayer(Layer):
 
     def get_stream_sparsity(self, interleave=True):
         cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
+
         if not (self.skipping_windows):
             cycles_per_bin[-1] = 1
+
+        # Multiply the cycles per bin by the probability of each number of non-zeros, sum up the cycles and calculate the rate accordingly
         rate_per_channel = 1 / np.sum(cycles_per_bin*self.sparsity, axis = 1)
+
+        #Balance the channels according to their rates
         if interleave:
             indices = np.argsort(rate_per_channel)
             indices = np.reshape(indices, (self.channels_in()//self.streams_in(), self.streams_in()))
@@ -393,11 +401,13 @@ class ConvolutionLayer(Layer):
         else:
             indices = list(range(self.channels_in()))
 
+
         stream_sparsity = np.reshape([self.sparsity[i, :] for i in indices],
                 (self.channels_in()//self.streams_in(), self.streams_in(), self.kernel_size[0]*self.kernel_size[1]+1)).mean(axis=0)
         stream_window_sparsity = np.reshape([self.window_sparsity[i] for i in indices],
                 (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis = 0)
-        return stream_sparsity, stream_window_sparsity
+        return stream_sparsity, stream_window_sparsity, indices
+
 
     def pipeline_depth(self):
         # pipeline depth of the sliding window minus the total words in the pipeline from padding
@@ -482,6 +492,7 @@ class ConvolutionLayer(Layer):
             else:
                 self.modules['accum'].channels = self.channels//(self.coarse_in*self.coarse_group)
                 self.modules['accum'].window_sparsity = self.get_stream_sparsity()[1]
+                self.modules['accum'].skipping_windows = self.skipping_windows
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -522,17 +533,7 @@ class ConvolutionLayer(Layer):
         parameters.pad_bottom   = self.pad_bottom
         parameters.pad_left     = self.pad_left
         parameters.has_bias     = self.has_bias
-        if len(self.sparsity) == 0:
-            parameters.fine  = self.fine
-            parameters.sparsity.extend([])
-        else:
-            assert self.backend == "chisel"
-            parameters.fine = self.modules["vector_dot"].fine
-            if (self.skipping_windows):
-                original_sparsity = np.hstack((self.sparsity[:, :-1], self.window_sparsity[:, np.newaxis]))
-                parameters.sparsity.extend(original_sparsity.flatten())
-            else:
-                parameters.sparsity.extend(self.sparsity.flatten())
+        parameters.fine  = self.fine
         parameters.use_uram     = self.use_uram
         parameters.block_floating_point    = self.block_floating_point
         parameters.skipping_windows = self.skipping_windows

@@ -30,7 +30,9 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_pro
 from fpgaconvnet.parser.onnx.parse import *
 from fpgaconvnet.parser.prototxt.parse import *
 
+
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
+
 
 from google.protobuf import json_format
 import fpgaconvnet.proto.fpgaconvnet_pb2
@@ -170,7 +172,7 @@ class Parser:
             LAYER_TYPE.GlobalPooling: ParseOnnxGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParseOnnxEltWiseNode,
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
-            LAYER_TYPE.ReLU: ParseOnnxActivationNode,
+            LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
@@ -326,12 +328,14 @@ class Parser:
             LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,
             LAYER_TYPE.EltWise: ParsePrototxtEltWiseNode,
             LAYER_TYPE.ReLU: ParsePrototxtReLUNode,
+            LAYER_TYPE.ThresholdedReLU: ParsePrototxtThresholdedReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
             LAYER_TYPE.Split: ParsePrototxtSplitNode,
         }
 
         # get the node type
         node_type = from_proto_layer_type(node.type)
+
 
         # try converter
         try:
@@ -353,7 +357,8 @@ class Parser:
 
         # iterate over partitions
         for i, partition in enumerate(partitions.partition):
-
+            if i == 0:
+                net.batch_size = partition.batch_size
             # add all layers to partition
             graph = nx.DiGraph()
             for layer in partition.layers:
@@ -369,7 +374,7 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph, port_width=net.platform.port_width)
+            new_partition = Partition(graph, port_width=net.platform.port_width, batch_size=partition.batch_size)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)

@@ -7,6 +7,7 @@ from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
 from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
+from fpgaconvnet.models.layers import ThresholdedReLULayer
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
@@ -98,7 +99,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
 
         # return hardware
         if self.dimensionality == 2:
-            return ConvolutionLayer(
+            layer = ConvolutionLayer(
                 self.node.parameters.channels_out,
                 self.node.parameters.rows_in,
                 self.node.parameters.cols_in,
@@ -117,11 +118,12 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_out  =self.node.parameters.coarse_out,
                 coarse_group=self.node.parameters.coarse_group,
                 has_bias    =self.node.parameters.has_bias,
-                sparsity    =self.node.parameters.sparsity,
                 skipping_windows    =self.node.parameters.skipping_windows,
                 backend =self.backend,
                 regression_model =self.regression_model,
             )
+            layer.use_uram = self.node.parameters.use_uram
+            return layer
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 self.node.parameters.channels_out,
@@ -224,6 +226,19 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
             )
         else:
             raise NotImplementedError
+
+class ParsePrototxtThresholdedReLUNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        # return hardware
+        return ThresholdedReLULayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in,
+            threshold = self.node.parameters.threshold,
+            coarse=self.node.parameters.coarse,
+        )
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):
 

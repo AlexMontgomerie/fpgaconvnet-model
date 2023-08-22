@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from fpgaconvnet.models.layers import *
 
+
 from fpgaconvnet.data_types import FixedPoint
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
@@ -335,6 +336,8 @@ class ParseOnnxReLUNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+
+            
 class ParseOnnxHardSwishNode(ParseOnnxNode):
 
     def get_hardware(self):
@@ -384,6 +387,19 @@ class ParseOnnxChopNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+            class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # return hardware
+        return ThresholdedReLULayer(
+            self.input_shape[2] if len(self.input_shape) == 4 else 1,
+            self.input_shape[3] if len(self.input_shape) == 4 else 1,
+            self.input_shape[1],
+            self.attr["alpha"],
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+        )
+       
 class ParseOnnxActivationNode(ParseOnnxNode):
 
     def get_hardware(self):

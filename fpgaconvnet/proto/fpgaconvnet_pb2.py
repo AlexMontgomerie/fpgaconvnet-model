@@ -103,11 +103,14 @@ _LAYER_LAYER_TYPE = _descriptor.EnumDescriptor(
       name='CHOP', index=17, number=17,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='THRESHOLDEDRELU', index=10, number=10,
+      serialized_options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
   serialized_start=1912,
-  serialized_end=2188,
 )
 _sym_db.RegisterEnumDescriptor(_LAYER_LAYER_TYPE)
 
@@ -654,7 +657,7 @@ _PARAMETER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='block_floating_point', full_name='parameter.block_floating_point', index=58,
+      name='block_floating_point', full_name='parameter.block_floating_point', index=57,
       number=59, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -709,6 +712,7 @@ _PARAMETER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+
   ],
   extensions=[
   ],
@@ -723,6 +727,7 @@ _PARAMETER = _descriptor.Descriptor(
   ],
   serialized_start=204,
   serialized_end=1701,
+  serialized_end=1568,
 )
 
 
@@ -801,9 +806,9 @@ _LAYER = _descriptor.Descriptor(
   syntax='proto2',
   extension_ranges=[],
   oneofs=[
-  ],
+  ]
   serialized_start=1704,
-  serialized_end=2188,
+  serialized_end=2188
 )
 
 

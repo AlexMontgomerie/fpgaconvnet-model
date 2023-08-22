@@ -25,6 +25,7 @@ from .MaxPool import MaxPool
 from .ReLU import ReLU
 from .Hardswish import Hardswish
 from .ReSize import ReSize
+from .ThresholdedReLU import ThresholdedReLU
 from .SlidingWindow import SlidingWindow
 from .Squeeze import Squeeze
 from .Bias import Bias
