@@ -15,8 +15,6 @@ class VectorDot(Module):
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def pipeline_depth(self):
         return self.fine
@@ -69,8 +67,6 @@ class VectorDot(Module):
                     int2bits(self.fine)+1, # tree buffer valid
                     self.streams*self.acc_width*self.fine, # adder tree reg
                     self.streams*self.acc_width, # output buffer
-                    # self.acc_width*(2**(int2bits(self.fine))), # tree buffer registers
-                    # self.acc_width*int2bits(self.fine), # tree buffer
                     1,
                 ]),
                 "DSP"       : np.array([self.streams*self.fine]),
@@ -87,12 +83,6 @@ class VectorDot(Module):
             self.acc_width, self.acc_width//2,
             self.weight_width, self.weight_width//2,
         ]).reshape(1,-1)
-
-    def memory_usage(self):
-        if self.backend == "chisel":
-            return self.data_width*(int2bits(self.fine)+3)
-        else:
-            raise NotImplementedError
 
     def rsc(self,coef=None, model=None):
 

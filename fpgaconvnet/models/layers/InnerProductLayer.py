@@ -147,6 +147,7 @@ class InnerProductLayer(Layer):
         self.modules['fork'].coarse   = self.coarse_out
         self.modules['fork'].data_width = self.input_t.width
         self.modules['fork'].streams = self.coarse_in
+
         if self.backend == "hls":
             # conv
             self.modules['conv'].rows     = 1
@@ -169,6 +170,9 @@ class InnerProductLayer(Layer):
             self.modules['vector_dot'].data_width     = self.input_t.width
             self.modules['vector_dot'].weight_width   = self.weight_t.width
             self.modules['vector_dot'].acc_width      = self.acc_t.width
+            if self.data_packing:
+                self.modules['vector_dot'].streams = self.coarse_in*self.coarse_out
+
         # accum
         self.modules['accum'].rows     = 1
         self.modules['accum'].cols     = 1
@@ -176,6 +180,9 @@ class InnerProductLayer(Layer):
             self.rows_in()*self.cols_in()*self.channels_in()//self.coarse_in
         self.modules['accum'].filters  = self.filters//self.coarse_out
         self.modules['accum'].data_width = self.acc_t.width
+        if self.data_packing:
+            self.modules['accum'].streams = self.coarse_in*self.coarse_out
+
         # glue
         self.modules['glue'].rows = 1
         self.modules['glue'].cols = 1
@@ -183,18 +190,24 @@ class InnerProductLayer(Layer):
         self.modules['glue'].coarse_in  = self.coarse_in
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].data_width = self.acc_t.width
+
         # bias
         self.modules['bias'].rows           = 1
         self.modules['bias'].cols           = 1
         self.modules['bias'].filters        = self.filters//self.coarse_out
         self.modules['bias'].data_width     = self.output_t.width
         self.modules['bias'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['bias'].streams = self.coarse_out
+
         # shift scale
         self.modules['shift_scale'].rows           = 1
         self.modules['shift_scale'].cols           = 1
         self.modules['shift_scale'].filters        = self.filters//self.coarse_out
         self.modules['shift_scale'].data_width     = self.output_t.width
         self.modules['shift_scale'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['shift_scale'].streams = self.coarse_out
 
     def get_weights_reloading_feasible(self):
         return get_factors(int(self.filters/self.coarse_out))
@@ -232,19 +245,30 @@ class InnerProductLayer(Layer):
                 shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # dsp packing
-            if self.weight_t.width <= 8 and self.input_t.width <= 8:
-                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
-            elif self.weight_t.width <= 4 and self.input_t.width <= 4:
+            if self.weight_t.width <= 4 and self.input_t.width <= 4:
                 vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
+            elif self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
 
-            # accumulate resource usage based on coarse factors
-            rsc = { rsc_type: (
-                fork_rsc[rsc_type]*self.coarse_in +
-                vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
-                glue_rsc[rsc_type]*self.coarse_out +
-                bias_rsc[rsc_type]*self.coarse_out
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            if self.data_packing:
+                rsc = { rsc_type: (
+                    fork_rsc[rsc_type] +
+                    vector_dot_rsc[rsc_type] +
+                    accum_rsc[rsc_type] +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type] +
+                    shift_scale_rsc[rsc_type]
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                # accumulate resource usage based on coarse factors
+                rsc = { rsc_type: (
+                    fork_rsc[rsc_type]*self.coarse_in +
+                    vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                    accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type]*self.coarse_out +
+                    shift_scale_rsc[rsc_type]*self.coarse_out
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
         weight_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
@@ -270,9 +294,16 @@ class InnerProductLayer(Layer):
 
         # bias usage
         if self.has_bias:
-            bias_memory_depth = float(self.filters) / float(self.coarse_out)
+            bias_memory_depth =  math.ceil(float(self.filters) / float(self.coarse_out))
+            if self.data_packing:
+                bias_array_width = self.acc_t.width*self.coarse_out
+                bias_array_num = 1
+            else:
+                bias_array_width = self.acc_t.width
+                bias_array_num = self.coarse_out
             biases_bram_usage = bram_array_resource_model(
-                        int(bias_memory_depth), self.acc_t.width, 'memory') * self.coarse_out
+                        bias_memory_depth, bias_array_width,
+                        "memory") * bias_array_num
         else:
             biases_bram_usage = 0
 

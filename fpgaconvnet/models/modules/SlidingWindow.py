@@ -61,6 +61,7 @@ class SlidingWindow(Module):
     pad_left: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
 
     def __post_init__(self):
 
@@ -134,35 +135,27 @@ class SlidingWindow(Module):
     def buffer_estimate(self):
         # line buffer
         line_buffer_depth = self.cols*self.channels
-        if self.data_packing:
-            line_buffer_bram =  bram_array_resource_model(
-                line_buffer_depth, (self.kernel_size[0]-1)*self.data_width, "fifo")
-        else:
-            line_buffer_bram =  (self.kernel_size[0]-1) * bram_array_resource_model(
-                line_buffer_depth, self.data_width, "fifo")
+        line_buffer_bram = bram_array_resource_model(
+            line_buffer_depth, (self.kernel_size[0]-1)*self.streams*self.data_width, "fifo")
         if line_buffer_bram == 0:
-            line_buffer_lutram =  (self.kernel_size[0]-1) * queue_lutram_resource_model(
-                line_buffer_depth, self.data_width)
+            line_buffer_lutram = queue_lutram_resource_model(
+                line_buffer_depth, (self.kernel_size[0]-1)*self.streams*self.data_width)
         else:
             line_buffer_lutram = 0
 
         # window buffer
         window_buffer_depth = self.channels
-        if self.data_packing:
-            window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
-                    window_buffer_depth, (self.kernel_size[1]-1)*self.data_width, "fifo")
-        else:
-            window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1)*bram_array_resource_model(
-                    window_buffer_depth, self.data_width, "fifo")
+        window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
+                window_buffer_depth, (self.kernel_size[1]-1)*self.streams*self.data_width, "fifo")
         if window_buffer_bram == 0:            
-            window_buffer_lutram = self.kernel_size[0]*(self.kernel_size[1]-1)*queue_lutram_resource_model(
-                        window_buffer_depth, self.data_width)
+            window_buffer_lutram = self.kernel_size[0]*queue_lutram_resource_model(
+                        window_buffer_depth, (self.kernel_size[1]-1)*self.streams*self.data_width)
         else:
             window_buffer_lutram = 0
 
         # frame buffer
         frame_buffer_lutram = self.kernel_size[0]*self.kernel_size[1]*\
-                            queue_lutram_resource_model(2, self.data_width)
+                            queue_lutram_resource_model(2, self.streams*self.data_width)
     
         return line_buffer_bram, line_buffer_lutram, window_buffer_bram, window_buffer_lutram, frame_buffer_lutram
 
@@ -175,11 +168,11 @@ class SlidingWindow(Module):
         elif self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                    self.data_width,
+                    self.streams*self.data_width,
                     (self.kernel_size[0]-1),
                     self.kernel_size[0]*(self.kernel_size[1]-1),
-                    self.data_width*(self.kernel_size[0]-1),
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
+                    self.streams*self.data_width*(self.kernel_size[0]-1),
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
                 ]),
                 "LUT_RAM"   : np.array([
                     line_buffer_lutram, # line buffer
@@ -191,11 +184,11 @@ class SlidingWindow(Module):
                     int2bits(self.rows), # row_cntr
                     int2bits(self.cols), # col_cntr
                     int2bits(self.channels), # channel_cntr
-                    self.data_width, # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer (data)
+                    self.streams*self.data_width, # input buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer (data)
                     self.kernel_size[0]*self.kernel_size[1], # output buffer (valid)
-                    self.data_width*(self.kernel_size[0]-1), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
+                    self.streams*self.data_width*(self.kernel_size[0]-1), # line buffer
+                    self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
                     self.kernel_size[0]*self.kernel_size[1], # frame buffer
                     1,
                 ]),

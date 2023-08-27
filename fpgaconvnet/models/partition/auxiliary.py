@@ -4,8 +4,8 @@ import copy
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 
+from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import SqueezeLayer
-
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def add_squeeze(self):
@@ -31,7 +31,8 @@ def add_squeeze(self):
                     self.graph.nodes[start_node]['hw'].cols_out(),
                     self.graph.nodes[start_node]['hw'].channels_out(),
                     self.graph.nodes[start_node]['hw'].streams_out(),
-                    self.graph.nodes[end_node]['hw'].streams_in()
+                    self.graph.nodes[end_node]['hw'].streams_in(),
+                    FixedPoint(self.data_width, self.data_width//2)
                 )
             )
             # add node to graph
@@ -54,7 +55,8 @@ def add_squeeze(self):
                     self.graph.nodes[input_node]['hw'].cols_in(),
                     self.graph.nodes[input_node]['hw'].channels_in(),
                     self.streams_in[i],
-                    self.graph.nodes[input_node]['hw'].streams_in()
+                    self.graph.nodes[input_node]['hw'].streams_in(),
+                    FixedPoint(self.data_width, self.data_width//2)
                 )
             )
             # add edge to graph

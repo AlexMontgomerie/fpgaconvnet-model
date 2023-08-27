@@ -14,6 +14,7 @@ class ShiftScale(Module):
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
 
     def __post_init__(self):
         pass
@@ -22,7 +23,7 @@ class ShiftScale(Module):
         return {
           "LUT"  : 0, 
           "BRAM" : 0,
-          "DSP"  : 1,
+          "DSP"  : 1*self.streams,
           "FF"   : 0 
         }
 

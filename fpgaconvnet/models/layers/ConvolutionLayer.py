@@ -398,6 +398,8 @@ class ConvolutionLayer(Layer):
         self.modules['sliding_window'].cols     = self.cols
         self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
         self.modules['sliding_window'].data_width   = self.input_t.width
+        if self.data_packing:
+            self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
 
         if self.backend == "chisel":
             # squeeze
@@ -406,6 +408,8 @@ class ConvolutionLayer(Layer):
             self.modules['squeeze'].channels = self.channels//(self.coarse_in*self.coarse_group)
             self.modules['squeeze'].coarse_out = self.fine
             self.modules['squeeze'].data_width = self.input_t.width
+            if self.data_packing:
+                self.modules['squeeze'].streams = self.coarse_in*self.coarse_group
 
         # fork
         self.modules['fork'].rows     = self.rows_out()
@@ -415,6 +419,8 @@ class ConvolutionLayer(Layer):
         self.modules['fork'].data_width     = self.input_t.width
         if self.backend == "chisel":
             self.modules['fork'].kernel_size = [self.fine, 1]
+        if self.data_packing:
+            self.modules['fork'].streams = self.coarse_in*self.coarse_group
 
         if self.backend == "hls":
             # TODO: check the group parameter
@@ -445,6 +451,9 @@ class ConvolutionLayer(Layer):
                 self.modules['vector_dot'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
                 self.modules['vector_dot'].sparsity = min(self.get_stream_sparsity())
 
+            if self.data_packing:
+                self.modules['vector_dot'].streams = self.coarse_in*self.coarse_out*self.coarse_group
+
         # accum
         self.modules['accum'].rows     = self.rows_out()
         self.modules['accum'].cols     = self.cols_out()
@@ -462,6 +471,8 @@ class ConvolutionLayer(Layer):
                     self.fine*self.coarse_in*self.coarse_group)
             else:
                 self.modules['accum'].channels = self.channels//(self.coarse_in*self.coarse_group)
+        if self.data_packing:
+            self.modules['accum'].streams = self.coarse_in*self.coarse_out*self.coarse_group
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -478,6 +489,8 @@ class ConvolutionLayer(Layer):
         self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['bias'].data_width     = self.output_t.width
         self.modules['bias'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['bias'].streams = self.coarse_out*self.coarse_group
 
         # shift scale
         self.modules['shift_scale'].rows           = self.rows_out()
@@ -485,6 +498,8 @@ class ConvolutionLayer(Layer):
         self.modules['shift_scale'].filters        = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['shift_scale'].data_width     = self.output_t.width
         self.modules['shift_scale'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['shift_scale'].streams = self.coarse_out*self.coarse_group
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
@@ -599,22 +614,34 @@ class ConvolutionLayer(Layer):
                 shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # dsp packing
-            if self.weight_t.width <= 8 and self.input_t.width <= 8:
-                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
-            elif self.weight_t.width <= 4 and self.input_t.width <= 4:
+            if self.weight_t.width <= 4 and self.input_t.width <= 4:
                 vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
+            elif self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
 
-            # accumulate resource usage based on coarse factors
-            rsc = { rsc_type: (
-                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-                math.ceil(vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group) +
-                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-                glue_rsc[rsc_type] +
-                bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-                shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            if self.data_packing:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type] +
+                    squeeze_rsc[rsc_type] +
+                    fork_rsc[rsc_type] +
+                    math.ceil(vector_dot_rsc[rsc_type]) +
+                    accum_rsc[rsc_type] +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type] +
+                    shift_scale_rsc[rsc_type]
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                # accumulate resource usage based on coarse factors
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                    math.ceil(vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group) +
+                    accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
         weight_memory_depth = float((self.filters/self.groups)* \
@@ -643,10 +670,16 @@ class ConvolutionLayer(Layer):
 
         # bias usage
         if self.has_bias:
-            bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            bias_memory_depth =  math.ceil(float(self.filters) / float(self.coarse_out*self.coarse_group))
+            if self.data_packing:
+                bias_array_width = self.acc_t.width*self.coarse_out*self.coarse_group
+                bias_array_num = 1
+            else:
+                bias_array_width = self.acc_t.width
+                bias_array_num = self.coarse_out*self.coarse_group
             biases_bram_usage = bram_array_resource_model(
-                        int(bias_memory_depth),self.acc_t.width,
-                        "memory") * self.coarse_out * self.coarse_group
+                        bias_memory_depth, bias_array_width,
+                        "memory") * bias_array_num
         else:
             biases_bram_usage = 0
 

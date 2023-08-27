@@ -25,8 +25,6 @@ class Glue(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def pipeline_depth(self):
         return self.coarse_in
@@ -80,18 +78,8 @@ class Glue(Module):
                     1,
                 ]),
                 "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([
-                    0,
-                    # self.streams*self.data_width*self.coarse_in, # buffer words
-                    # int2bits(self.coarse_in) + 1, # buffer depth
-                    # 1,
-                ]),
-                "BRAM18"    : np.array([
-                    0,
-                    # self.streams*self.data_width*self.coarse_in, # buffer words
-                    # int2bits(self.coarse_in) + 1, # buffer depth
-                    # 1,
-                ]),
+                "BRAM36"    : np.array([0]),
+                "BRAM18"    : np.array([0]),
             }
         else:
             raise ValueError(f"{self.backend} backend not supported")
