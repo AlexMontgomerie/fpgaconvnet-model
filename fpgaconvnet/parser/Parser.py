@@ -324,6 +324,7 @@ class Parser:
         # register converters
         converter = {
             LAYER_TYPE.Convolution: ParsePrototxtConvNode,
+            LAYER_TYPE.ConvolutionSparse: ParsePrototxtConvNode,
             LAYER_TYPE.InnerProduct: ParsePrototxtInnerProductNode,
             LAYER_TYPE.Pooling: ParsePrototxtPoolingNode,
             LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,

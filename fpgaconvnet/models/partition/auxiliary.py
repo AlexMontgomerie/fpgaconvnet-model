@@ -10,6 +10,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def add_squeeze(self):
     # find mismatching streams
+    # print("Add Squeeze called")
     streams_matrix = matrix.get_streams_matrix(self.graph)
     edge_list = matrix.get_edge_list_matrix(self.graph)
     err = np.sum(streams_matrix,axis=1)
@@ -23,6 +24,7 @@ def add_squeeze(self):
             # new_node   = "_".join([start_name,"squeeze",end_name])
             new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info
+            # print("Start Node:", start_node)
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[start_node]["onnx_node"],
@@ -37,6 +39,7 @@ def add_squeeze(self):
                     data_t=self.graph.nodes[start_node]['hw'].output_t,
                 )
             )
+
             # add node to graph
             self.graph.add_edge(start_node,new_node)
             self.graph.add_edge(new_node,end_node)

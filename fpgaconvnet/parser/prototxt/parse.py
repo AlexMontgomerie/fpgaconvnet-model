@@ -49,6 +49,7 @@ class ParsePrototxtNode:
         self.output_shape = [ n.parameters.rows_out,
                 n.parameters.cols_out, n.parameters.channels_out ]
 
+        self.attr = self.node.parameters
         # get hardware
         self.hw = self.get_hardware()
 
@@ -58,7 +59,10 @@ class ParsePrototxtNode:
     def get_node_info(self):
         return {
             "type" : self.layer_type,
-            "onnx_node" : self.node.onnx_node,
+            "onnx_node": self.node.onnx_node,
+            "onnx_input": list(self.inputs),
+            "onnx_output": list(self.outputs),
+            "attr" : self.attr,
             "hw" : self.hw
         }
 
