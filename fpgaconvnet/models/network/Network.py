@@ -78,6 +78,7 @@ class Network():
     from fpgaconvnet.models.network.represent import get_stream_in_coarse
     from fpgaconvnet.models.network.represent import get_stream_out_coarse
     from fpgaconvnet.models.network.represent import get_buffer_depth_in
+    from fpgaconvnet.models.network.represent import get_prev_nodes_ordered
     from fpgaconvnet.models.network.represent import save_all_partitions
 
     from fpgaconvnet.models.network.visualise import plot_latency_per_layer

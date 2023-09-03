@@ -25,9 +25,10 @@ class ConcatLayer(MultiPortLayer):
 
         # initialise parent class
         super().__init__([rows]*ports_in, [cols]*ports_in, channels,
-                [coarse]*ports_in, [coarse]*ports_in,
-                ports_in=ports_in, data_t=data_t)
+                [coarse]*ports_in, [coarse]*ports_in, ports_in=ports_in,
+                data_t=data_t)
 
+        self.mem_bw_in = [100.0] * self.ports_in
         # parameters
         self._coarse = coarse
 
@@ -114,6 +115,7 @@ class ConcatLayer(MultiPortLayer):
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        parameters.coarse       = self._coarse
        # remove the repeated rows, cols and channels
         del parameters.rows_in_array[:]
         del parameters.cols_in_array[:]

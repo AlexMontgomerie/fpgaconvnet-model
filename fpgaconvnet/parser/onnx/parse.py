@@ -3,16 +3,7 @@ import numpy as np
 import importlib
 from dataclasses import dataclass
 
-from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
-from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
-from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
-from fpgaconvnet.models.layers import ActivationLayer3D
-from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
-from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
-from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
-from fpgaconvnet.models.layers import ConcatLayer
-from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
+from fpgaconvnet.models.layers import *
 
 from fpgaconvnet.data_types import FixedPoint
 
@@ -24,6 +15,9 @@ class ParseOnnxNode:
 
     def __init__(self, graph, n, quant_format, dimensionality=2, backend="hls",
             regression_model="linear_regression", convert_gemm_to_conv=False):
+
+        # refrence of the graph
+        self.graph = graph
 
         # quantisation format
         self.quant_format = quant_format
@@ -47,7 +41,7 @@ class ParseOnnxNode:
         self.layer_type = from_onnx_op_type(n.op_type)
 
         # get inputs and outputs
-        all_tensors = [ *graph.input, *graph.output, *graph.value_info ]
+        all_tensors = [ *graph.input, *graph.output, *graph.value_info, *graph.initializer ]
         self.inputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.input ]
         self.outputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.output]
 
@@ -71,6 +65,8 @@ class ParseOnnxNode:
         return {
             "type" : self.layer_type,
             "onnx_node": self.node.name,
+            "onnx_input": list(self.node.input),
+            "onnx_output": list(self.node.output),
             "attr" : self.attr,
             "hw" : self.hw
         }
@@ -102,7 +98,7 @@ class ParseOnnxNode:
     def get_edges_in(self, model):
         try:
             prev_node = next(filter(
-                lambda x: x.output[0] == self.node.input[0], model.graph.node))
+                lambda x: self.node.input[0] in x.output, model.graph.node))
             return [(onnx_helper.format_onnx_name(prev_node), self.name)]
         except StopIteration:
             return []
@@ -340,6 +336,54 @@ class ParseOnnxReLUNode(ParseOnnxNode):
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
+class ParseOnnxHardSwishNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # return hardware
+        if self.dimensionality == 2:
+            return HardswishLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                input_t = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                output_t = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+
+#                 input_t = FixedPoint(self.quant_format["input_t"]["width"],
+#                     self.quant_format["input_t"]["binary_point"]),
+#                 output_t = FixedPoint(self.quant_format["output_t"]["width"],
+#                     self.quant_format["output_t"]["binary_point"]),
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+
+class ParseOnnxChopNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # get the split data
+        split = onnx.numpy_helper.to_array(next(filter(
+            lambda x: x.name == self.inputs[1].name, self.graph.initializer)))
+
+        # check right number of split values
+        assert len(self.outputs) == len(split)
+        assert sum(split) == self.input_shape[1]
+
+        # return hardware
+        if self.dimensionality == 2:
+            return ChopLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                split,
+                ports_out=len(self.outputs),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+            )
+        else:
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
 class ParseOnnxActivationNode(ParseOnnxNode):
 
@@ -433,6 +477,24 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+
+class ParseOnnxReSizeNode(ParseOnnxNode):
+
+    def get_hardware(self):
+
+        # # change the layer type
+        # self.layer_type = LAYER_TYPE.Squeeze
+
+        return ReSizeLayer(
+            self.input_shape[2] if len(self.input_shape) == 4 else 1,
+            self.input_shape[3] if len(self.input_shape) == 4 else 1,
+            self.input_shape[1],
+            scales=[1,1,2,2], # TODO: get from the model
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                self.quant_format["data_t"]["binary_point"]),
+            backend=self.backend,
+            regression_model=self.regression_model
+        )
 
 class ParseOnnxNOPNode(ParseOnnxNode):
 
@@ -557,20 +619,38 @@ class ParseOnnxConcatNode(ParseOnnxNode):
 
     def get_hardware(self):
 
+        # get the shape per input
+        input_shape = [ [ x.dim_value for x in \
+                i.type.tensor_type.shape.dim ] for i in self.inputs ]
+
         # create Average pooling layer hardware
         if self.dimensionality == 2:
             return ConcatLayer(
-                self.input_shape[2],
-                self.input_shape[3],
-                [self.input_shape[1]]*len(self.inputs),
+                input_shape[0][2],
+                input_shape[0][3],
+                [ x[1] for x in input_shape ],
                 ports_in=len(self.inputs),
-                # data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                #     self.quant_format["data_t"]["binary_point"]),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
                 # backend=self.backend,
                 # regression_model=self.regression_model
             )
         elif self.dimensionality == 3:
-            raise NotImplementedError
+            return EltWiseLayer3D(
+                self.input_shape[3],
+                self.input_shape[4],
+                self.input_shape[2],
+                self.input_shape[1],
+                ports_in=len(self.inputs),
+                op_type=op_type,
+                broadcast=False, # TODO: parse from the onnx
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+                    self.quant_format["acc_t"]["binary_point"]),
+                backend=self.backend,
+                regression_model=self.regression_model
+            )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 

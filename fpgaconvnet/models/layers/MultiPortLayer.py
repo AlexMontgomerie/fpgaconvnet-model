@@ -65,6 +65,8 @@ class MultiPortLayer:
 
     def __post_init__(self):
         self.buffer_depth = [2]*self.ports_in
+        self.input_t = self.data_t
+        self.output_t = self.data_t
 
     """
     properties

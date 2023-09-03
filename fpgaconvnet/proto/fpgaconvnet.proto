@@ -85,6 +85,7 @@ message parameter {
     optional int32 off_chip_buffer_size = 65;
     optional int32 off_chip_interval = 66;
     optional int32 stream_weights = 67;
+    repeated int32 split = 68;
 }
 
 message layer {
@@ -107,6 +108,8 @@ message layer {
         SPLIT           = 7;
         ELTWISE         = 8;
         AVERAGE_POOLING = 9;
+        RESIZE          = 10;
+        CHOP            = 11;
     }
 
     optional string weights_path = 8;
@@ -123,6 +126,7 @@ message partition {
     required string weights_reloading_layer  = 7;
 
     repeated layer layers = 8;
+    optional int32 gen_last_width = 9;
 }
 
 message partitions {

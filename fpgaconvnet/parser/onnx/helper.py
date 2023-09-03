@@ -122,15 +122,6 @@ def add_input_from_initializer(model : onnx.ModelProto):
 
     return add_const_value_infos_to_graph(model.graph)
 
-# def update_batch_size(model, batch_size): # from https://github.com/microsoft/onnxruntime/issues/1467#issuecomment-514322927
-#     # change input batch size
-#     model.graph.input[0].type.tensor_type.shape.dim[0].dim_value = batch_size
-#     model.graph.output[0].type.tensor_type.shape.dim[0].dim_value = batch_size
-#     # clear value info
-#     model.graph.ClearField('value_info')
-#     # run shape inference
-#     return onnx.shape_inference.infer_shapes(model)
-
 def update_batch_size(model, batch_size):
     # get the input shape
     input_shape = get_input_shape(model, model.graph.input[0].name)
@@ -138,10 +129,7 @@ def update_batch_size(model, batch_size):
     if model.graph.input[0].type.tensor_type.shape.dim[0] == "":
         print(f"CRITICAL WARNING: batch size dimension already fixed to {input_shape[0]}")
         return model
-    # new_input_shape = [batch_size, *input_shape[1:]]
-    # make_input_shape_fixed(model.graph, model.graph.input[0].name, new_input_shape)
     make_dim_param_fixed(model.graph, batch_size_param, batch_size)
-    # fix_output_shapes(model)
     return model
 
 def get_model_node(model, name):
@@ -185,6 +173,9 @@ def get_input_shape(model, name):
     return [ x.dim_value for x in input.type.tensor_type.shape.dim ]
 
 def format_attr(attribute):
+    """
+    implements: https://github.com/onnx/onnx/blob/72c2578c3d6e14fcf0e87db1c8379304c7f49561/onnx/onnx.proto#L122-L139
+    """
     attr_out = {}
     for attr in attribute:
         match attr.type:

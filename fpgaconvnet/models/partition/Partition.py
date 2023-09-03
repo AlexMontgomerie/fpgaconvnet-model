@@ -1,6 +1,9 @@
 import pydot
+import networkx as nx
+
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+import fpgaconvnet.parser.onnx.helper as onnx_helper
 
 class Partition():
 
@@ -67,7 +70,7 @@ class Partition():
 
     # update
     from fpgaconvnet.models.partition.update import update
-    from fpgaconvnet.models.partition.update import update_eltwise_buffer_depth
+    from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
     from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
 
     def visualise(self, partition_index):
@@ -155,6 +158,8 @@ class Partition():
         transformable_layers = [ LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct ]
         # iterative function to find weights reloading layer
         def _wr_layer(layer):
+            if self.graph.nodes[layer]['type'] == LAYER_TYPE.Split:
+                return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.Concat:
                 return None
             if self.graph.nodes[layer]['type'] == LAYER_TYPE.EltWise:
@@ -172,5 +177,4 @@ class Partition():
             return output_node
         else:
             return _wr_layer( output_node )
-
 

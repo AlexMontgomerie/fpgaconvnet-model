@@ -3,7 +3,7 @@ wandb
 graphviz>=0.16
 networkx>=2.5
 onnx>=1.12.0
-onnxsim==0.4.17
+onnxsim==0.4.28
 onnxruntime>=1.12.0
 onnxoptimizer>=0.3.8
 pydot>=1.4.2
@@ -13,3 +13,4 @@ xgboost
 matplotlib
 pandas
 toml
+protobuf==3.20.3
