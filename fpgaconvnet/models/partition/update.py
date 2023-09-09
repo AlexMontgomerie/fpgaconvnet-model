@@ -36,9 +36,9 @@ def update(self):
     self.add_squeeze()
 
     # ## update buffer depths
-    # for node in self.graph.nodes:
-    #     if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
-    #         self.update_multiport_buffer_depth(node)
+    for node in self.graph.nodes:
+        if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
+            self.update_multiport_buffer_depth(node)
 
 def update_multiport_buffer_depth(self, multiport_node):
 

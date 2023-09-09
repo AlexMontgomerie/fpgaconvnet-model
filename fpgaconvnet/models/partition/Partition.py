@@ -10,10 +10,6 @@ class Partition():
     def __init__(
             self,
             graph,
-            ports_in=1,
-            ports_out=1,
-            streams_in=1,
-            streams_out=1,
             batch_size=1,
             wr_factor=1,
             data_width=16
@@ -26,12 +22,12 @@ class Partition():
         self.batch_size = batch_size
 
         ## ports
-        self.ports_in   = ports_in
-        self.ports_out  = ports_out
+        self.ports_in   = len(graphs.get_input_nodes(self.graph))
+        self.ports_out  = len(graphs.get_output_nodes(self.graph))
 
         ## streams in and out
-        self.streams_in  = [streams_in]
-        self.streams_out = [streams_out]
+        self.streams_in  = [1] * self.ports_in
+        self.streams_out = [1] * self.ports_out
 
         ## weights reloading
         self.enable_wr  = True

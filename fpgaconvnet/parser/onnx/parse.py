@@ -349,12 +349,7 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 input_t = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-
-#                 input_t = FixedPoint(self.quant_format["input_t"]["width"],
-#                     self.quant_format["input_t"]["binary_point"]),
-#                 output_t = FixedPoint(self.quant_format["output_t"]["width"],
-#                     self.quant_format["output_t"]["binary_point"]),
+                    self.quant_format["data_t"]["binary_point"])
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")

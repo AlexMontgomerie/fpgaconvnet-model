@@ -42,6 +42,52 @@ def add_squeeze(self):
             self.graph.add_edge(new_node,end_node)
             self.graph.remove_edge(start_node,end_node)
 
+    # check difference in input streams
+    inputs = graphs.get_input_nodes(self.graph)
+    for i, input_node in enumerate(inputs):
+        if self.streams_in[i] != self.graph.nodes[input_node]['hw'].streams_in():
+            # add node to graph
+            new_node  = "_".join([input_node,"squeeze"])
+            # add node to node info
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                onnx_output=self.graph.nodes[input_node]["onnx_output"],
+                hw=SqueezeLayer(
+                    self.graph.nodes[input_node]['hw'].rows_in(),
+                    self.graph.nodes[input_node]['hw'].cols_in(),
+                    self.graph.nodes[input_node]['hw'].channels_in(),
+                    self.streams_in[i],
+                    self.graph.nodes[input_node]['hw'].streams_in(),
+                    data_t=self.graph.nodes[input_node]['hw'].input_t,
+                )
+            )
+            # add edge to graph
+            self.graph.add_edge(new_node,input_node)
+    # check difference in output streams
+    outputs = graphs.get_output_nodes(self.graph)
+    for i, output_node in enumerate(outputs):
+        if self.streams_out[i] != self.graph.nodes[output_node]['hw'].streams_out():
+            # add node to graph
+            new_node  = "_".join(["squeeze",output_node])
+            # add node to node info
+            self.graph.add_node(new_node,
+                type=LAYER_TYPE.Squeeze,
+                onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                onnx_output=self.graph.nodes[output_node]["onnx_output"],
+                hw=SqueezeLayer(
+                    self.graph.nodes[output_node]['hw'].rows_out(),
+                    self.graph.nodes[output_node]['hw'].cols_out(),
+                    self.graph.nodes[output_node]['hw'].channels_out(),
+                    self.graph.nodes[output_node]['hw'].streams_out(),
+                    self.streams_out[i],
+                    data_t=self.graph.nodes[output_node]['hw'].output_t,
+                )
+            )
+            self.graph.add_edge(output_node,new_node)
+
 def remove_node_by_type(self, layer_type):
     # remove input squeeze module
     for input_node in graphs.get_input_nodes(self.graph):

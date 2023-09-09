@@ -43,6 +43,8 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False,
         return math.ceil(width/bram_width)*math.ceil(depth/bram_depth)
 
 def uram_array_resource_model(depth, width, extension=True, detailed=False):
+    if depth == 0 or width == 0:
+        return 0
     if extension:
         max_width = max(URAM_EXT_CONF_WIDTH.keys()) 
         uram_width = min(max_width, width)
@@ -61,7 +63,8 @@ def uram_array_resource_model(depth, width, extension=True, detailed=False):
 
 
 def queue_lutram_resource_model(depth, width):
-
+    if depth == 0 or width == 0:
+        return 0
     # find the closest depth from the LUTRAM configuration
     if depth in list(LUTRAM_CONF_DEPTH.keys()):
         lutram_depth = depth
