@@ -18,19 +18,9 @@ def get_pipeline_depth(self):
         in the partition to `node`
     """
 
-    # get all the paths between input and output
-    # all_paths = list(nx.all_simple_paths(self.graph,
-    #     source=graphs.get_input_nodes(self.graph)[0],
-    #     target=graphs.get_output_nodes(self.graph)[-1]))
-
     path_delays = []
 
-    # # # get the longest path
-    # longest_path = max(all_paths, key=len)
-    # longest_paths = filter(lambda l: len(l) == len(longest_path), all_paths)
-    # all_paths = [max(all_paths, key=len)]
-    # all_paths = longest_paths
-    # all_paths = list(reversed(sorted(all_paths, key=len)))[:500]
+    # get the longest path
     all_paths = [nx.dag_longest_path(self.graph)]
 
     # initiation interval of the hardware
@@ -47,25 +37,17 @@ def get_pipeline_depth(self):
         # get the size out
         size_out = [ n.size_out() for n in node_hw ]
 
-        # get the latency
-        # latency = [ n.latency() for n in node_hw ]
-        latency = [ interval for n in node_hw ]
-
         rate_in = [ n.rate_in() for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
         # get the path depth
-        # delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
-        # delay = sum(node_depth) + sum([ (interval/size_in[j]) * \
-        delay = sum([ node_depth[j]/rate_in[j] + (latency[j]/size_in[j]) * \
+        delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
-        # delay = sum(node_depth) + sum([ (interval/size_out[j]) * \
-        #         np.prod([ size_out[k]/size_in[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
-        # print(delay, len(path))
+
+        # append to toal path delays
         path_delays.append(delay)
 
     return max(path_delays)

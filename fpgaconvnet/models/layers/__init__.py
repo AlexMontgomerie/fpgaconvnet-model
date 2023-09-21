@@ -16,6 +16,7 @@ from .HardswishLayer import HardswishLayer
 from .ReLULayer import ReLULayer
 from .ThresholdedReLULayer import ThresholdedReLULayer
 from .ConvolutionLayer import ConvolutionLayer
+from .ConvolutionSparseLayer import ConvolutionSparseLayer
 from .SqueezeLayer import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
