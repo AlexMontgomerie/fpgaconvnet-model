@@ -11,6 +11,7 @@ from .MultiPortLayer import MultiPortLayer
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
+from .InnerProductSparseLayer import InnerProductSparseLayer
 from .PoolingLayer import PoolingLayer
 from .HardswishLayer import HardswishLayer
 from .ReLULayer import ReLULayer

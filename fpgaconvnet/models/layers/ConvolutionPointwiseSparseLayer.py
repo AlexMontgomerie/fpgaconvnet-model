@@ -9,7 +9,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
-from fpgaconvnet.models.layers import ConvolutionLayer
+from fpgaconvnet.models.layers.ConvolutionLayer import ConvolutionLayer
 
 from fpgaconvnet.models.modules import SparseVectorDot
 from fpgaconvnet.models.modules import Accum
@@ -162,9 +162,12 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
                 cluster_sparsity = self.get_average_cluster_sparsity(
                         interleaving=interleaving, clustering=clustering)
 
+                # set a ceiling on the sparsity
+                cluster_sparsity = np.minimum(cluster_sparsity, 1-(1/cluster_streams))
+
                 # calculate average cycles per cluster
-                print(cluster_sparsity)
-                cycles = np.multiply(cluster_sparsity, float(cluster_streams/self.fine))
+                cycles = np.multiply(np.subtract(1, cluster_sparsity),
+                        float(cluster_streams/self.fine))
 
                 # get the max latency for each stream
                 operation_latency = workload * max(cycles)
