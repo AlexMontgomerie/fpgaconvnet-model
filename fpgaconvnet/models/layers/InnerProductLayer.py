@@ -326,7 +326,7 @@ class InnerProductLayer(Layer):
     from fpgaconvnet.models.layers.utils import stream_unit, stream_step
     from fpgaconvnet.models.layers.utils import off_chip_addr_range, on_chip_addr_range, off_chip_buffer_size
     from fpgaconvnet.models.layers.utils import stream_bits, stream_cycles, stream_bw
-    from fpgaconvnet.models.layers.utils import stream_rsc
+    from fpgaconvnet.models.layers.utils import stream_rsc, stream_buffer
 
     def visualise(self, name):
 

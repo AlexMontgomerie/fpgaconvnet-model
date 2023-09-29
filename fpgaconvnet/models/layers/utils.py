@@ -70,6 +70,12 @@ def stream_bw(self):
     else:
         return self.stream_bits() / self.stream_cycles()
 
+def stream_buffer(self):
+    if self.use_uram:
+        return uram_array_resource_model(self.weight_array_unit_depth, self.weight_array_width/self.weight_array_num) * self.weight_array_num
+    else:
+        return bram_array_resource_model(self.weight_array_unit_depth, self.weight_array_width/self.weight_array_num, "memory") * self.weight_array_num
+
 def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): # todo: add extra logic cost
     self.weight_array_depth = weight_array_depth
     self.weight_array_width = weight_array_width * weight_array_num
@@ -85,8 +91,7 @@ def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): 
             self.weight_array_unit_depth = uram_details[3]
             self.weight_array_unit_width = uram_details[1]
             if self.stream_weights > 0:
-                stream_buffer = uram_array_resource_model(self.weight_array_unit_depth, weight_array_width) * weight_array_num
-                weights_uram_usage += stream_buffer
+                weights_uram_usage += self.stream_buffer()
     else:
         weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
         weights_bram_usage -= self.stream_weights
@@ -97,7 +102,6 @@ def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): 
             self.weight_array_unit_depth = bram_details[3]
             self.weight_array_unit_width = bram_details[1]
             if self.stream_weights > 0:
-                stream_buffer = bram_array_resource_model(self.weight_array_unit_depth, weight_array_width, "memory") * weight_array_num
-                weights_bram_usage += stream_buffer
+                weights_bram_usage += self.stream_buffer()
 
     return weights_bram_usage, weights_uram_usage
