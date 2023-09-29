@@ -70,13 +70,14 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
-            # "convert_to_version_14",
-            # "fuse_mul_add_into_bn",
+            "convert_to_version_15",
+            "fuse_mul_add_into_bn",
         ]
 
         self.fpgaconvnet_post_onnx_passes = [
             "eliminate_nop_pad",
-            "fuse_mul_sigmoid_into_hardswish", # todo: HardSwish is not exact SiLU
+            "fuse_mul_sigmoid_into_hardswish",
+            "fuse_add_clip_mul_div_into_hardswish",
             "fuse_matmul_add_into_gemm",
             "convert_matmul_to_gemm",
             "fuse_bn_into_gemm",
@@ -88,6 +89,7 @@ class Parser:
             "convert_transpose_flatten_gemm_to_flatten_gemm",
             "rename_all_nodes",
             "move_relu_after_quant",
+            "add_nop_to_split_output",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
@@ -143,23 +145,17 @@ class Parser:
         model_opt = optimizer.optimize(model_opt,
                 passes=self.onnxoptimizer_passes)
 
-        # onnx.save(model_opt, "model_opt.onnx")
-
-        # infer shapes before manual optimisations
-        model_opt = onnx.shape_inference.infer_shapes(model_opt)
-
         # perform fpgaconvnet-based optimization passes (post onnx optimizations)
         model_opt = self.optimize_onnx(model_opt, self.fpgaconvnet_post_onnx_passes)
 
         # infer shapes of optimised model
         model_opt = onnx.shape_inference.infer_shapes(model_opt)
 
-        # onnx.save(model_opt, "model_opt.onnx")
-
         if not self.custom_onnx:
             # check optimized model
             onnx.checker.check_model(model_opt)
 
+        onnx.save(model_opt, "model_opt.onnx")
 
         return model_opt, dimensionality
 
@@ -175,8 +171,13 @@ class Parser:
             LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.ReLU: ParseOnnxActivationNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
+            LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
+            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
-            LAYER_TYPE.HardSwish: ParseOnnxActivationNode,
+            LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
+            LAYER_TYPE.Chop: ParseOnnxChopNode,
+            LAYER_TYPE.Reshape: ParseOnnxNOPNode,
+            LAYER_TYPE.Pad: ParseOnnxNOPNode,
             LAYER_TYPE.NOP: ParseOnnxNOPNode,
         }
 
@@ -185,8 +186,9 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](graph, node, quant_format, dimensionality, backend=self.backend,
-                    regression_model=self.regression_model, convert_gemm_to_conv=self.convert_gemm_to_conv)
+            return converter[node_type](graph, node, quant_format, dimensionality,
+                    backend=self.backend, regression_model=self.regression_model,
+                    convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 
@@ -199,7 +201,7 @@ class Parser:
             raise ModuleNotFoundError(f"quantisation mode {self.quant_mode} not supported")
 
         # get the quantisation format
-        quant_format = quant.get_quant_param(model)
+        quant_format = quant.get_quant_param(model, **kwargs)
 
         # perform fpgaconvnet-based optimization passes (post quantisation)
         model_opt = self.optimize_onnx(model, self.fpgaconvnet_post_quant_passes)
@@ -214,18 +216,21 @@ class Parser:
             # get the nodes out
             nodes_out = graphs.get_next_nodes(graph, node)
             # add a split layer if there are more than 1 nodes out
-            if len(nodes_out) > 1:
+            if len(nodes_out) > 1 and not graph.nodes[node]['type'] == LAYER_TYPE.Chop:
                 # create a split node
                 split_node  = f"{node}_split"
                 graph.add_node(split_node,
                     type=LAYER_TYPE.Split,
                     onnx_node=graph.nodes[node]["onnx_node"],
+                    onnx_input=graph.nodes[node]["onnx_input"],
+                    onnx_output=graph.nodes[node]["onnx_output"],
                     hw=SplitLayer(
                         graph.nodes[node]['hw'].rows_out(),
                         graph.nodes[node]['hw'].cols_out(),
                         graph.nodes[node]['hw'].channels_out(),
                         graph.nodes[node]['hw'].streams_out(),
-                        len(nodes_out)
+                        len(nodes_out),
+                        data_t=graph.nodes[node]['hw'].data_t,
                     )
                 )
                 # iterate over nodes out
@@ -239,7 +244,6 @@ class Parser:
         return graph
 
     def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
-
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
         if save_opt_model:
@@ -266,8 +270,7 @@ class Parser:
                     onnx_model.graph, node, quant_format[node_name], dimensionality)
 
             # add node to graph
-            graph.add_node(hardware.name,
-                    **hardware.get_node_info())
+            graph.add_node(hardware.name, **hardware.get_node_info())
 
             # get edges from the hardware
             for edge in hardware.get_edges_in(onnx_model):
@@ -298,11 +301,12 @@ class Parser:
             # connect batch norm to node
             graph.add_edge(node.name, f"{node.name}_scale_shift")
 
-        # remove NOP nodes from the graph
-        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
-
         # add split nodes to the graph
         graph = self.add_split(graph)
+
+        # remove NOP nodes from the graph
+        graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
+        # graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
 
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)

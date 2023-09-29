@@ -61,6 +61,10 @@ class Layer:
     buffer_depth: int = field(default=2, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
+    def __post_init__(self):
+        self.input_t = self.data_t
+        self.output_t = self.data_t
+
     @property
     def rows(self) -> int:
         return self._rows

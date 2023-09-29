@@ -26,13 +26,15 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[start_node]["onnx_node"],
+                onnx_input=self.graph.nodes[start_node]["onnx_input"],
+                onnx_output=self.graph.nodes[start_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[start_node]['hw'].rows_out(),
                     self.graph.nodes[start_node]['hw'].cols_out(),
                     self.graph.nodes[start_node]['hw'].channels_out(),
                     self.graph.nodes[start_node]['hw'].streams_out(),
                     self.graph.nodes[end_node]['hw'].streams_in(),
-                    FixedPoint(self.data_width, self.data_width//2)
+                    data_t=self.graph.nodes[start_node]['hw'].output_t,
                 )
             )
             # add node to graph
@@ -50,13 +52,15 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                onnx_output=self.graph.nodes[input_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[input_node]['hw'].rows_in(),
                     self.graph.nodes[input_node]['hw'].cols_in(),
                     self.graph.nodes[input_node]['hw'].channels_in(),
                     self.streams_in[i],
                     self.graph.nodes[input_node]['hw'].streams_in(),
-                    FixedPoint(self.data_width, self.data_width//2)
+                    data_t=self.graph.nodes[input_node]['hw'].input_t,
                 )
             )
             # add edge to graph
@@ -71,28 +75,30 @@ def add_squeeze(self):
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                onnx_output=self.graph.nodes[output_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[output_node]['hw'].rows_out(),
                     self.graph.nodes[output_node]['hw'].cols_out(),
                     self.graph.nodes[output_node]['hw'].channels_out(),
                     self.graph.nodes[output_node]['hw'].streams_out(),
-                    self.streams_out[i]
+                    self.streams_out[i],
+                    data_t=self.graph.nodes[output_node]['hw'].output_t,
                 )
             )
             self.graph.add_edge(output_node,new_node)
 
 def remove_node_by_type(self, layer_type):
-    # get input and output graphs
-    input_node  = graphs.get_input_nodes(self.graph)[0]
-    output_node = graphs.get_output_nodes(self.graph)[0]
     # remove input squeeze module
-    if input_node in self.graph.nodes:
-        if self.graph.nodes[input_node]['type'] == layer_type:
-            self.graph.remove_node(input_node)
+    for input_node in graphs.get_input_nodes(self.graph):
+        if input_node in self.graph.nodes:
+            if self.graph.nodes[input_node]['type'] == layer_type:
+                self.graph.remove_node(input_node)
     # remove output squeeze module
-    if output_node in self.graph.nodes:
-        if self.graph.nodes[output_node]['type'] == layer_type:
-            self.graph.remove_node(output_node)
+    for output_node in graphs.get_output_nodes(self.graph):
+        if output_node in self.graph.nodes:
+            if self.graph.nodes[output_node]['type'] == layer_type:
+                self.graph.remove_node(output_node)
     # remove intermediate squeeze modules
     remove_nodes = []
     for node in self.graph.nodes():
@@ -100,7 +106,11 @@ def remove_node_by_type(self, layer_type):
             # add squeeze nodes to list
             remove_nodes.append(node)
             # place edge back
+            if graphs.get_prev_nodes(self.graph,node) == []:
+                continue
             prev_node = graphs.get_prev_nodes(self.graph,node)[0]
+            if graphs.get_next_nodes(self.graph,node) == []:
+                continue
             next_node = graphs.get_next_nodes(self.graph,node)[0]
             self.graph.add_edge(prev_node,next_node)
     # remove squeeze nodes
@@ -108,26 +118,3 @@ def remove_node_by_type(self, layer_type):
 
 def remove_squeeze(self):
     remove_node_by_type(self, LAYER_TYPE.Squeeze)
-    # # get input and output graphs
-    # input_node  = graphs.get_input_nodes(self.graph)[0]
-    # output_node = graphs.get_output_nodes(self.graph)[0]
-    # # remove input squeeze module
-    # if input_node in self.graph.nodes:
-    #     if self.graph.nodes[input_node]['type'] == LAYER_TYPE.Squeeze:
-    #         self.graph.remove_node(input_node)
-    # # remove output squeeze module
-    # if output_node in self.graph.nodes:
-    #     if self.graph.nodes[output_node]['type'] == LAYER_TYPE.Squeeze:
-    #         self.graph.remove_node(output_node)
-    # # remove intermediate squeeze modules
-    # remove_nodes = []
-    # for node in self.graph.nodes():
-    #     if self.graph.nodes[node]['type'] == LAYER_TYPE.Squeeze:
-    #         # add squeeze nodes to list
-    #         remove_nodes.append(node)
-    #         # place edge back
-    #         prev_node = graphs.get_prev_nodes(self.graph,node)[0]
-    #         next_node = graphs.get_next_nodes(self.graph,node)[0]
-    #         self.graph.add_edge(prev_node,next_node)
-    # # remove squeeze nodes
-    # self.graph.remove_nodes_from(remove_nodes)

@@ -23,6 +23,9 @@ class Concat(Module):
     def __post_init__(self):
         pass
 
+    def __post_init__(self):
+        pass
+
     def channels_in(self, port_index=0):
         return self.channels[port_index]
 
