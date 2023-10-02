@@ -104,4 +104,9 @@ def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): 
             if self.stream_weights > 0:
                 weights_bram_usage += self.stream_buffer()
 
+    assert self.weights_ram_usage + self.stream_weights == \
+        math.ceil(weight_array_depth/self.weight_array_unit_depth) \
+        * math.ceil(weight_array_width/self.weight_array_unit_width) \
+        * weight_array_num
+        
     return weights_bram_usage, weights_uram_usage

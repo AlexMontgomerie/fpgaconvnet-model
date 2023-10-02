@@ -86,6 +86,8 @@ message parameter {
     optional int32 off_chip_interval = 66;
     optional int32 stream_weights = 67;
     repeated int32 split = 68;
+    repeated bool stream_inputs = 69;
+    repeated bool stream_outputs = 70;
 }
 
 message layer {

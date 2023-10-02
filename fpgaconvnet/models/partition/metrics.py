@@ -80,45 +80,58 @@ def get_latency(self, frequency):
 def get_bandwidth_in(self,freq):
     # get the interval for the partition
     interval = self.get_interval()
+    max_latency = interval * self.slow_down_factor
     # get workload and streams in
     bw_in = []
     inputs = graphs.get_input_nodes(self.graph)
-    for i, input_node in enumerate(inputs):
-        workload = self.graph.nodes[input_node]["hw"].workload_in()
-        streams = self.streams_in[i]
-        # calculate rate from interval
-        rate = workload / (interval*streams)
-        # convert bits per cycle to Gbps, freq in MHz   
-        bw_in.append((rate*streams*self.data_width*freq)/1000)
+    for node in self.graph.nodes():
+        hw = self.graph.nodes[node]["hw"]
+        for i in range(len(hw.stream_inputs)):
+            if hw.stream_inputs[i] or node in inputs:
+                workload = hw.workload_in()
+                if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
+                    # implement line buffer with off-chip memory
+                    workload = workload * hw.kernel_size[0]
+                streams = hw.streams_in() 
+                # calculate rate from interval
+                rate = workload / (max_latency*streams)
+                bitwidth = hw.data_t.width
+                # convert bits per cycle to Gbps, freq in MHz   
+                bw_in.append((rate*streams*bitwidth*freq)/1000)
     return bw_in
 
 def get_bandwidth_out(self,freq):
     # get the interval for the partition
     interval = self.get_interval()
+    max_latency = interval * self.slow_down_factor
     # get workload and streams out
     bw_out = []
     outputs = graphs.get_output_nodes(self.graph)
-    for i, output_node in enumerate(outputs):
-        workload = self.graph.nodes[output_node]["hw"].workload_out()
-        streams = self.streams_out[i]
-        # calculate rate from interval
-        rate = workload / (interval*streams)
-        # convert bits per cycle to Gbps, freq in MHz   
-        bw_out.append((rate*streams*self.data_width*freq)/1000)
+    for node in self.graph.nodes():
+        hw = self.graph.nodes[node]["hw"]
+        for i in range(len(hw.stream_outputs)):
+            if hw.stream_outputs[i] or node in outputs:
+                workload = hw.workload_out()
+                streams = hw.streams_out() 
+                # calculate rate from interval
+                rate = workload / (max_latency*streams)
+                bitwidth = hw.data_t.width
+                # convert bits per cycle to Gbps, freq in MHz   
+                bw_out.append((rate*streams*bitwidth*freq)/1000)
     return bw_out
 
 def get_bandwidth_weight(self,freq):
+    # get the interval for the partition
+    interval = self.get_interval()
+    max_latency = interval * self.slow_down_factor
+    # get bandwidth for weights
     bw_weight = []
-    latency = []
     for node in self.graph.nodes():
         if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
             bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
-            bits_per_cycle = bits_per_cycle / self.slow_down_factor
+            latency = self.graph.nodes[node]['hw'].latency()
             # convert bits per cycle to Gbps, freq in MHz   
-            bw_weight.append((bits_per_cycle*freq)/1000)
-            latency.append(self.graph.nodes[node]['hw'].latency())
-    # slow down non-crtical nodes
-    bw_weight = [ bw_weight[i]*latency[i]/max(latency) for i in range(len(bw_weight)) ]
+            bw_weight.append((bits_per_cycle*latency*freq/max_latency)/1000)
     return bw_weight
 
 def get_total_bandwidth(self,freq):

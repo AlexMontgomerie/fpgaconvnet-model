@@ -596,6 +596,13 @@ class ConvolutionLayer(Layer):
             bias_rsc        = self.modules['bias'].rsc()
             shift_scale_rsc = self.modules['shift_scale'].rsc()
 
+            line_buffer_bram = self.modules['sliding_window'].buffer_estimate()[0]
+            if self.stream_inputs[0]:
+                sw_rsc["BRAM"] -= line_buffer_bram
+                self.inputs_ram_usage = [0]
+            else:
+                self.inputs_ram_usage = [line_buffer_bram]
+
             # remove redundant modules
             if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
                 sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
@@ -667,7 +674,7 @@ class ConvolutionLayer(Layer):
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
         weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
-
+        
         # bias usage
         if self.has_bias:
             bias_memory_depth =  math.ceil(float(self.filters) / float(self.coarse_out*self.coarse_group))

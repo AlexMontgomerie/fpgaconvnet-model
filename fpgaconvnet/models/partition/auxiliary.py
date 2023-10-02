@@ -20,6 +20,12 @@ def add_squeeze(self):
             # add node to graph
             start_node = edge_list[edge][0]
             end_node   = edge_list[edge][1]
+            i = graphs.get_prev_nodes(self.graph,end_node).index(start_node)
+            j = graphs.get_next_nodes(self.graph,start_node).index(end_node)
+            assert self.graph.nodes[end_node]['hw'].stream_inputs[i] == self.graph.nodes[start_node]['hw'].stream_outputs[j]
+            if self.graph.nodes[end_node]['hw'].stream_inputs[i] and self.graph.nodes[start_node]['hw'].stream_outputs[j]:
+                # edge is already streaming off-chip
+                continue
             # new_node   = "_".join([start_name,"squeeze",end_name])
             new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info

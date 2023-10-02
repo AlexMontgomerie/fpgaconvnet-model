@@ -232,6 +232,8 @@ class InnerProductLayer(Layer):
             bias_rsc        = self.modules['bias'].rsc()
             shift_scale_rsc = self.modules['shift_scale'].rsc()
 
+            self.inputs_ram_usage = [0]
+
             # remove redundant modules
             if self.coarse_out == 1:
                 fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}

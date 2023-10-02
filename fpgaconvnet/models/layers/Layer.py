@@ -64,6 +64,8 @@ class Layer:
     def __post_init__(self):
         self.input_t = self.data_t
         self.output_t = self.data_t
+        self.stream_inputs = [False]
+        self.stream_outputs = [False]
 
     @property
     def rows(self) -> int:
@@ -339,6 +341,8 @@ class Layer:
         parameters.mem_bw_in    = self.mem_bw_in
         parameters.mem_bw_out   = self.mem_bw_out
         self.data_t.to_protobuf(parameters.data_t)
+        parameters.stream_inputs.extend(self.stream_inputs)
+        parameters.stream_outputs.extend(self.stream_outputs)
 
     def get_operations(self):
         return 0
