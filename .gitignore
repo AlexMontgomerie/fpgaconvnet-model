@@ -16,6 +16,7 @@ outputs/
 onnx/
 
 .eggs/
+*.egg-info/
 
 docs/fpgaconvnet_optimiser/
 
@@ -28,3 +29,5 @@ dist/
 examples/models
 
 **.dcp
+
+.vscode/
