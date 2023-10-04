@@ -1,21 +1,15 @@
-import numpy as np
 import math
+from typing import List, Union
+
+import numpy as np
 import pydot
-import torch
-from typing import Union, List
-
-from fpgaconvnet.models.layers.utils import get_factors
-
-from fpgaconvnet.tools.resource_model import bram_memory_resource_model
-
-from fpgaconvnet.models.modules import SlidingWindow
-from fpgaconvnet.models.modules import Conv
-from fpgaconvnet.models.modules import Fork
-from fpgaconvnet.models.modules import Accum
-from fpgaconvnet.models.modules import Glue
-from fpgaconvnet.models.modules import Bias
 
 from fpgaconvnet.models.layers import ConvolutionLayerBase
+from fpgaconvnet.models.layers.utils import get_factors
+from fpgaconvnet.models.modules import (Accum, Bias, Conv, Fork, Glue,
+                                        SlidingWindow)
+from fpgaconvnet.tools.resource_model import bram_memory_resource_model
+
 
 class ConvolutionLayer(ConvolutionLayerBase):
 

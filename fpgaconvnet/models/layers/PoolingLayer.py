@@ -1,13 +1,12 @@
 import math
-from typing import Union, List
+from typing import List, Union
 
-import torch
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import SlidingWindow
-from fpgaconvnet.models.modules import Pool
 from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.modules import Pool, SlidingWindow
+
 
 class PoolingLayer(Layer):
 
@@ -248,6 +247,7 @@ class PoolingLayer(Layer):
         return cluster, np.array(slwin_name).flatten().tolist(), np.array(pool_name).flatten().tolist()
 
     def functional_model(self,data,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"

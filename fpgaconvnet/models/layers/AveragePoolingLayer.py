@@ -1,7 +1,6 @@
 import math
 from typing import Union, List
 
-import torch
 import numpy as np
 import pydot
 

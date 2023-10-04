@@ -1,12 +1,13 @@
-import numpy as np
 import math
 import tempfile
+
+import numpy as np
 import pydot
 
+from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.modules import BatchNorm
 from fpgaconvnet.tools.resource_model import bram_memory_resource_model
 
-from fpgaconvnet.models.modules import BatchNorm
-from fpgaconvnet.models.layers import Layer
 
 class BatchNormLayer(Layer):
     def __init__(
@@ -93,7 +94,7 @@ class BatchNormLayer(Layer):
         }
 
     def functional_model(self,data,gamma,beta,batch_size=1):
-
+        import torch
 
         assert data.shape[0] == self.rows    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR (data): invalid column dimension"

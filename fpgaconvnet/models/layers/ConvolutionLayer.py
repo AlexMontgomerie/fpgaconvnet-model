@@ -1,12 +1,12 @@
-import numpy as np
 import math
-import pydot
-import torch
-from typing import Union, List
+from typing import List, Union
 
-from fpgaconvnet.models.layers.utils import get_factors
+import numpy as np
+import pydot
 
 from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.layers.utils import get_factors
+
 
 class ConvolutionLayerBase(Layer):
 
@@ -179,6 +179,7 @@ class ConvolutionLayerBase(Layer):
         return self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
 
     def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR (data): invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR (data): invalid column dimension"
