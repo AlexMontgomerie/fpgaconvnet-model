@@ -16,6 +16,7 @@ outputs/
 db_data/
 
 .eggs/
+*.egg-info/
 
 docs/fpgaconvnet_optimiser/
 
@@ -29,7 +30,4 @@ examples/models
 
 **.dcp
 
-*.egg-info
-*.vscode
-
-fpgaconvnet/__init__.py
+.vscode/

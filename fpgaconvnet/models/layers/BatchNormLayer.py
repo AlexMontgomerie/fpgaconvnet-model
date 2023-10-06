@@ -1,6 +1,7 @@
-import numpy as np
 import math
 import tempfile
+
+import numpy as np
 import pydot
 
 from fpgaconvnet.data_types import FixedPoint

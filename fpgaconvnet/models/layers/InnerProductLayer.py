@@ -1,11 +1,12 @@
-import numpy as np
 import math
+
+import numpy as np
 import pydot
 
+from fpgaconvnet.models.layers import Layer
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Conv
