@@ -76,8 +76,6 @@ class DATA_TYPE(Enum):
     QDQ = 2
     BLOCK_FLOAT = 3
 
-from enum import Enum
-
 class WEIGHTS(Enum):
     """
     An enumeration of the different weight storage options for a neural network.
@@ -88,6 +86,17 @@ class WEIGHTS(Enum):
     """
     ON_CHIP = 0
     STREAM = 1
+
+class RESOURCE_MODELLING(Enum):
+    """
+    Enum for different resource modelling techniques.
+    
+    Attributes:
+        LINEAR_REGRESSION (int): Use linear regression to model the resource usage.
+        XGBOOST (int): Use XGBoost to model the resource usage.
+    """
+    LINEAR_REGRESSION = 0
+    XGBOOST = 1
 
 @dataclass
 class Flags:
@@ -110,6 +119,7 @@ class Flags:
     latency: LATENCY = LATENCY.THROUGHPUT
     data_type: DATA_TYPE = DATA_TYPE.FIXED
     weights: WEIGHTS = WEIGHTS.ON_CHIP 
+    resource_modelling: RESOURCE_MODELLING = RESOURCE_MODELLING.LINEAR_REGRESSION
 
     def load_from_toml(self, filepath):
         """
@@ -136,11 +146,13 @@ class Flags:
             toml_dict = toml.load(f)["flags"]
 
         # set all the class attributes to the values in the dictionary
-        self.backend        = BACKEND[toml_dict['backend'].upper()]
-        self.dimensionality = DIMENSIONALITY[toml_dict['dimensionality'].upper()]
-        self.sparsity       = SPARSITY[toml_dict['sparsity'].upper()]
-        self.data_packing   = DATA_PACKING[toml_dict['data_packing'].upper()]
-        self.latency        = LATENCY[toml_dict['latency'].upper()]
-        self.data_type      = DATA_TYPE[toml_dict['data_type'].upper()]
-        self.weights        = WEIGHTS[toml_dict['weights'].upper()]
+        self.backend            = BACKEND[toml_dict['backend'].upper()]
+        self.dimensionality     = DIMENSIONALITY[toml_dict['dimensionality'].upper()]
+        self.sparsity           = SPARSITY[toml_dict['sparsity'].upper()]
+        self.data_packing       = DATA_PACKING[toml_dict['data_packing'].upper()]
+        self.latency            = LATENCY[toml_dict['latency'].upper()]
+        self.data_type          = DATA_TYPE[toml_dict['data_type'].upper()]
+        self.weights            = WEIGHTS[toml_dict['weights'].upper()]
+        self.resource_modelling = RESOURCE_MODELLING[toml_dict['resource_modelling'].upper()]
+
     
