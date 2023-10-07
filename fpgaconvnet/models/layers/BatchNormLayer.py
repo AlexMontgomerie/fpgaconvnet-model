@@ -1,5 +1,8 @@
 import math
 import tempfile
+from dataclasses import dataclass, field
+
+from typing import Any
 
 import numpy as np
 import pydot
@@ -11,26 +14,19 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 from fpgaconvnet.models.modules import ShiftScale
 from fpgaconvnet.models.layers import Layer
 
+@dataclass(kw_only=True)
 class BatchNormLayer(Layer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(32,0)
-        ):
+    coarse: int = 1
 
-        super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
+    def __post_init__(self):
+
+        # call parent post init
+        super().__post_init__()
 
         self.input_t = FixedPoint(32, 0)
         self.scale_t = FixedPoint(32, 0)
         self.shift_t = FixedPoint(8, 0)
         self.output_t = FixedPoint(9, 0)
-
-        # save parameters
-        self._coarse = coarse
 
         # init variables
         self.scale_layer = None
@@ -41,44 +37,23 @@ class BatchNormLayer(Layer):
         # update modules
         self.update()
 
-    def rate_in(self) -> float:
-        return 1.0
+    def __setattr__(self, name: str, value: Any) -> None:
 
-    def rate_out(self) -> float:
-        return 1.0
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
+        match name:
+            case "coarse" | "coarse_in" | "coarse_out":
+                assert(value in self.get_coarse_in_feasible())
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_in", value)
+                super().__setattr__("coarse_out", value)
+                super().__setattr__("coarse", value)
+                self.update()
 
-    @property
-    def coarse_in(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_out(self) -> int:
-        return self._coarse
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self.coarse_out = val
-        self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        self.update()
+            case _:
+                super().__setattr__(name, value)
 
     def layer_info(self,parameters, batch_size=1):
         Layer.layer_info(self, parameters, batch_size)

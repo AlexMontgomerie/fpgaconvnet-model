@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass, field
 
 import numpy as np
 import pydot
@@ -17,50 +18,25 @@ from fpgaconvnet.models.modules import Bias
 from fpgaconvnet.models.modules import VectorDot
 from fpgaconvnet.models.modules import ShiftScale
 
+@dataclass(kw_only=True)
 class InnerProductLayer(Layer):
-    def __init__(
-            self,
-            filters: int,
-            rows: int,
-            cols: int,
-            channels: int,
-            coarse_in: int = 1,
-            coarse_out: int = 1,
-            input_t: FixedPoint = FixedPoint(16,8),
-            output_t: FixedPoint = FixedPoint(16,8),
-            weight_t: FixedPoint = FixedPoint(16,8),
-            acc_t: FixedPoint = FixedPoint(32,16),
-            has_bias: int = 0,
-            block_floating_point: bool = False,
-            backend: str = "chisel",
-            regression_model: str = "linear_regression",
-            stream_weights: int = 0
-        ):
+    filters: int
+    coarse_in: int = 1
+    coarse_out: int = 1
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16), init=True)
+    has_bias: int = 0
+    block_floating_point: bool = False
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
+    stream_weights: int = 0
 
-        # initialise parent class
-        super().__init__(rows, cols, channels, coarse_in,
-                coarse_out, data_t=input_t)
+    def __post_init__(self):
 
-        # save data types
-        self.input_t = input_t
-        self.output_t = output_t
-        self.weight_t = weight_t
-        self.acc_t = acc_t
-        self.block_floating_point = block_floating_point
-
-        # save bias flag
-        self.has_bias = has_bias
-
-        # update flags
-        # self.flags['channel_dependant'] = True
-        # self.flags['transformable']     = True
-
-        # save parameters
-        self._filters = filters
-
-        # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        # call parent post init
+        super().__post_init__()
 
         # weights buffering flag
         if self.backend == "hls":
@@ -73,10 +49,6 @@ class InnerProductLayer(Layer):
             self.stream_weights = False
             self.data_packing = True
             self.use_uram = False
-
-        # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
 
         # init modules
         self.modules["fork"] = Fork(self.rows_in(), self.cols_in(),
@@ -95,21 +67,36 @@ class InnerProductLayer(Layer):
                 self.filters, self.coarse_in, self.coarse_out, 1, backend=self.backend, regression_model=self.regression_model)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
-        self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(), 
+        self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
         self.update()
 
+    def __setattr__(self, name, value):
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
+
+        match name:
+            case "groups":
+                assert(value in get_factors(self.channels_in()))
+                super().__setattr__(name, value)
+
+            case "coarse_group":
+                assert(value in self.get_coarse_group_feasible())
+                super().__setattr__(name, value)
+                self.update()
+
+            case "fine":
+                assert(value in self.get_fine_feasible())
+                super().__setattr__(name, value)
+                self.update()
+
+            case _:
+                super().__setattr__(name, value)
+
     def get_operations(self):
         return self.channels_in()*self.rows_in()*self.cols_in()*self.filters
-
-    @property
-    def filters(self) -> int:
-        return self._filters
-
-    @filters.setter
-    def filters(self, val: int) -> None:
-        self._filters = val
-        # self.update()
 
     def rows_out(self) -> int:
         return 1
@@ -133,7 +120,7 @@ class InnerProductLayer(Layer):
         parameters.use_uram     = self.use_uram
         parameters.on_chip_addr_range = int(self.on_chip_addr_range())
         parameters.stream_weights = int(self.stream_weights)
-        if self.stream_weights > 0: 
+        if self.stream_weights > 0:
             parameters.off_chip_buffer_size = self.off_chip_buffer_size()
             parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
         else:
@@ -293,7 +280,7 @@ class InnerProductLayer(Layer):
         self.weight_array_width = weight_array_width * weight_array_num
         self.weight_array_num = weight_array_num
 
-        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num)
 
         # bias usage
         if self.has_bias:

@@ -1,42 +1,25 @@
-import numpy as np
 import math
+from typing import Any, List, Union
+from dataclasses import dataclass, field
+
 import onnx
 import pydot
-from typing import Union, List
+import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import ReSize
 from fpgaconvnet.models.layers import Layer
 
+@dataclass(kw_only=True)
 class ReSizeLayer(Layer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            scales: List[int],
-            coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
-        ):
+    scales: List[int]
+    coarse: int = 1
 
-        # initialise parent class
-        super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
+    def __post_init__(self):
 
-        # save parameters
-        self._coarse = coarse
-        self.scales = scales
-
-        # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
-
-        # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        # call parent post init
+        super().__post_init__()
 
         # init modules
         self.modules["resize"] = ReSize(self.rows_in(), self.cols_in(),
@@ -45,41 +28,26 @@ class ReSizeLayer(Layer):
 
         self.update()
 
+    def __setattr__(self, name: str, value: Any) -> None:
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
+
+        match name:
+            case "coarse" | "coarse_in" | "coarse_out":
+                assert(value in self.get_coarse_in_feasible())
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_in", value)
+                super().__setattr__("coarse_out", value)
+                super().__setattr__("coarse", value)
+                self.update()
+
+            case _:
+                super().__setattr__(name, value)
+
     def get_operations(self):
         return self.rows_in()*self.cols_in()*self.channels_in()
-
-    @property
-    def coarse(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_in(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_out(self) -> int:
-        return self._coarse
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self.coarse_out = val
-        # self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
 
     def rows_out(self) -> int:
         return self.modules['resize'].rows_out()
@@ -125,19 +93,4 @@ class ReSizeLayer(Layer):
             cluster.add_node(self.modules["resize"].visualise(resize_name[i]))
 
         return cluster, np.array(resize_name).tolist(), np.array(resize_name).tolist()
-
-    def functional_model(self,data,batch_size=1):
-        import torch
-
-        assert data.shape[0] == self.rows_in()    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols_in()    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels_in(), "ERROR: invalid channel dimension"
-
-        # instantiate resize layer
-        resize_layer = torch.nn.ReLU()
-
-        # return output featuremap
-        data = np.moveaxis(data, -1, 0)
-        data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
-        return resize_layer(torch.from_numpy(data)).detach().numpy()
 

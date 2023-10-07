@@ -36,7 +36,7 @@ class PoolingLayer(Layer):
         assert self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend"
 
         # regression model
-        assert(self.regression_model in ["linear_regression", "xgboost"], 
+        assert(self.regression_model in ["linear_regression", "xgboost"],
                 f"{self.regression_model} is an invalid regression model")
 
         # init modules
@@ -58,7 +58,7 @@ class PoolingLayer(Layer):
 
         if not hasattr(self, "is_init"):
             super().__setattr__(name, value)
-            return 
+            return
 
         match name:
             case "coarse" | "coarse_in" | "coarse_out":
@@ -73,7 +73,7 @@ class PoolingLayer(Layer):
                 assert(value in self.get_fine_feasible())
                 super().__setattr__(name, value)
 
-            case _:    
+            case _:
                 super().__setattr__(name, value)
 
     def rows_out(self) -> int:
