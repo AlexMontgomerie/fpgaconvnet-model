@@ -16,7 +16,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
 
-@dataclass
+@dataclass(kw_only=True)
 class Layer:
     """
     Base class for all layer models.
@@ -50,11 +50,11 @@ class Layer:
         layer.
     """
 
-    _rows: int
-    _cols: int
-    _channels: int
-    _coarse_in: int
-    _coarse_out: int
+    rows: int
+    cols: int
+    channels: int
+    coarse_in: int = field(default=None, init=False)
+    coarse_out: int = field(default=None, init=False)
     mem_bw_in: float = field(default=100.0, init=True)
     mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
@@ -66,53 +66,46 @@ class Layer:
         self.output_t = self.data_t
         self.stream_inputs = [False]
         self.stream_outputs = [False]
+        self.is_init = True
 
-    @property
-    def rows(self) -> int:
-        return self._rows
 
-    @property
-    def cols(self) -> int:
-        return self._cols
+    def __setattr__(self, name, value):
+        """
+        Set the value of an attribute and update the layer.
 
-    @property
-    def channels(self) -> int:
-        return self._channels
+        Args:
+            name (str): The name of the attribute to set.
+            value (Any): The value to set the attribute to.
 
-    @property
-    def coarse_in(self) -> int:
-        return self._coarse_in
+        Raises:
+            AssertionError: If the value is not feasible for the attribute.
 
-    @property
-    def coarse_out(self) -> int:
-        return self._coarse_out
+        Returns:
+            None
+        """
 
-    @rows.setter
-    def rows(self, val: int) -> None:
-        self._rows = val
-        # self.update()
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return 
 
-    @cols.setter
-    def cols(self, val: int) -> None:
-        self._cols = val
-        # self.update()
+        if not hasattr(self, name):
+            super().__setattr__(name, value)
+            return 
 
-    @channels.setter
-    def channels(self, val: int) -> None:
-        self._channels = val
-        # self.update()
+        match name:
+            case "coarse_in":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__(name, value)
+                self.update()
 
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        assert(val in self.get_coarse_in_feasible())
-        self._coarse_in = val
-        # self.update()
+            case "coarse_out":
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__(name, value)
+                self.update()
 
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        assert(val in self.get_coarse_out_feasible())
-        self._coarse_out = val
-        # self.update()
+            case _:
+                super().__setattr__(name, value)
+        
 
     def rows_in(self) -> int:
         """
@@ -365,5 +358,5 @@ class Layer:
 
         return cluster, "_".join([name,"edge"]), "_".join([name,"edge"])
 
-    def functional_model(self,data,batch_size=1):
-        return
+    def functional_model(self, data, batch_size=1):
+        raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")

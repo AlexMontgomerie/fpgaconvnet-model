@@ -1,6 +1,7 @@
 import importlib
 import math
 from typing import Union, List
+from dataclasses import dataclass, field
 
 import pydot
 import numpy as np
@@ -22,81 +23,49 @@ from fpgaconvnet.models.modules import Glue
 from fpgaconvnet.models.modules import Bias
 from fpgaconvnet.models.modules import ShiftScale
 
-
+@dataclass(kw_only=True)
 class ConvolutionLayer(Layer):
+    filters: int 
+    kernel_rows: int 
+    kernel_cols: int 
+    coarse_in: int = 1
+    coarse_out: int = 1
+    coarse_group: int = 1
+    stride_rows: int = 2
+    stride_cols: int = 2
+    groups: int = 1
+    pad_top: int = 0
+    pad_right: int = 0
+    pad_bottom: int = 0
+    pad_left: int = 0
+    fine: int  = 1
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16), init=True)
+    has_bias: int = 0 # default to no bias for old configs
+    sparsity: list = field(default_factory=lambda: [], init=True)
+    block_floating_point: bool = False
+    backend: str = "chisel" # default to no bias for old configs
+    regression_model: str = "linear_regression"
+    stream_weights: int = 0 
+    stream_inputs: list = field(default_factory=lambda: [0], init=True)
 
-    def __init__(
-            self,
-            filters: int,
-            rows: int,
-            cols: int,
-            channels: int,
-            coarse_in: int = 1,
-            coarse_out: int = 1,
-            coarse_group: int = 1,
-            kernel_rows: int = 1,
-            kernel_cols: int = 1,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
-            groups: int = 1,
-            pad_top: int = 0,
-            pad_right: int = 0,
-            pad_bottom: int = 0,
-            pad_left: int = 0,
-            fine: int  = 1,
-            input_t: FixedPoint = FixedPoint(16,8),
-            output_t: FixedPoint = FixedPoint(16,8),
-            weight_t: FixedPoint = FixedPoint(16,8),
-            acc_t: FixedPoint = FixedPoint(32,16),
-            has_bias: int = 0, # default to no bias for old configs
-            sparsity: list = [],
-            block_floating_point: bool = False,
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression",
-            stream_weights: int = 0
-        ):
+    def __post_init__(self):
 
-        # initialise parent class
-        super().__init__(rows, cols, channels,
-                coarse_in, coarse_out, data_t=input_t)
-
-        # save data types
-        self.input_t = input_t
-        self.output_t = output_t
-        self.weight_t = weight_t
-        self.acc_t = acc_t
-        self.block_floating_point = block_floating_point
-
-        # save bias flag
-        self.has_bias = has_bias
-
-        # save sparsity
-        if len(sparsity) > 0:
-            # reject if pointwise or low sparsity
-            if kernel_rows == 1 and kernel_cols == 1 or np.mean(sparsity) < 0.1:
-                sparsity = []
-        self.sparsity = sparsity
-
-        # init variables
-        self._kernel_rows = kernel_rows
-        self._kernel_cols = kernel_cols
-        self._stride_rows = stride_rows
-        self._stride_cols = stride_cols
-        self._pad_top       = pad_top
-        self._pad_right     = pad_right
-        self._pad_bottom    = pad_bottom
-        self._pad_left      = pad_left
-        self._groups = groups
-        self._coarse_group = coarse_group
-        self._fine = fine
-        self._filters = filters
+        # call parent post init
+        super().__post_init__()
 
         # check if the layer is depthwise
-        self.depthwise = (groups == channels) and (groups == filters)
+        self.depthwise = (self.groups == self.channels) and (self.groups == self.filters)
+        self.pointwise = np.prod(self.kernel_size) == 1 
 
-        # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        # save sparsity
+        if len(self.sparsity) > 0:
+            # reject if pointwise or low sparsity
+            if self.pointwise or np.mean(self.sparsity) < 0.1:
+                self.sparsity = []
+        # self.sparsity = sparsity
 
         # weights buffering flag
         if self.backend == "hls":
@@ -106,13 +75,12 @@ class ConvolutionLayer(Layer):
             self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
-            self.stream_weights = stream_weights
             self.data_packing = True
             self.use_uram = False
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert self.regression_model in ["linear_regression", "xgboost"], f"{self.regression_model} is an invalid regression model"
+        self.regression_model = self.regression_model
 
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
                 self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
@@ -185,164 +153,68 @@ class ConvolutionLayer(Layer):
         # update modules
         self.update()
 
+    def __setattr__(self, name, value):
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return 
+
+        match name:
+            case "groups":
+                assert(value in get_factors(self.channels_in()))
+                super().__setattr__(name, value)
+
+            case "coarse_group":
+                assert(value in self.get_coarse_group_feasible())
+                super().__setattr__(name, value)
+                self.update()
+
+            case "fine":
+                assert(value in self.get_fine_feasible())
+                super().__setattr__(name, value)
+                self.update()
+
+            case _:
+                super().__setattr__(name, value)
+ 
     @property
     def kernel_size(self) -> List[int]:
-        return [ self._kernel_rows, self._kernel_cols ]
-
-    @property
-    def kernel_rows(self) -> int:
-        return self._kernel_rows
-
-    @property
-    def kernel_cols(self) -> int:
-        return self._kernel_cols
+        return [ self.kernel_rows, self.kernel_cols ]
 
     @property
     def stride(self) -> List[int]:
-        return [ self._stride_rows, self._stride_cols ]
-
-    @property
-    def stride_rows(self) -> int:
-        return self._stride_rows
-
-    @property
-    def stride_cols(self) -> int:
-        return self._stride_cols
+        return [ self.stride_rows, self.stride_cols ]
 
     @property
     def pad(self) -> List[int]:
         return [
-            self._pad_top,
-            self._pad_left,
-            self._pad_bottom,
-            self._pad_right,
+            self.pad_top,
+            self.pad_left,
+            self.pad_bottom,
+            self.pad_right,
         ]
-
-    @property
-    def pad_top(self) -> int:
-        return self._pad_top
-
-    @property
-    def pad_right(self) -> int:
-        return self._pad_right
-
-    @property
-    def pad_bottom(self) -> int:
-        return self._pad_bottom
-
-    @property
-    def pad_left(self) -> int:
-        return self._pad_left
-
-    @property
-    def groups(self) -> int:
-        return self._groups
-
-    @property
-    def coarse_group(self) -> int:
-        return self._coarse_group
-
-    @property
-    def fine(self) -> int:
-        return self._fine
-
-    @property
-    def filters(self) -> int:
-        return self._filters
 
     @kernel_size.setter
     def kernel_size(self, val: List[int]) -> None:
-        self._kernel_rows = val[0]
-        self._kernel_cols = val[1]
-        # self.update()
-
-    @kernel_rows.setter
-    def kernel_rows(self, val: int) -> None:
-        self._kernel_rows = val
-        # self.update()
-
-    @kernel_cols.setter
-    def kernel_cols(self, val: int) -> None:
-        self._kernel_cols = val
-        # self.update()
+        assert(len(val) == 2, "kernel size must be a list of two integers")
+        self.kernel_rows = val[0]
+        self.kernel_cols = val[1]
 
     @stride.setter
     def stride(self, val: List[int]) -> None:
-        self._stride_rows = val[0]
-        self._stride_cols = val[1]
-        # self.update()
-
-    @stride_rows.setter
-    def stride_rows(self, val: int) -> None:
-        self._stride_rows = val
-        # self.update()
-
-    @stride_cols.setter
-    def stride_cols(self, val: int) -> None:
-        self._stride_cols = val
-        # self.update()
+        assert(len(val) == 2, "stride must be a list of two integers")
+        self.stride_rows = val[0]
+        self.stride_cols = val[1]
 
     @pad.setter
     def pad(self, val: List[int]) -> None:
-        self._pad_top    = val[0]
-        self._pad_right  = val[3]
-        self._pad_bottom = val[2]
-        self._pad_left   = val[1]
-        # self.update()
+        assert(len(val) == 4, "pad must be a list of four integers")
+        self.pad_top    = val[0]
+        self.pad_right  = val[3]
+        self.pad_bottom = val[2]
+        self.pad_left   = val[1]
 
-    @pad_top.setter
-    def pad_top(self, val: int) -> None:
-        self._pad_top = val
-        # self.update()
-
-    @pad_right.setter
-    def pad_right(self, val: int) -> None:
-        self._pad_right = val
-        # self.update()
-
-    @pad_bottom.setter
-    def pad_bottom(self, val: int) -> None:
-        self._pad_bottom = val
-        # self.update()
-
-    @pad_left.setter
-    def pad_left(self, val: int) -> None:
-        self._pad_left = val
-        # self.update()
-
-    @groups.setter
-    def groups(self, val: int) -> None:
-        self._groups = val
-        # self.update()
-
-    @fine.setter
-    def fine(self, val: int) -> None:
-        self._fine = val
-        # self.update()
-
-    @filters.setter
-    def filters(self, val: int) -> None:
-        self._filters = val
-        # self.update()
-
-    @Layer.coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        assert(val in self.get_coarse_in_feasible())
-        self._coarse_in = val
-
-        if len(self.sparsity) > 0:
-            # module sparsity depends on number of streams
-            self.update()
-
-    @coarse_group.setter
-    def coarse_group(self, val: int) -> None:
-        assert(val in self.get_coarse_group_feasible())
-        self._coarse_group = val
-
-        if len(self.sparsity) > 0:
-            # module sparsity depends on number of streams
-            self.update()
-
+       
     def rows_out(self) -> int:
         return self.modules["sliding_window"].rows_out()
 
@@ -379,24 +251,25 @@ class ConvolutionLayer(Layer):
         else:
             indices = list(range(self.channels_in()))
 
-        stream_sparsity = np.reshape([self.sparsity[i] for i in indices], (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
+        stream_sparsity = np.reshape([self.sparsity[i] for i in indices], 
+                (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         return stream_sparsity
 
     def pipeline_depth(self):
         # pipeline depth of the sliding window minus the total words in the pipeline from padding
         # plus the words needed to fill the accum buffer
-        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
-                (self.kernel_cols-1)*self.channels//self.coarse_in - \
-                ( self.pad_top * self.cols * self.channels//self.coarse_in + \
-                (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
-                self.channels//self.coarse_in
+        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.streams_in() + \
+                (self.kernel_cols-1)*self.channels//self.streams_in() - \
+                ( self.pad_top * self.cols * self.channels//self.streams_in() + \
+                (self.pad_left+self.pad_right)*self.channels//self.streams_in() ) + \
+                self.channels//self.streams_in()
 
     def update(self):
 
         # sliding window
         self.modules['sliding_window'].rows     = self.rows
         self.modules['sliding_window'].cols     = self.cols
-        self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
+        self.modules['sliding_window'].channels = self.channels//self.streams_in()
         self.modules['sliding_window'].data_width   = self.input_t.width
         if self.data_packing:
             self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
