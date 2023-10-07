@@ -198,47 +198,47 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         self.run_test_updating_properties(layer)
         self.run_test_resources(layer)
 
-# @ddt.ddt
-# class TestReLULayer(TestLayerTemplate,unittest.TestCase):
+@ddt.ddt
+class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/relu/config_0.json",
-#         "tests/configs/layers/relu/config_1.json",
-#         "tests/configs/layers/relu/config_2.json",
-#         "tests/configs/layers/relu/config_3.json",
-#         "tests/configs/layers/relu/config_4.json",
-#         "tests/configs/layers/relu/config_5.json",
-#         "tests/configs/layers/relu/config_6.json",
-#         "tests/configs/layers/relu/config_7.json",
-#         "tests/configs/layers/relu/config_8.json",
-#         "tests/configs/layers/relu/config_9.json",
-#         "tests/configs/layers/relu/config_10.json",
-#     )
-#     def test_layer_configurations(self, config_path):
+    @ddt.data(
+        "tests/configs/layers/relu/config_0.json",
+        "tests/configs/layers/relu/config_1.json",
+        "tests/configs/layers/relu/config_2.json",
+        "tests/configs/layers/relu/config_3.json",
+        "tests/configs/layers/relu/config_4.json",
+        "tests/configs/layers/relu/config_5.json",
+        "tests/configs/layers/relu/config_6.json",
+        "tests/configs/layers/relu/config_7.json",
+        "tests/configs/layers/relu/config_8.json",
+        "tests/configs/layers/relu/config_9.json",
+        "tests/configs/layers/relu/config_10.json",
+    )
+    def test_layer_configurations(self, config_path):
 
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-#         # initialise layer
-#         layer = ReLULayer(
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             coarse = config["coarse"]
-#         )
+        # initialise layer
+        layer = ReLULayer(
+            rows=config["rows"],
+            cols=config["cols"],
+            channels=config["channels"],
+            coarse=config["coarse"]
+        )
 
-#         # run tests
-#         self.run_test_dimensions(layer)
-#         self.run_test_rates(layer)
-#         self.run_test_workload(layer)
-#         self.run_test_size(layer)
-#         self.run_test_streams(layer)
-#         self.run_test_latency(layer)
-#         self.run_test_pipeline_depth(layer)
-#         self.run_test_wait_depth(layer)
-#         self.run_test_updating_properties(layer)
-#         self.run_test_resources(layer)
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
 
 # @ddt.ddt
 # class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
