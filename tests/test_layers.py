@@ -285,39 +285,39 @@ class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 #         self.run_test_updating_properties(layer)
 #         self.run_test_resources(layer)
 
-# @ddt.ddt
-# class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
+@ddt.ddt
+class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/squeeze/config_0.json",
-#         "tests/configs/layers/squeeze/config_1.json",
-#     )
-#     def test_layer_configurations(self, config_path):
+    @ddt.data(
+        "tests/configs/layers/squeeze/config_0.json",
+        "tests/configs/layers/squeeze/config_1.json",
+    )
+    def test_layer_configurations(self, config_path):
 
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-#         # initialise layer
-#         layer = SqueezeLayer(
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             config["coarse_in"],
-#             config["coarse_out"],
-#         )
+        # initialise layer
+        layer = SqueezeLayer(
+            rows=config["rows"],
+            cols=config["cols"],
+            channels=config["channels"],
+            coarse_in=config["coarse_in"],
+            coarse_out=config["coarse_out"],
+        )
 
-#         # run tests
-#         self.run_test_dimensions(layer)
-#         self.run_test_rates(layer)
-#         self.run_test_workload(layer)
-#         self.run_test_size(layer)
-#         self.run_test_streams(layer)
-#         self.run_test_latency(layer)
-#         self.run_test_pipeline_depth(layer)
-#         self.run_test_wait_depth(layer)
-#         self.run_test_updating_properties(layer)
-#         self.run_test_resources(layer)
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
 
 # @ddt.ddt
 # class TestSplitLayer(TestLayerTemplate,unittest.TestCase):

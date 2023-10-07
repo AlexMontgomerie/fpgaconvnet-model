@@ -8,8 +8,8 @@ from fpgaconvnet.models.layers import Layer
 
 @dataclass(kw_only=True)
 class ReLULayer(Layer):
-    coarse: int = 1,
-    backend: str = "chisel", # default to no bias for old configs
+    coarse: int = 1
+    backend: str = "chisel" # default to no bias for old configs
     regression_model: str = "linear_regression"
 
     def __post_init__(self):
@@ -21,7 +21,7 @@ class ReLULayer(Layer):
         assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert(self.regression_model in ["linear_regression", "xgboost"], 
+        assert(self.regression_model in ["linear_regression", "xgboost"],
                 f"{self.regression_model} is an invalid regression model")
 
         # init modules
@@ -34,7 +34,7 @@ class ReLULayer(Layer):
 
         if not hasattr(self, "is_init"):
             super().__setattr__(name, value)
-            return 
+            return
 
         match name:
             case "coarse" | "coarse_in" | "coarse_out":
@@ -45,7 +45,7 @@ class ReLULayer(Layer):
                 super().__setattr__("coarse", value)
                 self.update()
 
-            case _:    
+            case _:
                 super().__setattr__(name, value)
 
     def get_operations(self):

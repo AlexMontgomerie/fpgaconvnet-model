@@ -1,41 +1,36 @@
+from typing import Any, List, Union
+from dataclasses import dataclass, field
+
 import pydot
 import numpy as np
-
-from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.layers import Layer
 from fpgaconvnet.models.modules import Squeeze
 
+@dataclass(kw_only=True)
 class SqueezeLayer(Layer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            coarse_in: int,
-            coarse_out: int,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel",
-            regression_model: str = "linear_regression"
-        ):
+    coarse_in: int
+    coarse_out: int
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-        # initialise parent class
-        super().__init__(rows, cols, channels,
-                coarse_in, coarse_out,data_t=data_t)
+    def __post_init__(self):
+
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert(self.backend in ["chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+               f"{self.regression_model} is an invalid regression model")
 
         # initialise modules
         self.modules["squeeze"] = Squeeze(self.rows, self.cols,
                 self.channels, self.coarse_in, self.coarse_out,
                 backend=self.backend, regression_model=self.regression_model)
-        
+
         self.update()
 
     def layer_info(self,parameters,batch_size=1):
