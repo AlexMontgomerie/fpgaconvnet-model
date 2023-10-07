@@ -24,6 +24,7 @@ class Bias(Module):
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
 
     def channels_in(self):
         return self.filters
@@ -52,14 +53,14 @@ class Bias(Module):
         if self.backend == "chisel":
             return {
                 "Logic_LUT" : np.array([
-                        self.data_width,
+                        self.streams*self.data_width,
                     ]),
                 "LUT_RAM"   : np.array([
-                        self.data_width*self.channels,
+                        self.streams*self.data_width*self.channels,
                     ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
-                        self.data_width,
+                        self.streams*self.data_width,
                         int2bits(self.channels),
                         1,
                     ]),

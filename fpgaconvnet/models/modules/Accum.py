@@ -31,8 +31,6 @@ class Accum(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups
@@ -71,9 +69,6 @@ class Accum(Module):
         # return the info
         return info
 
-    def memory_usage(self):
-        return int(self.filters/self.groups)*self.data_width
-
     def utilisation_model(self):
 
         if self.backend == "hls":
@@ -111,7 +106,7 @@ class Accum(Module):
                         2, self.streams*self.data_width), # output buffer
                     self.streams*self.data_width*self.filters, # filter memory memory (size)
                     self.streams*self.data_width, # filter memory memory (word width)
-                    self.filters, # filter memory memory (depth)
+                    self.streams*self.filters, # filter memory memory (depth)
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([

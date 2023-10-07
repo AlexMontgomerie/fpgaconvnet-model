@@ -21,16 +21,16 @@ def get_output_nodes(graph):
     return [ edge for edge, deg in graph.out_degree() if not deg ]
 
 def get_next_nodes(graph, node):
-    return list(graph.successors(node))
+    return sorted(list(graph.successors(node)))
 
 def get_prev_nodes(graph, node):
-    return list(graph.predecessors(node))
+    return sorted(list(graph.predecessors(node)))
 
 def get_next_nodes_all(graph, node):
-    return list(descendants(graph, node))
+    return sorted(list(descendants(graph, node)))
 
 def get_prev_nodes_all(graph, node):
-    return list(ancestors(graph, node))
+    return sorted(list(ancestors(graph, node)))
 
 def ordered_node_list(graph): # TODO: make work for parallel networks
     return list( nx.topological_sort(graph) )

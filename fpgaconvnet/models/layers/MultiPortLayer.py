@@ -65,6 +65,8 @@ class MultiPortLayer:
 
     def __post_init__(self):
         self.buffer_depth = [2]*self.ports_in
+        self.stream_inputs = [False]*self.ports_in
+        self.stream_outputs = [False]*self.ports_out
         self.input_t = self.data_t
         self.output_t = self.data_t
 
@@ -396,9 +398,14 @@ class MultiPortLayer:
 
     def resource(self):
         # bram for fifos
-        fifo_bram = sum([bram_array_resource_model(
-                self.buffer_depth[i], self.data_t.width, 'fifo'
-            )*self.streams_in(i) for i in range(self.ports_in) ])
+        self.inputs_ram_usage = []
+        for i in range(self.ports_in):
+            if not self.stream_inputs[i]:
+                bram = bram_array_resource_model(self.buffer_depth[i], self.data_t.width, 'fifo')*self.streams_in(i)
+            else:
+                bram = 0
+            self.inputs_ram_usage.append(bram)
+        fifo_bram = sum(self.inputs_ram_usage)
         return {
             "LUT"   : 0,
             "FF"    : 0,
@@ -437,6 +444,8 @@ class MultiPortLayer:
         parameters.coarse_out   = self.streams_out()
         parameters.ports_in     = self.ports_in
         parameters.ports_out    = self.ports_out
+        parameters.stream_inputs.extend(self.stream_inputs)
+        parameters.stream_outputs.extend(self.stream_outputs)
         self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):

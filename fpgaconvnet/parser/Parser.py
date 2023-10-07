@@ -17,7 +17,6 @@ import numpy as np
 from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.models.layers import SplitLayer
-from fpgaconvnet.platform import Platform
 
 import fpgaconvnet.tools.graphs as graphs
 
@@ -247,9 +246,7 @@ class Parser:
                 graph.add_edge(node, split_node)
         return graph
 
-    def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath,
-            multi_fpga=False, save_opt_model=True, **quantisation_args):
-
+    def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
         if save_opt_model:
@@ -257,7 +254,7 @@ class Parser:
             onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
-        onnx_model, quant_format = self.get_quantisation(onnx_model, **quantisation_args)
+        onnx_model, quant_format = self.get_quantisation(onnx_model)
 
         # create a networkx graph
         graph = nx.DiGraph()
@@ -315,9 +312,7 @@ class Parser:
         # graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
 
         # return the graph
-        platform = Platform()
-        platform.update(platform_filepath)
-        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality, multi_fpga=multi_fpga)
+        return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
     def get_hardware_from_prototxt_node(self, node):
 

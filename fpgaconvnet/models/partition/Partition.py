@@ -10,13 +10,8 @@ class Partition():
     def __init__(
             self,
             graph,
-            ports_in=1,
-            ports_out=1,
-            streams_in=1,
-            streams_out=1,
             batch_size=1,
             wr_factor=1,
-            port_width=64,
             data_width=16
         ):
 
@@ -27,12 +22,12 @@ class Partition():
         self.batch_size = batch_size
 
         ## ports
-        self.ports_in   = ports_in
-        self.ports_out  = ports_out
+        self.ports_in   = len(graphs.get_input_nodes(self.graph))
+        self.ports_out  = len(graphs.get_output_nodes(self.graph))
 
         ## streams in and out
-        self.streams_in  = [streams_in]
-        self.streams_out = [streams_out]
+        self.streams_in  = [1] * self.ports_in
+        self.streams_out = [1] * self.ports_out
 
         ## weights reloading
         self.enable_wr  = True
@@ -45,14 +40,11 @@ class Partition():
         self.size_wr    = 0
 
         ## bitwidths
-        self.port_width     = port_width
         self.data_width     = data_width
 
-        # maximum streams in and out (TODO: turn into function calls)
-        self.max_streams_in     = self.ports_in*int(self.port_width/self.data_width)
-        self.max_streams_out    = self.ports_out*int(self.port_width/self.data_width)
-
+        ## flag reserved for solver
         self.need_optimise = True
+        self.slow_down_factor = 1.0
 
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
@@ -61,7 +53,6 @@ class Partition():
 
     # metrics
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
-    from fpgaconvnet.models.partition.metrics import get_pipeline_depth_fast
     from fpgaconvnet.models.partition.metrics import get_interval
     from fpgaconvnet.models.partition.metrics import get_cycle
     from fpgaconvnet.models.partition.metrics import get_latency
@@ -69,6 +60,8 @@ class Partition():
     from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
     from fpgaconvnet.models.partition.metrics import get_bandwidth_in
     from fpgaconvnet.models.partition.metrics import get_bandwidth_out
+    from fpgaconvnet.models.partition.metrics import get_bandwidth_weight
+    from fpgaconvnet.models.partition.metrics import get_total_bandwidth
     from fpgaconvnet.models.partition.metrics import get_resource_usage
 
     # update

@@ -26,8 +26,6 @@ class Fork(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
 
@@ -61,13 +59,6 @@ class Fork(Module):
                     self.streams*self.data_width*np.prod(self.kernel_size), # input buffer
                     self.streams*np.prod(self.kernel_size)*self.coarse, # output buffer
                     self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer
-
-#                     self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer valid
-#                     self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[0]*self.kernel_size[1], # input buffer ready
-#                     self.data_width*self.kernel_size[0]*self.kernel_size[1], # input buffer
-#                     self.data_width*self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer
-#                     self.kernel_size[0]*self.kernel_size[1], # input buffer valid
-#                     self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer ready
                     1,
                 ]),
                 "LUT_RAM"   : np.array([0]),
@@ -75,7 +66,6 @@ class Fork(Module):
                 "FF"    : np.array([
                     self.streams*np.prod(self.kernel_size), # input buffer (ready)
                     self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer (data)
-                    # self.kernel_size[0]*self.kernel_size[1]*self.coarse, # output buffer (valid)
                     1,
                 ]),
                 "DSP"       : np.array([0]),

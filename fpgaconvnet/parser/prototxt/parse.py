@@ -13,9 +13,9 @@ from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
 from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
 
-import fpgaconvnet.parser.onnx.helper as onnx_helper
+from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.tools.layer_enum as layer_enum
 
 class ParsePrototxtNode:
@@ -38,6 +38,9 @@ class ParsePrototxtNode:
 
         # get the layer type
         self.layer_type = layer_enum.from_proto_layer_type(n.type)
+
+        # get the op type
+        self.op_type = n.op_type
 
         # get inputs and outputs
         self.inputs = [ stream.node for stream in self.node.streams_in ]
@@ -121,10 +124,14 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_in   =self.node.parameters.coarse_in,
                 coarse_out  =self.node.parameters.coarse_out,
                 coarse_group=self.node.parameters.coarse_group,
+                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
-                skipping_windows    =self.node.parameters.skipping_windows,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                stream_weights=self.node.stream_weights
             )
             layer.use_uram = self.node.parameters.use_uram
             return layer
@@ -152,6 +159,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 coarse_in   =self.node.parameters.coarse_in,
                 coarse_out  =self.node.parameters.coarse_out,
                 coarse_group=self.node.parameters.coarse_group,
+                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
                 regression_model =self.regression_model,
@@ -180,9 +191,15 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 self.node.parameters.channels_in,
                 coarse_in   =self.node.parameters.coarse_in,
                 coarse_out  =self.node.parameters.coarse_out,
+                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
+                block_floating_point =self.node.parameters.block_floating_point,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                stream_weights=self.node.parameters.stream_weights
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
@@ -193,6 +210,10 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 self.node.parameters.channels_in,
                 coarse_in   =self.node.parameters.coarse_in,
                 coarse_out  =self.node.parameters.coarse_out,
+                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
                 has_bias    =self.node.parameters.has_bias,
                 backend =self.backend,
                 regression_model =self.regression_model,
@@ -219,6 +240,7 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.node.parameters.cols_in,
                 self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
@@ -227,6 +249,7 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.node.parameters.depth_in,
                 self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             )
         else:
             raise NotImplementedError
@@ -254,7 +277,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 self.node.parameters.rows_in,
                 self.node.parameters.cols_in,
                 self.node.parameters.channels_in,
-                pool_type   = 'max',
+                pool_type   = self.op_type,
                 kernel_rows =self.node.parameters.kernel_rows,
                 kernel_cols =self.node.parameters.kernel_cols,
                 stride_rows =self.node.parameters.stride_rows,
@@ -264,6 +287,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 pad_left    =self.node.parameters.pad_left,
                 pad_right   =self.node.parameters.pad_right,
                 coarse  =self.node.parameters.coarse,
+                data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
             )
@@ -273,7 +297,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 self.node.parameters.cols_in,
                 self.node.parameters.depth_in,
                 self.node.parameters.channels_in,
-                pool_type   = 'max',
+                pool_type   = self.op_type,
                 kernel_rows =self.node.parameters.kernel_rows,
                 kernel_cols =self.node.parameters.kernel_cols,
                 kernel_depth=self.node.parameters.kernel_depth,
@@ -287,6 +311,7 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 pad_front   =self.node.parameters.pad_front,
                 pad_back    =self.node.parameters.pad_back,
                 coarse  =self.node.parameters.coarse,
+                data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
             )
@@ -304,6 +329,7 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
             self.node.parameters.channels_in,
             coarse_in   =self.node.parameters.coarse_in,
             coarse_out  =self.node.parameters.coarse_out,
+            data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             backend =self.backend,
             regression_model =self.regression_model,
         )
@@ -317,6 +343,9 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
             self.node.parameters.rows_in,
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+            op_type=self.op_type,
             backend =self.backend,
             coarse=self.node.parameters.coarse,
             regression_model =self.regression_model,
@@ -332,7 +361,10 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_in=self.node.parameters.ports_in,
-            op_type="sum", backend =self.backend,
+            op_type=self.op_type,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+            backend =self.backend,
             coarse=self.node.parameters.coarse,
             regression_model =self.regression_model,
         )
@@ -347,6 +379,7 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
             self.node.parameters.cols_in,
             self.node.parameters.channels_in,
             ports_out=self.node.parameters.ports_out,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             coarse=self.node.parameters.coarse,
             backend =self.backend,
             regression_model =self.regression_model,

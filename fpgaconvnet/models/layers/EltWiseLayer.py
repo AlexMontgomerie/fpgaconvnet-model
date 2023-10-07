@@ -129,14 +129,14 @@ class EltWiseLayer(MultiPortLayer):
         del parameters.channels_out_array[:]
 
     def resource(self):
-
+        fifo_rsc = super().resource()
         eltwise_rsc = self.modules['eltwise'].rsc()
 
         # Total
         return {
             "LUT"  :  eltwise_rsc['LUT']*self.coarse,
             "FF"   :  eltwise_rsc['FF']*self.coarse,
-            "BRAM" :  eltwise_rsc['BRAM']*self.coarse,
+            "BRAM" :  eltwise_rsc['BRAM']*self.coarse + fifo_rsc['BRAM'],
             "DSP" :   eltwise_rsc['DSP']*self.coarse
         }
 

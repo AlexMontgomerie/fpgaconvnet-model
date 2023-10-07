@@ -29,8 +29,6 @@ class Squeeze(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def module_info(self):
         # get the base module fields
@@ -42,7 +40,7 @@ class Squeeze(Module):
         return info
 
     def utilisation_model(self):
-        _, buffer_lutram = buffer_estimate(self.coarse_in, self.coarse_out, self.data_width)
+        _, buffer_lutram = buffer_estimate(self.coarse_in, self.coarse_out, self.streams*self.data_width)
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
@@ -50,12 +48,12 @@ class Squeeze(Module):
             return {
                 "Logic_LUT" : np.array([
                     (buffer_size//self.coarse_in), # buffer ready
-                    self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
+                    self.streams*self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
                     (buffer_size//self.coarse_in),
                     (buffer_size//self.coarse_out),
                     self.coarse_in,
                     self.coarse_out,
-                    self.data_width*self.coarse_out, # DCFull on the output
+                    self.streams*self.data_width*self.coarse_out, # DCFull on the output
                     1,
                 ]),
                 "LUT_RAM"   : np.array([
@@ -66,7 +64,7 @@ class Squeeze(Module):
                 "FF"        : np.array([
                     int2bits(buffer_size//self.coarse_in), # cntr_in
                     buffer_size, # buffer registers
-                    self.data_width*self.coarse_out, # DCFull on the output (data)
+                    self.streams*self.data_width*self.coarse_out, # DCFull on the output (data)
                     self.coarse_out, # DCFull on the output (ready and valid)
                     self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
                     1,
@@ -119,7 +117,7 @@ class Squeeze(Module):
 
         if self.regression_model == "linear_regression":
             # get the buffer estimates
-            buffer_bram, _ = buffer_estimate(self.coarse_in, self.coarse_out, self.data_width)
+            buffer_bram, _ = buffer_estimate(self.coarse_in, self.coarse_out, self.streams*self.data_width)
 
             # add the bram estimation
             rsc["BRAM"] = buffer_bram

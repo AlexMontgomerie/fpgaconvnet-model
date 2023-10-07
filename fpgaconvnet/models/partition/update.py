@@ -14,35 +14,6 @@ MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
 MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
 
 def update(self):
-
-    ## remove auxiliary layers
-    self.remove_squeeze()
-
-    ## update streams in
-    self.streams_in = []
-    inputs = graphs.get_input_nodes(self.graph)
-    for i, input_node in enumerate(inputs):
-        ## get valid streams in
-        streams_in_valid = self.graph.nodes[input_node]["hw"].get_coarse_in_feasible()
-        # get the max stream values in
-        streams_in_max = min(self.max_streams_in//len(inputs), self.graph.nodes[input_node]["hw"].streams_in())
-        # choose the max of all the valid stream values, below the max
-        self.streams_in.append(max([ s for s in streams_in_valid if s <= streams_in_max ]))
-
-    ## update streams out
-    self.streams_out = []
-    outputs = graphs.get_output_nodes(self.graph)
-    for i, output_node in enumerate(outputs):
-        ## get valid streams out
-        streams_out_valid = self.graph.nodes[output_node]["hw"].get_coarse_out_feasible()
-        # get the max stream values out
-        streams_out_max = min(self.max_streams_out//len(outputs), self.graph.nodes[output_node]["hw"].streams_out())
-        # choose the max of all the valid stream values, below the max
-        self.streams_out.append(max([ s for s in streams_out_valid if s <= streams_out_max ]))
-
-    ## add auxiliary layers
-    self.add_squeeze()
-
     ## update streams in and out
     self.input_nodes = graphs.get_input_nodes(self.graph)
     self.output_nodes = graphs.get_output_nodes(self.graph)
@@ -65,9 +36,9 @@ def update(self):
     self.add_squeeze()
 
     # ## update buffer depths
-    # for node in self.graph.nodes:
-    #     if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
-    #         self.update_multiport_buffer_depth(node)
+    for node in self.graph.nodes:
+        if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
+            self.update_multiport_buffer_depth(node)
 
 def update_multiport_buffer_depth(self, multiport_node):
 

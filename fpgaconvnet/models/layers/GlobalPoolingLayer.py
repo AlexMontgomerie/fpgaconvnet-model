@@ -43,6 +43,8 @@ class GlobalPoolingLayer(Layer):
         # update parameters
         self._coarse = coarse
 
+        self.pool_type = op_type
+
         # init modules
         self.modules["global_pool"] = GlobalPool(
                 self.rows_in(), self.cols_in(),

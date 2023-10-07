@@ -84,16 +84,23 @@ message parameter {
     repeated int32 split = 65;
     optional bool skipping_windows = 66;
     optional float threshold = 67;
-
+    optional float sparsity = 68;
+    optional int32 on_chip_addr_range = 70;
+    optional int32 off_chip_buffer_size = 71;
+    optional int32 off_chip_interval = 72;
+    optional int32 stream_weights = 73;
+    repeated bool stream_inputs = 75;
+    repeated bool stream_outputs = 76;
 }
 
 message layer {
     required string name = 1;
     required string onnx_node = 2;
     required layer_type type = 3;
-    repeated stream streams_in  = 4;
-    repeated stream streams_out = 5;
-    required parameter parameters = 6;
+    optional string op_type = 4;
+    repeated stream streams_in  = 5;
+    repeated stream streams_out = 6;
+    required parameter parameters = 7;
 
     enum layer_type {
         CONVOLUTION     = 0;
@@ -117,8 +124,8 @@ message layer {
         THRESHOLDEDRELU = 18;
     }
 
-    optional string weights_path = 7;
-    optional string bias_path    = 8;
+    optional string weights_path = 8;
+    optional string bias_path    = 9;
 }
 
 message partition {

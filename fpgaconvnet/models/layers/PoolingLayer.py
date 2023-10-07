@@ -1,5 +1,5 @@
 import math
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
 import pydot
@@ -68,6 +68,11 @@ class PoolingLayer(Layer):
                 self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend, regression_model=self.regression_model)
         self.modules["pool"] = Pool(self.rows_out(), self.cols_out(),
                 self.channels_out()//self.coarse, self.kernel_size, backend=self.backend, regression_model=self.regression_model)
+
+        if self.backend == "chisel":
+            self.data_packing = True
+        elif self.backend == "hls":
+            self.data_packing = False
 
         self.update()
 
@@ -255,11 +260,15 @@ class PoolingLayer(Layer):
         self.modules['sliding_window'].cols     = self.cols_in()
         self.modules['sliding_window'].channels = int(self.channels_in()/self.coarse)
         self.modules['sliding_window'].data_width = self.data_t.width
+        if self.data_packing:
+            self.modules['sliding_window'].streams = self.coarse
         # pool
         self.modules['pool'].rows     = self.rows_out()
         self.modules['pool'].cols     = self.cols_out()
         self.modules['pool'].channels = int(self.channels_in()/self.coarse)
         self.modules['pool'].data_width = self.data_t.width
+        if self.data_packing:
+            self.modules['pool'].streams = self.coarse
 
     def get_fine_feasible(self):
         return [1]
@@ -270,16 +279,28 @@ class PoolingLayer(Layer):
         pool_rsc    = self.modules['pool'].rsc()
 
         # Total
-        return {
-            "LUT"  :  sw_rsc['LUT']*self.coarse +
-                      pool_rsc['LUT']*self.coarse,
-            "FF"   :  sw_rsc['FF']*self.coarse +
-                      pool_rsc['FF']*self.coarse,
-            "BRAM" :  sw_rsc['BRAM']*self.coarse +
-                      pool_rsc['BRAM']*self.coarse,
-            "DSP" :   sw_rsc['DSP']*self.coarse +
-                      pool_rsc['DSP']*self.coarse
-        }
+        if self.data_packing:
+            return {
+                "LUT"  :  sw_rsc['LUT'] +
+                        pool_rsc['LUT'],
+                "FF"   :  sw_rsc['FF'] +
+                        pool_rsc['FF'],
+                "BRAM" :  sw_rsc['BRAM'] +
+                        pool_rsc['BRAM'],
+                "DSP" :   sw_rsc['DSP'] +
+                        pool_rsc['DSP']
+            }
+        else:
+            return {
+                "LUT"  :  sw_rsc['LUT']*self.coarse +
+                        pool_rsc['LUT']*self.coarse,
+                "FF"   :  sw_rsc['FF']*self.coarse +
+                        pool_rsc['FF']*self.coarse,
+                "BRAM" :  sw_rsc['BRAM']*self.coarse +
+                        pool_rsc['BRAM']*self.coarse,
+                "DSP" :   sw_rsc['DSP']*self.coarse +
+                        pool_rsc['DSP']*self.coarse
+            }
 
     def visualise(self, name):
 

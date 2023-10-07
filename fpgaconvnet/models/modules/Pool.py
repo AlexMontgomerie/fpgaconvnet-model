@@ -23,8 +23,6 @@ class Pool(Module):
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __name__(self):
         return f"{self.pool_type.capitalize()}Pool"
@@ -51,20 +49,20 @@ class Pool(Module):
             return {
                 "Logic_LUT"  : np.array([
                     self.kernel_size[0]*self.kernel_size[1],
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # tree buffer
-                    self.data_width*int2bits(self.kernel_size[0]*self.kernel_size[1]), # tree buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1], # tree buffer
+                    self.streams*self.data_width*int2bits(self.kernel_size[0]*self.kernel_size[1]), # tree buffer
                     self.kernel_size[0],self.kernel_size[1], # input ready
                     1,
                 ]),
                 "LUT_RAM"  : np.array([
                     queue_lutram_resource_model(
-                        int2bits(self.kernel_size[0]*self.kernel_size[1])+1, self.data_width), # buffer
+                        int2bits(self.kernel_size[0]*self.kernel_size[1])+1, self.streams*self.data_width), # buffer
                     1,
                 ]),
                 "LUT_SR"  : np.array([0]),
                 "FF"   : np.array([
-                    self.data_width, # output buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # op tree input
+                    self.streams*self.data_width, # output buffer
+                    self.streams*self.data_width*self.kernel_size[0]*self.kernel_size[1], # op tree input
                     int2bits(self.kernel_size[0]*self.kernel_size[1]), # shift register
                     1,
                 ]),
