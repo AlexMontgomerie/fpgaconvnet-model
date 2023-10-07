@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from .Layer import FixedPoint
 
-from .Layer import Layer
+from .Layer import LayerBase, Layer, Layer3D
 from .MultiPortLayer import MultiPortLayer
 
 from .BatchNormLayer import BatchNormLayer
@@ -25,7 +25,6 @@ from .HardswishLayer import HardswishLayer
 from .ChopLayer import ChopLayer
 
 # 3D layers
-from .Layer3D import Layer3D
 from .MultiPortLayer3D import MultiPortLayer3D
 
 from .InnerProductLayer3D import InnerProductLayer3D

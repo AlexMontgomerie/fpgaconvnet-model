@@ -1,6 +1,9 @@
 """
 
 """
+from abc import ABC, ABCMeta, abstractmethod
+
+from dacite import from_dict
 
 import pydot
 import collections
@@ -16,43 +19,29 @@ import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
 
+class LayerBaseMeta(type):
+
+    BASE_LAYER_REGISTRY = {}
+
+    def __new__(cls, *args, **kwargs):
+        # instantiate a new type corresponding to the type of class being defined
+        # this is currently RegisterBase but in child classes will be the child class
+        new_cls = super().__new__(cls, *args, **kwargs)
+        cls.BASE_LAYER_REGISTRY[new_cls.__name__] = new_cls
+        return new_cls
+
+    @classmethod
+    def get_registry(cls):
+        return dict(cls.BASE_LAYER_REGISTRY)
+
+    @classmethod
+    def build_from_dict(cls, name: str, conf: dict):
+        inst = from_dict(data_class=cls.BASE_LAYER_REGISTRY[name], data=conf)
+        inst.__post_init__()
+        return inst
+
 @dataclass(kw_only=True)
-class Layer:
-    """
-    Base class for all layer models.
-
-    Attributes
-    ----------
-    buffer_depth: int, default: 0
-        depth of incoming fifo buffers for each stream in.
-    rows: int
-        row dimension of input featuremap
-    cols: int
-        column dimension of input featuremap
-    channels: int
-        channel dimension of input featuremap
-    coarse_in: int
-        number of parallel streams per port into the layer.
-    coarse_out: int
-        number of parallel streams per port out of the layer.
-    mem_bw_in: float
-        maximum bandwidth for the input streams of the layer3d expressed
-        as a fraction of the clock cycle.
-    mem_bw_out: float
-        maximum bandwidth for the output streams of the layer3d expressed
-        as a fraction of the clock cycle.
-    data_t: int
-        bitwidth of featuremap pixels
-    modules: dict
-        dictionary of `fpgaconvnet_optimiser.models.Module`
-        instances that make up the layer. These modules are
-        used for the resource and performance models of the
-        layer.
-    """
-
-    rows: int
-    cols: int
-    channels: int
+class LayerBase(metaclass=LayerBaseMeta):
     coarse_in: int = field(default=1, init=False)
     coarse_out: int = field(default=1, init=False)
     mem_bw_in: float = field(default=100.0, init=True)
@@ -67,7 +56,6 @@ class Layer:
         self.stream_inputs = [False]
         self.stream_outputs = [False]
         self.is_init = True
-
 
     def __setattr__(self, name, value):
         """
@@ -103,59 +91,190 @@ class Layer:
                 super().__setattr__(name, value)
         
 
+    @abstractmethod
+    def shape_in(self) -> List[int]: 
+        pass 
+
+    @abstractmethod
+    def shape_out(self) -> List[int]: 
+        pass 
+
+    @abstractmethod
+    def rate_in(self) -> float:
+        pass 
+
+    @abstractmethod
+    def rate_out(self) -> float:
+        pass 
+
+    def streams_in(self) -> int:
+            """
+            Returns the number of input streams for this layer.
+
+            Returns:
+                int: The number of input streams for this layer.
+            """
+            return self.coarse_in
+
+    def streams_out(self) -> int:
+            """
+            Returns the number of output streams for this layer.
+
+            Returns:
+                int: The number of output streams for this layer.
+            """
+            return self.coarse_out
+
+    def width_in(self):
+        raise NotImplementedError
+
+    def width_out(self):
+        raise NotImplementedError
+   
+    def workload_in(self) -> int:
+        """
+        Returns the total number of elements in the input tensor of this layer.
+
+        Returns:
+            int: The total number of elements in the input tensor of this layer.
+        """
+        return np.prod(self.shape_in())
+
+    def workload_out(self) -> int:
+            """
+            Calculates the total number of output elements for this layer.
+
+            Returns:
+                The total number of output elements for this layer.
+            """
+            return np.prod(self.shape_out())
+
+    def size_in(self) -> int:
+        return self.workload_in() / self.streams_in() 
+
+    def size_out(self) -> int:
+        return self.workload_out() / self.streams_out() 
+
+    def latency_in(self):
+            """
+            Calculates the latency of input data for this layer.
+
+            Returns:
+                int: The calculated latency value.
+            """
+            return int(abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in()))))
+
+    def latency_out(self):
+            """
+            Calculates the latency of the output of the layer.
+
+            Returns:
+                int: The latency of the output of the layer.
+            """
+            return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
+
+    def latency(self):
+            """
+            Returns the maximum latency of the input and output of the layer.
+
+            Returns:
+                The maximum latency of the input and output of the layer.
+            """
+            return max(self.latency_in(), self.latency_out())
+
+    def pipeline_depth(self):
+            """
+            Computes the pipeline depth of the layer by summing the pipeline depths of its modules.
+
+            Returns:
+                The pipeline depth of the layer.
+            """
+            return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
+
+    def wait_depth(self):
+        return sum([ self.modules[module].wait_depth() for module in self.modules ])
+
+    @abstractmethod
+    def resource(self):
+        pass
+
+    def memory_bandwidth(self):
+        return {
+            "in"  : min(self.mem_bw_in, self.rate_in()*self.streams_in()),
+            "out" : min(self.mem_bw_out, self.rate_out()*self.streams_out())
+        }
+
+    @abstractmethod
+    def get_coarse_in_feasible(self):
+        pass
+
+    @abstractmethod
+    def get_coarse_out_feasible(self):
+        pass
+
+    @abstractmethod
+    def update(self):
+        pass
+
+    def layer_info(self, parameters, batch_size=1):
+            """
+            Populates a `Parameters` object with information about this layer.
+
+            Args:
+                parameters (Parameters): The `Parameters` object to populate.
+                batch_size (int, optional): The batch size to use for the `Parameters` object. Defaults to 1.
+            """
+            parameters.batch_size   = batch_size
+            parameters.coarse_in    = self.coarse_in
+            parameters.coarse_out   = self.coarse_out
+            parameters.mem_bw_in    = self.mem_bw_in
+            parameters.mem_bw_out   = self.mem_bw_out
+            self.data_t.to_protobuf(parameters.data_t)
+
+    def get_operations(self):
+        return 0
+
+    def get_sparse_operations(self):
+        return self.get_operations()
+
+    def layer_info_dict(self):
+        # get parameters
+        parameter = fpgaconvnet_pb2.parameter()
+        self.layer_info(parameter)
+        # convert to dictionary
+        return MessageToDict(parameter, preserving_proto_field_name=True)
+
+    def visualise(self,name):
+        raise NotImplementedError
+
+    @abstractmethod
+    def functional_model(self, data, batch_size=1):
+        raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
+
+
+@dataclass(kw_only=True)
+class Layer(LayerBase):
+    rows: int
+    cols: int
+    channels: int
+
     def rows_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            row dimension of the input featuremap
-        """
         return self.rows
 
     def cols_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            column dimension of the input featuremap
-        """
-        return self.cols
+       return self.cols
 
     def channels_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            channel dimension of the input featuremap
-        """
-        return self.channels
+       return self.channels
 
     def rows_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            row dimension of the output featuremap
-        """
-        return self.rows
+       return self.rows
 
     def cols_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            column dimension of the output featuremap
-        """
-        return self.cols
+       return self.cols
 
     def channels_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            channel dimension of the output featuremap
-        """
-        return self.channels
+       return self.channels
 
     def build_rates_graph(self):
 
@@ -173,87 +292,11 @@ class Layer:
         return rates_graph
 
     def rate_in(self) -> float:
-        """
-        Returns
-        -------
-        float
-            rate of words into layer. As a fraction of a
-            clock cycle.
-
-            default is 1.0
-        """
         return abs(balance_module_rates(self.build_rates_graph())[0,0])
 
     def rate_out(self) -> float:
-        """
-        Returns
-        -------
-        float
-            rate of words out of the layer. As a fraction
-            of a clock cycle.
-
-            default is 1.0
-        """
         return abs(balance_module_rates(
             self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
-
-    def streams_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            number of parallel streams into the layer.
-        """
-        return self.coarse_in
-
-    def streams_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            number of parallel streams out of the layer.
-        """
-        return self.coarse_out
-
-    def workload_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            workload into layer from port `index` for a single
-            featuremap. This is calculated by
-            `rows_in()*cols_in()*channels_in()`.
-        """
-        return self.rows_in() * self.cols_in() * self.channels_in()
-
-    def workload_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            workload out of layer from port `index` for a
-            single featuremap. This is calculated by
-            `rows_out()*cols_out()*channels_out()`.
-        """
-        return self.rows_out() * self.cols_out() * self.channels_out()
-
-    def size_in(self) -> int:
-        """
-        Returns
-        -------
-        int
-            workload in per stream.
-        """
-        return self.rows_in() * self.cols_in() * int( self.channels_in() / self.streams_in() )
-
-    def size_out(self) -> int:
-        """
-        Returns
-        -------
-        int
-            workload out per stream.
-        """
-        return self.rows_out() * self.cols_out() * int( self.channels_out() / self.streams_out() )
 
     def shape_in(self) -> List[int]: # TODO: add documentation
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
@@ -262,51 +305,10 @@ class Layer:
         return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
     def width_in(self):
-        """
-        Returns
-        -------
-        int
-            data width in
-        """
         return self.data_t.width
 
     def width_out(self):
-        """
-        Returns
-        -------
-        int
-            data width out
-        """
-        return self.data_t.width
-
-    def latency_in(self):
-        return int(abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in()))))
-
-    def latency_out(self):
-        return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
-
-    def latency(self):
-        return max(self.latency_in(), self.latency_out())
-
-    def pipeline_depth(self):
-        return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
-
-    def wait_depth(self):
-        return sum([ self.modules[module].wait_depth() for module in self.modules ])
-
-    def resource(self):
-        return {
-            "LUT"   : 0,
-            "FF"    : 0,
-            "BRAM"  : 0, #bram_array_resource_model(self.buffer_depth,self.data_t.width, "fifo")*self.streams_in(),
-            "DSP"   : 0
-        }
-
-    def memory_bandwidth(self):
-        return {
-            "in"  : min(self.mem_bw_in, self.rate_in()*self.streams_in()),
-            "out" : min(self.mem_bw_out, self.rate_out()*self.streams_out())
-        }
+       return self.data_t.width
 
     def get_coarse_in_feasible(self):
         return get_factors(int(self.channels_in()))
@@ -314,37 +316,14 @@ class Layer:
     def get_coarse_out_feasible(self):
         return get_factors(int(self.channels_out()))
 
-    def update(self):
-        pass
-
     def layer_info(self, parameters, batch_size=1):
-        parameters.batch_size   = batch_size
+        super().layer_info(self, parameters, batch_size)
         parameters.rows_in      = self.rows_in()
         parameters.cols_in      = self.cols_in()
         parameters.channels_in  = self.channels_in()
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
-        parameters.coarse_in    = self.coarse_in
-        parameters.coarse_out   = self.coarse_out
-        parameters.mem_bw_in    = self.mem_bw_in
-        parameters.mem_bw_out   = self.mem_bw_out
-        self.data_t.to_protobuf(parameters.data_t)
-        parameters.stream_inputs.extend(self.stream_inputs)
-        parameters.stream_outputs.extend(self.stream_outputs)
-
-    def get_operations(self):
-        return 0
-
-    def get_sparse_operations(self):
-        return self.get_operations()
-
-    def layer_info_dict(self):
-        # get parameters
-        parameter = fpgaconvnet_pb2.parameter()
-        self.layer_info(parameter)
-        # convert to dictionary
-        return MessageToDict(parameter, preserving_proto_field_name=True)
 
     def visualise(self,name):
         cluster = pydot.Cluster(name,label=name)
@@ -354,5 +333,24 @@ class Layer:
 
         return cluster, "_".join([name,"edge"]), "_".join([name,"edge"])
 
-    def functional_model(self, data, batch_size=1):
-        raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
+@dataclass(kw_only=True)
+class Layer3D(Layer):
+    depth: int
+
+    def depth_in(self) -> int:
+        return self.depth
+
+    def depth_out(self) -> int:
+       return self.depth
+
+    def shape_in(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in() ]
+
+    def shape_out(self) -> List[int]: # TODO: add documentation
+        return [ self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out() ]
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(self, parameters, batch_size)
+        parameters.depth_in     = self.depth_in()
+        parameters.depth_out    = self.depth_out()
+

@@ -3,7 +3,7 @@ import ddt
 import json
 import glob
 
-from fpgaconvnet.models.layers import *
+from fpgaconvnet.models.layers import Layer
 
 # get the paths for all the layer configs
 RELU_CONF_PATH=list(glob.glob("tests/configs/layers/relu/*"))
@@ -97,21 +97,30 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
         with open(config_path, "r") as f:
             config = json.load(f)
 
+        # get the kernel rows and cols
+        config["kernel_rows"] = config["kernel_size"][0]
+        config["kernel_cols"] = config["kernel_size"][1]
+
+        # get the stride rows and cols
+        config["stride_rows"] = config["stride"][0]
+        config["stride_cols"] = config["stride"][1]
+
         # initialise layer
-        layer = PoolingLayer(
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse=config["coarse"],
-            kernel_rows=config["kernel_size"][0],
-            kernel_cols=config["kernel_size"][1],
-            stride_rows=config["stride"][0],
-            stride_cols=config["stride"][1],
-            pad_top=config["pad"],
-            pad_left=config["pad"],
-            pad_bottom=config["pad"],
-            pad_right=config["pad"],
-        )
+        layer = Layer.build_from_dict("PoolingLayer", config)
+        # layer = PoolingLayer(
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse=config["coarse"],
+        #     kernel_rows=config["kernel_size"][0],
+        #     kernel_cols=config["kernel_size"][1],
+        #     stride_rows=config["stride"][0],
+        #     stride_cols=config["stride"][1],
+        #     pad_top=config["pad"],
+        #     pad_left=config["pad"],
+        #     pad_bottom=config["pad"],
+        #     pad_right=config["pad"],
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
@@ -135,25 +144,34 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         with open(config_path, "r") as f:
             config = json.load(f)
 
+        # get the kernel rows and cols
+        config["kernel_rows"] = config["kernel_size"][0]
+        config["kernel_cols"] = config["kernel_size"][1]
+
+        # get the stride rows and cols
+        config["stride_rows"] = config["stride"][0]
+        config["stride_cols"] = config["stride"][1]
+
         # initialise layer
-        layer = ConvolutionLayer(
-            filters=config["filters"],
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse_in=config["coarse_in"],
-            coarse_out=config["coarse_out"],
-            kernel_rows=config["kernel_size"][0],
-            kernel_cols=config["kernel_size"][1],
-            stride_rows=config["stride"][0],
-            stride_cols=config["stride"][1],
-            groups=config["groups"],
-            pad_top=config["pad"],
-            pad_left=config["pad"],
-            pad_bottom=config["pad"],
-            pad_right=config["pad"],
-            fine=config["fine"],
-        )
+        layer = Layer.build_from_dict("ConvolutionLayer", config)
+        # layer = ConvolutionLayer(
+        #     filters=config["filters"],
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse_in=config["coarse_in"],
+        #     coarse_out=config["coarse_out"],
+        #     kernel_rows=config["kernel_size"][0],
+        #     kernel_cols=config["kernel_size"][1],
+        #     stride_rows=config["stride"][0],
+        #     stride_cols=config["stride"][1],
+        #     groups=config["groups"],
+        #     pad_top=config["pad"],
+        #     pad_left=config["pad"],
+        #     pad_bottom=config["pad"],
+        #     pad_right=config["pad"],
+        #     fine=config["fine"],
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
@@ -178,12 +196,13 @@ class TestReLULayer(TestLayerTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise layer
-        layer = ReLULayer(
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse=config["coarse"]
-        )
+        layer = Layer.build_from_dict("ReLULayer", config)
+        # layer = ReLULayer(
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse=config["coarse"]
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
@@ -208,14 +227,15 @@ class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise layer
-        layer = InnerProductLayer(
-            filters=config["filters"],
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse_in=config["coarse_in"],
-            coarse_out=config["coarse_out"],
-        )
+        layer = Layer.build_from_dict("InnerProductLayer", config)
+        # layer = InnerProductLayer(
+        #     filters=config["filters"],
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse_in=config["coarse_in"],
+        #     coarse_out=config["coarse_out"],
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
@@ -240,13 +260,14 @@ class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise layer
-        layer = SqueezeLayer(
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse_in=config["coarse_in"],
-            coarse_out=config["coarse_out"],
-        )
+        layer = Layer.build_from_dict("SqueezeLayer", config)
+        # layer = SqueezeLayer(
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse_in=config["coarse_in"],
+        #     coarse_out=config["coarse_out"],
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
@@ -271,12 +292,13 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
             config = json.load(f)
 
         # initialise layer
-        layer = HardswishLayer(
-            rows=config["rows"],
-            cols=config["cols"],
-            channels=config["channels"],
-            coarse=config["coarse"],
-        )
+        layer = Layer.build_from_dict("HardswishLayer", config)
+        # layer = HardswishLayer(
+        #     rows=config["rows"],
+        #     cols=config["cols"],
+        #     channels=config["channels"],
+        #     coarse=config["coarse"],
+        # )
 
         # run tests
         self.run_test_dimensions(layer)
