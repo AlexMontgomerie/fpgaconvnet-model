@@ -53,8 +53,8 @@ class Layer:
     rows: int
     cols: int
     channels: int
-    coarse_in: int = field(default=None, init=False)
-    coarse_out: int = field(default=None, init=False)
+    coarse_in: int = field(default=1, init=False)
+    coarse_out: int = field(default=1, init=False)
     mem_bw_in: float = field(default=100.0, init=True)
     mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
@@ -85,10 +85,6 @@ class Layer:
         """
 
         if not hasattr(self, "is_init"):
-            super().__setattr__(name, value)
-            return 
-
-        if not hasattr(self, name):
             super().__setattr__(name, value)
             return 
 

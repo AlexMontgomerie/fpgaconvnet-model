@@ -1,5 +1,6 @@
 import math
-from typing import List, Union
+from typing import Any, List, Union
+from dataclasses import dataclass, field
 
 import numpy as np
 import pydot
@@ -10,56 +11,33 @@ from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
 from fpgaconvnet.models.layers import Layer
 
+@dataclass(kw_only=True)
 class PoolingLayer(Layer):
+    coarse: int = 1
+    pool_type = 'max'
+    kernel_rows: int = 2
+    kernel_cols: int = 2
+    stride_rows: int = 2
+    stride_cols: int = 2
+    pad_top: int = 0
+    pad_right: int = 0
+    pad_bottom: int = 0
+    pad_left: int = 0
+    fine: int = 1
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            coarse: int = 1,
-            pool_type   ='max',
-            kernel_rows: int = 1,
-            kernel_cols: int = 1,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
-            pad_top: int = 0,
-            pad_right: int = 0,
-            pad_bottom: int = 0,
-            pad_left: int = 0,
-            fine: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel",
-            regression_model: str = "linear_regression"
-        ):
+    def __post_init__(self):
 
-        # initialise parent class
-        super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
-
-        # update flags
-        # self.flags['transformable'] = True
-
-        # update parameters
-        self._kernel_rows = kernel_rows
-        self._kernel_cols = kernel_cols
-        self._stride_rows = stride_rows
-        self._stride_cols = stride_cols
-        self._pad_top       = pad_top
-        self._pad_right     = pad_right
-        self._pad_bottom    = pad_bottom
-        self._pad_left      = pad_left
-        self._pool_type = pool_type
-        self._coarse = coarse
-        self._fine = fine
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend"
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"], 
+                f"{self.regression_model} is an invalid regression model")
 
         # init modules
         self.modules["sliding_window"] = SlidingWindow(self.rows_in(),
@@ -76,6 +54,28 @@ class PoolingLayer(Layer):
 
         self.update()
 
+    def __setattr__(self, name: str, value: Any) -> None:
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return 
+
+        match name:
+            case "coarse" | "coarse_in" | "coarse_out":
+                assert(value in self.get_coarse_in_feasible())
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_in", value)
+                super().__setattr__("coarse_out", value)
+                super().__setattr__("coarse", value)
+                self.update()
+
+            case "fine":
+                assert(value in self.get_fine_feasible())
+                super().__setattr__(name, value)
+
+            case _:    
+                super().__setattr__(name, value)
+
     def rows_out(self) -> int:
         return self.modules["sliding_window"].rows_out()
 
@@ -84,161 +84,37 @@ class PoolingLayer(Layer):
 
     @property
     def kernel_size(self) -> List[int]:
-        return [ self._kernel_rows, self._kernel_cols ]
-
-    @property
-    def kernel_rows(self) -> int:
-        return self._kernel_rows
-
-    @property
-    def kernel_cols(self) -> int:
-        return self._kernel_cols
+        return [ self.kernel_rows, self.kernel_cols ]
 
     @property
     def stride(self) -> List[int]:
-        return [ self._stride_rows, self._stride_cols ]
-
-    @property
-    def stride_rows(self) -> int:
-        return self._stride_rows
-
-    @property
-    def stride_cols(self) -> int:
-        return self._stride_cols
+        return [ self.stride_rows, self.stride_cols ]
 
     @property
     def pad(self) -> List[int]:
         return [
-            self._pad_top,
-            self._pad_left,
-            self._pad_bottom,
-            self._pad_right,
+            self.pad_top,
+            self.pad_left,
+            self.pad_bottom,
+            self.pad_right,
         ]
-
-    @property
-    def pad_top(self) -> int:
-        return self._pad_top
-
-    @property
-    def pad_right(self) -> int:
-        return self._pad_right
-
-    @property
-    def pad_bottom(self) -> int:
-        return self._pad_bottom
-
-    @property
-    def pad_left(self) -> int:
-        return self._pad_left
-
-    @property
-    def pool_type(self) -> str:
-        return self._pool_type
-
-    @property
-    def coarse(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_in(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_out(self) -> int:
-        return self._coarse
-
-    @property
-    def fine(self) -> int:
-        if self.pool_type == "max":
-            return self.kernel_size[0] * self.kernel_size[1]
-        else:
-            return self._fine
 
     @kernel_size.setter
     def kernel_size(self, val: List[int]) -> None:
-        self._kernel_rows = val[0]
-        self._kernel_cols = val[1]
-        # self.update()
-
-    @kernel_rows.setter
-    def kernel_rows(self, val: int) -> None:
-        self._kernel_rows = val
-        # self.update()
-
-    @kernel_cols.setter
-    def kernel_cols(self, val: int) -> None:
-        self._kernel_cols = val
-        # self.update()
+        self.kernel_rows = val[0]
+        self.kernel_cols = val[1]
 
     @stride.setter
     def stride(self, val: List[int]) -> None:
-        self._stride_rows = val[0]
-        self._stride_cols = val[1]
-        # self.update()
-
-    @stride_rows.setter
-    def stride_rows(self, val: int) -> None:
-        self._stride_rows = val
-        # self.update()
-
-    @stride_cols.setter
-    def stride_cols(self, val: int) -> None:
-        self._stride_cols = val
-        # self.update()
+        self.stride_rows = val[0]
+        self.stride_cols = val[1]
 
     @pad.setter
     def pad(self, val: List[int]) -> None:
-        self._pad_top    = val[0]
-        self._pad_right  = val[3]
-        self._pad_bottom = val[2]
-        self._pad_left   = val[1]
-        # self.update()
-
-    @pad_top.setter
-    def pad_top(self, val: int) -> None:
-        self._pad_top = val
-        # self.update()
-
-    @pad_right.setter
-    def pad_right(self, val: int) -> None:
-        self._pad_right = val
-        # self.update()
-
-    @pad_bottom.setter
-    def pad_bottom(self, val: int) -> None:
-        self._pad_bottom = val
-        # self.update()
-
-    @pad_left.setter
-    def pad_left(self, val: int) -> None:
-        self._pad_left = val
-        # self.update()
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
-
-    @fine.setter
-    def fine(self, val: int) -> None:
-        self._fine = val
-        # self.update()
+        self.pad_top    = val[0]
+        self.pad_right  = val[3]
+        self.pad_bottom = val[2]
+        self.pad_left   = val[1]
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
@@ -258,14 +134,14 @@ class PoolingLayer(Layer):
         # sliding window
         self.modules['sliding_window'].rows     = self.rows_in()
         self.modules['sliding_window'].cols     = self.cols_in()
-        self.modules['sliding_window'].channels = int(self.channels_in()/self.coarse)
+        self.modules['sliding_window'].channels = self.channels_in()//self.coarse
         self.modules['sliding_window'].data_width = self.data_t.width
         if self.data_packing:
             self.modules['sliding_window'].streams = self.coarse
         # pool
         self.modules['pool'].rows     = self.rows_out()
         self.modules['pool'].cols     = self.cols_out()
-        self.modules['pool'].channels = int(self.channels_in()/self.coarse)
+        self.modules['pool'].channels = self.channels_in()//self.coarse
         self.modules['pool'].data_width = self.data_t.width
         if self.data_packing:
             self.modules['pool'].streams = self.coarse
