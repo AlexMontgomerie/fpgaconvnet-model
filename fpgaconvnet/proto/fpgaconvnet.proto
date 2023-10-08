@@ -1,124 +1,252 @@
 syntax = "proto2";
 
+package fpgaconvnet;
+
+/**
+    * Message for representing fixed-point numbers.
+    *
+    * width: The total number of bits used to represent the number.
+    * binary_point: The position of the binary point (i.e., the number of bits to the right of the decimal point).
+ */
 message fixed_point {
     required int32 width = 1;
     required int32 binary_point = 2;
 }
 
+/**
+    * Message for representing the quantization format of a layer.
+    *
+    * scale_t: The fixed-point scale value.
+    * shift_t: The fixed-point shift value.
+    * scale: The scale values for each channel.
+    * shift: The shift values for each channel.
+*/
 message quant_format {
-    repeated float scale = 1;
-    repeated int32 zero_point = 2;
+    required fixed_point scale_t = 1;
+    required fixed_point shift_t = 2;
+    repeated float scale = 3;
+    repeated int32 shift = 4;
 }
+
+/**
+ * Message for representing a stream of a layer.
+ *
+ * name: The name of the stream.
+ * coarse: The coarse of the stream.
+ * buffer_depth: The buffer depth of the stream.
+ * node: The name of the node that the stream is connected to.
+ */
 
 message stream {
     required string name = 1;
-    required int32  coarse = 2;
-    required int32  buffer_depth = 3 [default = 2];
+    required int32 coarse = 2;
+    required int32 buffer_depth = 3 [default = 2];
     optional string node = 4;
 }
 
+/**
+ * Message for representing the parameters of a layer [0, 49].
+ */
+
 message parameter {
-    optional int32 buffer_depth = 1 [default = 2];
-    optional int32 batch_size   = 2;
-    optional int32 rows_in      = 3;
-    optional int32 cols_in      = 4;
-    optional int32 depth_in     = 5;
-    optional int32 channels_in  = 6;
-    optional int32 rows_out     = 7;
-    optional int32 cols_out     = 8;
-    optional int32 depth_out    = 9;
-    optional int32 channels_out = 10;
+
+    /**
+    *  General parameters [0, 49]
+    */
+
+    // batch size of the layer
+    optional int32 batch_size   = 1;
+
+    // input dimensionality of the layer
+    optional int32 rows_in      = 2;
+    optional int32 cols_in      = 3;
+    optional int32 depth_in     = 4;
+    optional int32 channels_in  = 5;
+
+    // output dimensionality of the layer
+    optional int32 rows_out     = 6;
+    optional int32 cols_out     = 7;
+    optional int32 depth_out    = 8;
+    optional int32 channels_out = 9;
+
+    // coarse grain folding of the layer
+    optional int32 coarse       = 10;
     optional int32 coarse_in    = 11;
     optional int32 coarse_out   = 12;
-    optional int32 coarse       = 13;
-    optional int32 coarse_group = 14;
-    optional int32 groups       = 15;
-    optional int32 fine         = 16;
-    optional int32 filters      = 17;
-    optional int32 pad_top      = 18;
-    optional int32 pad_right    = 19;
-    optional int32 pad_front    = 20;
-    optional int32 pad_bottom   = 21;
-    optional int32 pad_left     = 22;
-    optional int32 pad_back     = 23;
-    optional int32 kernel_rows  = 24;
-    optional int32 kernel_cols  = 25;
-    optional int32 kernel_depth = 26;
-    repeated int32 kernel_size  = 27;
-    optional int32 stride_rows  = 28;
-    optional int32 stride_cols  = 29;
-    optional int32 stride_depth = 30;
-    repeated int32 stride       = 31;
-    optional float mem_bw_in    = 32;
-    optional float mem_bw_out   = 33;
-    optional fixed_point data_t     = 34;
-    optional fixed_point weight_t   = 35;
-    optional fixed_point acc_t      = 36;
-    optional fixed_point input_t    = 37;
-    optional fixed_point output_t   = 38;
-    optional int32 has_bias     = 39;
-    optional int32 biases_width = 40;
-    optional int32 ports_in     = 41;
-    optional int32 ports_out    = 42;
-    repeated int32 rows_in_array        = 43;
-    repeated int32 cols_in_array        = 44;
-    repeated int32 depth_in_array       = 45;
-    repeated int32 channels_in_array    = 46;
-    repeated float mem_bw_in_array      = 47;
-    repeated int32 rows_out_array       = 48;
-    repeated int32 cols_out_array       = 49;
-    repeated int32 depth_out_array      = 50;
-    repeated int32 channels_out_array   = 51;
-    repeated float mem_bw_out_array     = 52;
-    optional quant_format input_quant   = 53;
-    optional quant_format outnput_quant = 54;
-    optional quant_format weight_quant  = 55;
-    optional quant_format bias_quant    = 56;
-    optional bool block_floating_point  = 57;
-    repeated float scale = 58;
-    repeated float shift = 59;
-    optional fixed_point scale_t = 60;
-    optional fixed_point shift_t = 61;
-    optional float sparsity = 62;
-    optional bool use_uram = 63;
-    optional int32 on_chip_addr_range = 64;
-    optional int32 off_chip_buffer_size = 65;
-    optional int32 off_chip_interval = 66;
-    optional int32 stream_weights = 67;
-    repeated int32 split = 68;
-    repeated bool stream_inputs = 69;
-    repeated bool stream_outputs = 70;
+
+    // memory bandwidth of the layer
+    optional float mem_bw_in    = 13;
+    optional float mem_bw_out   = 14;
+
+    // data types of the layer
+    optional fixed_point data_t     = 15;
+    optional fixed_point input_t    = 16;
+    optional fixed_point output_t   = 17;
+
+    // quantization format of the layer
+    optional quant_format input_quant  = 18;
+    optional quant_format output_quant = 19;
+
+    // stream inputs and outputs
+    repeated bool stream_inputs  = 20;
+    repeated bool stream_outputs = 21;
+
+    // other general flags
+    optional bool use_uram = 22 [default = true];
+
+    /**
+     * General multiport parameters [50, 99]
+     */
+
+    // number of ports of the layer
+    optional int32 ports_in     = 50;
+    optional int32 ports_out    = 51;
+
+    // input dimensionality of the layer
+    repeated int32 rows_in_array        = 52;
+    repeated int32 cols_in_array        = 53;
+    repeated int32 depth_in_array       = 54;
+    repeated int32 channels_in_array    = 55;
+
+    // output dimensionality of the layer
+    repeated int32 rows_out_array       = 56;
+    repeated int32 cols_out_array       = 57;
+    repeated int32 depth_out_array      = 58;
+    repeated int32 channels_out_array   = 59;
+
+    // memory bandwidth of the layer
+    repeated float mem_bw_in_array      = 60;
+    repeated float mem_bw_out_array     = 61;
+
+    /**
+    *  Convolution & Pooling parameters [100, 149]
+    */
+
+    // padding parameters
+    optional int32 pad_top      = 104;
+    optional int32 pad_right    = 105;
+    optional int32 pad_bottom   = 106;
+    optional int32 pad_left     = 107;
+    optional int32 pad_front    = 108;
+    optional int32 pad_back     = 109;
+
+    // kernel shape parameters
+    optional int32 kernel_rows  = 110;
+    optional int32 kernel_cols  = 111;
+    optional int32 kernel_depth = 112;
+    repeated int32 kernel_size  = 113;
+
+    // striding parameters
+    optional int32 stride_rows  = 114;
+    optional int32 stride_cols  = 115;
+    optional int32 stride_depth = 116;
+    repeated int32 stride       = 117;
+
+    /**
+    *  Convolution & Inner Product parameters [150, 199]
+    */
+
+    // convolution parameters
+    optional int32 filters      = 150;
+    optional int32 groups       = 151;
+    optional int32 fine         = 152;
+    optional int32 coarse_group = 153;
+
+    // data types of the parameters and accumulation
+    optional fixed_point weight_t = 154;
+    optional fixed_point acc_t    = 155;
+    optional fixed_point bias_t   = 156;
+
+    // quantization format of the parameters
+    optional quant_format weight_quant  = 157;
+    optional quant_format bias_quant    = 158;
+
+    // weights streaming parameters
+    optional int32 stream_weights       = 159;
+    optional int32 on_chip_addr_range   = 160;
+    optional int32 off_chip_buffer_size = 161;
+    optional int32 off_chip_interval    = 162;
+
+    // other convolution flags
+    optional float sparsity             = 163;
+    optional bool has_bias              = 164;
+    optional bool block_floating_point  = 165;
+
+    /**
+    *  Other layer type parameters [200, 300]
+    */
+
+    // split layer parameter
+    repeated int32 split = 200;
+
 }
+
+/**
+ * Enumeration for representing the type of a layer.
+ */
+
+enum layer_type {
+    CONVOLUTION     = 0;
+    POOLING         = 1;
+    ACTIVATION      = 2;
+    SQUEEZE         = 3;
+    INNER_PRODUCT   = 4;
+    CONCAT          = 5;
+    BATCH_NORM      = 6;
+    SPLIT           = 7;
+    ELTWISE         = 8;
+    AVERAGE_POOLING = 9;
+    RESIZE          = 10;
+    CHOP            = 11;
+}
+
+/**
+ * Message for representing a layer of a network.
+ *
+ * name: The name of the layer.
+ * onnx_node: The name of the ONNX node.
+ * type: The type of the layer.
+ * op_type: The type of the ONNX node.
+ * streams_in: The input streams of the layer.
+ * streams_out: The output streams of the layer.
+ * weights_path: The path to the weights of the layer.
+ * bias_path: The path to the bias of the layer.
+ * parameters: The parameters of the layer.
+ */
 
 message layer {
+
     required string name = 1;
     required string onnx_node = 2;
+
     required layer_type type = 3;
     optional string op_type = 4;
+
     repeated stream streams_in  = 5;
     repeated stream streams_out = 6;
-    required parameter parameters = 7;
 
-    enum layer_type {
-        CONVOLUTION     = 0;
-        POOLING         = 1;
-        ACTIVATION      = 2;
-        SQUEEZE         = 3;
-        INNER_PRODUCT   = 4;
-        CONCAT          = 5;
-        BATCH_NORM      = 6;
-        SPLIT           = 7;
-        ELTWISE         = 8;
-        AVERAGE_POOLING = 9;
-        RESIZE          = 10;
-        CHOP            = 11;
-    }
+    optional string weights_path = 7;
+    optional string bias_path    = 8;
 
-    optional string weights_path = 8;
-    optional string bias_path    = 9;
+    required parameter parameters = 9;
 }
 
+/**
+ * Message for representing a partition of a network.
+ *
+ * id: The ID of the partition.
+ * ports: The number of ports of the partition.
+ * batch_size: The batch size of the partition.
+ * input_nodes: The names of the input nodes of the partition.
+ * output_nodes: The names of the output nodes of the partition.
+ * weights_reloading_factor: The number of times the weights are reloaded.
+ * weights_reloading_layer: The name of the layer where the weights are reloaded.
+ * gen_last_width: number of bits used in the generate last signal. 
+ * layers: The layers of the partition.
+ */
+
 message partition {
+
     required int32  id = 1;
     required int32  ports = 2;
     required int32  batch_size = 3;
@@ -126,12 +254,17 @@ message partition {
     repeated string output_nodes = 5;
     required int32  weights_reloading_factor = 6;
     required string weights_reloading_layer  = 7;
-
-    repeated layer layers = 8;
-    optional int32 gen_last_width = 9;
+    optional int32  gen_last_width = 8;
+    repeated layer  layers = 9;
 }
 
+/**
+ * Message for representing the partitioning of a network.
+ */
+
 message partitions {
+
     repeated partition partition = 1;
+
 }
 
