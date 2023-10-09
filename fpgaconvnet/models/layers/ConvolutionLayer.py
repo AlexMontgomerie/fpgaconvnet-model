@@ -25,9 +25,9 @@ from fpgaconvnet.models.modules import ShiftScale
 
 @dataclass(kw_only=True)
 class ConvolutionLayer(Layer):
-    filters: int 
-    kernel_rows: int 
-    kernel_cols: int 
+    filters: int
+    kernel_rows: int
+    kernel_cols: int
     coarse_in: int = 1
     coarse_out: int = 1
     coarse_group: int = 1
@@ -48,7 +48,7 @@ class ConvolutionLayer(Layer):
     block_floating_point: bool = False
     backend: str = "chisel" # default to no bias for old configs
     regression_model: str = "linear_regression"
-    stream_weights: int = 0 
+    stream_weights: int = 0
     stream_inputs: list = field(default_factory=lambda: [0], init=True)
 
     def __post_init__(self):
@@ -58,7 +58,7 @@ class ConvolutionLayer(Layer):
 
         # check if the layer is depthwise
         self.depthwise = (self.groups == self.channels) and (self.groups == self.filters)
-        self.pointwise = np.prod(self.kernel_size) == 1 
+        self.pointwise = np.prod(self.kernel_size) == 1
 
         # save sparsity
         if len(self.sparsity) > 0:
@@ -157,7 +157,7 @@ class ConvolutionLayer(Layer):
 
         if not hasattr(self, "is_init"):
             super().__setattr__(name, value)
-            return 
+            return
 
         match name:
             case "groups":
@@ -176,7 +176,7 @@ class ConvolutionLayer(Layer):
 
             case _:
                 super().__setattr__(name, value)
- 
+
     @property
     def kernel_size(self) -> List[int]:
         return [ self.kernel_rows, self.kernel_cols ]
@@ -214,7 +214,7 @@ class ConvolutionLayer(Layer):
         self.pad_bottom = val[2]
         self.pad_left   = val[1]
 
-       
+
     def rows_out(self) -> int:
         return self.modules["sliding_window"].rows_out()
 
@@ -251,7 +251,7 @@ class ConvolutionLayer(Layer):
         else:
             indices = list(range(self.channels_in()))
 
-        stream_sparsity = np.reshape([self.sparsity[i] for i in indices], 
+        stream_sparsity = np.reshape([self.sparsity[i] for i in indices],
                 (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
         return stream_sparsity
 
@@ -406,7 +406,7 @@ class ConvolutionLayer(Layer):
         parameters.use_uram     = self.use_uram
         parameters.on_chip_addr_range = int(self.on_chip_addr_range())
         parameters.stream_weights = int(self.stream_weights)
-        if self.stream_weights > 0: 
+        if self.stream_weights > 0:
             parameters.off_chip_buffer_size = self.off_chip_buffer_size()
             parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
         else:
@@ -546,8 +546,8 @@ class ConvolutionLayer(Layer):
             weight_array_width = self.weight_t.width
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
 
-        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
-        
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num)
+
         # bias usage
         if self.has_bias:
             bias_memory_depth =  math.ceil(float(self.filters) / float(self.coarse_out*self.coarse_group))

@@ -1,6 +1,7 @@
 import importlib
 import math
 from typing import Union, List
+from dataclasses import dataclass, field
 
 import pydot
 import numpy as np
@@ -8,7 +9,7 @@ import numpy as np
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers import Layer3D
 
 from fpgaconvnet.models.modules import SlidingWindow3D
@@ -20,93 +21,70 @@ from fpgaconvnet.models.modules import Accum3D
 from fpgaconvnet.models.modules import Glue3D
 from fpgaconvnet.models.modules import Bias3D
 from fpgaconvnet.models.modules import Pad3D
+from fpgaconvnet.models.modules import ShiftScale3D
 
+@dataclass(kw_only=True)
 class ConvolutionLayer3D(Layer3D):
+    filters: int
+    kernel_rows: int
+    kernel_cols: int
+    kernel_depth: int
+    coarse_in: int = 1
+    coarse_out: int = 1
+    coarse_group: int = 1
+    stride_rows: int = 2
+    stride_cols: int = 2
+    stride_depth: int = 2
+    groups: int = 1
+    pad_top: int = 0
+    pad_right: int = 0
+    pad_front: int = 0
+    pad_bottom: int = 0
+    pad_left: int = 0
+    pad_back: int = 0
+    fine: int  = 1
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16), init=True)
+    has_bias: int = 0 # default to no bias for old configs
+    sparsity: list = field(default_factory=lambda: [], init=True)
+    block_floating_point: bool = False
+    backend: str = "chisel" # default to no bias for old configs
+    regression_model: str = "linear_regression"
+    stream_weights: int = 0
+    stream_inputs: list = field(default_factory=lambda: [0], init=True)
 
-    def __init__(
-            self,
-            filters: int,
-            rows: int,
-            cols: int,
-            depth: int,
-            channels: int,
-            coarse_in: int = 1,
-            coarse_out: int = 1,
-            coarse_group: int = 1,
-            kernel_rows: int = 1,
-            kernel_cols: int = 1,
-            kernel_depth: int = 1,
-            stride_rows: int = 1,
-            stride_cols: int = 1,
-            stride_depth: int = 1,
-            groups: int = 1,
-            pad_top: int = 0,
-            pad_right: int = 0,
-            pad_front: int = 0,
-            pad_bottom: int = 0,
-            pad_left: int = 0,
-            pad_back: int = 0,
-            fine: int  = 1,
-            input_t: FixedPoint = FixedPoint(16,8),
-            output_t: FixedPoint = FixedPoint(16,8),
-            weight_t: FixedPoint = FixedPoint(16,8),
-            acc_t: FixedPoint = FixedPoint(32,16),
-            has_bias: int = 0, # default to no bias for old configs
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
-        ):
+    def __post_init__(self):
 
-        # initialise parent class
-        super().__init__(rows, cols, depth, channels,
-                coarse_in, coarse_out)
-
-        # save data types
-        self.input_t = input_t
-        self.output_t = output_t
-        self.weight_t = weight_t
-        self.acc_t = acc_t
-
-        # save bias flag
-        self.has_bias = has_bias
-
-        # init variables
-        self._kernel_rows = kernel_rows
-        self._kernel_cols = kernel_cols
-        self._kernel_depth = kernel_depth
-        self._stride_rows = stride_rows
-        self._stride_cols = stride_cols
-        self._stride_depth = stride_depth
-        self._pad_top = pad_top
-        self._pad_right = pad_right
-        self._pad_front = pad_front
-        self._pad_bottom = pad_bottom
-        self._pad_left = pad_left
-        self._pad_back = pad_back
-        self._groups = groups
-        self._coarse_group = coarse_group
-        self._fine = fine
-        self._filters = filters
+        # call parent post init
+        super().__post_init__()
 
         # check if the layer is depthwise
-        self.depthwise = (groups == channels) and (groups == filters)
+        self.depthwise = (self.groups == self.channels) and (self.groups == self.filters)
+        self.pointwise = np.prod(self.kernel_size) == 1
 
-        # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        # save sparsity
+        if len(self.sparsity) > 0:
+            # reject if pointwise or low sparsity
+            if self.pointwise or np.mean(self.sparsity) < 0.1:
+                self.sparsity = []
+        # self.sparsity = sparsity
 
         # weights buffering flag
         if self.backend == "hls":
             self.double_buffered = False
-            self.stream_weights = False
+            self.stream_weights = 0
             self.data_packing = False
+            self.use_uram = False
         elif self.backend == "chisel":
             self.double_buffered = False
-            self.stream_weights = False
             self.data_packing = True
+            self.use_uram = False
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert self.regression_model in ["linear_regression", "xgboost"], f"{self.regression_model} is an invalid regression model"
+        self.regression_model = self.regression_model
 
         self.modules["pad3d"] = Pad3D(
                 self.rows_in(), self.cols_in(), self.depth_in(),
@@ -160,18 +138,21 @@ class ConvolutionLayer3D(Layer3D):
                     self.fine, 1, 1, self.coarse_out, backend=self.backend,
                     regression_model=self.regression_model)
 
-            self.modules["vector_dot3d"] = VectorDot3D(
-                    self.rows_out(), self.cols_out(), self.depth_out(),
-                    self.channels_in()//(self.coarse_in*self.coarse_group),
-                    self.filters//(self.coarse_out*self.groups), self.fine,
-                    backend=self.backend, regression_model=self.regression_model)
+            if len(self.sparsity) == 0:
+                self.modules["vector_dot3d"] = VectorDot3D(
+                        self.rows_out(), self.cols_out(), self.depth_out(),
+                        self.channels_in()//(self.coarse_in*self.coarse_group),
+                        self.filters//(self.coarse_out*self.groups), self.fine,
+                        backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["accum3d"] = Accum3D(
-                    self.rows_out(), self.cols_out(), self.depth_out(),
-                    (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()
-                        )//(self.fine*self.coarse_in*self.groups),
-                    self.filters//(self.coarse_out*self.groups), 1,
-                    backend=self.backend, regression_model=self.regression_model)
+                self.modules["accum3d"] = Accum3D(
+                        self.rows_out(), self.cols_out(), self.depth_out(),
+                        (self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()
+                            )//(self.fine*self.coarse_in*self.groups),
+                        self.filters//(self.coarse_out*self.groups), 1,
+                        backend=self.backend, regression_model=self.regression_model)
+            else:
+                raise NotImplementedError
 
         self.modules["glue3d"] = Glue3D(
                 self.rows_out(), self.cols_out(), self.depth_out(),
@@ -184,172 +165,53 @@ class ConvolutionLayer3D(Layer3D):
                 1, self.filters, backend=self.backend,
                 regression_model=self.regression_model) # TODO
 
+        self.modules["shift_scale3d"] = ShiftScale3D(self.rows_out(), self.cols_out(), self.depth_out(), 1, self.filters//(self.coarse_out*self.coarse_group))
+
         # update modules
         self.update()
 
     @property
     def kernel_size(self) -> List[int]:
-        return [ self._kernel_rows, self._kernel_cols, self._kernel_depth ]
-
-    @property
-    def kernel_rows(self) -> int:
-        return self._kernel_rows
-
-    @property
-    def kernel_cols(self) -> int:
-        return self._kernel_cols
-
-    @property
-    def kernel_depth(self) -> int:
-        return self._kernel_depth
+        return [ self.kernel_rows, self.kernel_cols, self.kernel_depth]
 
     @property
     def stride(self) -> List[int]:
-        return [ self._stride_rows, self._stride_cols, self._stride_depth ]
-
-    @property
-    def stride_rows(self) -> int:
-        return self._stride_rows
-
-    @property
-    def stride_cols(self) -> int:
-        return self._stride_cols
-
-    @property
-    def stride_depth(self) -> int:
-        return self._stride_depth
+        return [ self.stride_rows, self.stride_cols, self.stride_depth]
 
     @property
     def pad(self) -> List[int]:
         return [
-            self._pad_top,
-            self._pad_left,
-            self._pad_front,
-            self._pad_bottom,
-            self._pad_right,
-            self._pad_back,
+            self.pad_top,
+            self.pad_left,
+            self.pad_front,
+            self.pad_bottom,
+            self.pad_right,
+            self.pad_back,
         ]
 
-    @property
-    def pad_top(self) -> int:
-        return self._pad_top
+    @kernel_size.setter
+    def kernel_size(self, val: List[int]) -> None:
+        assert(len(val) == 3, "kernel size must be a list of three integers")
+        self.kernel_rows = val[0]
+        self.kernel_cols = val[1]
+        self.kernel_depth = val[2]
 
-    @property
-    def pad_right(self) -> int:
-        return self._pad_right
+    @stride.setter
+    def stride(self, val: List[int]) -> None:
+        assert(len(val) == 3, "stride must be a list of three integers")
+        self.stride_rows = val[0]
+        self.stride_cols = val[1]
+        self.stride_depth = val[2]
 
-    @property
-    def pad_front(self) -> int:
-        return self._pad_front
-
-    @property
-    def pad_bottom(self) -> int:
-        return self._pad_bottom
-
-    @property
-    def pad_left(self) -> int:
-        return self._pad_left
-
-    @property
-    def pad_back(self) -> int:
-        return self._pad_back
-
-    @property
-    def groups(self) -> int:
-        return self._groups
-
-    @property
-    def coarse_group(self) -> int:
-        return self._coarse_group
-
-    @property
-    def fine(self) -> int:
-        return self._fine
-
-    @property
-    def filters(self) -> int:
-        return self._filters
-
-    @kernel_rows.setter
-    def kernel_rows(self, val: int) -> None:
-        self._kernel_rows = val
-        # self.update()
-
-    @kernel_cols.setter
-    def kernel_cols(self, val: int) -> None:
-        self._kernel_cols = val
-        # self.update()
-
-    @kernel_depth.setter
-    def kernel_depth(self, val: int) -> None:
-        self._kernel_depth = val
-        # self.update()
-
-    @stride_rows.setter
-    def stride_rows(self, val: int) -> None:
-        self._stride_rows = val
-        # self.update()
-
-    @stride_cols.setter
-    def stride_cols(self, val: int) -> None:
-        self._stride_cols = val
-        # self.update()
-
-    @stride_depth.setter
-    def stride_depth(self, val: int) -> None:
-        self._stride_depth = val
-        # self.update()
-
-    @pad_top.setter
-    def pad_top(self, val: int) -> None:
-        self._pad_top = val
-        # self.update()
-
-    @pad_right.setter
-    def pad_right(self, val: int) -> None:
-        self._pad_right = val
-        # self.update()
-
-    @pad_front.setter
-    def pad_front(self, val: int) -> None:
-        self._pad_front = val
-        # self.update()
-
-    @pad_bottom.setter
-    def pad_bottom(self, val: int) -> None:
-        self._pad_bottom = val
-        # self.update()
-
-    @pad_left.setter
-    def pad_left(self, val: int) -> None:
-        self._pad_left = val
-        # self.update()
-
-    @pad_back.setter
-    def pad_back(self, val: int) -> None:
-        self._pad_back = val
-        # self.update()
-
-    @groups.setter
-    def groups(self, val: int) -> None:
-        self._groups = val
-        # self.update()
-
-    @fine.setter
-    def fine(self, val: int) -> None:
-        self._fine = val
-        # self.update()
-
-    @filters.setter
-    def filters(self, val: int) -> None:
-        self._filters = val
-        # self.update()
-
-    @coarse_group.setter
-    def coarse_group(self, val: int) -> None:
-        assert(val in self.get_coarse_group_feasible())
-        self._coarse_group = val
-        # self.update()
+    @pad.setter
+    def pad(self, val: List[int]) -> None:
+        assert(len(val) == 6, "pad must be a list of six integers")
+        self.pad_top    = val[0]
+        self.pad_right  = val[4]
+        self.pad_bottom = val[3]
+        self.pad_left   = val[1]
+        self.pad_front  = val[2]
+        self.pad_back   = val[5]
 
     def rows_out(self) -> int:
         return self.modules["sliding_window3d"].rows_out()
@@ -381,6 +243,20 @@ class ConvolutionLayer3D(Layer3D):
         """
         return self.coarse_out*self.coarse_group
 
+    def get_stream_sparsity(self, interleave=True):
+        raise NotImplementedError
+
+    def pipeline_depth(self):
+        # pipeline depth of the sliding window
+        # minus the total words in the pipeline from padding (missing)
+        # plus the words needed to fill the accum buffer
+
+        # - ( self.pad_top * self.cols * self.channels//self.streams_in() + \
+        #         (self.pad_left+self.pad_right)*self.channels//self.streams_in() )
+        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*(self.depth+self.pad_front+self.pad_back)*self.channels//self.streams_in() + \
+                (self.kernel_cols-1)*(self.depth+self.pad_front+self.pad_back)*self.channels//self.streams_in() + \
+                (self.kernel_depth-1)*self.channels//self.streams_in() + \
+                self.channels//self.streams_in()
 
     def update(self):
 
@@ -402,7 +278,7 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['sliding_window3d'].rows     = self.rows + self.pad_top + self.pad_bottom
         self.modules['sliding_window3d'].cols     = self.cols + self.pad_left + self.pad_right
         self.modules['sliding_window3d'].depth    = self.depth + self.pad_front + self.pad_back
-        self.modules['sliding_window3d'].channels = self.channels//(self.coarse_in*self.coarse_group)
+        self.modules['sliding_window3d'].channels = self.channels//self.streams_in()
         self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
         self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
         self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
@@ -508,6 +384,7 @@ class ConvolutionLayer3D(Layer3D):
         parameters.groups       = self.groups
         parameters.coarse_group = self.coarse_group
         parameters.fine         = self.fine
+        parameters.sparsity     = 0
         parameters.kernel_size.extend(self.kernel_size)
         parameters.kernel_rows = self.kernel_rows
         parameters.kernel_cols = self.kernel_cols
@@ -523,11 +400,13 @@ class ConvolutionLayer3D(Layer3D):
         parameters.pad_left     = self.pad_left
         parameters.pad_back     = self.pad_back
         parameters.has_bias     = self.has_bias
+        parameters.block_floating_point    = self.block_floating_point
         self.input_t.to_protobuf(parameters.input_t)
         self.output_t.to_protobuf(parameters.output_t)
         self.weight_t.to_protobuf(parameters.weight_t)
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
+        parameters.use_uram     = self.use_uram
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)
@@ -591,7 +470,10 @@ class ConvolutionLayer3D(Layer3D):
         }
 
     def get_operations(self):
-        return self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()*self.filters*self.rows_out()*self.cols_out()*self.depth_out()
+        ops = self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()*self.filters*self.rows_out()*self.cols_out()*self.depth_out()
+        if self.has_bias:
+            ops += self.filters*self.rows_out()*self.cols_out()*self.depth_out()
+        return ops
 
     def resource(self):
 
@@ -604,7 +486,8 @@ class ConvolutionLayer3D(Layer3D):
             vector_dot_rsc  = self.modules['vector_dot3d'].rsc()
             accum_rsc       = self.modules['accum3d'].rsc()
             glue_rsc        = self.modules['glue3d'].rsc()
-            # bias_rsc        = self.modules['bias3d'].rsc()
+            bias_rsc        = self.modules['bias3d'].rsc()
+            shift_scale_rsc = self.modules['shift_scale3d'].rsc()
 
             # remove redundant modules
             if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
@@ -617,8 +500,10 @@ class ConvolutionLayer3D(Layer3D):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            # if self.has_bias:
-            #     bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.has_bias == 0:
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if not self.block_floating_point:
+                shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             # accumulate resource usage based on coarse factors
             # rsc = { rsc_type: (
@@ -630,15 +515,35 @@ class ConvolutionLayer3D(Layer3D):
             #     glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
             #     bias_rsc[rsc_type]*self.coarse_out
             # ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
-            rsc = { rsc_type: (
-                sw_rsc[rsc_type] +
-                squeeze_rsc[rsc_type] +
-                fork_rsc[rsc_type] +
-                vector_dot_rsc[rsc_type] +
-                accum_rsc[rsc_type] +
-                glue_rsc[rsc_type] #+
-                # bias_rsc[rsc_type]*self.coarse_out*self.coarse_group
-            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+
+            # dsp packing
+            if self.weight_t.width <= 4 and self.input_t.width <= 4:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
+            elif self.weight_t.width <= 8 and self.input_t.width <= 8:
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
+
+            if self.data_packing:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type] +
+                    squeeze_rsc[rsc_type] +
+                    fork_rsc[rsc_type] +
+                    math.ceil(vector_dot_rsc[rsc_type]) +
+                    accum_rsc[rsc_type] +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type] +
+                    shift_scale_rsc[rsc_type]
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+            else:
+                rsc = { rsc_type: (
+                    sw_rsc[rsc_type] +
+                    squeeze_rsc[rsc_type] +
+                    fork_rsc[rsc_type] +
+                    vector_dot_rsc[rsc_type] +
+                    accum_rsc[rsc_type] +
+                    glue_rsc[rsc_type] +
+                    bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                    shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
+                ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         elif self.backend == "hls":
 
@@ -685,31 +590,59 @@ class ConvolutionLayer3D(Layer3D):
             weight_memory_depth *= 2
 
         if self.data_packing:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth),
-                        self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group,
-                        'memory')
+            weight_array_depth = math.ceil(weight_memory_depth)
+            if len(self.sparsity) == 0:
+                weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+                weight_array_num = 1
+            else:
+                weight_array_width = self.weight_t.width*self.fine*self.coarse_out*self.coarse_group
+                weight_array_num = self.coarse_in
         else:
-            weights_bram_usage = bram_array_resource_model(
-                        int(weight_memory_depth), self.weight_t.width,
-                        "memory") * \
-                    self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+            weight_array_depth = math.ceil(weight_memory_depth)
+            weight_array_width = self.weight_t.width
+            weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
+
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num)
 
         # if streaming weights, set to zero
         if self.stream_weights:
             weights_bram_usage = 0
 
-        # bias usage FIXME depth, FIXME bram usage
-        bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
-        biases_bram_usage = bram_array_resource_model(
-                    int(bias_memory_depth),self.acc_t.width,
-                    'memory') * self.coarse_out * self.coarse_group
+        # bias usage
+        if self.has_bias:
+            bias_memory_depth =  math.ceil(float(self.filters) / float(self.coarse_out*self.coarse_group))
+            if self.data_packing:
+                bias_array_width = self.acc_t.width*self.coarse_out*self.coarse_group
+                bias_array_num = 1
+            else:
+                bias_array_width = self.acc_t.width
+                bias_array_num = self.coarse_out*self.coarse_group
+            biases_bram_usage = bram_array_resource_model(
+                        bias_memory_depth, bias_array_width,
+                        "memory") * bias_array_num
+        else:
+            biases_bram_usage = 0
+
+        # bfp shift scale usage
+        if self.block_floating_point:
+            shift_scale_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
+            shift_scale_bram_usage = bram_array_resource_model(
+                        int(shift_scale_memory_depth),self.acc_t.width,
+                        "memory") * self.coarse_out * self.coarse_group * 2
+        else:
+            shift_scale_bram_usage = 0
 
         # add weights and bias to resources
-        rsc["BRAM"] += weights_bram_usage # + biases_bram_usage
+        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
+        rsc["URAM"] = weights_uram_usage
 
         # return total resource
         return rsc
+
+    from fpgaconvnet.models.layers.utils import stream_unit, stream_step
+    from fpgaconvnet.models.layers.utils import off_chip_addr_range, on_chip_addr_range, off_chip_buffer_size
+    from fpgaconvnet.models.layers.utils import stream_bits, stream_cycles, stream_bw
+    from fpgaconvnet.models.layers.utils import stream_rsc, stream_buffer
 
     def visualise(self, name):
         cluster = pydot.Cluster(name, label=name,
