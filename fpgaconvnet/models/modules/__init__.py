@@ -38,6 +38,7 @@ from .Stride import Stride
 # 3D modules
 from .Module3D import Module3D
 from .Accum3D import Accum3D
+from .ShiftScale3D import ShiftScale3D
 from .Conv3D import Conv3D
 from .Fork3D import Fork3D
 from .Glue3D import Glue3D
