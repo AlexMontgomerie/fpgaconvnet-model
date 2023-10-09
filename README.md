@@ -2,11 +2,13 @@
 
 This repo contains performance and resource for the building blocks of fpgaConvNet, a Streaming Architecture-based Convolutional Neural Network (CNN) acceleration toolflow, which maps CNN models to FPGAs. The building blocks are implemented in hardware in the [fpgaconvnet-hls](https://github.com/AlexMontgomerie/fpgaconvnet-hls) repository. These models are used in conjunction with [samo](https://github.com/AlexMontgomerie/samo), a Streaming Architecture optimiser, where there are instructions for performing optimisation.
 
+## Prerequisites
+`libprotoc >= 3.15.8`
 ## Setup
 
 The following programs are required:
 
-- `python (>=3.7)`
+- `python (>=3.10)`
 
 To install this package, run from this directory the following:
 
@@ -47,30 +49,36 @@ In order to do the CNN to hardware mapping, a model of the hardware is needed. T
 - __Module:__ These are the basic building blocks of the accelerator. The modules are the following:
   - Accum & Accum3D
   - Activation3D
-  - AveragePool & AveragePool3D
-  - BatchNorm
   - Bias & Bias3D
   - Concat
   - Conv & Conv3D
   - EltWise & EltWise3D
   - Fork & Fork3D
+  - GlobalPool & GlobalPool3D
   - Glue & Glue3D
+  - HardSwish
   - MaxPool
+  - Pad3D
   - Pool & Pool3D
+  - ReLU & ReLU3D
+  - Resize
+  - ShiftScale & ShiftScale3D
   - SlidingWindow & SlidingWindow3D
   - Squeeze & Squeeze3D
   - Stride
   - VectorDot & VectorDot3D
 - __Layer:__ Layers are comprised of modules. They have the same functionality of the equivalent layers of the CNN model. The following layers are supported:
   - Activation 3D
-  - AveragePooling & AveragePooling 3D
   - Batch Normalization
   - Concatenation
   - Convolution & Convolution 3D
   - Element Wise & Element Wise 3D
+  - GlobalPooling & GlobalPooling 3D
+  - HardSwish
   - Inner Product & Inner Product 3D
   - Pooling & Pooling 3D
   - ReLU & ReLU 3D
+  - Resize
   - Split & Split 3D
   - Squeeze & Squeeze 3D
 - __Partition:__ Partitions make up a sub-graph of the CNN model network. They are comprised of layers. A single partition fits on an FPGA at a time, and partitions are changed by reconfiguring the FPGA.
