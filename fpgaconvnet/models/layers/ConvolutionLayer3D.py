@@ -286,7 +286,8 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['sliding_window3d'].stride_rows = self.stride_rows
         self.modules['sliding_window3d'].stride_depth= self.stride_depth
         self.modules['sliding_window3d'].data_width = self.input_t.width
-        self.modules['sliding_window3d'].streams = self.coarse_in*self.coarse_group
+        if self.data_packing:
+            self.modules['sliding_window3d'].streams = self.coarse_in*self.coarse_group
         self.modules['sliding_window3d'].pad_top = 0
         self.modules['sliding_window3d'].pad_bottom = 0
         self.modules['sliding_window3d'].pad_left = 0
@@ -303,7 +304,8 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['squeeze3d'].coarse_in  = self.kernel_rows*self.kernel_cols*self.kernel_depth
             self.modules['squeeze3d'].coarse_out = self.fine
             self.modules['squeeze3d'].data_width = self.input_t.width
-            self.modules['squeeze3d'].streams = self.coarse_in*self.coarse_group
+            if self.data_packing:
+                self.modules['squeeze3d'].streams = self.coarse_in*self.coarse_group
 
         # fork3d
         self.modules['fork3d'].rows     = self.rows_out()
@@ -312,7 +314,8 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['fork3d'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
         self.modules['fork3d'].coarse   = self.coarse_out
         self.modules['fork3d'].data_width     = self.input_t.width
-        self.modules['fork3d'].streams = self.coarse_in*self.coarse_group
+        if self.data_packing:
+            self.modules['fork3d'].streams = self.coarse_in*self.coarse_group
         if self.backend == "chisel":
             self.modules['fork3d'].kernel_rows = self.fine
             self.modules['fork3d'].kernel_cols = 1
@@ -342,7 +345,8 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['vector_dot3d'].data_width     = self.input_t.width
             self.modules['vector_dot3d'].weight_width   = self.weight_t.width
             self.modules['vector_dot3d'].acc_width      = self.acc_t.width
-            self.modules['vector_dot3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
+            if self.data_packing:
+                self.modules['vector_dot3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
 
         # accum3d
         self.modules['accum3d'].rows     = self.rows_out()
@@ -350,7 +354,8 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['accum3d'].depth    = self.depth_out()
         self.modules['accum3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
         self.modules['accum3d'].data_width    = self.acc_t.width
-        self.modules['accum3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
+        if self.data_packing:
+            self.modules['accum3d'].streams = self.coarse_in*self.coarse_group*self.coarse_out
         if self.backend == "hls":
             # TODO: check the group parameter
             self.modules['accum3d'].channels  = self.channels_in()//(self.coarse_in*self.coarse_group)
@@ -377,6 +382,17 @@ class ConvolutionLayer3D(Layer3D):
         self.modules['bias3d'].filters        = self.filters//(self.coarse_group*self.coarse_out)
         self.modules['bias3d'].data_width     = self.output_t.width
         self.modules['bias3d'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['bias3d'].streams = self.coarse_out*self.coarse_group
+
+        # shift scale
+        self.modules['shift_scale3d'].rows           = self.rows_out()
+        self.modules['shift_scale3d'].cols           = self.cols_out()
+        self.modules['shift_scale3d'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+        self.modules['shift_scale3d'].data_width     = self.output_t.width
+        self.modules['shift_scale3d'].biases_width   = self.acc_t.width
+        if self.data_packing:
+            self.modules['shift_scale3d'].streams = self.coarse_out*self.coarse_group
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)
