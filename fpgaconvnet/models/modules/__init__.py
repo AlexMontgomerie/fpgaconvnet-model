@@ -42,6 +42,7 @@ from .ShiftScale3D import ShiftScale3D
 from .Conv3D import Conv3D
 from .Fork3D import Fork3D
 from .Glue3D import Glue3D
+from .Hardswish3D import Hardswish3D
 from .Pool3D import Pool3D
 from .Activation3D import Activation3D
 from .ReLU3D import ReLU3D

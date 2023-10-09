@@ -13,6 +13,7 @@ SQUEEZE3D_CONF_PATH=list(glob.glob("tests/configs/layers/squeeze3d/*"))
 ACTIVATION3D_CONF_PATH=list(glob.glob("tests/configs/layers/activation3d/*"))
 AVGPOOL3D_CONF_PATH=list(glob.glob("tests/configs/layers/avgpool3d/*"))
 ELTWISE3D_CONF_PATH=list(glob.glob("tests/configs/layers/eltwise3d/*"))
+HARDSWISH3D_CONF_PATH=list(glob.glob("tests/configs/layers/hardswish3d/*"))
 
 class TestLayer3DTemplate():
 
@@ -381,4 +382,29 @@ class TestEltWiseLayer3D(TestLayer3DTemplate,unittest.TestCase):
         self.run_test_pipeline_depth(layer)
         self.run_test_wait_depth(layer)
         # self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
+
+@ddt.ddt
+class TestHardswishLayer3D(TestLayer3DTemplate,unittest.TestCase):
+
+    @ddt.data(*HARDSWISH3D_CONF_PATH)
+    def test_layer_configurations(self, config_path):
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise layer
+        layer = Layer3D.build_from_dict("HardswishLayer3D", config)
+
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        self.run_test_updating_properties(layer)
         self.run_test_resources(layer)

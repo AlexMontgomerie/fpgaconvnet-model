@@ -1,0 +1,14 @@
+{
+    "buffer_depth" : 0,
+    "rows": 14,
+    "cols": 14,
+    "depth": 8,
+    "channels": 5,
+    "coarse": 1,
+    "batch_size": 1,
+    "data_t": {
+      "width": 16,
+      "binary_point": 8
+    },
+    "description": "simple hardswish test, coarse=1"
+}
