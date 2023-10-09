@@ -1,78 +1,55 @@
-import numpy as np
-import math
-import onnx
-import pydot
+from typing import Any
+from dataclasses import dataclass, field
 
-from fpgaconvnet.data_types import FixedPoint
+import pydot
+import numpy as np
 
 from fpgaconvnet.models.modules import ReLU3D
 from fpgaconvnet.models.layers import Layer3D
 
+@dataclass(kw_only=True)
 class ReLULayer3D(Layer3D):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            depth: int,
-            channels: int,
-            coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
-        ):
+    coarse: int = 1
+    backend: str = "chisel" # default to no bias for old configs
+    regression_model: str = "linear_regression"
 
-        # initialise parent class
-        super().__init__(rows, cols, depth, channels,
-                coarse, coarse, data_t=data_t)
+    def __post_init__(self):
 
-        # save parameters
-        self._coarse = coarse
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+                f"{self.regression_model} is an invalid regression model")
 
         # init modules
         self.modules["relu3d"] = ReLU3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//self.coarse, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
+    def __setattr__(self, name: str, value: Any) -> None:
 
-    @property
-    def coarse_in(self) -> int:
-        return self._coarse
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
 
-    @property
-    def coarse_out(self) -> int:
-        return self._coarse
+        match name:
+            case "coarse" | "coarse_in" | "coarse_out":
+                assert(value in self.get_coarse_in_feasible())
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_in", value)
+                super().__setattr__("coarse_out", value)
+                super().__setattr__("coarse", value)
+                self.update()
 
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self.coarse_out = val
-        # self.update()
+            case _:
+                super().__setattr__(name, value)
 
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = val
-        self._coarse_out = val
-        # self.update()
+    def get_operations(self):
+        return self.rows_in()*self.cols_in()*self.depth_in()*self.channels_in()
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)
