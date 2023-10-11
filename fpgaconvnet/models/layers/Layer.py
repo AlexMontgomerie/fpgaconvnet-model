@@ -1,23 +1,20 @@
 """
 
 """
-from abc import ABC, ABCMeta, abstractmethod
-
-from dacite import from_dict
-
-import pydot
 import collections
-from typing import Union, List
-from google.protobuf.json_format import MessageToDict
-import numpy as np
+from abc import ABC, ABCMeta, abstractmethod
 from dataclasses import dataclass, field
+from typing import List
 
-from fpgaconvnet.models.layers.utils import get_factors
-from fpgaconvnet.models.layers.utils import balance_module_rates
+import numpy as np
+import pydot
+from dacite import from_dict
+from google.protobuf.json_format import MessageToDict
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
-from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
+
 
 class LayerBaseMeta(type):
 
@@ -74,7 +71,7 @@ class LayerBase(metaclass=LayerBaseMeta):
 
         if not hasattr(self, "is_init"):
             super().__setattr__(name, value)
-            return 
+            return
 
         match name:
             case "coarse_in":
@@ -89,23 +86,23 @@ class LayerBase(metaclass=LayerBaseMeta):
 
             case _:
                 super().__setattr__(name, value)
-        
+
 
     @abstractmethod
-    def shape_in(self) -> List[int]: 
-        pass 
+    def shape_in(self) -> List[int]:
+        pass
 
     @abstractmethod
-    def shape_out(self) -> List[int]: 
-        pass 
+    def shape_out(self) -> List[int]:
+        pass
 
     @abstractmethod
     def rate_in(self) -> float:
-        pass 
+        pass
 
     @abstractmethod
     def rate_out(self) -> float:
-        pass 
+        pass
 
     def streams_in(self) -> int:
             """
@@ -130,7 +127,7 @@ class LayerBase(metaclass=LayerBaseMeta):
 
     def width_out(self):
         raise NotImplementedError
-   
+
     def workload_in(self) -> int:
         """
         Returns the total number of elements in the input tensor of this layer.
@@ -150,10 +147,10 @@ class LayerBase(metaclass=LayerBaseMeta):
             return np.prod(self.shape_out())
 
     def size_in(self) -> int:
-        return self.workload_in() / self.streams_in() 
+        return self.workload_in() / self.streams_in()
 
     def size_out(self) -> int:
-        return self.workload_out() / self.streams_out() 
+        return self.workload_out() / self.streams_out()
 
     def latency_in(self):
             """

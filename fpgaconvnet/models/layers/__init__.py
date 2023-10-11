@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from .Layer import FixedPoint
 
 from .Layer import LayerBase, Layer, Layer3D
-from .MultiPortLayer import MultiPortLayer
+from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
@@ -25,8 +25,6 @@ from .HardswishLayer import HardswishLayer
 from .ChopLayer import ChopLayer
 
 # 3D layers
-from .MultiPortLayer3D import MultiPortLayer3D
-
 from .InnerProductLayer3D import InnerProductLayer3D
 from .PoolingLayer3D import PoolingLayer3D
 from .ActivationLayer3D import ActivationLayer3D
