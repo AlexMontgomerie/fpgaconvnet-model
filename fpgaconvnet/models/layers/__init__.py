@@ -4,8 +4,6 @@ Layers are comprised of modules. They have the same functionality of the equival
 
 from dataclasses import dataclass, field
 
-from .Layer import FixedPoint
-
 from .Layer import LayerBase, Layer, Layer3D
 from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
