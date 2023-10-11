@@ -13,12 +13,16 @@ class SparseVectorDot(Module):
     kernel_size: Union[List[int], int]
     sparsity: List[float]
     window_sparsity: List[float]
-    skipping_windows: bool
     fine: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
+    skipping_windows: bool = field(default=True, init=False)
+
+    def __post_init__(self):
+        if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
+            self.skipping_windows = False # not implemented for 1x1 convolutions
 
     def rate_kernel_sparsity(self):
         if (self.skipping_windows):
