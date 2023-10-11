@@ -11,6 +11,12 @@ class FixedPoint:
         fixed_point.width = self.width
         fixed_point.binary_point = self.binary_point
 
+    def to_dict(self):
+        return {
+            "width": self.width,
+            "binary_point": self.binary_point
+        }
+
     def apply(self, val):
         return FpBinary(int_bits=self.width-self.binary_point,
             frac_bits=self.binary_point, signed=True, value=val)

@@ -23,33 +23,33 @@ from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_mo
 
 @dataclass
 class Accum(Module):
+    channels: int
     filters: int
-    groups: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
 
-    def channels_in(self):
-        return (self.channels*self.filters)//self.groups
+    @property
+    def input_shape(self):
+        return (self.channels, self.filters)
 
-    def channels_out(self):
-        return self.filters
+    @property
+    def output_shape(self):
+        return (self.filters)
 
     def rate_out(self):
-        return (self.groups)/float(self.channels)
+        return 1.0/float(self.channels)
 
     def pipeline_depth(self):
         # return (self.channels*self.filters)//(self.groups*self.groups)
-        return self.channels//self.groups
+        return self.channels
 
     def module_info(self):
         # get the base module fields
         info = Module.module_info(self)
         # add module-specific info fields
-        info['groups'] = self.groups
+        info['channels'] = self.channels
         info['filters'] = self.filters
-        info['channels_per_group'] = self.channels_in()//self.groups
-        info['filters_per_group'] = self.filters//self.groups
         # return the info
         return info
 
@@ -58,20 +58,16 @@ class Accum(Module):
         if self.backend == "hls":
             return {
                 "LUT"   : np.array([
-                    self.filters,self.groups,self.data_width,
-                    self.cols,self.rows,self.channels
+                    self.filters, self.data_t.width, self.channels
                 ]),
                 "FF"    : np.array([
-                    self.filters,self.groups,self.data_width,
-                    self.cols,self.rows,self.channels
+                    self.filters, self.data_t.width, self.channels
                 ]),
                 "DSP"   : np.array([
-                    self.filters,self.groups,self.data_width,
-                    self.cols,self.rows,self.channels
+                    self.filters, self.data_t.width, self.channels
                 ]),
                 "BRAM"  : np.array([
-                    self.filters,self.groups,self.data_width,
-                    self.cols,self.rows,self.channels
+                    self.filters, self.data_t.width, self.channels
                 ]),
             }
 
@@ -79,7 +75,7 @@ class Accum(Module):
             return {
                 "Logic_LUT" : np.array([
                     self.filters, self.channels, # parameter logic
-                    self.streams*self.data_width, # input word logic
+                    self.streams*self.data_t.width, # input word logic
                     self.streams, # input streams logic
                     int2bits(self.channels), # channel cntr
                     int2bits(self.filters), # filter cntr
@@ -87,15 +83,15 @@ class Accum(Module):
                 ]),
                 "LUT_RAM"   : np.array([
                     queue_lutram_resource_model(
-                        2, self.streams*self.data_width), # output buffer
-                    self.streams*self.data_width*self.filters, # filter memory memory (size)
-                    self.streams*self.data_width, # filter memory memory (word width)
+                        2, self.streams*self.data_t.width), # output buffer
+                    self.streams*self.data_t.width*self.filters, # filter memory memory (size)
+                    self.streams*self.data_t.width, # filter memory memory (word width)
                     self.streams*self.filters, # filter memory memory (depth)
                 ]),
                 "LUT_SR"    : np.array([0]),
                 "FF"        : np.array([
-                    self.data_width,  # input val cache
-                    self.streams*self.data_width,  # input val cache
+                    self.data_t.width,  # input val cache
+                    self.streams*self.data_t.width,  # input val cache
                     int2bits(self.channels), # channel_cntr
                     int2bits(self.filters), # filter cntr
                     self.channels, # channel parameter reg
@@ -112,7 +108,7 @@ class Accum(Module):
 
     def get_pred_array(self):
         return np.array([
-            self.data_width, self.data_width//2,
+            self.data_t.width, self.data_t.binary_point,
             self.channels, self.filters, self.streams
         ]).reshape(1,-1)
 
@@ -123,31 +119,12 @@ class Accum(Module):
                 fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
+
         # check input dimensionality
-        assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels               , "ERROR: invalid channel dimension"
-        assert data.shape[3] == self.filters//self.groups   , "ERROR: invalid filter  dimension"
+        assert data.shape[0] == self.repeat     , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.channels   , "ERROR: invalid channel dimension"
+        assert data.shape[2] == self.filters    , "ERROR: invalid filter  dimension"
 
-        channels_per_group = self.channels//self.groups
-        filters_per_group  = self.filters//self.groups
-
-        out = np.zeros((
-            self.rows,
-            self.cols,
-            self.filters),dtype=float)
-
-        tmp = np.zeros((
-            self.rows,
-            self.cols,
-            channels_per_group,
-            filters_per_group),dtype=float)
-
-        for index,_ in np.ndenumerate(tmp):
-            for g in range(self.groups):
-                out[index[0],index[1],g*filters_per_group+index[3]] = \
-                        float(out[index[0],index[1],g*filters_per_group+index[3]]) + \
-                        float(data[index[0],index[1],g*channels_per_group+index[2],index[3]])
-
-        return out
+        # return the accumulated channel dimension
+        return np.reshape(np.sum(data, axis=1), (self.repeat, self.filters))
 

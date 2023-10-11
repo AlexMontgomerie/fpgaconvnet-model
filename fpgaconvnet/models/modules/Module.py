@@ -4,13 +4,17 @@ Base class for all hardware module models.
 
 import re
 import importlib
-import numpy as np
 import math
 import os
 import copy
 from typing import List
 from dataclasses import dataclass, field
+
+import numpy as np
 from xgboost import XGBRegressor
+from dacite import from_dict
+
+from fpgaconvnet.data_types import FixedPoint
 
 # from fpgaconvnet.tools.resource_regression_model import ModuleModel
 
@@ -18,42 +22,36 @@ RSC_TYPES = ["FF","LUT","DSP","BRAM"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
-@dataclass
-class Module:
-    """
-    modules are the fundamental building block for the hardware
-    framework. In this base class, performance and resource model
-    templates are included, as well as a template for functional
-    models. All modules are derived from this base class and contain
-    the same methods.
+class ModuleMeta(type):
 
-    Attributes
-    ----------
-    rows: int
-        row dimension of input featuremap
-    cols: int
-        column dimension of input featuremap
-    channels: int
-        channel dimension of input featuremap
-    data_width: int
-        bitwidth of featuremap pixels
-    rsc_coef: list
-        list of resource model coefficients. Corresponds
-        to `LUT`, `BRAM`, `DSP` and `FF` resources in
-        that order.
+    MODULE_REGISTRY = {}
 
-    .. note::
-        The model expects that the module is run for a single three
-        dimensional featuremap. For intermediate modules within a layer,
-        they may not be operating on a three dimensional tensor, and
-        so the `rows`, `cols` and `channels` attributes are representative
-        of the tensor if it was flattened to three dimensions.
-    """
+    def __new__(cls, *args, **kwargs):
+        # instantiate a new type corresponding to the type of class being defined
+        # this is currently RegisterBase but in child classes will be the child class
+        new_cls = super().__new__(cls, *args, **kwargs)
+        cls.MODULE_REGISTRY[new_cls.__name__] = new_cls
+        return new_cls
 
-    rows: int
-    cols: int
-    channels: int
-    data_width: int = field(default=16, init=False)
+    @classmethod
+    def get_registry(cls):
+        return dict(cls.MODULE_REGISTRY)
+
+    @classmethod
+    def build_from_dict(cls, name: str, conf: dict):
+        inst = from_dict(data_class=cls.MODULE_REGISTRY[name], data=conf)
+        inst.__post_init__()
+        return inst
+
+
+@dataclass(kw_only=True)
+class Module(metaclass=ModuleMeta):
+    repeat: int = 1 # the number of times the execution of the input shape is repeated
+    streams: int = 1 # number of parallel streams into the module
+    blocks: int = 1 # number of parallel hardware blocks to execute the streams
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
+    data_t: int = field(default_factory=lambda: FixedPoint(16, 8), init=True)
     rsc_coef: dict = field(default_factory=lambda: {
         "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
 
@@ -90,6 +88,14 @@ class Module:
                     self.rsc_model[rsc_type] = model
                 case _:
                     raise NotImplementedError(f"{self.regression_model} not supported")
+
+    @property
+    def input_shape(self):
+        raise NotImplementedError
+
+    @property
+    def output_shape(self):
+        raise NotImplementedError
 
     def utilisation_model(self):
         raise ValueError(f"{self.backend} backend not supported")
@@ -143,68 +149,14 @@ class Module:
         parameters for the module.
         """
         return {
-            'type'      : self.__class__.__name__.upper(),
-            'rows'      : self.rows_in(),
-            'cols'      : self.cols_in(),
-            'channels'  : self.channels_in(),
-            'rows_out'      : self.rows_out(),
-            'cols_out'      : self.cols_out(),
-            'channels_out'  : self.channels_out()
+            'type'          : self.__class__.__name__.upper(),
+            'repeat'        : self.repeat,
+            'streams'       : self.streams,
+            'blocks'        : self.blocks,
+            'input_shape'   : self.input_shape,
+            'output_shape'  : self.output_shape,
+            'data_t'        : self.data_t.to_dict(),
         }
-
-    def rows_in(self):
-        """
-        Returns
-        -------
-        int
-            row dimension of the input featuremap
-        """
-        return self.rows
-
-    def cols_in(self):
-        """
-        Returns
-        -------
-        int
-            column dimension of the input featuremap
-        """
-        return self.cols
-
-    def channels_in(self):
-        """
-        Returns
-        -------
-        int
-            channel dimension of the input featuremap
-        """
-        return self.channels
-
-    def rows_out(self):
-        """
-        Returns
-        -------
-        int
-            row dimension of the output featuremap
-        """
-        return self.rows
-
-    def cols_out(self):
-        """
-        Returns
-        -------
-        int
-            column dimension of the output featuremap
-        """
-        return self.cols
-
-    def channels_out(self):
-        """
-        Returns
-        -------
-        int
-            channel dimension of the output featuremap
-        """
-        return self.channels
 
     def rate_in(self):
         """
@@ -241,9 +193,9 @@ class Module:
             then the latency of the module is the largest of
             the two.
         """
-        latency_in  = int((self.rows_in() *self.cols_in() *self.channels_in() )/self.rate_in() )
-        latency_out = int((self.rows_out()*self.cols_out()*self.channels_out())/self.rate_out())
-        return max(latency_in,latency_out)
+        latency_in  = self.repeat*int(np.prod(self.input_shape)/self.rate_in())
+        latency_out = self.repeat*int(np.prod(self.output_shape)/self.rate_in())
+        return max(latency_in, latency_out)
 
     def pipeline_depth(self):
         """
@@ -278,5 +230,4 @@ class Module:
         -------
         np.array
         """
-        return data
-
+        raise NotImplementedError
