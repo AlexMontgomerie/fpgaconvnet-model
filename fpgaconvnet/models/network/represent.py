@@ -1,6 +1,7 @@
 import os
 import json
 import inspect
+import onnx
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
@@ -224,3 +225,19 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
     with open(filepath,"w") as f:
         f.write(MessageToJson(partitions, preserving_proto_field_name=True))
 
+def write_channel_indices_to_onnx(self, onnx_path):
+    onnx_model = onnx.load(onnx_path)
+    for partition_index in range(len(self.partitions)):
+        partition = self.partitions[partition_index]
+        for node in partition.graph.nodes():
+            # choose to apply to convolution node only
+            if partition.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+                # choose max fine for convolution node
+                onnx_node = next(filter(lambda x: x.name == node, onnx_model.graph.node))
+
+                hw = partition.graph.nodes[node]['hw']
+                if len(hw.sparsity):
+                    channel_indices = hw.get_stream_sparsity()[2]
+                    new_attr = onnx.helper.make_attribute("channel indices", channel_indices)
+                    onnx_node.attribute.append(new_attr)
+    onnx.save(onnx_model, onnx_path)
