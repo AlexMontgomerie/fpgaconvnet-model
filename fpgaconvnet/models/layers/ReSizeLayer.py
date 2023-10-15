@@ -1,19 +1,20 @@
 import math
-from typing import Any, List, Union
 from dataclasses import dataclass, field
+from typing import Any, List, Union
 
+import numpy as np
 import onnx
 import pydot
-import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import ReSize
 from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.modules import ReSize
+
 
 @dataclass(kw_only=True)
 class ReSizeLayer(Layer):
     scales: List[int]
+    mode: str = "nearest"
     coarse: int = 1
 
     def __post_init__(self):
@@ -21,10 +22,11 @@ class ReSizeLayer(Layer):
         # call parent post init
         super().__post_init__()
 
+        assert self.mode in ["nearest", "linear", "bilinear", "trilinear"], f"ERROR: invalid resize mode '{self.mode}'"
+
         # init modules
         self.modules["resize"] = ReSize(self.rows_in(), self.cols_in(),
-                self.channels_in()//self.coarse, scales=self.scales,
-                backend=self.backend, regression_model=self.regression_model)
+                self.channels_in()//self.coarse, scales=self.scales, mode=self.mode, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
 
@@ -59,12 +61,14 @@ class ReSizeLayer(Layer):
         Layer.layer_info(self, parameters, batch_size)
         parameters.coarse = self.coarse
         parameters.scale.extend(self.scales)
+        parameters.mode = self.mode
 
     def update(self):
         self.modules['resize'].rows     = self.rows_in()
         self.modules['resize'].cols     = self.cols_in()
         self.modules['resize'].channels = self.channels_in()//self.coarse
         self.modules['resize'].scales = self.scales
+        self.modules['resize'].mode = self.mode
 
     def resource(self):
 

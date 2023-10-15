@@ -1,15 +1,14 @@
-import onnx
-import numpy as np
 import importlib
 from dataclasses import dataclass
 
-from fpgaconvnet.models.layers import *
-
-from fpgaconvnet.data_types import FixedPoint
+import numpy as np
+import onnx
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
-
+from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.models.layers import *
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
+
 
 class ParseOnnxNode:
 
@@ -485,6 +484,7 @@ class ParseOnnxReSizeNode(ParseOnnxNode):
             self.input_shape[3] if len(self.input_shape) == 4 else 1,
             self.input_shape[1],
             scales=[1,1,2,2], # TODO: get from the model
+            mode=self.attr["mode"],
             data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                 self.quant_format["data_t"]["binary_point"]),
             backend=self.backend,
