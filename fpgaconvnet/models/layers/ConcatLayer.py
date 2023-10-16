@@ -1,44 +1,32 @@
-import numpy as np
-import math
-import pydot
-from typing import Union, List
+from dataclasses import dataclass, field
+from typing import Any, List
 
-from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import Concat
 from fpgaconvnet.models.layers import MultiPortLayer
-
 from fpgaconvnet.models.layers.utils import get_factors
+from fpgaconvnet.models.modules import Concat
 
+
+@dataclass(kw_only=True)
 class ConcatLayer(MultiPortLayer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: List[int],
-            ports_in: int = 1,
-            coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression",
-        ):
+    channels: List[int]
+    ports_in: int = 1
+    coarse: int = 1
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-        # initialise parent class
-        super().__init__([rows]*ports_in, [cols]*ports_in, channels,
-                [coarse]*ports_in, [coarse]*ports_in, ports_in=ports_in,
-                data_t=data_t)
+    def __post_init__(self):
 
-        self.mem_bw_in = [100.0] * self.ports_in
-        # parameters
-        self._coarse = coarse
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+                f"{self.regression_model} is an invalid regression model")
+
+        self.mem_bw_in = [100.0] * self.ports_in
 
         # init modules
         self.modules = {
@@ -51,36 +39,34 @@ class ConcatLayer(MultiPortLayer):
         # update the layer
         self.update()
 
+    def __setattr__(self, name: str, value: Any) -> None:
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
+
+        match name:
+            case "coarse":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse", value)
+                self.update()
+            case "coarse_in":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse_in", [value]*self.ports_in)
+                self.update()
+            case "coarse_out":
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_out", [value])
+                self.update()
+            case _:
+                super().__setattr__(name, value)
+
     def channels_out(self, port_index=0):
         assert port_index == 0, "ConcatLayer only has a single output port"
         return sum(self.channels)
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
-
-    @property
-    def coarse_in(self) -> int:
-        return [self._coarse]*self.ports_in
-
-    @property
-    def coarse_out(self) -> int:
-        return [self._coarse]
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self.update()
+    def get_operations(self):
+        raise NotImplementedError
 
     def rates_in(self, port_index=0):
         assert port_index < self.ports_in

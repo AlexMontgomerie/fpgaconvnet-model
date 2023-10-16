@@ -28,6 +28,7 @@ class Bias3D(Module3D):
     biases_width: int = field(default=16, init=False)
     backend: str = "chisel"
     regression_model: str = "linear_regression"
+    streams: int = 1
 
     def __post_init__(self):
 

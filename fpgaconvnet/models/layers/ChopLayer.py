@@ -3,50 +3,36 @@ The chop/fork/branch layer.
 Takes one stream input and outputs several streams using the fork module.
 """
 
-from typing import List
+from dataclasses import dataclass, field
+from typing import Any, List
+
 import pydot
-import numpy as np
-import os
-import math
 
-from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.models.modules import Fork
 
+
+@dataclass(kw_only=True)
 class ChopLayer(MultiPortLayer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            split: list[int],
-            coarse: int = 1,
-            ports_out: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel",
-            regression_model: str = "linear_regression"
-        ):
+    split: List[int]
+    coarse: int = 1
+    ports_out: int = 1
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-        # save split parameters
-        self.split = split
+    def __post_init__(self):
 
-        # initialise parent class
-        super().__init__([rows], [cols], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_t=data_t)
-
-        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+                f"{self.regression_model} is an invalid regression model")
 
-        # parameters
-        self._coarse = coarse
+        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
 
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
@@ -56,38 +42,30 @@ class ChopLayer(MultiPortLayer):
         # update the modules
         self.update()
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
+    def __setattr__(self, name: str, value: Any) -> None:
 
-    @property
-    def coarse_in(self) -> int:
-        return [self._coarse]
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
 
-    @property
-    def coarse_out(self) -> int:
-        return [self._coarse]*self.ports_out
+        match name:
+            case "coarse":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse", value)
+                self.update()
+            case "coarse_in":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse_in", [value])
+                self.update()
+            case "coarse_out":
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_out", [value]*self.ports_out)
+                self.update()
+            case _:
+                super().__setattr__(name, value)
 
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self.coarse_out = [val]*self.ports_out
-        # self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
-        # self.update()
+    def get_operations(self):
+        raise NotImplementedError
 
     def streams_in(self, port_index=0):
         """

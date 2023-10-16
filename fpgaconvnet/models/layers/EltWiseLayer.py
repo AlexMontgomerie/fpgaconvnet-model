@@ -1,106 +1,75 @@
+from dataclasses import dataclass, field
+from typing import Any, List
+
 import numpy as np
-import math
 import pydot
-from typing import Union, List
 
 from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import EltWise
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.models.modules import EltWise
 
-from fpgaconvnet.models.layers.utils import get_factors
 
+@dataclass(kw_only=True)
 class EltWiseLayer(MultiPortLayer):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            channels: int,
-            ports_in: int = 1,
-            coarse: int = 1,
-            op_type: str = "add",
-            broadcast: bool = False,
-            data_t: FixedPoint = FixedPoint(16,8),
-            acc_t: FixedPoint = FixedPoint(32,16),
-            backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
-        ):
+    ports_in: int = 1
+    coarse: int = 1
+    op_type: str = "add"
+    broadcast: bool = False
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16), init=True)
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-        # initialise parent class
-        super().__init__([rows]*ports_in, [cols]*ports_in,
-                [channels]*ports_in, [coarse]*ports_in,
-                [coarse]*ports_in, ports_in=ports_in, data_t=data_t)
+    def __post_init__(self):
 
-        self.mem_bw_in = [100.0] * self.ports_in
-
-        self.acc_t = acc_t
-
-        # parameters
-        self._coarse = coarse
-        self._op_type = op_type
-        self._broadcast = broadcast
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+                f"{self.regression_model} is an invalid regression model")
+
+        self.mem_bw_in = [100.0/self.ports_in] * self.ports_in
 
         # init modules
         self.modules = {
             "eltwise" : EltWise(self.rows_in(), self.cols_in(),
-                self.channels_in()//self.coarse, self.ports_in, eltwise_type=op_type, broadcast=broadcast, backend=self.backend, regression_model=self.regression_model),
+                self.channels_in()//self.coarse, self.ports_in, eltwise_type=self.op_type, broadcast=self.broadcast, backend=self.backend, regression_model=self.regression_model),
         }
 
         # update the layer
         self.update()
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
+    def __setattr__(self, name: str, value: Any) -> None:
 
-    @property
-    def coarse_in(self) -> int:
-        return [self._coarse]*self.ports_in
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
 
-    @property
-    def coarse_out(self) -> int:
-        return [self._coarse]
+        match name:
+            case "coarse":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse", value)
+                self.update()
+            case "coarse_in":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse_in", [value]*self.ports_in)
+                self.update()
+            case "coarse_out":
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_out", [value])
+                self.update()
+            case "op_type":
+                assert(value in ["add", "mul"])
+                super().__setattr__("op_type", value)
+                self.update()
+            case _:
+                super().__setattr__(name, value)
 
-    @property
-    def op_type(self) -> int:
-        return self._op_type
-
-    @property
-    def broadcast(self) -> bool:
-        return self._broadcast
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        # self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        # self.update()
-
-    @op_type.setter
-    def op_type(self, val: str) -> None:
-        self._op_type = val
-        # self.update()
-
-    @broadcast.setter
-    def broadcast(self, val: bool) -> None:
-        self._broadcast = val
-        # self.update()
+    def get_operations(self):
+        return self.rows_in()*self.cols_in()*self.channels_in()
 
     def update(self):
         # eltwise

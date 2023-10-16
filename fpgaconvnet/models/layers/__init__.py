@@ -4,10 +4,8 @@ Layers are comprised of modules. They have the same functionality of the equival
 
 from dataclasses import dataclass, field
 
-from .Layer import FixedPoint
-
-from .Layer import Layer
-from .MultiPortLayer import MultiPortLayer
+from .Layer import LayerBase, Layer, Layer3D
+from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
@@ -25,9 +23,6 @@ from .HardswishLayer import HardswishLayer
 from .ChopLayer import ChopLayer
 
 # 3D layers
-from .Layer3D import Layer3D
-from .MultiPortLayer3D import MultiPortLayer3D
-
 from .InnerProductLayer3D import InnerProductLayer3D
 from .PoolingLayer3D import PoolingLayer3D
 from .ActivationLayer3D import ActivationLayer3D
@@ -36,6 +31,7 @@ from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
 from .GlobalPoolingLayer3D import GlobalPoolingLayer3D
+from .HardswishLayer3D import HardswishLayer3D
 
 @dataclass
 class LayerFlag:
