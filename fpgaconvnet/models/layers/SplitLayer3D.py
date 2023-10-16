@@ -3,86 +3,36 @@ The split/fork/branch layer.
 Takes one stream input and outputs several streams using the fork module.
 """
 
-from typing import List
+from dataclasses import dataclass, field
+from typing import Any
+
 import pydot
-import numpy as np
-import os
-import math
 
 from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import Fork3D
 from fpgaconvnet.models.layers import MultiPortLayer3D
+from fpgaconvnet.models.modules import Fork3D
 
+
+@dataclass(kw_only=True)
 class SplitLayer3D(MultiPortLayer3D):
-    def __init__(
-            self,
-            rows: int,
-            cols: int,
-            depth: int,
-            channels: int,
-            coarse: int = 1,
-            ports_out: int = 1,
-            data_t: FixedPoint = FixedPoint(16,8),
-            backend: str = "chisel",
-            regression_model: str = "linear_regression"
-        ):
-        """
-        Parameters
-        ----------
-        rows: int
-            row dimension of input featuremap
-        cols: int
-            column dimension of input featuremap
-        depth: int
-            depth dimension of input featuremap
-        channels: int
-            channel dimension of input featuremap
+    coarse: int = 1
+    ports_out: int = 1
+    backend: str = "chisel"
+    regression_model: str = "linear_regression"
 
-        Attributes
-        ----------
-        buffer_depth: int, default: 0
-            depth of incoming fifo buffers for each stream in.
-        rows: list int
-            row dimension of input featuremap
-        cols: list int
-            column dimension of input featuremap
-        depth: list int
-            depth dimension of input featuremap
-        channels: list int
-            channel dimension of input featuremap
-        ports_in: int
-            number of ports into the layer
-        ports_out: int
-            number of ports out of the layer
-        coarse_in: list int
-            number of parallel streams per port into the layer.
-        coarse_out: NEED TO DEFINE
-           TODO
-        data_width: int
-            bitwidth of featuremap pixels
-        modules: dict
-            dictionary of `module` instances that make
-            up the layer. These modules are used for the
-            resource and performance models of the layer.
-        """
+    def __post_init__(self):
 
-        # initialise parent class
-        super().__init__([rows], [cols], [depth], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_t=data_t)
-
-        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out  
+        # call parent post init
+        super().__post_init__()
 
         # backend flag
-        assert backend in ["chisel"], f"{backend} is an invalid backend"
-        self.backend = backend
+        assert (self.backend in ["hls", "chisel"], f"{self.backend} is an invalid backend")
 
         # regression model
-        assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
-        self.regression_model = regression_model
+        assert(self.regression_model in ["linear_regression", "xgboost"],
+                f"{self.regression_model} is an invalid regression model")
 
-        # parameters
-        self._coarse = coarse
+        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
 
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
@@ -93,38 +43,27 @@ class SplitLayer3D(MultiPortLayer3D):
         # update the modules
         self.update()
 
-    @property
-    def coarse(self) -> int:
-        return self._coarse
+    def __setattr__(self, name: str, value: Any) -> None:
 
-    @property
-    def coarse_in(self) -> int:
-        return [self._coarse]
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
 
-    @property
-    def coarse_out(self) -> int:
-        return [self._coarse]*self.ports_out
-
-    @coarse.setter
-    def coarse(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
-        # self.update()
-
-    @coarse_in.setter
-    def coarse_in(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
-        # self.update()
-
-    @coarse_out.setter
-    def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
-        # self.update()
+        match name:
+            case "coarse":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse", value)
+                self.update()
+            case "coarse_in":
+                assert(value in self.get_coarse_in_feasible())
+                super().__setattr__("coarse_in", [value])
+                self.update()
+            case "coarse_out":
+                assert(value in self.get_coarse_out_feasible())
+                super().__setattr__("coarse_out", [value]*self.ports_out)
+                self.update()
+            case _:
+                super().__setattr__(name, value)
 
     def rows_out(self, port_index=0) -> int:
         return self.rows[0]
