@@ -15,7 +15,7 @@ import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
-
+from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
 
 def get_model_input_nodes(self, i):
     onnx_input_nodes = [ self.partitions[i].graph.nodes[n]["onnx_node"] \
@@ -169,7 +169,14 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                 layer.op_type = self.partitions[i].graph.nodes[node]['type'].name
             elif self.partitions[i].graph.nodes[node]['type'] in [LAYER_TYPE.Pooling, LAYER_TYPE.GlobalPooling]:
                 layer.op_type = self.partitions[i].graph.nodes[node]['hw'].pool_type
-
+            elif self.partitions[i].graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+                hw = self.partitions[i].graph.nodes[node]['hw']
+                if type(hw) == ConvolutionPointwiseSparseLayer:
+                    layer.op_type = 'pointwise_sparse'
+                elif type(hw) == ConvolutionSparseLayer:
+                    layer.op_type = 'sparse'
+                else:
+                    layer.op_type = 'dense'
             layer.onnx_node = self.partitions[i].graph.nodes[node]['onnx_node']
 
             # nodes into layer
@@ -236,8 +243,8 @@ def write_channel_indices_to_onnx(self, onnx_path):
                 onnx_node = next(filter(lambda x: x.name == node, onnx_model.graph.node))
 
                 hw = partition.graph.nodes[node]['hw']
-                if len(hw.sparsity):
-                    channel_indices = hw.get_stream_sparsity()[2]
+                if type(hw) in [ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer]:
+                    channel_indices = hw.get_stream_sparsity()[1]
                     new_attr = onnx.helper.make_attribute("channel indices", channel_indices)
                     onnx_node.attribute.append(new_attr)
     onnx.save(onnx_model, onnx_path)

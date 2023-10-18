@@ -26,8 +26,8 @@ from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_mo
 class Accum(Module):
     filters: int
     groups: int
-    skipping_windows: bool = False
-    window_sparsity: List[float] = ()
+    skip_all_zero_window: bool = False
+    sparsity_hist: np.ndarray = None
     backend: str = "chisel"
     regression_model: str = "linear_regression"
     streams: int = 1
@@ -39,20 +39,19 @@ class Accum(Module):
         return self.filters
 
     def rate_sparsity(self):
-        return np.min(1.0/(1-np.array(self.window_sparsity)))
+        return np.min(1.0/(1-np.array(self.sparsity_hist[:, -1])))
 
     def rate_in(self):
-        if self.skipping_windows:
+        if self.skip_all_zero_window:
             return self.rate_sparsity()
         else:
             return super().rate_in()
 
     def rate_out(self):
-        if self.skipping_windows:
+        if self.skip_all_zero_window:
             return min(float(self.channels), self.rate_sparsity())/float(self.channels) * (self.groups)
         else:
             return (self.groups)/float(self.channels)
-
 
     def pipeline_depth(self):
         # return (self.channels*self.filters)//(self.groups*self.groups)

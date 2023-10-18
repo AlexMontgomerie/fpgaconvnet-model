@@ -4,6 +4,7 @@ import importlib
 
 from fpgaconvnet.models.layers import BatchNormLayer
 from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
+from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
 from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
 from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
 from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
@@ -106,35 +107,97 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
 
         # return hardware
         if self.dimensionality == 2:
-            layer = ConvolutionLayer(
-                self.node.parameters.channels_out,
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                kernel_rows =self.node.parameters.kernel_rows,
-                kernel_cols =self.node.parameters.kernel_cols,
-                stride_rows =self.node.parameters.stride_rows,
-                stride_cols =self.node.parameters.stride_cols,
-                pad_top     =self.node.parameters.pad_top,
-                pad_bottom  =self.node.parameters.pad_bottom,
-                pad_left    =self.node.parameters.pad_left,
-                pad_right   =self.node.parameters.pad_right,
-                groups      =self.node.parameters.groups,
-                fine        =self.node.parameters.fine,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                coarse_group=self.node.parameters.coarse_group,
-                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                has_bias    =self.node.parameters.has_bias,
-                backend =self.backend,
-                regression_model =self.regression_model,
-                stream_weights=self.node.stream_weights
-            )
-            layer.use_uram = self.node.parameters.use_uram
-            return layer
+            if self.node.op_type == "dense":
+                return ConvolutionLayer(
+                    self.node.parameters.channels_out,
+                    self.node.parameters.rows_in,
+                    self.node.parameters.cols_in,
+                    self.node.parameters.channels_in,
+                    kernel_rows =self.node.parameters.kernel_rows,
+                    kernel_cols =self.node.parameters.kernel_cols,
+                    stride_rows =self.node.parameters.stride_rows,
+                    stride_cols =self.node.parameters.stride_cols,
+                    pad_top     =self.node.parameters.pad_top,
+                    pad_bottom  =self.node.parameters.pad_bottom,
+                    pad_left    =self.node.parameters.pad_left,
+                    pad_right   =self.node.parameters.pad_right,
+                    groups      =self.node.parameters.groups,
+                    fine        =self.node.parameters.fine,
+                    coarse_in   =self.node.parameters.coarse_in,
+                    coarse_out  =self.node.parameters.coarse_out,
+                    coarse_group=self.node.parameters.coarse_group,
+                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                    has_bias    =self.node.parameters.has_bias,
+                    block_floating_point =self.node.parameters.block_floating_point,
+                    backend =self.backend,
+                    regression_model =self.regression_model,
+                    stream_weights=self.node.parameters.stream_weights,
+                    use_uram = self.node.parameters.use_uram
+                )
+            elif self.node.op_type == "sparse":
+                return ConvolutionSparseLayer(
+                    self.node.parameters.channels_out,
+                    self.node.parameters.rows_in,
+                    self.node.parameters.cols_in,
+                    self.node.parameters.channels_in,
+                    kernel_rows =self.node.parameters.kernel_rows,
+                    kernel_cols =self.node.parameters.kernel_cols,
+                    stride_rows =self.node.parameters.stride_rows,
+                    stride_cols =self.node.parameters.stride_cols,
+                    pad_top     =self.node.parameters.pad_top,
+                    pad_bottom  =self.node.parameters.pad_bottom,
+                    pad_left    =self.node.parameters.pad_left,
+                    pad_right   =self.node.parameters.pad_right,
+                    groups      =self.node.parameters.groups,
+                    fine        =self.node.parameters.fine,
+                    coarse_in   =self.node.parameters.coarse_in,
+                    coarse_out  =self.node.parameters.coarse_out,
+                    coarse_group=self.node.parameters.coarse_group,
+                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                    has_bias    =self.node.parameters.has_bias,
+                    channel_sparsity_hist = self.node.parameters.sparsity,
+                    skip_all_zero_window =self.node.parameters.skip_all_zero_window,
+                    block_floating_point =self.node.parameters.block_floating_point,
+                    backend =self.backend,
+                    regression_model =self.regression_model,
+                    stream_weights=self.node.parameters.stream_weights,
+                    use_uram = self.node.parameters.use_uram
+                )                
+            elif self.node.op_type == "pointwise_sparse":
+                return ConvolutionPointwiseSparseLayer(
+                    self.node.parameters.channels_out,
+                    self.node.parameters.rows_in,
+                    self.node.parameters.cols_in,
+                    self.node.parameters.channels_in,
+                    stride_rows =self.node.parameters.stride_rows,
+                    stride_cols =self.node.parameters.stride_cols,
+                    pad_top     =self.node.parameters.pad_top,
+                    pad_bottom  =self.node.parameters.pad_bottom,
+                    pad_left    =self.node.parameters.pad_left,
+                    pad_right   =self.node.parameters.pad_right,
+                    groups      =self.node.parameters.groups,
+                    coarse_in   =self.node.parameters.coarse_in,
+                    coarse_out  =self.node.parameters.coarse_out,
+                    coarse_group=self.node.parameters.coarse_group,
+                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
+                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                    has_bias    =self.node.parameters.has_bias,
+                    channel_sparsity_avg = self.node.parameters.sparsity,
+                    clusters =self.node.parameters.clusters,
+                    block_floating_point =self.node.parameters.block_floating_point,
+                    backend =self.backend,
+                    regression_model =self.regression_model,
+                    stream_weights=self.node.parameters.stream_weights,
+                    use_uram =self.node.parameters.use_uram
+                )          
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 self.node.parameters.channels_out,
@@ -265,6 +328,7 @@ class ParsePrototxtThresholdedReLUNode(ParsePrototxtNode):
             self.node.parameters.channels_in,
             threshold = self.node.parameters.threshold,
             coarse=self.node.parameters.coarse,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point)
         )
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):

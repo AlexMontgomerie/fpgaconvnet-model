@@ -319,7 +319,6 @@ class Parser:
         # register converters
         converter = {
             LAYER_TYPE.Convolution: ParsePrototxtConvNode,
-            LAYER_TYPE.ConvolutionSparse: ParsePrototxtConvNode,
             LAYER_TYPE.InnerProduct: ParsePrototxtInnerProductNode,
             LAYER_TYPE.Pooling: ParsePrototxtPoolingNode,
             LAYER_TYPE.GlobalPooling: ParsePrototxtGlobalPoolingNode,
@@ -371,7 +370,7 @@ class Parser:
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph, port_width=net.platform.port_width, batch_size=partition.batch_size)
+            new_partition = Partition(graph, batch_size=partition.batch_size)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)

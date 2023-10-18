@@ -38,15 +38,17 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             weight_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
-            sparsity: list = [],
+            channel_sparsity_avg: list = [],
             clusters: int = 1,
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            stream_weights: int = 0,
+            use_uram: bool = False
         ):
 
         # reshape into window sparsity per channel
-        self.sparsity = np.array(sparsity).reshape(channels)
+        self.channel_sparsity_avg = channel_sparsity_avg
 
         # save the number of clusters
         self.clusters = clusters
@@ -74,7 +76,9 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             has_bias=has_bias,
             block_floating_point=block_floating_point,
             backend=backend,
-            regression_model=regression_model
+            regression_model=regression_model,
+            stream_weights=stream_weights,
+            use_uram=use_uram
         )
 
         # update modules
@@ -87,7 +91,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             case "opt":
 
                 #Balance the channels according to their sparsity
-                indices = np.argsort(self.sparsity)
+                indices = np.argsort(self.channel_sparsity_avg)
                 indices = np.reshape(indices, (self.channels_in()//self.streams_in(), self.streams_in()))
                 indices[1::2, :] = indices[1::2, ::-1] # reverse every other row
                 indices = indices.flatten()
@@ -121,7 +125,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
         indices = self.get_interleaving(method=interleaving)
 
         # get the stream sparsity
-        stream_sparsity = np.reshape([self.sparsity[i] for i in indices],
+        stream_sparsity = np.reshape([self.channel_sparsity_avg[i] for i in indices],
                 (self.channels_in()//self.streams_in(), self.streams_in())).mean(axis=0)
 
         # return the sparsity and interleaving
@@ -134,7 +138,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
         clusters = self.get_clustering(method=clustering)
 
         # reshape the sparsity into the interleaved streams
-        stream_sparsity = np.reshape([self.sparsity[i] for i in indices],
+        stream_sparsity = np.reshape([self.channel_sparsity_avg[i] for i in indices],
                 (self.channels_in()//self.streams_in(), self.streams_in()))
 
         # reshape into cluster sparsity
@@ -190,111 +194,17 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
         return list(range(1,self.kernel_size[0]*self.kernel_size[1]+1))
 
     def get_sparse_operations(self):
-        return self.get_operations()*np.average(self.sparsity)
+        return self.get_operations()*np.average(self.channel_sparsity_avg)
+
+    def layer_info(self,parameters,batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.sparsity.extend(self.channel_sparsity_avg)
+        parameters.clusters = self.clusters
 
     def resource(self):
-
         # get module resource models
-        sw_rsc          = self.modules['sliding_window'].rsc()
-        squeeze_rsc     = self.modules['squeeze'].rsc()
-        fork_rsc        = self.modules['fork'].rsc()
-        vector_dot_rsc  = self.modules['vector_dot'].rsc()
-        accum_rsc       = self.modules['accum'].rsc()
-        glue_rsc        = self.modules['glue'].rsc()
-        bias_rsc        = self.modules['bias'].rsc()
-        shift_scale_rsc = self.modules['shift_scale'].rsc()
-
-        # remove redundant modules
-        if self.kernel_size[0] == 1 and self.kernel_size[1] == 1:
-            sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if self.fine == self.kernel_size[0]*self.kernel_size[1] or len(self.sparsity) > 0:
-            # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
-            squeeze_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if self.coarse_out == 1:
-            fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
-            accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if self.coarse_in == 1:
-            glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if self.has_bias == 0:
-            bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-        if not self.block_floating_point:
-            shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-
-        # dsp packing
-        if self.weight_t.width <= 8 and self.input_t.width <= 8:
-            vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
-        elif self.weight_t.width <= 4 and self.input_t.width <= 4:
-            vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
-
-        # accumulate resource usage based on coarse factors
-        rsc = { rsc_type: (
-            sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-            squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-            fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
-            vector_dot_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-            accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
-            glue_rsc[rsc_type] +
-            bias_rsc[rsc_type]*self.coarse_out*self.coarse_group +
-            shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
-        ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
-
-        # weight usage
-        weight_memory_depth = math.ceil(
-            float((self.filters/self.groups)* \
-                self.channels_in()* \
-                self.kernel_size[0]* \
-                self.kernel_size[1]) / \
-                    float(self.fine*self.coarse_in*\
-                    self.coarse_out*self.coarse_group))
-
-        if self.double_buffered:
-            weight_memory_depth *= 2
-
-        if self.use_uram:
-            array_resource_model = bram_array_resource_model
-        else:
-            array_resource_model = uram_array_resource_model
-
-        if self.data_packing:
-            weight_array_depth = math.ceil(weight_memory_depth)
-            weight_array_width = self.weight_t.width*self.fine*self.coarse_out
-            weight_array_num = self.coarse_in*self.coarse_group
-        else:
-            weight_array_depth = math.ceil(weight_memory_depth)
-            weight_array_width = self.weight_t.width
-            weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
-
-        if self.stream_weights:
-            weights_bram_usage = 0
-        elif self.use_uram:
-            weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
-            rsc["URAM"] = weights_uram_usage
-            weights_bram_usage = 0
-        else:
-            weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
-
-        # bias usage
-        if self.has_bias:
-            bias_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
-            biases_bram_usage = bram_array_resource_model(
-                        int(bias_memory_depth),self.acc_t.width,
-                        "memory") * self.coarse_out * self.coarse_group
-        else:
-            biases_bram_usage = 0
-
-        # bfp shift scale usage
-        if self.block_floating_point:
-            shift_scale_memory_depth = float(self.filters) / float(self.coarse_out*self.coarse_group)
-            shift_scale_bram_usage = bram_array_resource_model(
-                        int(shift_scale_memory_depth),self.acc_t.width,
-                        "memory") * self.coarse_out * self.coarse_group * 2
-        else:
-            shift_scale_bram_usage = 0
-
-        # add weight, bias, shift_scale to resources
-        rsc["BRAM"] += weights_bram_usage + biases_bram_usage + shift_scale_bram_usage
-
-        # return total resource
+        rsc = super().resource()
+        # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
+        squeeze_rsc = self.modules['squeeze'].rsc()
+        rsc = { rsc_type: rsc[rsc_type] - squeeze_rsc[rsc_type] for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
         return rsc
-

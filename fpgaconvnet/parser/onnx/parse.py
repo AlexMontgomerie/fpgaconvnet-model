@@ -114,43 +114,117 @@ class ParseOnnxConvNode(ParseOnnxNode):
             self.attr.setdefault("strides", [1,1])
             self.attr.setdefault("pads", [0,0,0,0])
             self.attr.setdefault("dilations", [1,1])
-            self.attr.setdefault("input sparsity", [])
+            self.attr.setdefault("channel_sparsity_hist", [])
         else:
             self.attr.setdefault("group", 1)
             self.attr.setdefault("strides", [1,1,1])
             self.attr.setdefault("pads", [0,0,0,0,0,0])
             self.attr.setdefault("dilations", [1,1,1])
 
+        # sparsity check
+        if len(self.attr["channel_sparsity_hist"]) == 0:
+            type_flag = "dense"
+        else:
+            assert len(self.attr["channel_sparsity_hist"]) == self.input_shape[1]*(self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]+1)
+            assert np.max(self.attr["channel_sparsity_hist"]) <= 1.0, "histogram values should be normalized"
+            channel_sparsity_hist = np.array(self.attr["channel_sparsity_hist"]).reshape(self.input_shape[1],-1)            
+            channel_sparsity_avg = np.sum(channel_sparsity_hist * np.arange(0,self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]+1) / (self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]), axis=1)
+            layer_sparsity_avg = np.mean(channel_sparsity_avg)
+            if layer_sparsity_avg < 0.1: 
+                type_flag = "dense" # sparsity is too small, use dense instead
+            elif self.attr["kernel_shape"][0] == 1 and self.attr["kernel_shape"][1] == 1:
+                type_flag = "pointwise_sparse"
+            else:
+                type_flag = "sparse"
+        
         # return hardware
         if self.dimensionality == 2:
-            return ConvolutionLayer(
-                self.output_shape[1],
-                self.input_shape[2],
-                self.input_shape[3],
-                self.input_shape[1],
-                kernel_rows=self.attr["kernel_shape"][0],
-                kernel_cols=self.attr["kernel_shape"][1],
-                stride_rows=self.attr["strides"][0],
-                stride_cols=self.attr["strides"][1],
-                pad_top     = self.attr["pads"][0],
-                pad_left    = self.attr["pads"][1],
-                pad_bottom  = self.attr["pads"][2],
-                pad_right   = self.attr["pads"][3],
-                groups = self.attr["group"],
-                input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                    self.quant_format["input_t"]["binary_point"]),
-                output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                    self.quant_format["output_t"]["binary_point"]),
-                weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                    self.quant_format["weight_t"]["binary_point"]),
-                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                has_bias = len(self.inputs) == 3,
-                sparsity = self.attr["input sparsity"],
-                block_floating_point = self.quant_format["block_floating_point"],
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
+            if type_flag == "dense":
+                return ConvolutionLayer(
+                    self.output_shape[1],
+                    self.input_shape[2],
+                    self.input_shape[3],
+                    self.input_shape[1],
+                    kernel_rows=self.attr["kernel_shape"][0],
+                    kernel_cols=self.attr["kernel_shape"][1],
+                    stride_rows=self.attr["strides"][0],
+                    stride_cols=self.attr["strides"][1],
+                    pad_top     = self.attr["pads"][0],
+                    pad_left    = self.attr["pads"][1],
+                    pad_bottom  = self.attr["pads"][2],
+                    pad_right   = self.attr["pads"][3],
+                    groups = self.attr["group"],
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
+                    has_bias = len(self.inputs) == 3,
+                    block_floating_point = self.quant_format["block_floating_point"],
+                    backend=self.backend,
+                    regression_model=self.regression_model
+                )
+            elif type_flag == "sparse":
+                return ConvolutionSparseLayer(
+                    self.output_shape[1],
+                    self.input_shape[2],
+                    self.input_shape[3],
+                    self.input_shape[1],
+                    kernel_rows=self.attr["kernel_shape"][0],
+                    kernel_cols=self.attr["kernel_shape"][1],
+                    stride_rows=self.attr["strides"][0],
+                    stride_cols=self.attr["strides"][1],
+                    pad_top     = self.attr["pads"][0],
+                    pad_left    = self.attr["pads"][1],
+                    pad_bottom  = self.attr["pads"][2],
+                    pad_right   = self.attr["pads"][3],
+                    groups = self.attr["group"],
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
+                    has_bias = len(self.inputs) == 3,
+                    channel_sparsity_hist = channel_sparsity_hist.flatten(),
+                    skip_all_zero_window = True,
+                    block_floating_point = self.quant_format["block_floating_point"],
+                    backend=self.backend,
+                    regression_model=self.regression_model
+                )                
+            elif type_flag == "pointwise_sparse":
+                return ConvolutionPointwiseSparseLayer(
+                    self.output_shape[1],
+                    self.input_shape[2],
+                    self.input_shape[3],
+                    self.input_shape[1],
+                    stride_rows=self.attr["strides"][0],
+                    stride_cols=self.attr["strides"][1],
+                    pad_top     = self.attr["pads"][0],
+                    pad_left    = self.attr["pads"][1],
+                    pad_bottom  = self.attr["pads"][2],
+                    pad_right   = self.attr["pads"][3],
+                    groups = self.attr["group"],
+                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
+                        self.quant_format["input_t"]["binary_point"]),
+                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
+                        self.quant_format["output_t"]["binary_point"]),
+                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
+                        self.quant_format["weight_t"]["binary_point"]),
+                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
+                        self.quant_format["acc_t"]["binary_point"]),
+                    has_bias = len(self.inputs) == 3,
+                    channel_sparsity_avg = channel_sparsity_avg,
+                    clusters = 1,
+                    block_floating_point = self.quant_format["block_floating_point"],
+                    backend=self.backend,
+                    regression_model=self.regression_model
+                )          
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 filters=self.output_shape[1],

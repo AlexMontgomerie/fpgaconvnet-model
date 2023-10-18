@@ -13,7 +13,6 @@ from fpgaconvnet.models.layers import Layer
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import VectorDot
-from fpgaconvnet.models.modules import SparseVectorDot
 from fpgaconvnet.models.modules import Conv
 from fpgaconvnet.models.modules import Squeeze
 from fpgaconvnet.models.modules import Fork
@@ -52,7 +51,8 @@ class ConvolutionLayer(Layer):
             block_floating_point: bool = False,
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression",
-            stream_weights: int = 0
+            stream_weights: int = 0,
+            use_uram: bool = False
         ):
 
         # initialise parent class
@@ -100,7 +100,7 @@ class ConvolutionLayer(Layer):
             self.double_buffered = False
             self.stream_weights = stream_weights
             self.data_packing = True
-            self.use_uram = False
+            self.use_uram = use_uram
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"

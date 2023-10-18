@@ -36,8 +36,7 @@ class LAYER_TYPE(Enum):
     Chop        = 56
     Pad         = 57
     SiLU        = 58
-    ConvolutionSparse = 59
-    ThresholdedReLU = 60
+    ThresholdedReLU = 59
 
     @classmethod
     def get_type(cls, t):
@@ -46,10 +45,9 @@ class LAYER_TYPE(Enum):
         elif type(t) is int:
             return cls(t)
 
-def to_proto_layer_type(layer_type, sparse=False):
+def to_proto_layer_type(layer_type):
     layer_types = {
         LAYER_TYPE.Convolution      : fpgaconvnet_pb2.layer.layer_type.CONVOLUTION,
-        LAYER_TYPE.ConvolutionSparse: fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE,
         LAYER_TYPE.InnerProduct     : fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT,
         LAYER_TYPE.Pooling          : fpgaconvnet_pb2.layer.layer_type.POOLING,
         LAYER_TYPE.GlobalPooling    : fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING,
@@ -76,15 +74,10 @@ def to_proto_layer_type(layer_type, sparse=False):
     except KeyError:
         raise TypeError("Invalid Layer Type")
 
-    # convert to sparse
-    if sparse and layer_type_pb == fpgaconvnet_pb2.layer.layer_type.CONVOLUTION:
-        layer_type_pb = fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE
-
     return layer_type_pb
 def from_proto_layer_type(layer_type):
     layer_types = {
         fpgaconvnet_pb2.layer.layer_type.CONVOLUTION        : LAYER_TYPE.Convolution,
-        fpgaconvnet_pb2.layer.layer_type.CONVOLUTION_SPARSE : LAYER_TYPE.ConvolutionSparse,
         fpgaconvnet_pb2.layer.layer_type.INNER_PRODUCT      : LAYER_TYPE.InnerProduct,
         fpgaconvnet_pb2.layer.layer_type.POOLING            : LAYER_TYPE.Pooling,
         fpgaconvnet_pb2.layer.layer_type.AVERAGE_POOLING    : LAYER_TYPE.GlobalPooling,

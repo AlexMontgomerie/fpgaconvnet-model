@@ -84,13 +84,15 @@ message parameter {
     repeated int32 split = 65;
     optional bool skipping_windows = 66;
     optional float threshold = 67;
-    optional float sparsity = 68;
+    repeated float sparsity = 68;
     optional int32 on_chip_addr_range = 70;
     optional int32 off_chip_buffer_size = 71;
     optional int32 off_chip_interval = 72;
     optional int32 stream_weights = 73;
+    optional bool skip_all_zero_window = 74;
     repeated bool stream_inputs = 75;
     repeated bool stream_outputs = 76;
+    optional int32 clusters = 77;
 }
 
 message layer {
