@@ -23,9 +23,14 @@ from fpgaconvnet.models.layers import SqueezeLayer
 
 from fpgaconvnet.models.partition import Partition
 
+from fpgaconvnet.platform import Platform
+
 class Network():
 
     def __init__(self, name, model, graph, dimensionality=2, batch_size=1, backend="hls"):
+
+        # platform
+        self.platform = Platform()
 
         # backend
         self.backend = backend
@@ -61,6 +66,8 @@ class Network():
         # update partitions
         self.update_partitions()
 
+    from fpgaconvnet.models.network.report import create_report
+
     from fpgaconvnet.models.network.scheduler import get_partition_order
     from fpgaconvnet.models.network.scheduler import get_input_base_addr
     from fpgaconvnet.models.network.scheduler import get_output_base_addr
@@ -84,6 +91,14 @@ class Network():
 
     from fpgaconvnet.models.network.visualise import plot_latency_per_layer
     from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
+
+    from fpgaconvnet.models.network.validate import check_ports
+    from fpgaconvnet.models.network.validate import check_resources
+    from fpgaconvnet.models.network.validate import get_resources_bad_partitions
+    from fpgaconvnet.models.network.validate import check_workload
+    from fpgaconvnet.models.network.validate import check_streams
+    from fpgaconvnet.models.network.validate import check_partitions
+    from fpgaconvnet.models.network.validate import check_memory_bandwidth
 
     def get_memory_usage_estimate(self):
 
@@ -136,16 +151,30 @@ class Network():
         # return the total cycle
         return cycle
 
-    def get_latency(self, freq, pipeline, delay, partition_list=None):
+    def get_latency(self, freq=None, pipeline=False, delay=None, partition_list=None):
+
+        if freq == None:
+            freq = self.platform.board_freq
+
+        if delay == None:
+            delay = self.platform.reconf_time
+
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
+
         batch_cycle = self.get_cycle(pipeline, partition_list)
         latency = batch_cycle/(freq*1000000)
         # return the total latency
         return latency + self.get_inter_latency(delay, partition_list)
 
-    def get_throughput(self, freq, pipeline, delay, partition_list=None):
+    def get_throughput(self, freq=None, pipeline=False, delay=None, partition_list=None):
+
+        if freq == None:
+            freq = self.platform.board_freq
+
+        if delay == None:
+            delay = self.platform.reconf_time
+
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 

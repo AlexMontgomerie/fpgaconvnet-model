@@ -426,7 +426,7 @@ def convert_reshape_to_flatten(model):
         # get input and output shape
         input_shape = onnx_helper.get_input_shape(model, node.input[0])
         next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
-        next_node_input_idx = next_node.input.index(node.output[0])
+        next_node_input_idx = list(next_node.input).index(node.output[0])
         output_shape = onnx_helper.get_input_shape(model,
                 next_node.input[next_node_input_idx])
 
