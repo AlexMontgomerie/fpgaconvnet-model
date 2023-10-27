@@ -92,6 +92,7 @@ class Parser:
             "rename_all_nodes",
             "move_relu_after_quant",
             "add_nop_to_split_output",
+            "remove_empty_inputs_outputs",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
@@ -264,7 +265,6 @@ class Parser:
 
         # add nodes from onnx to the graph
         for node in onnx_model.graph.node:
-
             # get the node name
             node_name = onnx_helper.format_onnx_name(node)
 

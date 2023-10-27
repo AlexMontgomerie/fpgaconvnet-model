@@ -1254,4 +1254,25 @@ def add_nop_to_split_output(model):
 
     return model
 
+def remove_empty_inputs_outputs(model):
 
+    # iterate over nodes in the graph
+    for index, node in enumerate(model.graph.node):
+
+        # get node inputs
+        inputs = node.input
+
+        # iterate over inputs and remove empty ones
+        for input in inputs:
+            if input == "":
+                node.input.remove(input)
+
+        # get node outputs
+        outputs = node.output
+
+        # iterate over outputs and remove empty ones
+        for output in outputs:
+            if output == "":
+                node.output.remove(output)
+
+    return model

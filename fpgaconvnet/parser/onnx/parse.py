@@ -127,16 +127,16 @@ class ParseOnnxConvNode(ParseOnnxNode):
         else:
             assert len(self.attr["channel_sparsity_hist"]) == self.input_shape[1]*(self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]+1)
             assert np.max(self.attr["channel_sparsity_hist"]) <= 1.0, "histogram values should be normalized"
-            channel_sparsity_hist = np.array(self.attr["channel_sparsity_hist"]).reshape(self.input_shape[1],-1)            
+            channel_sparsity_hist = np.array(self.attr["channel_sparsity_hist"]).reshape(self.input_shape[1],-1)
             channel_sparsity_avg = np.sum(channel_sparsity_hist * np.arange(0,self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]+1) / (self.attr["kernel_shape"][0]*self.attr["kernel_shape"][1]), axis=1)
             layer_sparsity_avg = np.mean(channel_sparsity_avg)
-            if layer_sparsity_avg < 0.1: 
+            if layer_sparsity_avg < 0.1:
                 type_flag = "dense" # sparsity is too small, use dense instead
             elif self.attr["kernel_shape"][0] == 1 and self.attr["kernel_shape"][1] == 1:
                 type_flag = "pointwise_sparse"
             else:
                 type_flag = "sparse"
-        
+
         # return hardware
         if self.dimensionality == 2:
             if type_flag == "dense":
@@ -196,7 +196,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
                     regression_model=self.regression_model
-                )                
+                )
             elif type_flag == "pointwise_sparse":
                 return ConvolutionPointwiseSparseLayer(
                     self.output_shape[1],
@@ -224,7 +224,7 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
                     regression_model=self.regression_model
-                )          
+                )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 filters=self.output_shape[1],
@@ -412,7 +412,7 @@ class ParseOnnxReLUNode(ParseOnnxNode):
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
 
 
-            
+
 class ParseOnnxHardSwishNode(ParseOnnxNode):
 
     def get_hardware(self):
