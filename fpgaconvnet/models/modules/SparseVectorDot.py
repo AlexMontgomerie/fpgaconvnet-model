@@ -11,7 +11,8 @@ from fpgaconvnet.tools.resource_analytical_model import dsp_multiplier_resource_
 class SparseVectorDot(Module):
     filters: int
     kernel_size: Union[List[int], int]
-    sparsity: float
+    sparsity_hist: np.ndarray
+    skip_all_zero_window: bool
     fine: int
     backend: str = "chisel"
     regression_model: str = "linear_regression"
@@ -19,7 +20,11 @@ class SparseVectorDot(Module):
     acc_width: int = field(default=32, init=False)
 
     def rate_kernel_sparsity(self):
-        return min(1.0, 1.0/(float(self.kernel_size[0]*self.kernel_size[1]*(1-self.sparsity))/self.fine))
+        cycles_per_bin = np.ceil(np.flip(np.arange(self.kernel_size[0]*self.kernel_size[1] + 1))/self.fine)
+        if not self.skip_all_zero_window:
+            cycles_per_bin[-1] = 1.0
+        rate_per_stream = 1.0 / np.sum(cycles_per_bin*self.sparsity_hist, axis = 1)
+        return min(rate_per_stream)
 
     def rate_in(self):
         return 1.0/float(self.filters)*self.rate_kernel_sparsity()

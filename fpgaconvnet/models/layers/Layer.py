@@ -153,31 +153,26 @@ class LayerBase(metaclass=LayerBaseMeta):
         return self.workload_out() / self.streams_out()
 
     def latency_in(self):
-            """
-            Calculates the latency of input data for this layer.
+        """
+        Calculates the latency of input data for this layer.
 
-            Returns:
-                int: The calculated latency value.
-            """
-            return int(abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in()))))
+        Returns:
+            int: The calculated latency value.
+        """
+        return int(abs(self.workload_in()/(min(self.mem_bw_in, self.rate_in()*self.streams_in()))))
 
     def latency_out(self):
-            """
-            Calculates the latency of the output of the layer.
+        """
+        Calculates the latency of the output of the layer.
 
-            Returns:
-                int: The latency of the output of the layer.
-            """
-            return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
+        Returns:
+            int: The latency of the output of the layer.
+        """
+        return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
 
     def latency(self):
-            """
-            Returns the maximum latency of the input and output of the layer.
-
-            Returns:
-                The maximum latency of the input and output of the layer.
-            """
-            return max(self.latency_in(), self.latency_out())
+        # return max(self.latency_in(), self.latency_out())
+        return max([ self.modules[module].latency() for module in self.modules ])
 
     def pipeline_depth(self):
             """

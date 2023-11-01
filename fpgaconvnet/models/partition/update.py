@@ -115,8 +115,10 @@ def update_multiport_buffer_depth(self, multiport_node):
     for n, depth in path_depths_max.items():
 
         # get the input index
-        idx = self.graph.nodes[multiport_node]["onnx_input"].index(
-            self.graph.nodes[n]["onnx_output"][0])
+        for m in self.graph.nodes[n]["onnx_output"]:
+            if m in self.graph.nodes[multiport_node]["onnx_input"]:
+                idx = self.graph.nodes[multiport_node]["onnx_input"].index(m)
+                break
 
         # buffer depth is difference of max depth with the paths depth
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.EltWise:

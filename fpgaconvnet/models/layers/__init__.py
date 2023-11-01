@@ -9,10 +9,14 @@ from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
+from .InnerProductSparseLayer import InnerProductSparseLayer
 from .PoolingLayer import PoolingLayer
 from .HardswishLayer import HardswishLayer
 from .ReLULayer import ReLULayer
+from .ThresholdedReLULayer import ThresholdedReLULayer
 from .ConvolutionLayer import ConvolutionLayer
+from .ConvolutionSparseLayer import ConvolutionSparseLayer
+from .ConvolutionPointwiseSparseLayer import ConvolutionPointwiseSparseLayer
 from .SqueezeLayer import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
