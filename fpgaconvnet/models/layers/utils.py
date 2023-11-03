@@ -34,7 +34,7 @@ def get_factors(n):
 
 def stream_unit(self):
     '''
-    unit width of streamed weights  
+    unit width of streamed weights
     '''
     unit = self.weight_array_num * math.ceil(self.weight_array_width/self.weight_array_num/self.weight_array_unit_width)
     return unit
@@ -76,37 +76,4 @@ def stream_buffer(self):
     else:
         return bram_array_resource_model(self.weight_array_unit_depth, self.weight_array_width/self.weight_array_num, "memory") * self.weight_array_num
 
-def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): # todo: add extra logic cost
-    self.weight_array_depth = weight_array_depth
-    self.weight_array_width = weight_array_width * weight_array_num
-    self.weight_array_num = weight_array_num
 
-    if self.use_uram:
-        weights_uram_usage = uram_array_resource_model(weight_array_depth, weight_array_width) * weight_array_num
-        weights_uram_usage -= self.stream_weights
-        self.weights_ram_usage = weights_uram_usage
-        weights_bram_usage = 0
-        if weights_uram_usage + self.stream_weights > 0:
-            uram_details = uram_array_resource_model(weight_array_depth, weight_array_width, detailed=True) 
-            self.weight_array_unit_depth = uram_details[3]
-            self.weight_array_unit_width = uram_details[1]
-            if self.stream_weights > 0:
-                weights_uram_usage += self.stream_buffer()
-    else:
-        weights_bram_usage = bram_array_resource_model(weight_array_depth, weight_array_width, "memory") * weight_array_num
-        weights_bram_usage -= self.stream_weights
-        self.weights_ram_usage = weights_bram_usage
-        weights_uram_usage = 0
-        if weights_bram_usage + self.stream_weights > 0:
-            bram_details = bram_array_resource_model(weight_array_depth, weight_array_width, "memory", detailed=True) 
-            self.weight_array_unit_depth = bram_details[3]
-            self.weight_array_unit_width = bram_details[1]
-            if self.stream_weights > 0:
-                weights_bram_usage += self.stream_buffer()
-
-    assert self.weights_ram_usage + self.stream_weights == \
-        math.ceil(weight_array_depth/self.weight_array_unit_depth) \
-        * math.ceil(weight_array_width/self.weight_array_unit_width) \
-        * weight_array_num
-        
-    return weights_bram_usage, weights_uram_usage

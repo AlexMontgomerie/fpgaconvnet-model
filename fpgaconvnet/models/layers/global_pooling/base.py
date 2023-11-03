@@ -13,39 +13,39 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.layers import LayerBaseMeta, Layer, Layer3D
-from fpgaconvnet.models.modules import Hardswish
+from fpgaconvnet.models.modules import GlobalPooling
 
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY, SPARSITY
 
-from .backend import HardswishLayerTraitHLS, HardswishLayerTraitChisel
-from .dimensions import HardswishLayerTrait2D, HardswishLayerTrait3D
+from .backend import GlobalPoolingLayerTraitHLS, GlobalPoolingLayerTraitChisel
+from .dimensions import GlobalPoolingLayerTrait2D, GlobalPoolingLayerTrait3D
 
-class HardswishLayerBaseMeta(LayerBaseMeta):
+class GlobalPoolingLayerBaseMeta(LayerBaseMeta):
 
     @classmethod
     def build_type_from_arch(cls, arch: Architecture, conf: dict):
 
         # a list for all the base classes
-        base_classes = [Layer, HardswishLayerBase]
+        base_classes = [Layer, GlobalPoolingLayerBase]
 
         # add the backend base class
         match arch.backend:
             case BACKEND.HLS:
-                base_classes.append(HardswishLayerTraitHLS)
+                base_classes.append(GlobalPoolingLayerTraitHLS)
             case BACKEND.CHISEL:
-                base_classes.append(HardswishLayerTraitChisel)
+                base_classes.append(GlobalPoolingLayerTraitChisel)
             case _:
                 raise ValueError(f"Invalid backend {arch.backend}")
 
         # add the dimensionality base
         if arch.dimensionality == DIMENSIONALITY.THREE:
-            base_classes.extend([Layer3D, HardswishLayerTrait3D])
+            base_classes.extend([Layer3D, GlobalPoolingLayerTrait3D])
         else:
-            base_classes.extend([HardswishLayerTrait2D])
+            base_classes.extend([GlobalPoolingLayerTrait2D])
 
         # create a new type that inherits from all the base classes
         ## this is inspired by https://stackoverflow.com/a/21061856
-        return dataclass(kw_only=True)(type("HardswishLayer"+str(arch), tuple(reversed(base_classes)), {}))
+        return dataclass(kw_only=True)(type("GlobalPoolingLayer"+str(arch), tuple(reversed(base_classes)), {}))
 
     @classmethod
     def build_from_arch(cls, arch: Architecture, conf: dict):
@@ -58,10 +58,10 @@ class HardswishLayerBaseMeta(LayerBaseMeta):
 
 
 @dataclass(kw_only=True)
-class HardswishLayerBase(metaclass=HardswishLayerBaseMeta):
+class GlobalPoolingLayerBase(metaclass=GlobalPoolingLayerBaseMeta):
     coarse: int = 1
-    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
-    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16), init=True)
+    op_type: str = "avg"
     regression_model: str = "linear_regression"
 
     def __post_init__(self):
@@ -79,7 +79,7 @@ class HardswishLayerBase(metaclass=HardswishLayerBaseMeta):
                 raise ValueError(f"Invalid backend {self.arch.backend}")
 
         # create all the modules
-        self.modules["hardswish"] = Hardswish(self.rows_in(),
+        self.modules["global_pooling"] = GlobalPooling(self.rows_in(),
                 self.cols_in(), self.channels_in()//self.coarse, backend=backend,
                 regression_model=self.regression_model)
 
@@ -88,11 +88,10 @@ class HardswishLayerBase(metaclass=HardswishLayerBaseMeta):
 
     def update_modules(self):
 
-        # update the hardswish module
-        param = self.get_hardswish_parameters()
+        # update the global_pooling module
+        param = self.get_global_pooling_parameters()
         for p, v in param.items():
-            setattr(self.modules["hardswish"], p, v)
-
+            setattr(self.modules["global_pooling"], p, v)
 
     def __setattr__(self, name: str, value: Any) -> None:
 
@@ -115,17 +114,23 @@ class HardswishLayerBase(metaclass=HardswishLayerBaseMeta):
     def get_operations(self):
         return np.prod(self.shape_in)
 
+    def rows_out(self) -> int:
+        return 1
+
+    def cols_out(self) -> int:
+        return 1
+
     def resource(self):
 
-        # get hardswish3d resources
-        hardswish_rsc = self.modules['hardswish'].rsc()
+        # get global_pooling3d resources
+        global_pooling_rsc = self.modules['global_pooling'].rsc()
 
         # Total
         return {
-            "LUT"  :  hardswish_rsc['LUT']*self.coarse,
-            "FF"   :  hardswish_rsc['FF']*self.coarse,
-            "BRAM" :  hardswish_rsc['BRAM']*self.coarse,
-            "DSP" :   hardswish_rsc['DSP']*self.coarse,
+            "LUT"  :  global_pooling_rsc['LUT']*self.coarse,
+            "FF"   :  global_pooling_rsc['FF']*self.coarse,
+            "BRAM" :  global_pooling_rsc['BRAM']*self.coarse,
+            "DSP" :   global_pooling_rsc['DSP']*self.coarse,
         }
 
 

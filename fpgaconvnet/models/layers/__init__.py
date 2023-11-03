@@ -11,7 +11,7 @@ from .convolution import ConvolutionLayerBaseMeta, ConvolutionLayerBase, Convolu
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
-from .InnerProductSparseLayer import InnerProductSparseLayer
+# from .InnerProductSparseLayer import InnerProductSparseLayer
 from .PoolingLayer import PoolingLayer
 from .HardswishLayer import HardswishLayer
 from .ReLULayer import ReLULayer
