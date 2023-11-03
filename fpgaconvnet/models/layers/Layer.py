@@ -5,6 +5,7 @@ import collections
 from abc import ABC, ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from typing import List
+import math
 
 import numpy as np
 import pydot
@@ -14,7 +15,6 @@ from google.protobuf.json_format import MessageToDict
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
-
 
 class LayerBaseMeta(type):
 
@@ -45,9 +45,10 @@ class LayerBase(metaclass=LayerBaseMeta):
     mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
     buffer_depth: int = field(default=2, init=False)
-    modules: dict = field(default_factory=collections.OrderedDict, init=False)
+    modules: dict = field(default_factory=collections.OrderedDict, init=True)
 
     def __post_init__(self):
+
         self.input_t = self.data_t
         self.output_t = self.data_t
         self.stream_inputs = [False]
@@ -243,12 +244,14 @@ class LayerBase(metaclass=LayerBaseMeta):
     def functional_model(self, data, batch_size=1):
         raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
 
-
 @dataclass(kw_only=True)
 class Layer(LayerBase):
     rows: int
     cols: int
     channels: int
+
+    def __post_init__(self):
+        super().__post_init__()
 
     def rows_in(self) -> int:
         return self.rows

@@ -4,8 +4,10 @@ Layers are comprised of modules. They have the same functionality of the equival
 
 from dataclasses import dataclass, field
 
-from .Layer import LayerBase, Layer, Layer3D
+from .Layer import LayerBaseMeta, LayerBase, Layer, Layer3D
 from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
+
+from .convolution import ConvolutionLayerBaseMeta, ConvolutionLayerBase, ConvolutionLayerChisel
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
@@ -14,9 +16,6 @@ from .PoolingLayer import PoolingLayer
 from .HardswishLayer import HardswishLayer
 from .ReLULayer import ReLULayer
 from .ThresholdedReLULayer import ThresholdedReLULayer
-from .ConvolutionLayer import ConvolutionLayer
-from .ConvolutionSparseLayer import ConvolutionSparseLayer
-from .ConvolutionPointwiseSparseLayer import ConvolutionPointwiseSparseLayer
 from .SqueezeLayer import SqueezeLayer
 from .SplitLayer import SplitLayer
 from .ConcatLayer import ConcatLayer
@@ -31,7 +30,6 @@ from .InnerProductLayer3D import InnerProductLayer3D
 from .PoolingLayer3D import PoolingLayer3D
 from .ActivationLayer3D import ActivationLayer3D
 from .ReLULayer3D import ReLULayer3D
-from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
 from .GlobalPoolingLayer3D import GlobalPoolingLayer3D
