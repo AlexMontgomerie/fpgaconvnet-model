@@ -66,6 +66,7 @@ class Partition():
 
     # update
     from fpgaconvnet.models.partition.update import update
+    from fpgaconvnet.models.partition.update import update_io_ports
     from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
     from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
 

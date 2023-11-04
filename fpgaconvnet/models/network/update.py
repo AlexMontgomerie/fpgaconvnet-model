@@ -21,6 +21,9 @@ def update_partitions(self):
     # update partitions
     for partition_index in range(len(self.partitions)):
 
+        ## update io ports for partitions
+        self.partitions[partition_index].update_io_ports()
+
         ## update the partitions
         self.partitions[partition_index].update()
 

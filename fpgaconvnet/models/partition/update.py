@@ -40,6 +40,21 @@ def update(self):
         if self.graph.nodes[node]["type"] in MULTIPORT_LAYERS_IN:
             self.update_multiport_buffer_depth(node)
 
+def update_io_ports(self):
+    input_nodes = graphs.get_input_nodes(self.graph)
+    for node_in in input_nodes:
+        if self.graph.nodes[node_in]["type"] in MULTIPORT_LAYERS_IN:
+            self.ports_in += self.graph.nodes[node_in]["hw"].ports_in - 1
+    self.size_in     *= self.ports_in
+    self.streams_in  *= self.ports_in
+
+    # output_nodes = graphs.get_output_nodes(self.graph)
+    # for node_out in output_nodes:
+    #     if self.graph.nodes[node_out]["type"] in MULTIPORT_LAYERS_OUT:
+    #         self.ports_out += self.graph.nodes[node_out]["hw"].ports_out - 1
+    # self.size_out    *= self.ports_out
+    # self.streams_out *= self.ports_out
+
 def update_multiport_buffer_depth(self, multiport_node):
 
     # check the eltwise node is actually eltwise
@@ -58,10 +73,19 @@ def update_multiport_buffer_depth(self, multiport_node):
 
     ## topological sort common ancestors and choose the oldest
     sorted_graph_nodes = list(nx.topological_sort(self.graph))
-    split_node = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))[0]
+    split_nodes = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))
+
+    # there is no split node, probably the eltwise/concat node is the first node
+    if not split_nodes:
+        for idx in range(self.graph.nodes[multiport_node]["hw"].ports_in):
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = 2
+        return
+
+    split_node = split_nodes[0]
 
     # cannot find split layer, maybe it is vertical split
     if not self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
+        #TODO: Check if need to update the buffer depth in this case as well
         return
 
     # get all the paths split layer and eltwise layer

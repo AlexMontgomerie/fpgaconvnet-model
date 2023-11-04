@@ -158,8 +158,6 @@ class Parser:
             # check optimized model
             onnx.checker.check_model(model_opt)
 
-        onnx.save(model_opt, "model_opt.onnx")
-
         return model_opt, dimensionality
 
     def get_hardware_from_onnx_node(self, graph, node, quant_format, dimensionality):
