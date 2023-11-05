@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
 import os
-import copy
+import pydot
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def plot_latency_per_layer(self, output_path=None):
 
@@ -88,11 +88,35 @@ def visualise_partitions_nx(self, output_path):
             os.remove(os.path.join(output_path, file))
 
     for partition_index in range(len(self.partitions)):
-        graph = copy.deepcopy(self.partitions[partition_index].graph)
-        for node in graph.nodes:
-            node_attrs = list(graph.nodes[node].keys())
-            for attr in node_attrs:
-                del graph.nodes[node][attr]
-
-        PG = nx.nx_pydot.to_pydot(graph)
-        PG.write_png(os.path.join(output_path, f"partition_{partition_index}.png"))
+        graph = self.partitions[partition_index].graph
+        g = pydot.Dot(graph_type='digraph')
+        g.set_node_defaults(shape='record')
+        for node in graph:
+            node_type  = graph.nodes[node]['type'].name
+            rows_in       = graph.nodes[node]['hw'].rows_in()
+            cols_in       = graph.nodes[node]['hw'].cols_in()
+            channels_in   = graph.nodes[node]['hw'].channels_in()
+            rows_out       = graph.nodes[node]['hw'].rows_out()
+            cols_out       = graph.nodes[node]['hw'].cols_out()
+            channels_out   = graph.nodes[node]['hw'].channels_out()
+            if graph.nodes[node]['type'] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
+                rows_out = [rows_out] * graph.nodes[node]['hw'].ports_out
+                cols_out = [cols_out] * graph.nodes[node]['hw'].ports_out
+                channels_out = [channels_out] * graph.nodes[node]['hw'].ports_out
+            if graph.nodes[node]['type'] in [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]:
+                rows_in = [rows_in] * graph.nodes[node]['hw'].ports_in
+                cols_in = [cols_in] * graph.nodes[node]['hw'].ports_in
+                channels_in = [channels_in] * graph.nodes[node]['hw'].ports_in
+            g.add_node(pydot.Node(node,
+                label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  }}".format(
+                node=node,
+                type=node_type,
+                rows_in=rows_in,
+                cols_in=cols_in,
+                channels_in=channels_in,
+                rows_out=rows_out,
+                cols_out=cols_out,
+                channels_out=channels_out)))
+            for edge in graph[node]:
+                g.add_edge(pydot.Edge(node,edge,splines="line"))
+        g.write_png(os.path.join(output_path, f"partition_{partition_index}.png"))
