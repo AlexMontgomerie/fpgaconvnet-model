@@ -9,6 +9,9 @@ import os
 import pydot
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
+MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
+MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
+
 def print_graph(graph):
     for node, edges in graph.adjacency():
         edges = list(edges)
@@ -48,7 +51,9 @@ def split_graph_horizontal(graph,edge):
 
 def split_graph_vertical(graph, nodes):
     input_node = get_input_nodes(graph)[0]
+    input_node_type = graph.nodes[input_node]['type']
     output_node = get_output_nodes(graph)[0]
+    output_node_type = graph.nodes[output_node]['type']
     # find left side graph
     left_nodes = [input_node, nodes[0][0]]
     for node in nodes[0]:
@@ -57,13 +62,22 @@ def split_graph_vertical(graph, nodes):
     right_nodes = [nodes[1][0]]
     for node in nodes[1]:
         right_nodes.extend( get_next_nodes_all(graph,node) )
-    # put output node in the smaller graph
     left_nodes = [node for node in left_nodes if node != output_node]
     right_nodes = [node for node in right_nodes if node != output_node]
-    if len(left_nodes) > len(right_nodes):
-        right_nodes.append(output_node)
+
+    if input_node_type in MULTIPORT_LAYERS_OUT and output_node_type in MULTIPORT_LAYERS_IN:
+        # separate input (multiport outputs) and output (multiport inputs) nodes
+        if input_node in left_nodes:
+            right_nodes.append(output_node)
+        else:
+            left_nodes.append(output_node)
     else:
-        left_nodes.append(output_node)
+        # put output node in the smaller graph
+        if len(left_nodes) > len(right_nodes):
+            right_nodes.append(output_node)
+        else:
+            left_nodes.append(output_node)
+
     left_graph = graph.subgraph(left_nodes).copy()
     right_graph = graph.subgraph(right_nodes).copy()
     return left_graph, right_graph
