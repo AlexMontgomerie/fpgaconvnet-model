@@ -91,14 +91,20 @@ def visualise_partitions_nx(self, output_path):
         graph = self.partitions[partition_index].graph
         g = pydot.Dot(graph_type='digraph')
         g.set_node_defaults(shape='record')
-        for node in graph:
+        for node in graph.nodes():
+            if node == self.partitions[partition_index].wr_layer:
+                wr_factor = self.partitions[partition_index].wr_factor
+            else:
+                wr_factor = None
             node_type  = graph.nodes[node]['type'].name
             rows_in       = graph.nodes[node]['hw'].rows_in()
             cols_in       = graph.nodes[node]['hw'].cols_in()
             channels_in   = graph.nodes[node]['hw'].channels_in()
+            coarse_in     = graph.nodes[node]['hw'].coarse_in
             rows_out       = graph.nodes[node]['hw'].rows_out()
             cols_out       = graph.nodes[node]['hw'].cols_out()
             channels_out   = graph.nodes[node]['hw'].channels_out()
+            coarse_out     = graph.nodes[node]['hw'].coarse_out
             if graph.nodes[node]['type'] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
                 rows_out = [rows_out] * graph.nodes[node]['hw'].ports_out
                 cols_out = [cols_out] * graph.nodes[node]['hw'].ports_out
@@ -107,16 +113,33 @@ def visualise_partitions_nx(self, output_path):
                 rows_in = [rows_in] * graph.nodes[node]['hw'].ports_in
                 cols_in = [cols_in] * graph.nodes[node]['hw'].ports_in
                 channels_in = [channels_in] * graph.nodes[node]['hw'].ports_in
-            g.add_node(pydot.Node(node,
-                label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  }}".format(
-                node=node,
-                type=node_type,
-                rows_in=rows_in,
-                cols_in=cols_in,
-                channels_in=channels_in,
-                rows_out=rows_out,
-                cols_out=cols_out,
-                channels_out=channels_out)))
+            if wr_factor == None:
+                g.add_node(pydot.Node(node,
+                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} | coarse out: {coarse_out}}}".format(
+                    node=node,
+                    type=node_type,
+                    rows_in=rows_in,
+                    cols_in=cols_in,
+                    channels_in=channels_in,
+                    coarse_in=coarse_in,
+                    rows_out=rows_out,
+                    cols_out=cols_out,
+                    channels_out=channels_out,
+                    coarse_out=coarse_out)))
+            else:
+                g.add_node(pydot.Node(node,
+                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} | coarse out: {coarse_out} \n wr factor: {wr_factor}}}".format(
+                    node=node,
+                    type=node_type,
+                    rows_in=rows_in,
+                    cols_in=cols_in,
+                    channels_in=channels_in,
+                    coarse_in=coarse_in,
+                    rows_out=rows_out,
+                    cols_out=cols_out,
+                    channels_out=channels_out,
+                    coarse_out=coarse_out,
+                    wr_factor=wr_factor)))
             for edge in graph[node]:
                 g.add_edge(pydot.Edge(node,edge,splines="line"))
         g.write_png(os.path.join(output_path, f"partition_{partition_index}.png"))
