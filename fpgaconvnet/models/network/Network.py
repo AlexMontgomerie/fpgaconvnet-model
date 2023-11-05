@@ -84,6 +84,7 @@ class Network():
 
     from fpgaconvnet.models.network.visualise import plot_latency_per_layer
     from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
+    from fpgaconvnet.models.network.visualise import visualise_partitions_nx
 
     def get_memory_usage_estimate(self):
 
@@ -139,7 +140,7 @@ class Network():
     def get_latency(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
+
         batch_cycle = self.get_cycle(pipeline, partition_list)
         latency = batch_cycle/(freq*1000000)
         # return the total latency

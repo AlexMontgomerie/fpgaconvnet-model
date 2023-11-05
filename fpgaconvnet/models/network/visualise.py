@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import networkx as nx
+import os
+import copy
 
 def plot_latency_per_layer(self, output_path=None):
 
@@ -76,4 +79,20 @@ def plot_percentage_resource_per_layer_type(self, output_path=None):
     if output_path == None:
         plt.show()
 
+def visualise_partitions_nx(self, output_path):
 
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    else:
+        for file in os.listdir(output_path):
+            os.remove(os.path.join(output_path, file))
+
+    for partition_index in range(len(self.partitions)):
+        graph = copy.deepcopy(self.partitions[partition_index].graph)
+        for node in graph.nodes:
+            node_attrs = list(graph.nodes[node].keys())
+            for attr in node_attrs:
+                del graph.nodes[node][attr]
+
+        PG = nx.nx_pydot.to_pydot(graph)
+        PG.write_png(os.path.join(output_path, f"partition_{partition_index}.png"))
