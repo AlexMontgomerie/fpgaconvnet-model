@@ -175,3 +175,54 @@ class Partition():
         else:
             return _wr_layer( output_node )
 
+    def check_partition_validity(self):
+        """
+        Check the validity of the partition with respect to the split and merge layers and their connentivity
+
+        Returns:
+            bool: True if the partition is valid, False otherwise
+        """
+
+        multiport_layers_out = []
+        for node in self.graph.nodes:
+            if self.graph.nodes[node]["type"] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
+                multiport_layers_out.append(node)
+
+        multiport_layers_in = []
+        for node in self.graph.nodes:
+            if self.graph.nodes[node]["type"] in [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]:
+                multiport_layers_in.append(node)
+
+        if not multiport_layers_out and not multiport_layers_in:
+            return True, ""
+
+
+        if (len(multiport_layers_out) > 0 and len(multiport_layers_in) == 0) or (len(multiport_layers_out) == 0 and len(multiport_layers_in) > 0):
+            return True, ""
+        elif len(multiport_layers_out) == len(multiport_layers_in):
+            for split_layer in multiport_layers_out:
+                if not self.graph.out_degree(split_layer) > 1:
+                    return False, f"Split layer {split_layer} does not have multiple outputs while the respective merge layer exists at the same graph"
+            for merge_layer in multiport_layers_in:
+                if not self.graph.in_degree(merge_layer) > 1:
+                    return False, f"Merge layer {merge_layer} does not have multiple inputs while the respective split layer exists at the same graph"
+        elif len(multiport_layers_out) > len(multiport_layers_in):
+            # This is probably a naive implementation and might miss some more complex graph structures
+            num_merge_layers = len(multiport_layers_in)
+            connected_split_layers = 0
+            for split_layer in multiport_layers_out:
+                if self.graph.out_degree(split_layer) > 1:
+                    connected_split_layers += 1
+            if connected_split_layers != num_merge_layers:
+                return False, "Could not find connection for all merge layers"
+        elif len(multiport_layers_out) < len(multiport_layers_in):
+            # This is probably a naive implementation and might miss some more complex graph structures
+            num_split_layers = len(multiport_layers_out)
+            connected_merge_layers = 0
+            for merge_layer in multiport_layers_in:
+                if self.graph.in_degree(merge_layer) > 1:
+                    connected_merge_layers += 1
+            if connected_merge_layers != num_split_layers:
+                return False, "Could not find connection for all split layers"
+
+        return True, ""

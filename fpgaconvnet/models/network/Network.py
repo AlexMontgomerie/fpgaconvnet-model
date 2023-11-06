@@ -201,3 +201,27 @@ class Network():
         # update partitions
         self.update_partitions()
 
+    def check_network_validity(self):
+        """
+        Ensure all layers of the original graph belong to exactly one partition
+
+        Returns:
+            bool: True if the network is valid, False otherwise
+        """
+        original_layers = self.graph.nodes()
+        for origin_layer in original_layers:
+            layer_found = False
+            for partition in self.partitions:
+                if origin_layer in partition.graph.nodes():
+                    layer_found = True
+                    break
+            if not layer_found:
+                raise AssertionError(f"Layer {origin_layer} not found in any partition")
+
+        # check the validity of each partition
+        for partition_index in range(len(self.partitions)):
+            is_valid, err_msg = self.partitions[partition_index].check_partition_validity()
+            if not is_valid:
+                raise AssertionError(f"Partition {partition_index} is not valid: {err_msg}")
+
+        return True
