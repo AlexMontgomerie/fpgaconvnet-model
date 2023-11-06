@@ -13,6 +13,11 @@ from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import GlobalPoolingLayer, SqueezeLayer3D
 from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
 from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
+from fpgaconvnet.models.layers import ConcatLayer
+from fpgaconvnet.models.layers import ActivationLayer3D
+from fpgaconvnet.models.layers import ReSizeLayer
+from fpgaconvnet.models.layers import HardswishLayer
+from fpgaconvnet.models.layers import ChopLayer
 
 from fpgaconvnet.data_types import FixedPoint
 
@@ -21,7 +26,7 @@ import fpgaconvnet.tools.layer_enum as layer_enum
 
 class ParsePrototxtNode:
 
-    def __init__(self, n, dimensionality=2, backend="hls", regression_model="linear_regression"):
+    def __init__(self, n, dimensionality=2, backend="chisel", regression_model="linear_regression"):
 
         self.dimensionality = dimensionality
 
@@ -168,7 +173,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                     regression_model =self.regression_model,
                     stream_weights=self.node.parameters.stream_weights,
                     use_uram = self.node.parameters.use_uram
-                )                
+                )
             elif self.node.op_type == "pointwise_sparse":
                 return ConvolutionPointwiseSparseLayer(
                     self.node.parameters.channels_out,
@@ -197,7 +202,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                     regression_model =self.regression_model,
                     stream_weights=self.node.parameters.stream_weights,
                     use_uram =self.node.parameters.use_uram
-                )          
+                )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
                 self.node.parameters.channels_out,
@@ -449,4 +454,93 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
             regression_model =self.regression_model,
         )
 
+class ParsePrototxtConcatNode(ParsePrototxtNode):
 
+    def get_hardware(self):
+
+        # create eltwise layer hardware
+        return ConcatLayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in_array,
+            ports_in=self.node.parameters.ports_in,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            coarse=self.node.parameters.coarse,
+            backend =self.backend,
+            regression_model =self.regression_model,
+        )
+
+class ParsePrototxtActivationNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        if self.dimensionality == 2:
+            return ReLULayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
+        elif self.dimensionality == 3:
+            return ActivationLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                self.node.op_type,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                coarse=self.node.parameters.coarse,
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
+        else:
+            raise NotImplementedError
+
+class ParsePrototxtReSizeNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        return ReSizeLayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in,
+            self.node.parameters.scale,
+            coarse=self.node.parameters.coarse,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            backend =self.backend,
+            regression_model =self.regression_model,
+        )
+
+class ParsePrototxtHardSwishNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        return HardswishLayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in,
+            coarse=self.node.parameters.coarse,
+            input_t=FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
+            output_t=FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+            backend =self.backend,
+            regression_model =self.regression_model,
+        )
+
+class ParsePrototxtChopNode(ParsePrototxtNode):
+
+    def get_hardware(self):
+
+        return ChopLayer(
+            self.node.parameters.rows_in,
+            self.node.parameters.cols_in,
+            self.node.parameters.channels_in,
+            self.node.parameters.split,
+            coarse=self.node.parameters.coarse,
+            ports_out=self.node.parameters.ports_out,
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            backend =self.backend,
+            regression_model =self.regression_model,
+        )

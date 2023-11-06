@@ -14,8 +14,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, quant_format, dimensionality=2, backend="hls",
-            regression_model="linear_regression", convert_gemm_to_conv=False):
+    def __init__(self, graph, n, quant_format, dimensionality=2, backend="chisel", regression_model="linear_regression", convert_gemm_to_conv=False):
 
         # refrence of the graph
         self.graph = graph

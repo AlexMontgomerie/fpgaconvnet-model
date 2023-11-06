@@ -325,6 +325,12 @@ class Parser:
             LAYER_TYPE.ThresholdedReLU: ParsePrototxtThresholdedReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
             LAYER_TYPE.Split: ParsePrototxtSplitNode,
+            LAYER_TYPE.Concat: ParsePrototxtConcatNode,
+            LAYER_TYPE.Sigmoid: ParsePrototxtActivationNode,
+            LAYER_TYPE.ReSize: ParsePrototxtReSizeNode,
+            LAYER_TYPE.HardSigmoid: ParsePrototxtActivationNode,
+            LAYER_TYPE.HardSwish: ParsePrototxtHardSwishNode,
+            LAYER_TYPE.Chop: ParsePrototxtChopNode,
         }
 
         # get the node type
