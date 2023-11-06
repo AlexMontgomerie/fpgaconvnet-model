@@ -115,7 +115,7 @@ def visualise_partitions_nx(self, output_path):
                 channels_in = [channels_in] * graph.nodes[node]['hw'].ports_in
             if wr_factor == None:
                 g.add_node(pydot.Node(node,
-                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} | coarse out: {coarse_out}}}".format(
+                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} \| coarse out: {coarse_out}}}".format(
                     node=node,
                     type=node_type,
                     rows_in=rows_in,
@@ -128,7 +128,7 @@ def visualise_partitions_nx(self, output_path):
                     coarse_out=coarse_out)))
             else:
                 g.add_node(pydot.Node(node,
-                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} | coarse out: {coarse_out} \n wr factor: {wr_factor}}}".format(
+                    label="{{ {node}|type: {type} \n dim in: [{rows_in}, {cols_in}, {channels_in}]  \n dim out: [{rows_out}, {cols_out}, {channels_out}]  \n coarse in: {coarse_in} \| coarse out: {coarse_out} \n wr factor: {wr_factor}}}".format(
                     node=node,
                     type=node_type,
                     rows_in=rows_in,
