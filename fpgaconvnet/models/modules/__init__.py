@@ -45,6 +45,7 @@ from .Glue3D import Glue3D
 from .Pool3D import Pool3D
 from .Activation3D import Activation3D
 from .ReLU3D import ReLU3D
+from .Hardswish3D import Hardswish3D
 from .SlidingWindow3D import SlidingWindow3D
 from .Squeeze3D import Squeeze3D
 from .Bias3D import Bias3D
