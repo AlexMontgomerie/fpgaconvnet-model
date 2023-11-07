@@ -104,6 +104,10 @@ class ConvolutionLayer3D(Layer3D):
             self.stream_weights = False
             self.data_packing = True
 
+        # off chip weight streaming attributes
+        self.weight_array_unit_depth = 0
+        self.weight_array_unit_width = 0
+
         # regression model
         assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"{regression_model} is an invalid regression model"
         self.regression_model = regression_model

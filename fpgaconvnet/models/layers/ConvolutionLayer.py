@@ -102,6 +102,10 @@ class ConvolutionLayer(Layer):
             self.data_packing = True
             self.use_uram = use_uram
 
+        # off chip weight streaming attributes
+        self.weight_array_unit_depth = 0
+        self.weight_array_unit_width = 0
+
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
         self.regression_model = regression_model
@@ -486,7 +490,10 @@ class ConvolutionLayer(Layer):
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
         parameters.use_uram     = self.use_uram
-        parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        if self.weights_ram_usage + self.stream_weights > 0:
+            parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        else:
+            parameters.on_chip_addr_range = 0
         parameters.stream_weights = int(self.stream_weights)
         if self.stream_weights > 0:
             parameters.off_chip_buffer_size = self.off_chip_buffer_size()
