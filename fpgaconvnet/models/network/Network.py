@@ -201,7 +201,7 @@ class Network():
         # update partitions
         self.update_partitions()
 
-    def check_network_validity(self):
+    def check_network_graph_completeness(self):
         """
         Ensure all layers of the original graph belong to exactly one partition
 
@@ -220,7 +220,7 @@ class Network():
 
         # check the validity of each partition
         for partition_index in range(len(self.partitions)):
-            is_valid, err_msg = self.partitions[partition_index].check_partition_validity()
+            is_valid, err_msg = self.partitions[partition_index].check_graph_completeness()
             if not is_valid:
                 raise AssertionError(f"Partition {partition_index} is not valid: {err_msg}")
 
