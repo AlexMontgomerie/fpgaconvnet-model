@@ -19,6 +19,7 @@ class GlobalPoolingLayer3D(Layer3D):
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
+            op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
             regression_model: str = "linear_regression"
         ):
@@ -40,6 +41,8 @@ class GlobalPoolingLayer3D(Layer3D):
         # update parameters
         self._coarse = coarse
 
+        self.pool_type = op_type
+        
         # init modules
         self.modules["global_pool3d"] = GlobalPool3D(
                 self.rows_in(), self.cols_in(), self.depth_in(),
