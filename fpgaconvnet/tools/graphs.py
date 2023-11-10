@@ -35,6 +35,50 @@ def get_next_nodes_all(graph, node):
 def get_prev_nodes_all(graph, node):
     return sorted(list(ancestors(graph, node)))
 
+def get_multiport_layers(graph, direction):
+    if direction == "in":
+        return [ node for node in graph.nodes() if graph.nodes[node]['type'] in MULTIPORT_LAYERS_IN ]
+    elif direction == "out":
+        return [ node for node in graph.nodes() if graph.nodes[node]['type'] in MULTIPORT_LAYERS_OUT ]
+    else:
+        raise ValueError("direction must be 'in' or 'out'")
+
+def get_branch_edges_all(partitions):
+    network_branch_edges = []
+    for i in range(len(partitions)):
+        multiport_layers_out = get_multiport_layers(partitions[i].graph, "out")
+        for node in multiport_layers_out:
+            next_nodes = get_next_nodes(partitions[i].graph, node)
+            assert len(next_nodes) > 1, "multiport layer out must have more than one connected nodes at its output"
+            for next_node in next_nodes:
+                if (node, next_node) not in network_branch_edges:
+                    network_branch_edges.append((node, next_node))
+
+        multiport_layers_in = get_multiport_layers(partitions[i].graph, "in")
+        for node in multiport_layers_in:
+            prev_nodes = get_prev_nodes(partitions[i].graph, node)
+            assert len(prev_nodes) > 1, "multiport layer in must have more than one connected nodes at its input"
+            for prev_node in prev_nodes:
+                if (prev_node, node) not in network_branch_edges and (node, prev_node) not in network_branch_edges:
+                    network_branch_edges.append((prev_node, node))
+    return network_branch_edges
+
+def fix_branch_inconsistencies(graph, network_branch_edges):
+    mandatory_edges = []
+    io_edges = []
+    for edge in network_branch_edges:
+        if edge[0] in graph.nodes() and edge[1] in graph.nodes():
+            mandatory_edges.append(edge)
+        elif edge[0] in graph.nodes() or edge[1] in graph.nodes():
+            io_edges.append(edge)
+
+    for edge in mandatory_edges:
+        if edge not in list(graph.edges()):
+            print(f"adding missing edge {edge} to graph")
+            graph.add_edge(edge[0], edge[1])
+
+    return graph
+
 def ordered_node_list(graph): # TODO: make work for parallel networks
     return list( nx.topological_sort(graph) )
 

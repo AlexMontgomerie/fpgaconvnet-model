@@ -61,6 +61,9 @@ class Network():
         # update partitions
         self.update_partitions()
 
+        # all branch edges
+        self.network_branch_edges = graphs.get_branch_edges_all(self.partitions)
+
     from fpgaconvnet.models.network.scheduler import get_partition_order
     from fpgaconvnet.models.network.scheduler import get_input_base_addr
     from fpgaconvnet.models.network.scheduler import get_output_base_addr

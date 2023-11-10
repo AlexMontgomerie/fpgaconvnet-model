@@ -182,19 +182,11 @@ class Partition():
             bool: True if the partition is valid, False otherwise
         """
 
-        multiport_layers_out = []
-        for node in self.graph.nodes:
-            if self.graph.nodes[node]["type"] in [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]:
-                multiport_layers_out.append(node)
-
-        multiport_layers_in = []
-        for node in self.graph.nodes:
-            if self.graph.nodes[node]["type"] in [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]:
-                multiport_layers_in.append(node)
+        multiport_layers_out = graphs.get_multiport_layers(self.graph, "out")
+        multiport_layers_in = graphs.get_multiport_layers(self.graph, "in")
 
         if not multiport_layers_out and not multiport_layers_in:
             return True, ""
-
 
         if (len(multiport_layers_out) > 0 and len(multiport_layers_in) == 0) or (len(multiport_layers_out) == 0 and len(multiport_layers_in) > 0):
             return True, ""
