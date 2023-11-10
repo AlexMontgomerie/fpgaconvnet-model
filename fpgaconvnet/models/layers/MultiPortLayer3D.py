@@ -68,6 +68,10 @@ class MultiPortLayer3D:
 
     def __post_init__(self):
         self.buffer_depth = [2]*self.ports_in
+        self.stream_inputs = [False]*self.ports_in
+        self.stream_outputs = [False]*self.ports_out
+        self.input_t = self.data_t
+        self.output_t = self.data_t
 
     """
     properties

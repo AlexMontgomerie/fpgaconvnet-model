@@ -66,6 +66,12 @@ class Layer3D:
     buffer_depth: int = field(default=0, init=False)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
 
+    def __post_init__(self):
+        self.input_t = self.data_t
+        self.output_t = self.data_t
+        self.stream_inputs = [False]
+        self.stream_outputs = [False]
+        
     @property
     def rows(self) -> int:
         return self._rows
