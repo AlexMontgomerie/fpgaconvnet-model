@@ -223,7 +223,7 @@ class Network():
 
         # check the validity of each partition
         for partition_index in range(len(self.partitions)):
-            is_valid, err_msg = self.partitions[partition_index].check_graph_completeness()
+            is_valid, err_msg = self.partitions[partition_index].check_graph_completeness(self.network_branch_edges)
             if not is_valid:
                 raise AssertionError(f"Partition {partition_index} is not valid: {err_msg}")
 

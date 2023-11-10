@@ -174,28 +174,35 @@ class Partition():
         else:
             return _wr_layer( output_node )
 
-    def check_graph_completeness(self):
+    def check_graph_completeness(self, network_branch_edges):
         """
         Check the validity of the partition with respect to the split and merge layers and their connentivity
 
         Returns:
             bool: True if the partition is valid, False otherwise
         """
+        self.remove_squeeze()
 
         multiport_layers_out = graphs.get_multiport_layers(self.graph, "out")
         multiport_layers_in = graphs.get_multiport_layers(self.graph, "in")
 
         if not multiport_layers_out and not multiport_layers_in:
+            self.add_squeeze()
             return True, ""
 
         if (len(multiport_layers_out) > 0 and len(multiport_layers_in) == 0) or (len(multiport_layers_out) == 0 and len(multiport_layers_in) > 0):
+            self.add_squeeze()
             return True, ""
+        '''
+        # This is the previous implementation that was not working for all cases. Keeping it here for reference just in case we need something similar in the future. It is not used anymore and should be removed at some point.
         elif len(multiport_layers_out) == len(multiport_layers_in):
             for split_layer in multiport_layers_out:
                 if not self.graph.out_degree(split_layer) > 1:
+                    self.add_squeeze()
                     return False, f"Split layer {split_layer} does not have multiple outputs while the respective merge layer exists at the same graph"
             for merge_layer in multiport_layers_in:
                 if not self.graph.in_degree(merge_layer) > 1:
+                    self.add_squeeze()
                     return False, f"Merge layer {merge_layer} does not have multiple inputs while the respective split layer exists at the same graph"
         elif len(multiport_layers_out) > len(multiport_layers_in):
             # This is probably a naive implementation and might miss some more complex graph structures
@@ -205,6 +212,7 @@ class Partition():
                 if self.graph.out_degree(split_layer) > 1:
                     connected_split_layers += 1
             if connected_split_layers != num_merge_layers:
+                self.add_squeeze()
                 return False, "Could not find connection for all merge layers"
         elif len(multiport_layers_out) < len(multiport_layers_in):
             # This is probably a naive implementation and might miss some more complex graph structures
@@ -214,6 +222,19 @@ class Partition():
                 if self.graph.in_degree(merge_layer) > 1:
                     connected_merge_layers += 1
             if connected_merge_layers != num_split_layers:
+                self.add_squeeze()
                 return False, "Could not find connection for all split layers"
+        '''
 
+        mandatory_edges = []
+        for edge in network_branch_edges:
+            if edge[0] in self.graph.nodes() and edge[1] in self.graph.nodes():
+                mandatory_edges.append(edge)
+
+        for edge in mandatory_edges:
+            if edge not in list(self.graph.edges()):
+                self.add_squeeze()
+                return False, f"Edge {edge} is missing from the partition's graph."
+
+        self.add_squeeze()
         return True, ""
