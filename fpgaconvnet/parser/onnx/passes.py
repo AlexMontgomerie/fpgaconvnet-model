@@ -9,7 +9,48 @@ import onnx_graphsurgeon as gs
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
+import onnx_tool
+from fpgaconvnet.tools.layer_enum import from_onnx_op_type
+
 ADD_QUANT_ATTR=False
+
+def _get_tensor_names_between_reshape(graph: onnx_tool.Graph) -> tuple[list[str], list[str]]:
+    input_tensors = []
+    output_tensors = []
+    ops = ['Gemm', 'Conv']
+    for key in graph.nodemap.keys():
+        if graph.nodemap[key].op_type in ops:
+            if 'Reshape' in [n.op_type for n in graph.nodemap[key].prevnodes]:
+                input_tensors.append(graph.nodemap[key].input[0])
+            if 'Reshape' in [n.op_type for n in graph.nodemap[key].nextnodes]:
+                output_tensors.append(graph.nodemap[key].output[0])
+    return input_tensors, output_tensors
+
+def clean_up_yamle_model(model):
+    m = onnx_tool.Model(model)
+    input_shape = []
+    # get input shape, assume single input
+    for v in model.graph.input[0].type.tensor_type.shape.dim:
+        if v.HasField('dim_param'): input_shape.append(1)
+        elif v.HasField('dim_value'): input_shape.append(v.dim_value)
+        else: raise Exception("Got unexpected field name trying to access model input dim.")
+
+    in_tensors, out_tensors = _get_tensor_names_between_reshape(m.graph)
+    input_name = m.graph.input[0]
+    try:
+        m.graph.shape_infer({input_name: np.zeros(input_shape, dtype=np.float32)})
+        m.graph.get_compute_graph()
+        _, sub_graph, _ = m.graph.get_subgraph(in_tensors, out_tensors)
+    except: # shape inference failed for logic operators, get a sub_graph first
+        _, sub_graph, _ = m.graph.get_subgraph([input_name], out_tensors)
+        sub_graph.shape_infer({input_name: np.zeros(input_shape, dtype=np.float32)})
+        sub_graph.get_compute_graph()
+        _, sub_graph, _ = sub_graph.get_subgraph(in_tensors, out_tensors)
+
+    # return an onnx model
+    onnx_graph = sub_graph.make_graph_onnx(sub_graph.nodemap.keys(), 'graph', sub_graph.input, sub_graph.output)
+    return onnx.helper.make_model(onnx_graph)
+
 
 def convert_matmul_to_gemm(model):
     """
