@@ -71,7 +71,7 @@ class Parser:
         # passes for fpgaconvnet onnx optimizer
         self.fpgaconvnet_pre_onnx_passes = [
             # "absorb_quantise",
-            "convert_to_version_15",
+            # "convert_to_version_15",
             "fuse_mul_add_into_bn",
         ]
 
@@ -89,7 +89,7 @@ class Parser:
             "convert_reshape_to_flatten",
             "convert_transpose_flatten_gemm_to_flatten_gemm",
             "rename_all_nodes",
-            "move_relu_after_quant",
+            # "move_relu_after_quant",
             "add_nop_to_split_output",
         ]
 
@@ -118,8 +118,12 @@ class Parser:
 
         # load onnx model
         model = onnx.load(onnx_filepath)
-        input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
-        dimensionality = len(input_shape) - 2
+        # input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
+        # dimensionality = len(input_shape) - 2
+        dimensionality = 2 # quick-fix: Omitting 3D networks
+
+        # clean up yamle model
+        model = onnx_passes.clean_up_yamle_model(model)
 
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
@@ -156,7 +160,7 @@ class Parser:
             # check optimized model
             onnx.checker.check_model(model_opt)
 
-        onnx.save(model_opt, "model_opt.onnx")
+        # onnx.save(model_opt, "model_opt.onnx")
 
         return model_opt, dimensionality
 

@@ -48,6 +48,11 @@ class ParseOnnxNode:
         # input and output shape
         self.input_shape = [ x.dim_value for x in self.inputs[0].type.tensor_type.shape.dim ]
         self.output_shape = [ x.dim_value for x in self.outputs[0].type.tensor_type.shape.dim ]
+        # check node dimensionality (to support layers after flatten)
+        if len(self.input_shape) < 4:
+            self.input_shape = self.input_shape + [1, 1]
+        if len(self.output_shape) < 4:
+            self.output_shape = self.output_shape + [1, 1]
 
         # get attributes
         self.attr = onnx_helper.format_attr(n.attribute)
