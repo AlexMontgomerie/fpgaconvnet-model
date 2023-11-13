@@ -97,6 +97,10 @@ class InnerProductLayer(Layer):
     @property
     def filters(self) -> int:
         return self._filters
+    
+    @property
+    def kernel_size(self) -> int:
+        return [1, 1]
 
     @filters.setter
     def filters(self, val: int) -> None:
