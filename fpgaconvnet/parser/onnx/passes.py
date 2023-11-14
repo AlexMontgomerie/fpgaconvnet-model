@@ -236,8 +236,10 @@ def remove_training_nodes(model):
                 as it is not used for inference")
 
         # get the next node
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
-
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
         # remove dropout node
         model.graph.node.remove(node)
         next_node.input[0] = node.input[0]
@@ -292,7 +294,10 @@ def eliminate_nop_pool(model):
         model.graph.node.remove(node)
 
         # connect node and Gemm node together
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
         next_node.input[0] = node.input[0]
 
     # return the new model
@@ -363,7 +368,10 @@ def fuse_matmul_add_into_gemm(model):
         model.graph.node.insert(index, new_node)
 
         # connect node and Gemm node together
-        next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+        try:
+            next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+        except StopIteration:
+            continue
         next_next_node.input[0] = new_node.output[0]
 
     # return the new model
@@ -381,7 +389,10 @@ def remove_first_transpose(model):
         print(f"WARNING: removing first transpose ({model.graph.node[0].name}), as fpgaConvNet is already channel-first")
 
         # get next node
-        next_node = next(filter(lambda x: x.input[0] == model.graph.node[0].output[0], model.graph.node))
+        try:
+            next_node = next(filter(lambda x: x.input[0] == model.graph.node[0].output[0], model.graph.node))
+        except StopIteration:
+            return model
 
         # remove node
         next_node.input[0] = model.graph.node[0].input[0]
@@ -401,8 +412,10 @@ def remove_last_softmax(model):
         print(f"WARNING: removing last softmax node ({model.graph.node[-1].name}), must be implemented on the CPU instead")
 
         # get prev node
-        prev_node = next(filter(lambda x: x.output[0] == model.graph.node[-1].input[0], model.graph.node))
-
+        try:
+            prev_node = next(filter(lambda x: x.output[0] == model.graph.node[-1].input[0], model.graph.node))
+        except StopIteration:
+            return model
         # remove node
         prev_node.output[0] = model.graph.node[-1].output[0]
         model.graph.node.remove(model.graph.node[-1])
@@ -425,7 +438,10 @@ def convert_reshape_to_flatten(model):
 
         # get input and output shape
         input_shape = onnx_helper.get_input_shape(model, node.input[0])
-        next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+        try:
+            next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+        except StopIteration:
+            continue
         next_node_input_idx = next_node.input.index(node.output[0])
         output_shape = onnx_helper.get_input_shape(model,
                 next_node.input[next_node_input_idx])
@@ -459,12 +475,18 @@ def convert_transpose_flatten_gemm_to_flatten_gemm(model):
             continue
 
         # get the flatten node
-        flatten_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        try:
+            flatten_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
         if flatten_node.op_type != "Flatten":
             continue
 
         # get the gemm node
-        gemm_node = next(filter(lambda x: x.input[0] == flatten_node.output[0], model.graph.node))
+        try:
+            gemm_node = next(filter(lambda x: x.input[0] == flatten_node.output[0], model.graph.node))
+        except StopIteration:
+            continue
         if gemm_node.op_type != "Gemm":
             continue
 
@@ -621,7 +643,10 @@ def absorb_quantise(model):
             if node.op_type == "QuantizeLinear":
                 assert tensor_raw is None
 
-                prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+                try:
+                    prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+                except StopIteration:
+                    continue
 
                 # remove the zero point and scale inputs (if in inputs)
                 zero_point_scale_inputs.extend(node.input[1:])
@@ -670,8 +695,7 @@ def fuse_mul_add_into_bn(model):
         # get the next node
         try:
             next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
-        # except StopIteration or IndexError:
-        except:
+        except StopIteration:
             continue
 
         print(node)
@@ -825,7 +849,10 @@ def remove_quant_nodes(model):
         if node.op_type == "DequantizeLinear":
 
             # get the next node
-            next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+            try:
+                next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
+            except StopIteration:
+                continue
             input_idx = list(next_node.input).index(node.output[0])
 
             # remove dequant node
@@ -841,7 +868,10 @@ def remove_quant_nodes(model):
         if node.op_type == "QuantizeLinear":
 
             # get the next node
-            prev_node = next(filter(lambda x: node.input[0] in x.output, model.graph.node))
+            try:
+                prev_node = next(filter(lambda x: node.input[0] in x.output, model.graph.node))
+            except StopIteration:
+                continue
             output_idx = list(prev_node.output).index(node.input[0])
 
             # remove dequant node
@@ -914,15 +944,13 @@ def fuse_mul_sigmoid_into_hardswish(model):
         if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
             continue
 
-        # get previous node a
-        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
-
-        # # check prev node a has two outputs
-        # if len(prev_node_a.output) != 2:
-        #     continue
-
-        # get previous node b
-        prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        try:
+            # get previous node a
+            prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+            # get previous node b
+            prev_node_b = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        except StopIteration:
+            continue
 
         # check prev node b is a sigmoid
         if prev_node_b.op_type != "Sigmoid":
@@ -958,7 +986,10 @@ def fuse_relu_into_previous(model):
         if node.op_type != "Relu":
             continue
 
-        prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+        try:
+            prev_node = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+        except StopIteration:
+            continue
         next_nodes = filter(lambda x: (x.input[0] == node.output[0]) or (x.input[1] == node.output[0]) if len(x.input) > 1 else x.input[0] == node.output[0], model.graph.node)
 
         # Connect the previous node output to the next node(s) input
@@ -1017,7 +1048,10 @@ def eliminate_nop_pad(model):
             continue
 
         # get the next node
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # remove dropout node
         model.graph.node.remove(node)
@@ -1035,7 +1069,10 @@ def move_relu_after_quant(model):
             continue
 
         # get the next node
-        next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        try:
+            next_node = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # check next node is quantize linear
         if next_node.op_type != "QuantizeLinear":
@@ -1045,7 +1082,10 @@ def move_relu_after_quant(model):
         next_index = list(model.graph.node).index(next_node)
 
         # get the next next node
-        next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+        try:
+            next_next_node = next(filter(lambda x: x.input[0] == next_node.output[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # move the relu after quantize
         next_node.input[0] = node.input[0]
@@ -1078,12 +1118,15 @@ def insert_scale_shift_quant(model):
             continue
 
         # get quant and dequant layers
-        input_quant = next(filter(lambda x: \
-                x.output[0] == node.input[0], model.graph.node))
-        weight_quant = next(filter(lambda x: \
-                x.output[0] == node.input[1], model.graph.node))
-        output_quant = next(filter(lambda x: \
-                x.input[0] == node.output[0], model.graph.node))
+        try:
+            input_quant = next(filter(lambda x: \
+                    x.output[0] == node.input[0], model.graph.node))
+            weight_quant = next(filter(lambda x: \
+                    x.output[0] == node.input[1], model.graph.node))
+            output_quant = next(filter(lambda x: \
+                    x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # get input, weight and output scale
         input_scale = onnx_helper.get_model_initializer(model,
@@ -1147,22 +1190,23 @@ def fuse_add_clip_mul_div_into_hardswish(model):
         if len(list(filter(lambda x: x.name == node.input[1], model.graph.input))):
             continue
 
-        # get previous node a
-        prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
-
-        # # check prev node a has two outputs
-        # if len(prev_node_a.output) != 2:
-        #     continue
-
-        # get previous node b
-        clip = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        try:
+            # get previous node a
+            prev_node_a = next(filter(lambda x: x.output[0] == node.input[0], model.graph.node))
+            # get previous node b
+            clip = next(filter(lambda x: x.output[0] == node.input[1], model.graph.node))
+        except StopIteration:
+            continue
 
         # check prev node b is a sigmoid
         if clip.op_type != "Clip":
             continue
 
         # get clip's previous node
-        add = next(filter(lambda x: x.output[0] == clip.input[0], model.graph.node))
+        try:
+            add = next(filter(lambda x: x.output[0] == clip.input[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # check prev node b is a sigmoid
         if add.op_type != "Add":
@@ -1173,7 +1217,10 @@ def fuse_add_clip_mul_div_into_hardswish(model):
             continue
 
         # get next node
-        div = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        try:
+            div = next(filter(lambda x: x.input[0] == node.output[0], model.graph.node))
+        except StopIteration:
+            continue
 
         # check prev node b is a sigmoid
         if div.op_type != "Div":
@@ -1259,20 +1306,10 @@ def remove_empty_inputs_outputs(model):
     # iterate over nodes in the graph
     for index, node in enumerate(model.graph.node):
 
-        # get node inputs
-        inputs = node.input
-
         # iterate over inputs and remove empty ones
-        for input in inputs:
-            if input == "":
-                node.input.remove(input)
-
-        # get node outputs
-        outputs = node.output
+        node.input[:] = list(filter(lambda x: x != "", node.input))
 
         # iterate over outputs and remove empty ones
-        for output in outputs:
-            if output == "":
-                node.output.remove(output)
+        node.output[:] = list(filter(lambda x: x != "", node.output))
 
     return model
