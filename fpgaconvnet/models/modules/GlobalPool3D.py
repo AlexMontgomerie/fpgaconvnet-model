@@ -17,8 +17,6 @@ from fpgaconvnet.models.modules import GlobalPool
 
 @dataclass
 class GlobalPool3D(Module3D):
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
     acc_width: int = 32
 
     def __post_init__(self):

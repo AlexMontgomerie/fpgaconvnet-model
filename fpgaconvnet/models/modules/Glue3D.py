@@ -23,12 +23,6 @@ class Glue3D(Module3D):
     filters: int
     coarse_in: int
     coarse_out: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    data_width: int = field(default=32, init=False)
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
 

@@ -19,8 +19,6 @@ class EltWise3D(Module3D):
     eltwise_type: str
     broadcast: bool = False
     biases_width: int = field(default=16, init=False)
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         return

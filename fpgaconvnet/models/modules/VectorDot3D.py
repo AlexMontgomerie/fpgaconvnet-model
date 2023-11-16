@@ -14,13 +14,8 @@ from fpgaconvnet.models.modules import VectorDot
 class VectorDot3D(Module3D):
     filters: int
     fine: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
 

@@ -52,8 +52,6 @@ class Conv(Module):
     groups: int
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=16, init=False)
-    backend: str = "hls"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 

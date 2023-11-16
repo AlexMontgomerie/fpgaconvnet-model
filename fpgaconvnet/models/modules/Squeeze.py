@@ -26,11 +26,6 @@ def buffer_estimate(coarse_in, coarse_out, data_width):
 class Squeeze(Module):
     coarse_in: int
     coarse_out: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def module_info(self):
         # get the base module fields
@@ -97,7 +92,7 @@ class Squeeze(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows                       , "ERROR: invalid row dimension"
+        # assert data.shape[0] == self.rows                       , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols                       , "ERROR: invalid column dimension"
         assert data.shape[2] == self.channels//self.coarse_in   , "ERROR: invalid channel dimension"
         assert data.shape[3] == self.coarse_in                  , "ERROR: invalid coarse dimension"

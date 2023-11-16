@@ -12,18 +12,16 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class ShiftScale(Module):
     filters: int
     biases_width: int = field(default=16, init=False)
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
 
     def rsc(self):
         return {
-          "LUT"  : 0, 
+          "LUT"  : 0,
           "BRAM" : 0,
           "DSP"  : 1,
-          "FF"   : 0 
+          "FF"   : 0
         }
 
     def functional_model(self, data, scale, shift):

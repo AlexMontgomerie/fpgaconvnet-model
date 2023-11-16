@@ -16,10 +16,6 @@ from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 @dataclass
 class ReSize(Module):
     scales: List[int]
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
 
     def __post_init__(self):
         pass
@@ -64,21 +60,24 @@ class ReSize(Module):
     def functional_model(self, data):
 
         # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        # assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
 
-        out = np.zeros((
-            self.rows*self.scales[0],
-            self.cols*self.scales[1],
-            self.channels*self.scales[2]),dtype=float)
+        # return the data
+        return data[::self.scales[0], ::self.scales[1], ::self.scales[2]]
 
-        for index, _ in np.ndenumerate(out):
-                out[index] = data[
-                        index[0]//self.scales[0],
-                        index[1]//self.scales[1],
-                        index[2]//self.scales[2],
-                    ]
+        # out = np.zeros((
+        #     self.rows*self.scales[0],
+        #     self.cols*self.scales[1],
+        #     self.channels*self.scales[2]),dtype=float)
 
-        return out
+        # for index, _ in np.ndenumerate(out):
+        #         out[index] = data[
+        #                 index[0]//self.scales[0],
+        #                 index[1]//self.scales[1],
+        #                 index[2]//self.scales[2],
+        #             ]
+
+        # return out
 

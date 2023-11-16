@@ -15,8 +15,6 @@ class SparseVectorDot(Module):
     window_sparsity: List[float]
     skipping_windows: bool
     fine: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
     weight_width: int = field(default=16, init=False)
     acc_width: int = field(default=32, init=False)
 
@@ -121,51 +119,24 @@ class SparseVectorDot(Module):
     '''
 
     def functional_model(self, data, weights):
-        # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
-        assert data.shape[3] == self.fine    , "ERROR: invalid column dimension"
-        # check input dimensionality
-        assert weights.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert weights.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert weights.shape[2] == self.channels, "ERROR: invalid channel dimension"
-        assert weights.shape[3] == self.filters , "ERROR: invalid channel dimension"
-        assert weights.shape[4] == self.fine    , "ERROR: invalid column dimension"
+        # # check input dimensionality
+        # # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        # assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        # # assert data.shape[3] == self.fine    , "ERROR: invalid column dimension"
+        # # check input dimensionality
+        # # assert weights.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert weights.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        # assert weights.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        # assert weights.shape[3] == self.filters , "ERROR: invalid channel dimension"
+        # # assert weights.shape[4] == self.fine    , "ERROR: invalid column dimension"
 
+        # replicate for filter dimension
+        partial = np.repeat(np.expand_dims(data, axis=-3), self.filters, axis=-3)
 
-        out = np.ndarray((
-            self.rows,
-            self.cols,
-            self.channels,
-            self.filters),dtype=object)
+        # multiply weights and data
+        partial = np.multiply(partial, weights)
 
-        for index,_ in np.ndenumerate(weights):
-            if index[4] == 0:
-                out[
-                    index[0],
-                    index[1],
-                    index[2],
-                    index[3]
-                ] = weights[index] * data[
-                        index[0],
-                        index[1],
-                        index[2],
-                        index[4]
-                    ]
-            else:
-                out[
-                    index[0],
-                    index[1],
-                    index[2],
-                    index[3]
-                ] += weights[index] * data[
-                        index[0],
-                        index[1],
-                        index[2],
-                        index[4]
-                    ]
-
-        return out
-
+        # sum across the kernel dimension
+        return np.sum(partial, axis=-1)
 

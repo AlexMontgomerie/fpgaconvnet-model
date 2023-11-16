@@ -81,9 +81,6 @@ class SlidingWindow3D(Module3D):
     pad_bottom: int
     pad_left: int
     pad_back: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
 
     @property
     def kernel_size(self):

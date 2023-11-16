@@ -13,8 +13,6 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class ReLU(Module):
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
@@ -40,19 +38,7 @@ class ReLU(Module):
                 fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
-        # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
 
-        out = np.ndarray((
-            self.rows,
-            self.cols,
-            self.channels),dtype=float)
-
-        for index,_ in np.ndenumerate(out):
-            out[index] = max(data[index],0.0)
-
-        return out
-
+        # maximum of 0 and the data
+        return np.maximum(data, 0.0)
 

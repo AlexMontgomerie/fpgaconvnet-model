@@ -16,6 +16,7 @@ from typing import Union, List
 from dataclasses import dataclass, field
 
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 import pydot
 
 from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
@@ -59,8 +60,6 @@ class SlidingWindow(Module):
     pad_right: int
     pad_bottom: int
     pad_left: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -154,7 +153,7 @@ class SlidingWindow(Module):
         else:
             window_buffer_bram = self.kernel_size[0]*(self.kernel_size[1]-1)*bram_array_resource_model(
                     window_buffer_depth, self.data_width, "fifo")
-        if window_buffer_bram == 0:            
+        if window_buffer_bram == 0:
             window_buffer_lutram = self.kernel_size[0]*(self.kernel_size[1]-1)*queue_lutram_resource_model(
                         window_buffer_depth, self.data_width)
         else:
@@ -163,7 +162,7 @@ class SlidingWindow(Module):
         # frame buffer
         frame_buffer_lutram = self.kernel_size[0]*self.kernel_size[1]*\
                             queue_lutram_resource_model(2, self.data_width)
-    
+
         return line_buffer_bram, line_buffer_lutram, window_buffer_bram, window_buffer_lutram, frame_buffer_lutram
 
     def utilisation_model(self):
@@ -238,49 +237,27 @@ class SlidingWindow(Module):
                 fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
-        # check input dimensionality
-        batch_size = data.shape[0]
-        assert data.shape[1] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[2] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
+        # # check input dimensionality
+        # batch_size = data.shape[0]
+        # # assert data.shape[1] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[2] == self.cols    , "ERROR: invalid column dimension"
+        # assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
 
-        #pad input
-        data_padded = np.ndarray((
-            batch_size,
-            self.rows + self.pad_bottom + self.pad_top,
-            self.cols + self.pad_left   + self.pad_right,
-            self.channels),dtype=float)
+        # pad the featuremap
+        data_in_padded = np.pad(
+            data, ((0, 0),
+                (self.pad_top, self.pad_bottom),
+                (self.pad_left, self.pad_right),
+                (0, 0), (0, 0)),
+                "constant",
+                constant_values=0,
+        )
 
-        for index,_ in np.ndenumerate(data_padded):
-            if  (index[1] < self.pad_bottom):
-                data_padded[index] = 0
-            elif(index[2] < self.pad_left):
-                data_padded[index] = 0
-            elif(index[1] > self.rows - 1 + self.pad_bottom):
-                data_padded[index] = 0
-            elif(index[2] > self.cols - 1 + self.pad_left):
-                data_padded[index] = 0
-            else:
-                data_padded[index] = data[
-                    index[0],
-                    index[1]-self.pad_left,
-                    index[2]-self.pad_bottom,
-                    index[3]]
+        # generate the windows
+        windows = sliding_window_view(data_in_padded, self.kernel_size, axis=[1, 2])
 
-        out = np.ndarray((
-            batch_size,
-            self.rows_out(),
-            self.cols_out(),
-            self.channels,
-            self.kernel_size[0],
-            self.kernel_size[1]),dtype=float)
+        # stride across the windows
+        windows = windows[:, :: self.stride[0], :: self.stride[1]]
 
-        for index,_ in np.ndenumerate(out):
-            out[index] = data_padded[
-                index[0],
-                index[1]*self.stride[0]+index[4],
-                index[2]*self.stride[1]+index[5],
-                index[3]]
-
-        return out
-
+        # return the windows
+        return windows

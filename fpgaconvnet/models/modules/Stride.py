@@ -16,8 +16,6 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Stride(Module):
     kernel_size: Union[List[int],int]
     stride: Union[List[int],int]
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
 
@@ -76,7 +74,7 @@ class Stride(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
         assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
         assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid column dimension"

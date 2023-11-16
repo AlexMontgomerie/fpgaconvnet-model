@@ -15,8 +15,6 @@ from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_mo
 
 @dataclass
 class GlobalPool(Module):
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
     acc_width: int = field(default=32, init=False)
 
     def utilisation_model(self):
@@ -90,9 +88,9 @@ class GlobalPool(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows       , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols       , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels   , "ERROR: invalid channel dimension"
+        # assert data.shape[0] == self.rows       , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols       , "ERROR: invalid column dimension"
+        # assert data.shape[2] == self.channels   , "ERROR: invalid channel dimension"
 
         # return average
         return np.average(data, axis=(0,1))

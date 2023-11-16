@@ -15,11 +15,6 @@ from fpgaconvnet.models.modules import Squeeze
 class Squeeze3D(Module3D):
     coarse_in: int
     coarse_out: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
 

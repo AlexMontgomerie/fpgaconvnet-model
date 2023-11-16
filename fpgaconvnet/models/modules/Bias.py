@@ -22,8 +22,6 @@ from fpgaconvnet.models.modules import int2bits, Module, MODULE_FONTSIZE
 class Bias(Module):
     filters: int
     biases_width: int = field(default=16, init=False)
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def channels_in(self):
         return self.filters
@@ -83,20 +81,6 @@ class Bias(Module):
                 fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data, biases):
-        # check input dimensionality
-        assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.filters                , "ERROR: invalid filter dimension"
-        # check bias dimensionality
-        assert biases.shape[0] == self.filters              , "ERROR: invalid filter dimension"
 
-        out = np.zeros((
-            self.rows,
-            self.cols,
-            self.filters,
-            ), dtype=float)
-
-        for index,_ in np.ndenumerate(out):
-            out[index] = data[index] + biases[index[2]]
-
-        return out
+        # add the bias term to the data
+        return data + biases

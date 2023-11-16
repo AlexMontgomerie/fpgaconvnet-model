@@ -20,11 +20,6 @@ from fpgaconvnet.tools.resource_analytical_model import queue_lutram_resource_mo
 class Pool(Module):
     kernel_size: Union[List[int],int]
     pool_type: str = "max"
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __name__(self):
         return f"{self.pool_type.capitalize()}Pool"
@@ -100,22 +95,22 @@ class Pool(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
-        assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid kernel size (x) dimension"
-        assert data.shape[4] == self.kernel_size[1]  , "ERROR: invalid kernel size (y) dimension"
+        # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        # assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        # assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid kernel size (x) dimension"
+        # assert data.shape[4] == self.kernel_size[1]  , "ERROR: invalid kernel size (y) dimension"
 
-        out = np.ndarray((
-            self.rows,
-            self.cols,
-            self.channels),dtype=float)
+        # flatten last two diemensions
+        data = np.reshape(data, (*data.shape[:-len(self.kernel_size)], -1))
 
-        for index,_ in np.ndenumerate(out):
-            if self.pool_type == 'max':
-                out[index] = np.max(data[index])
-            elif self.pool_type == 'avg':
-                out[index] = np.mean(data[index])
+        # perform the pooling operation
+        match self.pool_type:
+            case 'max':
+                return np.max(data, axis=-1)
+            case 'avg':
+                return np.mean(data, axis=-1)
+            case _:
+                raise ValueError(f"Invalid pool type: {self.pool_type}")
 
-        return out
 

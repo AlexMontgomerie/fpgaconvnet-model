@@ -23,11 +23,6 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 class Fork(Module):
     kernel_size: Union[List[int],int]
     coarse: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
 
@@ -97,28 +92,8 @@ class Fork(Module):
                 fontsize=MODULE_FONTSIZE)
 
     def functional_model(self, data):
-        # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
-        assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid column dimension"
-        assert data.shape[4] == self.kernel_size[1]  , "ERROR: invalid column dimension"
 
-        out = np.ndarray((
-            self.rows,
-            self.cols,
-            self.channels,
-            self.coarse,
-            self.kernel_size[0],
-            self.kernel_size[1]),dtype=float)
+        # replicate for coarse streams
+        return np.repeat(np.expand_dims(data, axis=-2), self.coarse, axis=-2)
 
-        for index,_ in np.ndenumerate(out):
-            out[index] = data[
-              index[0],
-              index[1],
-              index[2],
-              index[4],
-              index[5]]
-
-        return out
 

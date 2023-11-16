@@ -56,6 +56,11 @@ class Module:
     data_width: int = field(default=16, init=False)
     rsc_coef: dict = field(default_factory=lambda: {
         "FF": [], "LUT": [], "DSP": [], "BRAM": []}, init=False)
+    streams: int = field(default=1, init=False)
+    backend: str = field(default="chisel", init=False)
+    regression_model: str = field(default="linear_regression", init=False)
+    latency_mode: bool = field(default=False, init=False)
+    block: bool = field(default=False, init=False)
 
     def __post_init__(self):
 
@@ -144,9 +149,10 @@ class Module:
         """
         return {
             'type'      : self.__class__.__name__.upper(),
-            'rows'      : self.rows_in(),
-            'cols'      : self.cols_in(),
-            'channels'  : self.channels_in(),
+            'streams'       : self.streams,
+            'rows_in'       : self.rows_in(),
+            'cols_in'       : self.cols_in(),
+            'channels_in'   : self.channels_in(),
             'rows_out'      : self.rows_out(),
             'cols_out'      : self.cols_out(),
             'channels_out'  : self.channels_out()

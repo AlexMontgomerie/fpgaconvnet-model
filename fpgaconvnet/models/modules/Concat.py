@@ -17,8 +17,6 @@ class Concat(Module):
     channels: List[int]
     ports_in: int
     biases_width: int = field(default=16, init=False)
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
@@ -50,21 +48,8 @@ class Concat(Module):
     def functional_model(self, data):
         # check input dimensionality
         assert len(data) == self.ports_in , "ERROR: invalid row dimension"
-        for i in range(self.ports_in):
-            assert data[i].shape[0] == self.rows       , "ERROR: invalid column dimension"
-            assert data[i].shape[1] == self.cols       , "ERROR: invalid column dimension"
-            assert data[i].shape[2] == self.channels[i], "ERROR: invalid channel dimension"
 
-        out = np.ndarray((
-            self.rows,
-            self.cols,
-            sum(self.channels)),dtype=object)
-
-        channel_offset = 0
-        for i in range(self.ports_in):
-            for index,_ in np.ndenumerate(data[i]):
-                out[index[0],index[1],channel_offset+index[2]] = data[i][index]
-            channel_offset += self.channels[i]
-        return out
+        # concatenate along the channel dimension
+        return np.concatenate(data, axis=-2)
 
 

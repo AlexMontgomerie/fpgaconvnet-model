@@ -13,8 +13,6 @@ from fpgaconvnet.models.modules import Module3D, MODULE_3D_FONTSIZE
 
 @dataclass
 class ReLU3D(Module3D):
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         # TODO this is a hack for now FIXME

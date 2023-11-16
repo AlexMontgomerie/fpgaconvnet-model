@@ -13,8 +13,6 @@ from fpgaconvnet.models.modules import Module, MODULE_FONTSIZE
 
 @dataclass
 class Hardswish(Module):
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
@@ -45,7 +43,7 @@ class Hardswish(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
         assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
 

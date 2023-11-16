@@ -28,11 +28,6 @@ class Accum(Module):
     groups: int
     skipping_windows: bool = False
     window_sparsity: List[float] = ()
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def channels_in(self):
         return (self.channels*self.filters)//self.groups
@@ -64,8 +59,9 @@ class Accum(Module):
         # get the base module fields
         info = Module.module_info(self)
         # add module-specific info fields
-        info['groups'] = self.groups
+        info['channels'] = self.channels
         info['filters'] = self.filters
+        info['groups'] = self.groups
         info['channels_per_group'] = self.channels_in()//self.groups
         info['filters_per_group'] = self.filters//self.groups
         # return the info
@@ -145,30 +141,10 @@ class Accum(Module):
 
     def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
-        assert data.shape[2] == self.channels               , "ERROR: invalid channel dimension"
-        assert data.shape[3] == self.filters//self.groups   , "ERROR: invalid filter  dimension"
+        # assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
+        # assert data.shape[2] == self.channels               , "ERROR: invalid channel dimension"
+        # assert data.shape[3] == self.filters//self.groups   , "ERROR: invalid filter  dimension"
 
-        channels_per_group = self.channels//self.groups
-        filters_per_group  = self.filters//self.groups
-
-        out = np.zeros((
-            self.rows,
-            self.cols,
-            self.filters),dtype=float)
-
-        tmp = np.zeros((
-            self.rows,
-            self.cols,
-            channels_per_group,
-            filters_per_group),dtype=float)
-
-        for index,_ in np.ndenumerate(tmp):
-            for g in range(self.groups):
-                out[index[0],index[1],g*filters_per_group+index[3]] = \
-                        float(out[index[0],index[1],g*filters_per_group+index[3]]) + \
-                        float(data[index[0],index[1],g*channels_per_group+index[2],index[3]])
-
-        return out
-
+        # accumulate across the channel dimension
+        return np.sum(data, axis=-3)

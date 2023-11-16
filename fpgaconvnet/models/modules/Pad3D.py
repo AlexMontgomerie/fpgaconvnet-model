@@ -26,12 +26,6 @@ class Pad3D(Module3D):
     pad_right: int
     pad_front: int
     pad_back: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    data_width: int = field(default=32, init=False)
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def __post_init__(self):
         pass

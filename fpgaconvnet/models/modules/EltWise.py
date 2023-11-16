@@ -19,8 +19,6 @@ class EltWise(Module):
     eltwise_type: str
     broadcast: bool = False
     biases_width: int = field(default=16, init=False)
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
 
     def __post_init__(self):
         pass
@@ -82,31 +80,13 @@ class EltWise(Module):
     def functional_model(self, data):
         # check input dimensionality
         assert len(data) == self.ports_in , "ERROR: invalid row dimension"
-        for i in range(self.ports_in):
-            assert data[i].shape[0] == self.rows        , "ERROR: invalid column dimension"
-            assert data[i].shape[1] == self.cols        , "ERROR: invalid column dimension"
-            assert data[i].shape[2] == self.channels    , "ERROR: invalid channel dimension"
 
-        if self.eltwise_type == "add":
-            out = np.zeros((
-                self.rows,
-                self.cols,
-                self.channels),dtype=float)
-
-            for index, _ in np.ndenumerate(out):
-                for i in range(self.ports_in):
-                    out[index] += float(data[i][index])
-        elif self.eltwise_type == "mul":
-            out = np.ones((
-                self.rows,
-                self.cols,
-                self.channels),dtype=float)
-
-            for index, _ in np.ndenumerate(out):
-                for i in range(self.ports_in):
-                    out[index] *= float(data[i][index])
-        else:
-            raise ValueError(f"Element-wise type {self.eltwise_type} not supported")
-
-        return out
+        # perform elment wise operation
+        match self.eltwise_type:
+            case "add":
+                return np.sum(data, axis=0)
+            case "mul":
+                return np.prod(data, axis=0)
+            case _:
+                raise ValueError(f"Element-wise type {self.eltwise_type} not supported")
 

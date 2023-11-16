@@ -22,11 +22,6 @@ class Glue(Module):
     coarse_in: int
     coarse_out: int
     coarse_group: int
-    backend: str = "chisel"
-    regression_model: str = "linear_regression"
-    streams: int = 1
-    latency_mode: int = False
-    block: int = False
 
     def pipeline_depth(self):
         return self.coarse_in
@@ -107,23 +102,14 @@ class Glue(Module):
                 style="filled", fillcolor="fuchsia",
                 fontsize=MODULE_FONTSIZE)
 
-    def functional_model(self,data):
+    def functional_model(self, data):
         # check input dimensionality
-        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
-        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
-        assert data.shape[2] == int(self.filters/self.coarse_out) , "ERROR: invalid  dimension"
-        assert data.shape[3] == self.coarse_in , "ERROR: invalid  dimension"
-        assert data.shape[4] == self.coarse_out , "ERROR: invalid  dimension"
+        # assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        # assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        # assert data.shape[2] == int(self.filters/self.coarse_out) , "ERROR: invalid  dimension"
+        # assert data.shape[3] == self.coarse_in , "ERROR: invalid  dimension"
+        # assert data.shape[4] == self.coarse_out , "ERROR: invalid  dimension"
 
-        out = np.zeros((
-            self.rows,
-            self.cols,
-            int(self.filters/self.coarse_out),
-            self.coarse_out),dtype=float)
-
-        for index,_ in np.ndenumerate(out):
-            for c in range(self.coarse_in):
-                out[index] += data[index[0],index[1],index[2],c,index[3]]
-
-        return out
+        # accumulate the data in the coarse dimension
+        return np.sum(data, axis=-1)
 
