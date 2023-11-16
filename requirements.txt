@@ -17,3 +17,5 @@ protobuf==3.20.3
 pymongo
 tqdm
 pyparsing<3
+nvidia-pyindex
+onnx-graphsurgeon
