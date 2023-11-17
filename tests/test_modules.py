@@ -2,9 +2,9 @@ import glob
 import unittest
 import ddt
 import json
-from fpgaconvnet.models.modules import ModuleBase
 
-BACKEND="chisel"
+from fpgaconvnet.models.modules import ModuleBase
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 class TestModuleTemplate():
 
@@ -28,11 +28,19 @@ class TestModuleTemplate():
 
     def run_test_rates(self, module):
         # check rate in
-        self.assertGreaterEqual(module.rate_in(), 0.0)
-        self.assertLessEqual(module.rate_in(),1.0)
+        for i in range(module.ports_in):
+            self.assertGreaterEqual(module.rate_in(i), 0.0)
+            self.assertLessEqual(module.rate_in(i), 1.0)
         # check rate out
-        self.assertGreaterEqual(module.rate_out(), 0.0)
-        self.assertLessEqual(module.rate_out(), 1.0)
+        for i in range(module.ports_out):
+            self.assertGreaterEqual(module.rate_out(i), 0.0)
+            self.assertLessEqual(module.rate_out(i), 1.0)
+
+    def run_test_latency(self, module):
+        self.assertGreaterEqual(module.latency(), 1)
+
+    def run_test_pipeline_depth(self, module):
+        self.assertGreaterEqual(module.pipeline_depth(), 0)
 
     def run_test_resources(self, module):
         rsc = module.rsc()
@@ -65,19 +73,19 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob("tests/configs/modules/accum/*.json"))
     def test_module_configurations(self, config_path):
+
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # initialise module
-        # module = Accum(config["rows"],config["cols"],config["channels"],
-        #         config["filters"],config["groups"])
-        module = ModuleBase.build("accum", config, backend="chisel", dimensionality=2)
+        module = ModuleBase.build("accum", config,
+                backend=BACKEND.CHISEL, dimensionality=DIMENSIONALITY.TWO)
 
         # run tests
-        # self.run_test_methods_exist(module)
-        # self.run_test_dimensions(module)
-        # self.run_test_rates(module)
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
         # self.run_test_resources(module)
 
         # # additional checks

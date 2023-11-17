@@ -16,6 +16,7 @@ from typing import ClassVar, Dict
 from dacite import from_dict
 
 from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 @dataclass(kw_only=True)
 class Port:
@@ -64,7 +65,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         modules = list(filter(lambda m: m.backend == backend, modules))
 
         # filter all the modules with the given dimensionality
-        modules = list(filter(lambda m: m.dimensionality == dimensionality, modules))
+        modules = list(filter(lambda m: dimensionality in m.dimensionality, modules))
 
         return modules
 
@@ -84,15 +85,30 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         # create a new instance of the module
         return from_dict(data_class=module, data=config)
 
+    @classmethod
+    def from_config(cls, config: dict):
+        return from_dict(data_class=cls, data=config)
+
+    @classmethod
+    @abstractmethod
+    def generate_random_configuration(cls):
+        pass
+
+    @classmethod
+    def build_random_inst(cls):
+
+        # generate a random configuration
+        config = cls.generate_random_configuration()
+
+        # create a new instance of the module
+        return from_dict(data_class=cls, data=config)
+
+
 @dataclass(kw_only=True)
 class ModuleBase(metaclass=ModuleBaseMeta):
     name: ClassVar[str]
-    backend: ClassVar[str]
-    dimensionality: ClassVar[int]
-
-    ports_in: ClassVar[int]
-    ports_out: ClassVar[int]
-
+    backend: ClassVar[BACKEND]
+    dimensionality: ClassVar[set[DIMENSIONALITY]]
     repetitions: int = 1
 
     @property
@@ -105,17 +121,25 @@ class ModuleBase(metaclass=ModuleBaseMeta):
     def output_ports(self) -> List[Port]:
         pass
 
+    @property
+    def ports_in(self) -> int:
+        return len(self.input_ports)
+
+    @property
+    def ports_out(self) -> int:
+        return len(self.output_ports)
+
     @abstractmethod
     def functional_model(self, data: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod
     def rate_in(self, idx: int) -> float:
-        pass
+        assert(idx < self.ports_in, "Invalid input port index")
 
     @abstractmethod
     def rate_out(self, idx: int) -> float:
-        pass
+        assert(idx < self.ports_out, "Invalid output port index")
 
     @abstractmethod
     def resource_parameters(self) -> list[int]:
