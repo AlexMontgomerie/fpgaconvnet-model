@@ -442,7 +442,7 @@ def convert_reshape_to_flatten(model):
             next_node = next(filter(lambda x: node.output[0] in x.input, model.graph.node))
         except StopIteration:
             continue
-        next_node_input_idx = next_node.input.index(node.output[0])
+        next_node_input_idx = list(next_node.input).index(node.output[0])
         output_shape = onnx_helper.get_input_shape(model,
                 next_node.input[next_node_input_idx])
 
@@ -694,7 +694,7 @@ def fuse_mul_add_into_bn(model):
 
         # get the next node
         try:
-            next_node = next(filter(lambda x: x.input[1] == node.output[0], model.graph.node))
+            next_node = next(filter(lambda x: len(x.input) > 1 and x.input[1] == node.output[0], model.graph.node))
         except StopIteration:
             continue
 
