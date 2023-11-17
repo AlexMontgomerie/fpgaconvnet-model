@@ -9,14 +9,143 @@ import math
 import os
 import copy
 from typing import List
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from xgboost import XGBRegressor
+from abc import ABC, ABCMeta, abstractmethod
+from typing import ClassVar, Dict
+from dacite import from_dict
 
-# from fpgaconvnet.tools.resource_regression_model import ModuleModel
+from fpgaconvnet.data_types import FixedPoint
 
-RSC_TYPES = ["FF","LUT","DSP","BRAM"]
+@dataclass(kw_only=True)
+class Port:
+    iteration_space: list[int]
+    simd_lanes: list[int]
+    data_type: FixedPoint
+    buffer_depth: int = 0
+    name: str = "port"
 
-SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+    @property
+    def samples(self) -> int:
+        return np.prod(self.iteration_space)//np.prod(self.simd_lanes)
+
+    @property
+    def port_width(self) -> int:
+        return self.data_type.width*np.prod(self.simd_lanes)
+
+
+class ModuleBaseMeta(type, metaclass=ABCMeta):
+
+    # dictionary lookup for modules
+    MODULE_REGISTRY = {}
+
+    def __new__(cls, *args, **kwargs):
+        # instantiate a new type corresponding to the type of class being defined
+        # this is currently RegisterBase but in child classes will be the child class
+        new_cls = super().__new__(cls, *args, **kwargs)
+        if new_cls.__name__ != "ModuleBase":
+            cls.MODULE_REGISTRY[new_cls.__name__] = new_cls
+        return new_cls
+
+    @classmethod
+    def get_registry(cls):
+        return dict(cls.MODULE_REGISTRY)
+
+    @classmethod
+    def get_all_modules(cls, name: str, backend: str, dimensionality: int):
+
+        # get all the modules in the registry
+        modules = list(cls.MODULE_REGISTRY.values())
+
+        # filter all the modules with the given name
+        modules = list(filter(lambda m: m.name == name, modules))
+
+        # filter all the modules with the given backend
+        modules = list(filter(lambda m: m.backend == backend, modules))
+
+        # filter all the modules with the given dimensionality
+        modules = list(filter(lambda m: m.dimensionality == dimensionality, modules))
+
+        return modules
+
+    @classmethod
+    def build(cls, name: str, config: dict, backend: str, dimensionality: int):
+
+        # get all the relevant modules
+        modules = cls.get_all_modules(name, backend, dimensionality)
+
+        # check there is only a single module left
+        assert(len(modules) == 1, f"Too many modules found for name={name}, \
+                backend={backend}, dimensionality={dimensionality}")
+
+        # get the module class
+        module = modules[0]
+
+        # create a new instance of the module
+        return from_dict(data_class=module, data=config)
+
+@dataclass(kw_only=True)
+class ModuleBase(metaclass=ModuleBaseMeta):
+    name: ClassVar[str]
+    backend: ClassVar[str]
+    dimensionality: ClassVar[int]
+
+    ports_in: ClassVar[int]
+    ports_out: ClassVar[int]
+
+    repetitions: int = 1
+
+    @property
+    @abstractmethod
+    def input_ports(self) -> List[Port]:
+        pass
+
+    @property
+    @abstractmethod
+    def output_ports(self) -> List[Port]:
+        pass
+
+    @abstractmethod
+    def functional_model(self, data: np.ndarray) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def rate_in(self, idx: int) -> float:
+        pass
+
+    @abstractmethod
+    def rate_out(self, idx: int) -> float:
+        pass
+
+    @abstractmethod
+    def resource_parameters(self) -> list[int]:
+        pass
+
+    def input_iter_space(self, idx: int) -> List[int]:
+        return self.input_ports[idx].iteration_space
+
+    def output_iter_space(self, idx: int) -> List[int]:
+        return self.output_ports[idx].iteration_space
+
+    def input_simd_lanes(self, idx: int) -> List[int]:
+        return self.input_ports[idx].simd_lanes
+
+    def output_simd_lanes(self, idx: int) -> List[int]:
+        return self.output_ports[idx].simd_lanes
+
+    def latency(self) -> int:
+        latency_in = self.repetitions * max([int(self.input_ports[i].samples \
+                / self.rate_in(i)) for i in range(self.ports_in)])
+        latency_out = self.repetitions * max([int(self.output_ports[i].samples \
+                / self.rate_out(i)) for i in range(self.ports_out)])
+        return max(latency_in, latency_out)
+
+    def module_info(self) -> dict:
+        return asdict(self)
+
+    def resource_parameters_heuristics(self) -> Dict[str, int]:
+        return {}
+
 
 @dataclass
 class Module:
