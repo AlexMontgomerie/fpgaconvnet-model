@@ -50,11 +50,11 @@ class ConcatChisel(ModuleChiselBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.channels[i], self.streams] for i in range(self.ports) ]
+        return [ [self.channels[i]] for i in range(self.ports) ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [sum(self.channels), self.streams] ]
+        return [ [sum(self.channels)] ]
 
     @property
     def rate_in(self) -> list[float]:
@@ -69,7 +69,7 @@ class ConcatChisel(ModuleChiselBase):
 
     def resource_parameters(self) -> list[int]:
         return [ sum(self.channels), self.streams, self.data_t.width,
-                self.input_buffer_depth, self.output_buffer_depth ]
+                sum(self.input_buffer_depth), self.output_buffer_depth ]
 
     def functional_model(self, data: list[np.ndarray]) -> np.ndarray:
 

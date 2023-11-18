@@ -158,18 +158,6 @@ class ModuleBase(metaclass=ModuleBaseMeta):
     def output_simd_lanes(self) -> list[list[int]]:
         return [ p.simd_lanes for p in self.output_ports ]
 
-    @property
-    def input_samples(self) -> list[int]:
-        return [ self.repetitions * \
-            np.prod(self.input_iter_space[i])//np.prod(self.input_simd_lanes[i]) \
-                for i in range(self.ports_in) ]
-
-    @property
-    def output_samples(self) -> list[int]:
-        return [ self.repetitions * \
-            np.prod(self.output_iter_space[i])//np.prod(self.output_simd_lanes[i]) \
-                for i in range(self.ports_out) ]
-
     @abstractmethod
     def functional_model(self, data: np.ndarray) -> np.ndarray:
         pass
@@ -203,8 +191,10 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         return self.output_ports[idx].simd_lanes
 
     def latency(self) -> int:
-        latency_in = max([int(self.input_samples[i] / self.rate_in[i]) for i in range(self.ports_in)])
-        latency_out = max([int(self.output_samples[i] / self.rate_out[i]) for i in range(self.ports_out)])
+        latency_in = max([int(np.prod(self.input_iter_space[i]) \
+                / self.rate_in[i]) for i in range(self.ports_in)])
+        latency_out = max([int(np.prod(self.output_iter_space[i]) \
+                / self.rate_out[i]) for i in range(self.ports_out)])
         return max(latency_in, latency_out)
 
     def module_info(self) -> dict:

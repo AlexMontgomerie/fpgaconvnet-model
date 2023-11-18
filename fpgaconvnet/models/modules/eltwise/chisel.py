@@ -46,11 +46,11 @@ class EltwiseChisel(ModuleChiselBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.streams] for i in range(self.ports) ]
+        return [ [1] for i in range(self.ports) ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.streams] ]
+        return [ [1] ]
 
     @property
     def rate_in(self) -> list[float]:

@@ -3,6 +3,7 @@ import unittest
 import ddt
 import json
 import itertools
+import numpy as np
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
@@ -56,24 +57,33 @@ class TestModuleTemplate():
         self.assertGreaterEqual(rsc["DSP"], 0.0)
         self.assertGreaterEqual(rsc["BRAM"], 0.0)
 
-# @ddt.ddt
-# class TestForkModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestForkModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/fork/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/fork/*.json")))
+    def test_module_configurations(self, args):
 
-#         # initialise module
-#         module = Fork(config["rows"],config["cols"],config["channels"],
-#                 config["kernel_size"],config["coarse"],backend=BACKEND)
+        (backend, dimensionality), config_path = args
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        config["fine"] = int(np.prod(config["kernel_size"]))
+
+        # initialise module
+        module = ModuleBase.build("fork", config,
+                backend=backend, dimensionality=dimensionality)
+
+        # run tests
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
+        # self.run_test_resources(module)
+
+        # # additional checks
+        # self.assertGreater(module.filters, 0)
+        # self.assertGreater(module.channle, 0)
 
 @ddt.ddt
 class TestAccumModule(TestModuleTemplate,unittest.TestCase):

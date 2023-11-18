@@ -46,11 +46,11 @@ class AccumChisel(ModuleChiselBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.channels, self.filters, self.streams] ]
+        return [ [self.channels, self.filters] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.filters, self.streams] ]
+        return [ [self.filters] ]
 
     @property
     def rate_in(self) -> list[float]:

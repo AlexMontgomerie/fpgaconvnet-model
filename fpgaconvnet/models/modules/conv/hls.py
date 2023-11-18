@@ -26,7 +26,7 @@ class ConvHLSBase(ModuleHLSBase):
     @property
     def input_ports(self) -> list[Port]:
         return [ Port(
-            simd_lanes=[1],
+            simd_lanes=[*self.kernel_size],
             data_type=self.data_t,
             buffer_depth=0,
             name="in"
@@ -87,7 +87,7 @@ class ConvHLS(ConvHLSBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.channels, *self.kernel_size] ]
+        return [ [self.rows, self.cols, self.channels] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
@@ -131,7 +131,7 @@ class ConvHLS3D(ModuleHLS3DBase, ConvHLSBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.depth, self.channels, *self.kernel_size] ]
+        return [ [self.rows, self.cols, self.depth, self.channels] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:

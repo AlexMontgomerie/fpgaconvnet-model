@@ -60,3 +60,4 @@ from .bias import BiasChisel, BiasHLS, BiasHLS3D
 from .concat import ConcatChisel
 from .conv import ConvHLS, ConvHLS3D
 from .eltwise import EltwiseChisel
+from .fork import ForkChisel, ForkHLS, ForkHLS3D
