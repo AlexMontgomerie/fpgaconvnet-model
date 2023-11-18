@@ -59,3 +59,4 @@ from .accum import AccumChisel, AccumHLS, AccumHLS3D
 from .bias import BiasChisel, BiasHLS, BiasHLS3D
 from .concat import ConcatChisel
 from .conv import ConvHLS, ConvHLS3D
+from .eltwise import EltwiseChisel
