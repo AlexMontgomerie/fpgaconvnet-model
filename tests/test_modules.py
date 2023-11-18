@@ -36,12 +36,12 @@ class TestModuleTemplate():
     def run_test_rates(self, module):
         # check rate in
         for i in range(module.ports_in):
-            self.assertGreaterEqual(module.rate_in(i), 0.0)
-            self.assertLessEqual(module.rate_in(i), 1.0)
+            self.assertGreaterEqual(module.get_rate_in(i), 0.0)
+            self.assertLessEqual(module.get_rate_in(i), 1.0)
         # check rate out
         for i in range(module.ports_out):
-            self.assertGreaterEqual(module.rate_out(i), 0.0)
-            self.assertLessEqual(module.rate_out(i), 1.0)
+            self.assertGreaterEqual(module.get_rate_out(i), 0.0)
+            self.assertLessEqual(module.get_rate_out(i), 1.0)
 
     def run_test_latency(self, module):
         self.assertGreaterEqual(module.latency(), 1)

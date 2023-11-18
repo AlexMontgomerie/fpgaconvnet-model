@@ -5,13 +5,13 @@ from dataclasses import dataclass
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleBaseMeta, ModuleChiselBase, Port
+from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 # DEFAULT_FITTER = NNLSHeuristicResourceFitter()
 
 @dataclass(kw_only=True)
-class AccumChisel(ModuleChiselBase, metaclass=ModuleBaseMeta):
+class AccumChisel(ModuleChiselBase):
 
     # hardware parameters
     channels: int
@@ -26,34 +26,9 @@ class AccumChisel(ModuleChiselBase, metaclass=ModuleBaseMeta):
     name: ClassVar[str] = "accum"
     register: ClassVar[bool] = True
 
-    @classmethod
-    def generate_random_configuration(cls):
-
-        # generate a random configuration
-        data_width = random.choice([4, 8, 16, 32])
-        config = {
-            "repetitions": random.randint(1, 64),
-            "channels": random.randint(1, 512),
-            "filters": random.randint(1, 512),
-            "streams": random.randint(1, 64),
-            "data_t": {
-                "width": data_width,
-                "binary_point": random.randint(0, data_width-1)
-            },
-            "ram_style": random.choice(["distributed", "block"]),
-            "activity": {
-                "input": random.uniform(0, 1.0),
-            },
-            "description": "Randomly generated Accum configuration"
-        }
-
-        # return the configuration
-        return config
-
     @property
     def input_ports(self) -> list[Port]:
         return [ Port(
-            iteration_space=[self.channels, self.filters, self.streams],
             simd_lanes=[self.streams],
             data_type=self.data_t,
             buffer_depth=self.input_buffer_depth,
@@ -63,23 +38,30 @@ class AccumChisel(ModuleChiselBase, metaclass=ModuleBaseMeta):
     @property
     def output_ports(self) -> list[Port]:
         return [ Port(
-            iteration_space=[self.filters, self.streams],
             simd_lanes=[self.streams],
             data_type=self.data_t,
             buffer_depth=self.output_buffer_depth,
             name="io_out"
         )]
 
-    def rate_in(self, idx: int) -> float:
-        super().rate_in(idx)
-        return 1.0
+    @property
+    def input_iter_space(self) -> list[list[int]]:
+        return [ [self.channels, self.filters, self.streams] ]
 
-    def rate_out(self, idx: int) -> float:
-        super().rate_out(idx)
-        return 1.0/float(self.channels)
+    @property
+    def output_iter_space(self) -> list[list[int]]:
+        return [ [self.filters, self.streams] ]
+
+    @property
+    def rate_in(self) -> list[float]:
+        return [ 1.0 ]
+
+    @property
+    def rate_out(self) -> list[float]:
+        return [ 1.0/float(self.channels) ]
 
     def pipeline_depth(self) -> int:
-        return 1
+        return self.filters*(self.channels-1)
 
     def resource_parameters(self) -> list[int]:
         ram_style_int = 0 if self.ram_style == "distributed" else 1 # TODO: use an enumeration instead

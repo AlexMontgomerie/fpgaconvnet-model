@@ -9,7 +9,6 @@ import math
 import os
 import copy
 import random
-from typing import List
 from dataclasses import dataclass, field, asdict
 from xgboost import XGBRegressor
 from abc import ABC, ABCMeta, abstractmethod
@@ -21,15 +20,10 @@ from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 @dataclass(kw_only=True)
 class Port:
-    iteration_space: list[int]
     simd_lanes: list[int]
     data_type: FixedPoint
     buffer_depth: int = 0
     name: str = "port"
-
-    @property
-    def samples(self) -> int:
-        return np.prod(self.iteration_space)//np.prod(self.simd_lanes)
 
     @property
     def port_width(self) -> int:
@@ -95,19 +89,19 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
     def from_config(cls, config: dict):
         return from_dict(data_class=cls, data=config)
 
-    @classmethod
-    @abstractmethod
-    def generate_random_configuration(cls):
-        pass
+    # @classmethod
+    # @abstractmethod
+    # def generate_random_configuration(cls):
+    #     pass
 
-    @classmethod
-    def build_random_inst(cls):
+    # @classmethod
+    # def build_random_inst(cls):
 
-        # generate a random configuration
-        config = cls.generate_random_configuration()
+    #     # generate a random configuration
+    #     config = cls.generate_random_configuration()
 
-        # create a new instance of the module
-        return from_dict(data_class=cls, data=config)
+    #     # create a new instance of the module
+    #     return from_dict(data_class=cls, data=config)
 
 
 @dataclass(kw_only=True)
@@ -120,12 +114,32 @@ class ModuleBase(metaclass=ModuleBaseMeta):
 
     @property
     @abstractmethod
-    def input_ports(self) -> List[Port]:
+    def input_ports(self) -> list[Port]:
         pass
 
     @property
     @abstractmethod
-    def output_ports(self) -> List[Port]:
+    def output_ports(self) -> list[Port]:
+        pass
+
+    @property
+    @abstractmethod
+    def input_iter_space(self) -> list[list[int]]:
+        pass
+
+    @property
+    @abstractmethod
+    def output_iter_space(self) -> list[list[int]]:
+        pass
+
+    @property
+    @abstractmethod
+    def rate_in(self) -> list[float]:
+        pass
+
+    @property
+    @abstractmethod
+    def rate_out(self) -> list[float]:
         pass
 
     @property
@@ -136,17 +150,29 @@ class ModuleBase(metaclass=ModuleBaseMeta):
     def ports_out(self) -> int:
         return len(self.output_ports)
 
+    @property
+    def input_simd_lanes(self) -> list[list[int]]:
+        return [ p.simd_lanes for p in self.input_ports ]
+
+    @property
+    def output_simd_lanes(self) -> list[list[int]]:
+        return [ p.simd_lanes for p in self.output_ports ]
+
+    @property
+    def input_samples(self) -> list[int]:
+        return [ self.repetitions * \
+            np.prod(self.input_iter_space[i])//np.prod(self.input_simd_lanes[i]) \
+                for i in range(self.ports_in) ]
+
+    @property
+    def output_samples(self) -> list[int]:
+        return [ self.repetitions * \
+            np.prod(self.output_iter_space[i])//np.prod(self.output_simd_lanes[i]) \
+                for i in range(self.ports_out) ]
+
     @abstractmethod
     def functional_model(self, data: np.ndarray) -> np.ndarray:
         pass
-
-    @abstractmethod
-    def rate_in(self, idx: int) -> float:
-        assert idx < self.ports_in, "Invalid input port index"
-
-    @abstractmethod
-    def rate_out(self, idx: int) -> float:
-        assert idx < self.ports_out, "Invalid output port index"
 
     @abstractmethod
     def resource_parameters(self) -> list[int]:
@@ -160,23 +186,25 @@ class ModuleBase(metaclass=ModuleBaseMeta):
     def pipeline_depth(self) -> int:
         pass
 
-    def input_iter_space(self, idx: int) -> List[int]:
-        return self.input_ports[idx].iteration_space
+    def get_rate_in(self, idx: int) -> float:
+        assert idx < self.ports_in, "Invalid input port index"
+        return self.rate_in[idx]
 
-    def output_iter_space(self, idx: int) -> List[int]:
-        return self.output_ports[idx].iteration_space
+    def get_rate_out(self, idx: int) -> float:
+        assert idx < self.ports_out, "Invalid output port index"
+        return self.rate_out[idx]
 
-    def input_simd_lanes(self, idx: int) -> List[int]:
+    def get_input_simd_lanes(self, idx: int) -> list[int]:
+        assert idx < self.ports_in, "Invalid input port index"
         return self.input_ports[idx].simd_lanes
 
-    def output_simd_lanes(self, idx: int) -> List[int]:
+    def get_output_simd_lanes(self, idx: int) -> list[int]:
+        assert idx < self.ports_out, "Invalid output port index"
         return self.output_ports[idx].simd_lanes
 
     def latency(self) -> int:
-        latency_in = self.repetitions * max([int(self.input_ports[i].samples \
-                / self.rate_in(i)) for i in range(self.ports_in)])
-        latency_out = self.repetitions * max([int(self.output_ports[i].samples \
-                / self.rate_out(i)) for i in range(self.ports_out)])
+        latency_in = max([int(self.input_samples[i] / self.rate_in[i]) for i in range(self.ports_in)])
+        latency_out = max([int(self.output_samples[i] / self.rate_out[i]) for i in range(self.ports_out)])
         return max(latency_in, latency_out)
 
     def module_info(self) -> dict:
@@ -208,38 +236,12 @@ class ModuleHLSBase(ModuleBase):
     dimensionality: ClassVar[set[DIMENSIONALITY]] = { DIMENSIONALITY.TWO }
     register: ClassVar[bool] = False
 
-    @classmethod
-    def generate_random_configuration(cls):
-
-        # generate a random configuration
-        config = {
-            "rows": random.randint(1, 128),
-            "cols": random.randint(1, 128),
-            "channels": random.randint(1, 512),
-        }
-
-        # return the configuration
-        return config
-
 @dataclass(kw_only=True)
 class ModuleHLS3DBase(ModuleHLSBase):
     depth: int
 
     dimensionality: ClassVar[set[DIMENSIONALITY]] = { DIMENSIONALITY.THREE }
     register: ClassVar[bool] = False
-
-    @classmethod
-    def generate_random_configuration(cls):
-
-        # get the 2D parameters
-        config = super().generate_random_configuration()
-
-        # add the 3D parameters
-        config["depth"] = random.randint(1, 128)
-
-        # return the configuration
-        return config
-
 
 class Module:
     pass
