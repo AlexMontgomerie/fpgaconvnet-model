@@ -135,24 +135,30 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
             self.run_test_pipeline_depth(module)
             # self.run_test_resources(module)
 
-# @ddt.ddt
-# class TestGlueModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestGlueModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/glue/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/glue/*.json")))
+    def test_module_configurations(self, args):
 
-#         # initialise module
-#         module = Glue(config["rows"],config["cols"],config["channels"],
-#                 config["filters"],config["coarse_in"],config["coarse_out"],backend=BACKEND)
+        (backend, dimensionality), config_path = args
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        config["coarse_group"] = 1
+        config["coarse"] = config["coarse_in"]
+
+        # initialise module
+        module = ModuleBase.build("glue", config,
+                backend=backend, dimensionality=dimensionality)
+
+        # run tests
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
+        # self.run_test_resources(module)
 
 # @ddt.ddt
 # class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
@@ -174,24 +180,30 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
 #         self.run_test_rates(module)
 #         self.run_test_resources(module)
 
-# @ddt.ddt
-# class TestPoolModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestPoolModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/pool/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/pool/*.json")))
+    def test_module_configurations(self, args):
 
-#         # initialise module
-#         module = Pool(config["rows"],config["cols"],config["channels"],
-#                 config["kernel_size"],backend=BACKEND)
+        (backend, dimensionality), config_path = args
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # set the pool type
+        config["pool_type"] = "max"
+
+        # initialise module
+        module = ModuleBase.build("pool", config,
+                backend=backend, dimensionality=dimensionality)
+
+        # run tests
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
+        # self.run_test_resources(module)
 
 # @ddt.ddt
 # class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
