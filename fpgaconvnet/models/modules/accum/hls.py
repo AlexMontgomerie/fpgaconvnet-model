@@ -46,18 +46,7 @@ class AccumHLSBase(ModuleHLSBase):
         return [ self.groups/float(self.channels) ]
 
     def pipeline_depth(self):
-        # return (self.channels*self.filters)//(self.groups*self.groups)
-        return self.channels//self.groups
-
-    def functional_model(self, data: np.ndarray) -> np.ndarray:
-
-        # check input dimensionality
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(data.shape[-iter_space_len:] == self.input_iter_space[0])
-
-        # accumulate across the channel dimension
-        return np.sum(data, axis=-3)
+        return (self.channels*self.filters)//(self.groups*self.groups)
 
 @dataclass
 class AccumHLS(AccumHLSBase):
@@ -95,6 +84,35 @@ class AccumHLS(AccumHLSBase):
             ]),
         }
 
+    def functional_model(self, data):
+        # check input dimensionality
+        assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.channels               , "ERROR: invalid channel dimension"
+        assert data.shape[3] == self.filters//self.groups   , "ERROR: invalid filter  dimension"
+
+        channels_per_group = self.channels//self.groups
+        filters_per_group  = self.filters//self.groups
+
+        out = np.zeros((
+            self.rows,
+            self.cols,
+            self.filters),dtype=float)
+
+        tmp = np.zeros((
+            self.rows,
+            self.cols,
+            channels_per_group,
+            filters_per_group),dtype=float)
+
+        for index,_ in np.ndenumerate(tmp):
+            for g in range(self.groups):
+                out[index[0],index[1],g*filters_per_group+index[3]] = \
+                        float(out[index[0],index[1],g*filters_per_group+index[3]]) + \
+                        float(data[index[0],index[1],g*channels_per_group+index[2],index[3]])
+
+        return out
+
 @dataclass
 class AccumHLS3D(ModuleHLS3DBase, AccumHLSBase):
 
@@ -130,4 +148,36 @@ class AccumHLS3D(ModuleHLS3DBase, AccumHLSBase):
                 self.cols, self.rows, self.channels, self.depth
             ]),
         }
+
+    def functional_model(self, data):
+        # check input dimensionality
+        assert data.shape[0] == self.rows                   , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols                   , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.depth                  , "ERROR: invalid depth dimension"
+        assert data.shape[3] == self.channels               , "ERROR: invalid channel dimension"
+        assert data.shape[4] == self.filters//self.groups   , "ERROR: invalid filter  dimension"
+
+        channels_per_group = self.channels//self.groups
+        filters_per_group  = self.filters//self.groups
+
+        out = np.zeros((
+            self.rows,
+            self.cols,
+            self.depth,
+            self.filters),dtype=float)
+
+        tmp = np.zeros((
+            self.rows,
+            self.cols,
+            self.depth,
+            channels_per_group,
+            filters_per_group),dtype=float)
+
+        for index,_ in np.ndenumerate(tmp):
+            for g in range(self.groups):
+                out[index[0],index[1],index[2],g*filters_per_group+index[4]] = \
+                        float(out[index[0],index[1],index[2],g*filters_per_group+index[4]]) + \
+                        float(data[index[0],index[1],index[2],g*channels_per_group+index[3],index[4]])
+
+        return out
 

@@ -117,6 +117,23 @@ class SlidingWindowChisel(ModuleChiselBase):
                 "BRAM18"    : np.array([0]),
             }
 
+    # def rsc(self,coef=None, model=None):
+
+    #     # get the linear model estimation
+    #     rsc = Module.rsc(self, coef, model)
+
+    #     if self.regression_model == "linear_regression":
+    #         # get the buffer estimates
+    #         line_buffer_bram, _, window_buffer_bram, _, _ = self.buffer_estimate()
+
+    #         # add the bram estimation
+    #         rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+
+    #         # ensure zero DSPs
+    #         rsc["DSP"] = 0
+
+    #     # return the resource usage
+    #     return rsc
 
     def functional_model(self, data):
 

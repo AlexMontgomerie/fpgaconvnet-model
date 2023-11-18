@@ -26,6 +26,9 @@ class AccumChisel(ModuleChiselBase):
     name: ClassVar[str] = "accum"
     register: ClassVar[bool] = True
 
+    # def memory_usage(self):
+    #     return int(self.filters/self.groups)*self.data_width
+
     @property
     def input_ports(self) -> list[Port]:
         return [ Port(

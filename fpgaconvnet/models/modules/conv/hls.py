@@ -52,24 +52,6 @@ class ConvHLSBase(ModuleHLSBase):
     def pipeline_depth(self):
         return self.fine
 
-    def functional_model(self,data,weights): # FIXME
-
-        out = np.zeros((
-            self.rows,
-            self.cols,
-            self.channels,
-            int(self.filters/self.groups)
-        ),dtype=float)
-
-        for index,_ in np.ndenumerate(out):
-            for k1 in range(self.kernel_size[0]):
-                for k2 in range(self.kernel_size[1]):
-                    out[index] += data[
-                      index[0],index[1],index[2],k1,k2]*weights[
-                      index[2],index[3],k1,k2]
-
-        return out
-
 @dataclass
 class ConvHLS(ConvHLSBase):
 
@@ -114,6 +96,50 @@ class ConvHLS(ConvHLSBase):
             "BRAM" : np.array([1])
         }
 
+    # def rsc(self,coef=None, model=None):
+    #     # use module resource coefficients if none are given
+    #     if coef == None:
+    #         coef = self.rsc_coef
+    #     # get an estimate for the dsp usage
+    #     dot_product_dsp = self.fine * dsp_multiplier_resource_model(self.weight_width, self.data_width)
+    #     # get the linear model estimation
+    #     rsc = Module.rsc(self, coef, model)
+    #     # update the dsp usage
+    #     rsc["DSP"] = dot_product_dsp
+    #     # set the BRAM usage to zero
+    #     rsc["BRAM"] = 0
+    #     # return the resource model
+    #     return rsc
+
+    def functional_model(self,data,weights):
+        # check input dimensionality
+        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid column dimension"
+        assert data.shape[4] == self.kernel_size[1]  , "ERROR: invalid column dimension"
+        # check weight dimensionality
+        assert weights.shape[0] == self.channels, "ERROR: invalid channel dimension"
+        assert weights.shape[1] == int(self.filters/float(self.groups)) , "ERROR: invalid filter dimension"
+        assert weights.shape[2] == self.kernel_size[0]  , "ERROR: invalid column dimension"
+        assert weights.shape[3] == self.kernel_size[1]  , "ERROR: invalid column dimension"
+
+        out = np.zeros((
+            self.rows,
+            self.cols,
+            self.channels,
+            int(self.filters/self.groups)
+        ),dtype=float)
+
+        for index,_ in np.ndenumerate(out):
+            for k1 in range(self.kernel_size[0]):
+                for k2 in range(self.kernel_size[1]):
+                    out[index] += data[
+                      index[0],index[1],index[2],k1,k2]*weights[
+                      index[2],index[3],k1,k2]
+
+        return out
+
 @dataclass
 class ConvHLS3D(ModuleHLS3DBase, ConvHLSBase):
 
@@ -157,4 +183,38 @@ class ConvHLS3D(ModuleHLS3DBase, ConvHLSBase):
             "DSP"  : np.array([1]),
             "BRAM" : np.array([1])
         }
+
+    def functional_model(self,data,weights):
+        # check input dimensionality
+        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.depth    , "ERROR: invalid depth dimension"
+        assert data.shape[3] == self.channels   , "ERROR: invalid channel dimension"
+        assert data.shape[4] == self.kernel_rows  , "ERROR: invalid kernel row dimension"
+        assert data.shape[5] == self.kernel_cols  , "ERROR: invalid kernel column dimension"
+        assert data.shape[6] == self.kernel_depth  , "ERROR: invalid kernel depth dimension"
+        # check weight dimensionality
+        assert weights.shape[0] == self.channels, "ERROR: invalid channel dimension"
+        assert weights.shape[1] == int(self.filters/float(self.groups)) , "ERROR: invalid filter dimension"
+        assert weights.shape[2] == self.kernel_rows  , "ERROR: invalid kernel row dimension"
+        assert weights.shape[3] == self.kernel_cols  , "ERROR: invalid kernel column dimension"
+        assert weights.shape[4] == self.kernel_depth  , "ERROR: invalid kernel depth dimension"
+
+        out = np.zeros((
+            self.rows,
+            self.cols,
+            self.depth,
+            self.channels,
+            int(self.filters/self.groups)
+        ),dtype=float)
+
+        for index,_ in np.ndenumerate(out):
+            for k1 in range(self.kernel_rows):
+                for k2 in range(self.kernel_cols):
+                    for k3 in range(self.kernel_depth):
+                        out[index] += data[
+                        index[0],index[1],index[2],index[3],k1,k2,k3]*weights[
+                        index[2],index[3],index[4],k1,k2,k3]
+
+        return out
 

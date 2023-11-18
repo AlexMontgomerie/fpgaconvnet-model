@@ -15,6 +15,7 @@ class EltwiseChisel(ModuleChiselBase):
     ports: int
     data_t: FixedPoint = FixedPoint(16, 8)
     eltwise_type: str = "add"
+    broadcast: bool = False
     input_buffer_depth: list[int] = field(default_factory=list)
     output_buffer_depth: int = 0
 
@@ -66,6 +67,24 @@ class EltwiseChisel(ModuleChiselBase):
     def resource_parameters(self) -> list[int]:
         return [ self.streams, self.data_t.width,
                 sum(self.input_buffer_depth), self.output_buffer_depth ]
+
+    # def rsc(self, coef=None, model=None):
+    #     """
+    #     Returns
+    #     -------
+    #     dict
+    #         estimated resource usage of the module. Uses the
+    #         resource coefficients for the estimate.
+    #     """
+    #     # get the channel buffer BRAM estimate
+    #     channel_buffer_bram = bram_array_resource_model(int(self.channels), self.data_width, "fifo")
+
+    #     return {
+    #         "LUT"   : 49,
+    #         "FF"    : 23,
+    #         "BRAM"  : channel_buffer_bram if self.broadcast else 0,
+    #         "DSP"   : 0 if self.eltwise_type == "add" else 1
+    #     }
 
     def functional_model(self, data):
         # check input dimensionality

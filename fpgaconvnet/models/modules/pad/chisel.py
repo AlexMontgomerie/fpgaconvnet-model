@@ -85,6 +85,20 @@ class PadChisel(ModuleChiselBase):
             "BRAM18"    : np.array([0]),
         }
 
+    # def rsc(self):
+    #     """
+    #     Returns
+    #     -------
+    #     dict
+    #         estimated resource usage of the module. Uses the
+    #         resource coefficients for the estimate.
+    #     """
+    #     return {
+    #         "LUT"   : 16,
+    #         "FF"    : 35,
+    #         "BRAM"  : 0,
+    #         "DSP"   : 0
+    #     }
 
     def functional_model(self, data):
 

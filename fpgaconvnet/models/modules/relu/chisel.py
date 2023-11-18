@@ -60,6 +60,21 @@ class ReLUChisel(ModuleChiselBase):
         return [ self.streams, self.data_t.width,
                 self.input_buffer_depth, self.output_buffer_depth ]
 
+    # def rsc(self, coef=None, model=None):
+    #     """
+    #     Returns
+    #     -------
+    #     dict
+    #         estimated resource usage of the module. Uses the
+    #         resource coefficients for the estimate.
+    #     """
+    #     return {
+    #         "LUT"   : 16,
+    #         "FF"    : 35,
+    #         "BRAM"  : 0,
+    #         "DSP"   : 0
+    #     }
+
     def functional_model(self, data):
 
         # maximum of 0 and the data

@@ -64,14 +64,14 @@ class GlueChisel(ModuleChiselBase):
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
             return {
                 "Logic_LUT" : np.array([
-                    self.streams*self.data_width*self.coarse_in, # tree buffer
-                    self.streams*self.data_width*int2bits(self.coarse_in), # tree buffer
+                    self.streams*self.data_t.width*self.coarse_in, # tree buffer
+                    self.streams*self.data_t.width*int2bits(self.coarse_in), # tree buffer
                     self.coarse_in, # input ready
                     1,
                 ]),
                 "LUT_RAM" : np.array([
                     # queue_lutram_resource_model(
-                    #     int2bits(self.coarse_in)+1, self.streams*self.data_width), # buffer
+                    #     int2bits(self.coarse_in)+1, self.streams*self.data_t.width), # buffer
                     1,
                 ]),
                 "LUT_SR" : np.array([
@@ -80,10 +80,10 @@ class GlueChisel(ModuleChiselBase):
                 ]),
                 "FF" : np.array([
                     self.coarse_in, # coarse in parameter
-                    self.streams*self.data_width, # output buffer
+                    self.streams*self.data_t.width, # output buffer
                     int2bits(self.coarse_in), # tree buffer valid
-                    self.streams*self.data_width*(2**(int2bits(self.coarse_in))), # tree buffer registers
-                    self.streams*self.data_width*self.coarse_in, # tree buffer registers
+                    self.streams*self.data_t.width*(2**(int2bits(self.coarse_in))), # tree buffer registers
+                    self.streams*self.data_t.width*self.coarse_in, # tree buffer registers
                     1,
                 ]),
                 "DSP"       : np.array([0]),

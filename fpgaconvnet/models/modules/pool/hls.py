@@ -47,25 +47,6 @@ class PoolHLSBase(ModuleHLSBase):
     def pipeline_depth(self) -> int:
         return 1
 
-    def functional_model(self, data, biases):
-
-        # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(data.shape[-iter_space_len] == self.input_iter_space[0])
-
-        # TODO: flatten last two dimensions
-
-        # perform the pooling operation
-        match self.pool_type:
-            case 'max':
-                return np.max(data, axis=-1)
-            case 'avg':
-                return np.mean(data, axis=-1)
-            case _:
-                raise ValueError(f"Invalid pool type: {self.pool_type}")
-
-
 @dataclass
 class PoolHLS(PoolHLSBase):
 
@@ -100,6 +81,27 @@ class PoolHLS(PoolHLSBase):
             "BRAM"  : np.array([0]),
         }
 
+    def functional_model(self, data):
+        # check input dimensionality
+        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.channels, "ERROR: invalid channel dimension"
+        assert data.shape[3] == self.kernel_size[0]  , "ERROR: invalid kernel size (x) dimension"
+        assert data.shape[4] == self.kernel_size[1]  , "ERROR: invalid kernel size (y) dimension"
+
+        # flatten last two diemensions
+        data = np.reshape(data, (*data.shape[:-len(self.kernel_size)], -1))
+
+        # perform the pooling operation
+        match self.pool_type:
+            case 'max':
+                return np.max(data, axis=-1)
+            case 'avg':
+                return np.mean(data, axis=-1)
+            case _:
+                raise ValueError(f"Invalid pool type: {self.pool_type}")
+
+
 @dataclass
 class PoolHLS3D(ModuleHLS3DBase, PoolHLSBase):
 
@@ -133,4 +135,28 @@ class PoolHLS3D(ModuleHLS3DBase, PoolHLSBase):
             "DSP"   : np.array([0]),
             "BRAM"  : np.array([0]),
         }
+
+    def functional_model(self, data):
+        # check input dimensionality
+        assert data.shape[0] == self.rows    , "ERROR: invalid row dimension"
+        assert data.shape[1] == self.cols    , "ERROR: invalid column dimension"
+        assert data.shape[2] == self.depth    , "ERROR: invalid depth dimension"
+        assert data.shape[3] == self.channels, "ERROR: invalid channel dimension"
+        assert data.shape[4] == self.kernel_rows  , "ERROR: invalid kernel size (x) dimension"
+        assert data.shape[5] == self.kernel_cols  , "ERROR: invalid kernel size (y) dimension"
+        assert data.shape[6] == self.kernel_depth  , "ERROR: invalid kernel size (z) dimension"
+
+        out = np.ndarray((
+            self.rows,
+            self.cols,
+            self.depth,
+            self.channels),dtype=float)
+
+        for index,_ in np.ndenumerate(out):
+            if self.pool_type == 'max':
+                out[index] = np.max(data[index])
+            elif self.pool_type == 'avg':
+                out[index] = np.mean(data[index])
+
+        return out
 
