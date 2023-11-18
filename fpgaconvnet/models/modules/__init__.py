@@ -63,5 +63,17 @@ from .eltwise import EltwiseChisel
 from .fork import ForkChisel, ForkHLS, ForkHLS3D
 from .global_pool import GlobalPoolChisel
 from .glue import GlueChisel, GlueHLS, GlueHLS3D
+from .hardswish import HardswishChisel
+from .pad import PadChisel
 from .pool import PoolChisel, PoolHLS, PoolHLS3D
 from .relu import ReLUChisel, ReLUHLS, ReLUHLS3D
+from .resize import ResizeChisel
+from .shift_scale import ShiftScaleChisel
+from .sliding_window import SlidingWindowChisel, SlidingWindowHLS, SlidingWindowHLS3D
+from .sparse_vector_dot import SparseVectorDotChisel
+from .sparse_vector_multiply import SparseVectorMultiplyChisel
+from .squeeze import SqueezeChisel, SqueezeHLS, SqueezeHLS3D
+from .stride import StrideChisel
+from .threshold_relu import ThresholdedReLUChisel
+from .vector_dot import VectorDotChisel
+

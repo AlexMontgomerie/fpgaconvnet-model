@@ -24,7 +24,7 @@ class BiasHLSBase(ModuleHLSBase):
         return [ Port(
             simd_lanes=[1],
             data_type=self.data_t,
-            buffer_depth=self.input_buffer_depth,
+            buffer_depth=2,
             name="io_in"
         )]
 
@@ -33,7 +33,7 @@ class BiasHLSBase(ModuleHLSBase):
         return [ Port(
             simd_lanes=[1],
             data_type=self.data_t,
-            buffer_depth=self.output_buffer_depth,
+            buffer_depth=2,
             name="io_out"
         )]
 

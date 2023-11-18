@@ -57,6 +57,23 @@ class TestModuleTemplate():
         self.assertGreaterEqual(rsc["DSP"], 0.0)
         self.assertGreaterEqual(rsc["BRAM"], 0.0)
 
+    def run_test_config_gen(self, module):
+
+        # generate the config
+        config = module.module_info()
+        print(config)
+        self.assertTrue(isinstance(config, dict))
+
+        # get the module construction parameters
+        name = config["name"]
+        params = config
+        backend = BACKEND[config["backend"]]
+        dimensionality = DIMENSIONALITY(config["dimensionality"][0])
+
+        # build from the config
+        module = ModuleBase.build(name, params, backend=backend, dimensionality=dimensionality)
+        self.assertTrue(isinstance(module, type(module)))
+
 @ddt.ddt
 class TestForkModule(TestModuleTemplate,unittest.TestCase):
 
@@ -79,6 +96,7 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_rates(module)
         self.run_test_latency(module)
         self.run_test_pipeline_depth(module)
+        self.run_test_config_gen(module)
         # self.run_test_resources(module)
 
         # # additional checks
@@ -105,6 +123,7 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_rates(module)
         self.run_test_latency(module)
         self.run_test_pipeline_depth(module)
+        self.run_test_config_gen(module)
         # self.run_test_resources(module)
 
         # # additional checks
@@ -133,6 +152,7 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
             self.run_test_rates(module)
             self.run_test_latency(module)
             self.run_test_pipeline_depth(module)
+            self.run_test_config_gen(module)
             # self.run_test_resources(module)
 
 @ddt.ddt
@@ -158,6 +178,7 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_rates(module)
         self.run_test_latency(module)
         self.run_test_pipeline_depth(module)
+        self.run_test_config_gen(module)
         # self.run_test_resources(module)
 
 # @ddt.ddt
@@ -205,41 +226,48 @@ class TestPoolModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_pipeline_depth(module)
         # self.run_test_resources(module)
 
-# @ddt.ddt
-# class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/squeeze/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/squeeze/*.json")))
+    def test_module_configurations(self, args):
 
-#         # initialise module
-#         module = Squeeze(config["rows"],config["cols"],config["channels"],
-#                 config["coarse_in"],config["coarse_out"],backend=BACKEND)
+        (backend, dimensionality), config_path = args
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-# @ddt.ddt
-# class TestReLUModule(TestModuleTemplate,unittest.TestCase):
+        # initialise module
+        module = ModuleBase.build("squeeze", config,
+                backend=backend, dimensionality=dimensionality)
 
-#     @ddt.data(*glob.glob("tests/configs/modules/relu/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+        # run tests
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
+        self.run_test_config_gen(module)
 
-#         # initialise module
-#         module = ReLU(config["rows"],config["cols"],config["channels"],backend=BACKEND)
+@ddt.ddt
+class TestReLUModule(TestModuleTemplate,unittest.TestCase):
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/relu/*.json")))
+    def test_module_configurations(self, args):
+
+        (backend, dimensionality), config_path = args
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = ModuleBase.build("relu", config,
+                backend=backend, dimensionality=dimensionality)
+
+        # run tests
+        self.run_test_rates(module)
+        self.run_test_latency(module)
+        self.run_test_pipeline_depth(module)
+        self.run_test_config_gen(module)
 
 

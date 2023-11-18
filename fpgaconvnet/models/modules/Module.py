@@ -198,7 +198,11 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         return max(latency_in, latency_out)
 
     def module_info(self) -> dict:
-        return asdict(self)
+        info = asdict(self)
+        info["name"] = self.name
+        info["backend"] = self.backend.name
+        info["dimensionality"] = [ d.value for d in self.dimensionality ]
+        return info
 
     def resource_parameters_heuristics(self) -> Dict[str, int]:
         return {}

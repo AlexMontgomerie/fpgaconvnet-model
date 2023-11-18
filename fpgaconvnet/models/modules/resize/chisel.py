@@ -8,26 +8,32 @@ from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 
 @dataclass(kw_only=True)
-class BiasChisel(ModuleChiselBase):
+class ResizeChisel(ModuleChiselBase):
 
     # hardware parameters
+    rows: int
+    cols: int
     channels: int
+    scales: list[int]
     data_t: FixedPoint = FixedPoint(32, 16)
     ram_style: str = "distributed"
     input_buffer_depth: int = 0
     output_buffer_depth: int = 0
 
     # class variables
-    name: ClassVar[str] = "bias"
+    name: ClassVar[str] = "resize"
     register: ClassVar[bool] = True
+
+    def __post_init__(self):
+        assert len(self.scales) == 3, "ResizeChisel only supports 3D scaling"
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.channels] ]
+        return [ [self.rows, self.cols, self.channels] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.channels] ]
+        return [ [self.rows*self.scales[0], self.cols*self.scales[1], self.channels*self.scales[2]] ]
 
     @property
     def input_ports(self) -> list[Port]:
@@ -49,7 +55,7 @@ class BiasChisel(ModuleChiselBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ 1.0 ]
+        return [ 1.0 / np.prod(self.scales) ]
 
     @property
     def rate_out(self) -> list[float]:
@@ -60,36 +66,24 @@ class BiasChisel(ModuleChiselBase):
 
     def resource_parameters(self) -> list[int]:
         ram_style_int = 0 if self.ram_style == "distributed" else 1 # TODO: use an enumeration instead
-        return [ self.channels, self.streams, self.data_t.width, ram_style_int,
-                self.input_buffer_depth, self.output_buffer_depth ]
+        return [ self.rows, self.cols, self.channels, self.streams, self.data_t.width,
+                ram_style_int, self.input_buffer_depth, self.output_buffer_depth,
+                *self.scales ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
-                    self.data_t.width,
-                ]),
-            "LUT_RAM"   : np.array([
-                    self.data_t.width*self.channels,
-                ]),
+            "Logic_LUT" : np.array([1]),
+            "LUT_RAM"   : np.array([1]),
             "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([
-                    self.data_t.width,
-                    int2bits(self.channels),
-                    1,
-                ]),
+            "FF"        : np.array([1]),
             "DSP"       : np.array([0]),
             "BRAM36"    : np.array([0]),
             "BRAM18"    : np.array([0]),
         }
 
 
-    def functional_model(self, data, biases):
+    def functional_model(self, data):
 
-        # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(data.shape[-iter_space_len] == self.input_iter_space[0])
+        pass # TODO
 
-        # add the bias term to the data
-        return data + biases
 
