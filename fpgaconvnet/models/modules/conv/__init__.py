@@ -1,1 +1,1 @@
-from .conv import ConvHLS, ConvHLS3D
+from .hls import ConvHLS, ConvHLS3D

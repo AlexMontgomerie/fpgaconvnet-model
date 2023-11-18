@@ -13,8 +13,8 @@ class ConvHLSBase(ModuleHLSBase):
     # hardware parameters
     fine: int
     filters: int
-    groups: int
     kernel_size: Union[list[int], int]
+    groups: int = 1
     data_t: FixedPoint = FixedPoint(16, 8)
     weight_t: FixedPoint = FixedPoint(16, 8)
     acc_t: FixedPoint = FixedPoint(32, 16)

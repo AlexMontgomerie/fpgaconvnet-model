@@ -1,6 +1,6 @@
 import random
 from typing import ClassVar, List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -17,7 +17,7 @@ class ConcatChisel(ModuleChiselBase):
     ports: int
     channels: list[int]
     data_t: FixedPoint = FixedPoint(16, 8)
-    input_buffer_depth: list[int] = []
+    input_buffer_depth: list[int] = field(default_factory=list)
     output_buffer_depth: int = 0
 
     # class variables

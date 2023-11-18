@@ -81,7 +81,6 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/accum/*.json")))
     def test_module_configurations(self, args):
 
-        print(args)
         (backend, dimensionality), config_path = args
 
         # open configuration
@@ -102,28 +101,29 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
         # self.assertGreater(module.filters, 0)
         # self.assertGreater(module.channle, 0)
 
-# @ddt.ddt
-# class TestConvModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestConvModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/conv/*.json"))
-#     def test_module_configurations(self, config_path):
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/conv/*.json")))
+    def test_module_configurations(self, args):
 
-#         if BACKEND == "hls":
+        (backend, dimensionality), config_path = args
 
-#             # open configuration
-#             with open(config_path, "r") as f:
-#                 config = json.load(f)
+        if backend == BACKEND.HLS:
 
-#             # initialise module
-#             module = Conv(config["rows"],config["cols"],config["channels"],
-#                     config["filters"],config["fine"],config["kernel_size"],
-#                     config["group"],backend=BACKEND)
+            # open configuration
+            with open(config_path, "r") as f:
+                config = json.load(f)
 
-#             # run tests
-#             self.run_test_methods_exist(module)
-#             self.run_test_dimensions(module)
-#             self.run_test_rates(module)
-#             self.run_test_resources(module)
+            # initialise module
+            module = ModuleBase.build("conv", config,
+                    backend=backend, dimensionality=dimensionality)
+
+            # run tests
+            self.run_test_rates(module)
+            self.run_test_latency(module)
+            self.run_test_pipeline_depth(module)
+            # self.run_test_resources(module)
 
 # @ddt.ddt
 # class TestGlueModule(TestModuleTemplate,unittest.TestCase):
