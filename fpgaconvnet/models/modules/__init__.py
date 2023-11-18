@@ -62,3 +62,4 @@ from .conv import ConvHLS, ConvHLS3D
 from .eltwise import EltwiseChisel
 from .fork import ForkChisel, ForkHLS, ForkHLS3D
 from .global_pool import GlobalPoolChisel
+from .glue import GlueChisel, GlueHLS, GlueHLS3D
