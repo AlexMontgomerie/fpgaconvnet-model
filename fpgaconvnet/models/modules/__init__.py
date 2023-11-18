@@ -57,4 +57,5 @@ from .Module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3D
 
 from .accum import AccumChisel, AccumHLS, AccumHLS3D
 from .bias import BiasChisel, BiasHLS, BiasHLS3D
+from .concat import ConcatChisel
 
