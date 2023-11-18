@@ -2,9 +2,16 @@ import glob
 import unittest
 import ddt
 import json
+import itertools
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+
+ARCHS = [
+        ( BACKEND.CHISEL, DIMENSIONALITY.TWO ),
+        ( BACKEND.HLS, DIMENSIONALITY.TWO ),
+        # ( BACKEND.HLS, DIMENSIONALITY.THREE ),
+    ]
 
 class TestModuleTemplate():
 
@@ -71,8 +78,11 @@ class TestModuleTemplate():
 @ddt.ddt
 class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
-    @ddt.data(*glob.glob("tests/configs/modules/accum/*.json"))
-    def test_module_configurations(self, config_path):
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/accum/*.json")))
+    def test_module_configurations(self, args):
+
+        print(args)
+        (backend, dimensionality), config_path = args
 
         # open configuration
         with open(config_path, "r") as f:
@@ -80,7 +90,7 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = ModuleBase.build("accum", config,
-                backend=BACKEND.CHISEL, dimensionality=DIMENSIONALITY.TWO)
+                backend=backend, dimensionality=dimensionality)
 
         # run tests
         self.run_test_rates(module)

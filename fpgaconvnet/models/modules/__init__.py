@@ -53,7 +53,7 @@ from .GlobalPool3D import GlobalPool3D
 from .EltWise3D import EltWise3D
 from .Pad3D import Pad3D
 
-from .Module import ModuleBaseMeta, ModuleBase, Port
+from .Module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3DBase, ModuleChiselBase
 
-from .accum import AccumChisel
+from .accum import AccumChisel, AccumHLS, AccumHLS3D
 # from .accum import AccumHLS

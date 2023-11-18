@@ -5,18 +5,17 @@ from dataclasses import dataclass
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleBase, Port
+from fpgaconvnet.models.modules import int2bits, ModuleBaseMeta, ModuleChiselBase, Port
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 # DEFAULT_FITTER = NNLSHeuristicResourceFitter()
 
 @dataclass(kw_only=True)
-class AccumChisel(ModuleBase):
+class AccumChisel(ModuleChiselBase, metaclass=ModuleBaseMeta):
 
     # hardware parameters
     channels: int
     filters: int
-    streams: int = 1
     data_t: FixedPoint = FixedPoint(32, 16)
     ram_style: str = "distributed"
     input_buffer_depth: int = 0
@@ -25,8 +24,7 @@ class AccumChisel(ModuleBase):
 
     # class variables
     name: ClassVar[str] = "accum"
-    backend: ClassVar[BACKEND] = BACKEND.CHISEL
-    dimensionality: ClassVar[set[DIMENSIONALITY]] = { DIMENSIONALITY.TWO, DIMENSIONALITY.THREE }
+    register: ClassVar[bool] = True
 
     @classmethod
     def generate_random_configuration(cls):
@@ -79,6 +77,9 @@ class AccumChisel(ModuleBase):
     def rate_out(self, idx: int) -> float:
         super().rate_out(idx)
         return 1.0/float(self.channels)
+
+    def pipeline_depth(self) -> int:
+        return 1
 
     def resource_parameters(self) -> list[int]:
         ram_style_int = 0 if self.ram_style == "distributed" else 1 # TODO: use an enumeration instead
