@@ -52,7 +52,6 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
 
         # get all the modules in the registry
         modules = list(cls.MODULE_REGISTRY.values())
-        print(modules)
 
         # filter all the modules with the given name
         modules = list(filter(lambda m: m.name == name, modules))
@@ -73,11 +72,11 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
 
         # check there is at least 1 module
         assert len(modules) > 0, f"No modules found for name={name}, \
-                backend={backend}, dimensionality={dimensionality}"
+                backend={backend.name}, dimensionality={dimensionality.value}"
 
         # check there is only a single module left
         assert len(modules) == 1, f"Too many modules found for name={name}, \
-                backend={backend}, dimensionality={dimensionality}"
+                backend={backend.name}, dimensionality={dimensionality.value}"
 
         # get the module class
         module = modules[0]
@@ -86,7 +85,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         return from_dict(data_class=module, data=config)
 
     @classmethod
-    def from_config(cls, config: dict):
+    def build_from_dict(cls, config: dict):
         return from_dict(data_class=cls, data=config)
 
     # @classmethod
@@ -172,7 +171,7 @@ class ModuleBase(metaclass=ModuleBaseMeta):
 
     @abstractmethod
     def pipeline_depth(self) -> int:
-        pass
+        return 0
 
     def get_rate_in(self, idx: int) -> float:
         assert idx < self.ports_in, "Invalid input port index"

@@ -6,11 +6,12 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.models.modules import Hardswish3D
+# from fpgaconvnet.models.modules import Hardswish3D
 from fpgaconvnet.models.layers import Layer3D
 
 @dataclass(kw_only=True)
-class HardswishLayer3D(Layer3D):
+# class HardswishLayer3D(Layer3D):
+class HardswishLayer3D:
     coarse: int = 1
     input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
     output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)

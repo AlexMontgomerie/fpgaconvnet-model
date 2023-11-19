@@ -4,11 +4,12 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.layers import Layer
-from fpgaconvnet.models.modules import Squeeze
+# from fpgaconvnet.models.layers import Layer
+# from fpgaconvnet.models.modules import Squeeze
 
 @dataclass(kw_only=True)
-class SqueezeLayer(Layer):
+# class SqueezeLayer(Layer):
+class SqueezeLayer:
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"

@@ -4,14 +4,15 @@ from dataclasses import dataclass, field
 import numpy as np
 import pydot
 
-from fpgaconvnet.models.modules import SlidingWindow3D
-from fpgaconvnet.models.modules import Pool3D
-from fpgaconvnet.models.modules import Pad3D
+# from fpgaconvnet.models.modules import SlidingWindow3D
+# from fpgaconvnet.models.modules import Pool3D
+# from fpgaconvnet.models.modules import Pad3D
 
-from fpgaconvnet.models.layers import Layer3D
+# from fpgaconvnet.models.layers import Layer3D
 
 @dataclass(kw_only=True)
-class PoolingLayer3D(Layer3D):
+# class PoolingLayer3D(Layer3D):
+class PoolingLayer3D:
     coarse: int = 1
     pool_type = 'max'
     kernel_rows: int = 2

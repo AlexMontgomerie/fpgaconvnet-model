@@ -7,12 +7,13 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.models.modules import SlidingWindow
-from fpgaconvnet.models.modules import Pool
-from fpgaconvnet.models.layers import Layer
+# from fpgaconvnet.models.modules import SlidingWindow
+# from fpgaconvnet.models.modules import Pool
+# from fpgaconvnet.models.layers import Layer
 
 @dataclass(kw_only=True)
-class PoolingLayer(Layer):
+# class PoolingLayer(Layer):
+class PoolingLayer:
     coarse: int = 1
     pool_type = 'max'
     kernel_rows: int = 2

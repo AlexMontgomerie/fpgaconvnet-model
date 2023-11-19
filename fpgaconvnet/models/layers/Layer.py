@@ -4,7 +4,7 @@
 import collections
 from abc import ABC, ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from typing import List
+from typing import ClassVar
 import math
 
 import numpy as np
@@ -15,37 +15,83 @@ from google.protobuf.json_format import MessageToDict
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.modules import ModuleBase
 
-class LayerBaseMeta(type):
+class LayerBaseMeta(type, metaclass=ABCMeta):
 
-    BASE_LAYER_REGISTRY = {}
+    LAYER_REGISTRY = {}
 
     def __new__(cls, *args, **kwargs):
         # instantiate a new type corresponding to the type of class being defined
         # this is currently RegisterBase but in child classes will be the child class
         new_cls = super().__new__(cls, *args, **kwargs)
-        cls.BASE_LAYER_REGISTRY[new_cls.__name__] = new_cls
+        if new_cls.register:
+            cls.LAYER_REGISTRY[new_cls.__name__] = new_cls
         return new_cls
 
     @classmethod
     def get_registry(cls):
-        return dict(cls.BASE_LAYER_REGISTRY)
+        return dict(cls.LAYER_REGISTRY)
+
+    @classmethod
+    def get_all_layers(cls, name: str, backend: str, dimensionality: int):
+
+        # get all the modules in the registry
+        modules = list(cls.LAYER_REGISTRY.values())
+
+        # filter all the modules with the given name
+        modules = list(filter(lambda m: m.name == name, modules))
+
+        # filter all the modules with the given backend
+        modules = list(filter(lambda m: m.backend == backend, modules))
+
+        # filter all the modules with the given dimensionality
+        modules = list(filter(lambda m: dimensionality == m.dimensionality, modules))
+
+        return modules
+
+    @classmethod
+    def build(cls, name: str, config: dict, backend: str, dimensionality: int):
+
+        # get all the relevant layers
+        layers = cls.get_all_layers(name, backend, dimensionality)
+
+        # check there is at least 1 module
+        assert len(layers) > 0, f"No layers found for name={name}, \
+                backend={backend.name}, dimensionality={dimensionality.value}"
+
+        # check there is only a single module left
+        assert len(layers) == 1, f"Too many layers found for name={name}, \
+                backend={backend.name}, dimensionality={dimensionality.value}"
+
+        # get the module class
+        layer= layers[0]
+
+        # create a new instance of the module
+        return from_dict(data_class=layer, data=config)
+
 
     @classmethod
     def build_from_dict(cls, name: str, conf: dict):
-        inst = from_dict(data_class=cls.BASE_LAYER_REGISTRY[name], data=conf)
+        inst = from_dict(data_class=cls.LAYER_REGISTRY[name], data=conf)
         inst.__post_init__()
         return inst
 
 @dataclass(kw_only=True)
 class LayerBase(metaclass=LayerBaseMeta):
-    coarse_in: int = field(default=1, init=False)
-    coarse_out: int = field(default=1, init=False)
-    mem_bw_in: float = field(default=100.0, init=True)
-    mem_bw_out: float = field(default=100.0, init=True)
-    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
-    buffer_depth: int = field(default=2, init=False)
+
+    coarse_in: int = 1
+    coarse_out: int = 1
+    mem_bw_in: float = 100.0
+    mem_bw_out: float = 100.0
+    data_t: FixedPoint = FixedPoint(16,8)
     modules: dict = field(default_factory=collections.OrderedDict, init=True)
+
+    name: ClassVar[str]
+    backend: ClassVar[BACKEND]
+    dimensionality: ClassVar[set[DIMENSIONALITY]]
+    register: ClassVar[bool] = False
 
     def __post_init__(self):
 
@@ -54,6 +100,8 @@ class LayerBase(metaclass=LayerBaseMeta):
         self.stream_inputs = [False]
         self.stream_outputs = [False]
         self.is_init = True
+
+        self.create_modules()
 
     def __setattr__(self, name, value):
         """
@@ -88,13 +136,34 @@ class LayerBase(metaclass=LayerBaseMeta):
             case _:
                 super().__setattr__(name, value)
 
+    def create_modules(self):
+
+        # create the module graph
+        for name, config_fn in self.module_lookup.items():
+            self.modules[name] = ModuleBase.build(
+                    name, config_fn(), self.backend, self.dimensionality)
+
+    # def build_module_graph(self):
+
+    #     # initialise the digraph
+    #     self.module_graph = nx.DiGraph()
+
+    #     # create all the nodes
+    #     for name, module in self.modules.items():
+    #         self.module_graph.add_node(name, module=module)
+
+
+    def update_modules(self):
+        for name, config_fn in self.module_lookup.items():
+            self.modules[name].update(config_fn())
+
 
     @abstractmethod
-    def shape_in(self) -> List[int]:
+    def shape_in(self) -> list[int]:
         pass
 
     @abstractmethod
-    def shape_out(self) -> List[int]:
+    def shape_out(self) -> list[int]:
         pass
 
     @abstractmethod
@@ -123,11 +192,13 @@ class LayerBase(metaclass=LayerBaseMeta):
             """
             return self.coarse_out
 
+    @abstractmethod
     def width_in(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def width_out(self):
-        raise NotImplementedError
+        pass
 
     def workload_in(self) -> int:
         """
@@ -184,8 +255,8 @@ class LayerBase(metaclass=LayerBaseMeta):
             """
             return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
 
-    def wait_depth(self):
-        return sum([ self.modules[module].wait_depth() for module in self.modules ])
+    # def wait_depth(self):
+    #     return sum([ self.modules[module].wait_depth() for module in self.modules ])
 
     @abstractmethod
     def resource(self):
@@ -245,10 +316,12 @@ class LayerBase(metaclass=LayerBaseMeta):
         raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
 
 @dataclass(kw_only=True)
-class Layer(LayerBase):
+class Layer2D(LayerBase):
     rows: int
     cols: int
     channels: int
+
+    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
 
     def __post_init__(self):
         super().__post_init__()
@@ -280,8 +353,8 @@ class Layer(LayerBase):
         # iterate over modules
         for i, module in enumerate(self.modules.keys()):
             # update rates_graph
-            rates_graph[i,i] = self.modules[module].rate_in()
-            rates_graph[i,i+1] = self.modules[module].rate_out()
+            rates_graph[i,i] = self.modules[module].rate_in[0]
+            rates_graph[i,i+1] = self.modules[module].rate_out[0]
 
         # return rates_graph
         return rates_graph
@@ -293,10 +366,10 @@ class Layer(LayerBase):
         return abs(balance_module_rates(
             self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
 
-    def shape_in(self) -> List[int]: # TODO: add documentation
+    def shape_in(self) -> list[int]: # TODO: add documentation
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
 
-    def shape_out(self) -> List[int]: # TODO: add documentation
+    def shape_out(self) -> list[int]: # TODO: add documentation
         return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
     def width_in(self):
@@ -320,17 +393,19 @@ class Layer(LayerBase):
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
 
-    def visualise(self,name):
-        cluster = pydot.Cluster(name,label=name)
+    # def visualise(self,name):
+    #     cluster = pydot.Cluster(name,label=name)
 
-        for i in range(self.coarse_in):
-            cluster.add_node(pydot.Node( "_".join([name,"edge",str(i)]), label=self.__class__.__name__ ))
+    #     for i in range(self.coarse_in):
+    #         cluster.add_node(pydot.Node( "_".join([name,"edge",str(i)]), label=self.__class__.__name__ ))
 
-        return cluster, "_".join([name,"edge"]), "_".join([name,"edge"])
+    #     return cluster, "_".join([name,"edge"]), "_".join([name,"edge"])
 
 @dataclass(kw_only=True)
-class Layer3D(Layer):
+class Layer3D(Layer2D):
     depth: int
+
+    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.THREE
 
     def depth_in(self) -> int:
         return self.depth
@@ -338,10 +413,10 @@ class Layer3D(Layer):
     def depth_out(self) -> int:
        return self.depth
 
-    def shape_in(self) -> List[int]: # TODO: add documentation
+    def shape_in(self) -> list[int]: # TODO: add documentation
         return [ self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in() ]
 
-    def shape_out(self) -> List[int]: # TODO: add documentation
+    def shape_out(self) -> list[int]: # TODO: add documentation
         return [ self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out() ]
 
     def layer_info(self, parameters, batch_size=1):

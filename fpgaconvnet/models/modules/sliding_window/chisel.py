@@ -25,7 +25,7 @@ class SlidingWindowChisel(ModuleChiselBase):
     output_buffer_depth: int = 0
 
     # class variables
-    name: ClassVar[str] = "resize"
+    name: ClassVar[str] = "sliding_window"
     register: ClassVar[bool] = True
 
     def __post_init__(self):
@@ -34,11 +34,11 @@ class SlidingWindowChisel(ModuleChiselBase):
 
     @property
     def rows_out(self) -> int:
-        return math.ceil((self.cols-self.kernel_size[0]+1)/self.stride[0])
+        return math.ceil((self.rows-self.kernel_size[0]+1)/self.stride[0])
 
     @property
-    def rows_out(self) -> int:
-        return math.ceil((self.rows-self.kernel_size[1]+1)/self.stride[1])
+    def cols_out(self) -> int:
+        return math.ceil((self.cols-self.kernel_size[1]+1)/self.stride[1])
 
     @property
     def input_iter_space(self) -> list[list[int]]:

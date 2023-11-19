@@ -3,11 +3,12 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.layers import Layer3D
-from fpgaconvnet.models.modules import Squeeze3D
+# from fpgaconvnet.models.layers import Layer3D
+# from fpgaconvnet.models.modules import Squeeze3D
 
 @dataclass(kw_only=True)
-class SqueezeLayer3D(Layer3D):
+# class SqueezeLayer3D(Layer3D):
+class SqueezeLayer3D:
     coarse_in: int
     coarse_out: int
     backend: str = "chisel"

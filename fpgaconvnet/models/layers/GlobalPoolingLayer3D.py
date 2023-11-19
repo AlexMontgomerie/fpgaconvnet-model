@@ -6,7 +6,7 @@ import numpy as np
 import pydot
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import GlobalPool3D
+# from fpgaconvnet.models.modules import GlobalPool3D
 from fpgaconvnet.models.layers import Layer3D
 
 @dataclass(kw_only=True)

@@ -6,10 +6,11 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.models.modules import ThresholdedReLU
-from fpgaconvnet.models.layers import Layer
+# from fpgaconvnet.models.modules import ThresholdedReLU
+# from fpgaconvnet.models.layers import Layer
 
-class ThresholdedReLULayer(Layer):
+# class ThresholdedReLULayer(Layer):
+class ThresholdedReLULayer:
     def __init__(
             self,
             rows: int,

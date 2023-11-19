@@ -3,11 +3,12 @@ from typing import Any
 from dataclasses import dataclass, field
 import pydot
 
-from fpgaconvnet.models.modules import Activation3D
+# from fpgaconvnet.models.modules import Activation3D
 from fpgaconvnet.models.layers import Layer3D
 
 @dataclass(kw_only=True)
-class ActivationLayer3D(Layer3D):
+# class ActivationLayer3D(Layer3D):
+class ActivationLayer3D:
     activation_type: str
     coarse: int = 1
     backend: str = "chisel"

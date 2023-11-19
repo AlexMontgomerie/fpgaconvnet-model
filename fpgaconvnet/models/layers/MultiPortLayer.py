@@ -1,7 +1,7 @@
 import collections
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, ClassVar, Any, ClassVar, Union
 
 import numpy as np
 import pydot
@@ -23,6 +23,8 @@ class MultiPortLayerBase(metaclass=LayerBaseMeta):
     ports_out: int = field(default=1, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
     modules: dict = field(default_factory=collections.OrderedDict, init=False)
+
+    register: ClassVar[bool] = False
 
     def __post_init__(self):
         self.input_t = self.data_t

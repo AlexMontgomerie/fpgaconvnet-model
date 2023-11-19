@@ -8,13 +8,13 @@ from typing import Any
 
 import pydot
 
-from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import MultiPortLayer3D
-from fpgaconvnet.models.modules import Fork3D
+# from fpgaconvnet.data_types import FixedPoint
+# from fpgaconvnet.models.layers import MultiPortLayer3D
+# from fpgaconvnet.models.modules import Fork3D
 
 
 @dataclass(kw_only=True)
-class SplitLayer3D(MultiPortLayer3D):
+class SplitLayer3D:
     coarse: int = 1
     ports_out: int = 1
     backend: str = "chisel"

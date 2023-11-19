@@ -6,7 +6,7 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import MultiPortLayer3D
-from fpgaconvnet.models.modules import EltWise3D
+# from fpgaconvnet.models.modules import EltWise3D
 
 
 @dataclass(kw_only=True)
