@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 import math
 import onnx
@@ -121,6 +120,7 @@ class ThresholdedReLULayer(Layer):
         return cluster, np.array(relu_name).tolist(), np.array(relu_name).tolist()
 
     def functional_model(self,data,batch_size=1):
+        import torch
 
         assert data.shape[0] == self.rows_in()    , "ERROR: invalid row dimension"
         assert data.shape[1] == self.cols_in()    , "ERROR: invalid column dimension"
