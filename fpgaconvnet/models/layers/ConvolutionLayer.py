@@ -49,7 +49,7 @@ class ConvolutionLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             has_bias: int = 0, # default to no bias for old configs
             block_floating_point: bool = False,
-            backend: str = "chisel", # default to no bias for old configs
+            backend: str = "chisel",
             regression_model: str = "linear_regression",
             stream_weights: int = 0,
             use_uram: bool = False
@@ -121,7 +121,7 @@ class ConvolutionLayer(Layer):
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.kernel_size, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
 
-            self.modules["Conv"] = Conv(self.rows_out(), self.cols_out(),
+            self.modules["conv"] = Conv(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
                     self.filters//(self.coarse_out*self.coarse_group),
                     self.fine, self.kernel_size,
@@ -164,7 +164,8 @@ class ConvolutionLayer(Layer):
         self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//self.streams_out(),
                 backend=self.backend, regression_model=self.regression_model)
 
-        self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group))
+        self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
+                backend=self.backend, regression_model=self.regression_model)
 
         # update modules
         self.update()
@@ -437,6 +438,8 @@ class ConvolutionLayer(Layer):
             self.modules['accum'].channels = (
                 self.channels*self.kernel_size[0]*self.kernel_size[1])//(
                 self.fine*self.coarse_in*self.coarse_group)
+        if self.data_packing:
+            self.modules['accum'].streams = self.coarse_in*self.coarse_group*self.coarse_out
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -446,6 +449,8 @@ class ConvolutionLayer(Layer):
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].coarse_group = self.coarse_group
         self.modules['glue'].data_width = self.acc_t.width
+        if self.data_packing:
+            self.modules['glue'].streams = self.coarse_group*self.coarse_out
 
         # bias
         self.modules['bias'].rows           = self.rows_out()
@@ -552,7 +557,9 @@ class ConvolutionLayer(Layer):
             bias_rsc        = self.modules['bias'].rsc()
             shift_scale_rsc = self.modules['shift_scale'].rsc()
 
-            line_buffer_bram = self.modules['sliding_window'].buffer_estimate()[0]
+            # for streamed inputs, the line buffer is skipped
+            self.modules['sliding_window'].buffer_estimate()
+            line_buffer_bram = self.modules['sliding_window'].line_buffer_bram
             if self.stream_inputs[0]:
                 sw_rsc["BRAM"] -= line_buffer_bram
                 self.inputs_ram_usage = [0]
@@ -605,6 +612,38 @@ class ConvolutionLayer(Layer):
                     shift_scale_rsc[rsc_type]*self.coarse_out*self.coarse_group
                 ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
+        elif self.backend == "hls":
+            # get module resource models
+            sw_rsc      = self.modules['sliding_window'].rsc()
+            fork_rsc    = self.modules['fork'].rsc()
+            conv_rsc    = self.modules['conv'].rsc()
+            accum_rsc   = self.modules['accum'].rsc()
+            glue_rsc    = self.modules['glue'].rsc()
+            bias_rsc    = self.modules['bias'].rsc()
+
+            # remove redundant modules
+            if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
+                sw_rsc      = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_out == 1:
+                fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if int(self.channels_in()/(self.coarse_in*self.coarse_group)) == 1:
+                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_in == 1:
+                glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.has_bias:
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+
+            # accumulate resource usage based on coarse factors
+            rsc = { rsc_type: (
+                sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
+                conv_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out*self.coarse_group +
+                glue_rsc[rsc_type]*self.coarse_out*self.coarse_group +
+                bias_rsc[rsc_type]*self.coarse_out
+            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+
+
         # weight usage
         weight_memory_depth = float((self.filters/self.groups)* \
                                     self.channels_in()* \
@@ -612,9 +651,11 @@ class ConvolutionLayer(Layer):
                                     self.kernel_size[1]) / \
             float(self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
 
+        # apply double buffering
         if self.double_buffered:
             weight_memory_depth *= 2
 
+        # apply data packing
         if self.data_packing:
             weight_array_depth = math.ceil(weight_memory_depth)
             weight_array_width = self.weight_t.width*self.fine*self.coarse_in*self.coarse_out*self.coarse_group
@@ -623,7 +664,6 @@ class ConvolutionLayer(Layer):
             weight_array_depth = math.ceil(weight_memory_depth)
             weight_array_width = self.weight_t.width
             weight_array_num = self.fine*self.coarse_in*self.coarse_out*self.coarse_group
-
         weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num)
 
         # bias usage

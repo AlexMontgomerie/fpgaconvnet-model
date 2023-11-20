@@ -134,35 +134,43 @@ class SlidingWindow(Module):
 
     def buffer_estimate(self):
         # line buffer
-        line_buffer_depth = self.cols*self.channels
-        line_buffer_bram = bram_array_resource_model(
-            line_buffer_depth, (self.kernel_size[0]-1)*self.streams*self.data_width, "fifo")
-        if line_buffer_bram == 0:
-            line_buffer_lutram = queue_lutram_resource_model(
-                line_buffer_depth, (self.kernel_size[0]-1)*self.streams*self.data_width)
+        self.line_buffer_depth = self.channels * \
+                            (self.cols + self.pad_left + self.pad_right)
+        self.line_buffer_width = (self.kernel_size[0]-1) * self.streams*self.data_width
+        self.line_buffer_bram = bram_array_resource_model(
+                    self.line_buffer_depth, self.line_buffer_width, "fifo")
+        if self.line_buffer_bram == 0:
+            self.line_buffer_lutram = queue_lutram_resource_model(
+                    self.line_buffer_depth, self.line_buffer_width)
         else:
-            line_buffer_lutram = 0
+            self.line_buffer_lutram = 0
 
         # window buffer
-        window_buffer_depth = self.channels
-        window_buffer_bram = self.kernel_size[0]*bram_array_resource_model(
-                window_buffer_depth, (self.kernel_size[1]-1)*self.streams*self.data_width, "fifo")
-        if window_buffer_bram == 0:            
-            window_buffer_lutram = self.kernel_size[0]*queue_lutram_resource_model(
-                        window_buffer_depth, (self.kernel_size[1]-1)*self.streams*self.data_width)
+        self.window_buffer_depth = self.channels
+        self.window_buffer_width = (self.kernel_size[1]-1) * self.streams * self.data_width
+        self.window_buffer_bram = self.kernel_size[0] * bram_array_resource_model(
+                    self.window_buffer_depth, self.window_buffer_width, "fifo")
+        if self.window_buffer_bram == 0:            
+            self.window_buffer_lutram = self.kernel_size[0] * queue_lutram_resource_model(
+                        self.window_buffer_depth, self.window_buffer_width)
         else:
-            window_buffer_lutram = 0
+            self.window_buffer_lutram = 0
 
-        # frame buffer
-        frame_buffer_lutram = self.kernel_size[0]*self.kernel_size[1]*\
-                            queue_lutram_resource_model(2, self.streams*self.data_width)
-    
-        return line_buffer_bram, line_buffer_lutram, window_buffer_bram, window_buffer_lutram, frame_buffer_lutram
+        # frame cache
+        self.frame_buff_depth = 2
+        self.frame_buff_width = self.streams * self.data_width
+        self.frame_buffer_bram = self.kernel_size[0] * self.kernel_size[1] * bram_array_resource_model(
+                       self. frame_buff_depth, self.frame_buff_width, "fifo")
+        if self.frame_buffer_bram == 0:
+            self.frame_buffer_lutram = self.kernel_size[0] * self.kernel_size[1] * \
+                queue_lutram_resource_model(
+                self.frame_buff_depth, self.frame_buff_width)
+        else:
+            self.frame_buffer_lutram = 0    
 
     def utilisation_model(self):
         # get the buffer estimates
-        _, line_buffer_lutram, _, window_buffer_lutram, frame_buffer_lutram = \
-            self.buffer_estimate()
+        self.buffer_estimate()
         if self.backend == "hls":
             pass # TODO
         elif self.backend == "chisel":
@@ -175,9 +183,9 @@ class SlidingWindow(Module):
                     self.streams*self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
                 ]),
                 "LUT_RAM"   : np.array([
-                    line_buffer_lutram, # line buffer
-                    window_buffer_lutram, # window buffer
-                    frame_buffer_lutram, # frame buffer
+                    self.line_buffer_lutram, # line buffer
+                    self.window_buffer_lutram, # window buffer
+                    self.frame_buffer_lutram, # frame buffer
                 ]),
                 "LUT_SR"    : np.array([1]),
                 "FF"        : np.array([
@@ -212,10 +220,10 @@ class SlidingWindow(Module):
 
         if self.regression_model == "linear_regression":
             # get the buffer estimates
-            line_buffer_bram, _, window_buffer_bram, _, _ = self.buffer_estimate()
+            self.buffer_estimate()
 
             # add the bram estimation
-            rsc["BRAM"] = line_buffer_bram + window_buffer_bram
+            rsc["BRAM"] = self.line_buffer_bram + self.window_buffer_bram
 
             # ensure zero DSPs
             rsc["DSP"] = 0
