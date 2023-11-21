@@ -312,7 +312,7 @@ class Parser:
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
-    def get_hardware_from_prototxt_node(self, node):
+    def get_hardware_from_prototxt_node(self, node, dimensionality):
 
         # register converters
         converter = {
@@ -339,7 +339,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, backend=self.backend,
+            return converter[node_type](node, dimensionality, backend=self.backend,
                     regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
@@ -364,10 +364,14 @@ class Parser:
             for layer in partition.layers:
 
                 # get the hardware for the node
-                hardware = self.get_hardware_from_prototxt_node(layer)
+                hardware = self.get_hardware_from_prototxt_node(layer, net.dimensionality)
+
+                # todo: move this inside get_hardware_from_prototxt_node
+                hardware.stream_inputs = hardware.node.parameters.stream_inputs
+                hardware.stream_outputs = hardware.node.parameters.stream_outputs
 
                 # add node to graph
-                graph.add_node( layer.name, **hardware.get_node_info() )
+                graph.add_node( layer.name, **hardware.get_node_info(net.graph) )
 
                 # get edges from the hardware
                 for edge in hardware.get_edges_in():

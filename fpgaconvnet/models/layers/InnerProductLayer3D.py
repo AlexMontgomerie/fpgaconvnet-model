@@ -33,7 +33,8 @@ class InnerProductLayer3D(Layer3D):
             block_floating_point: bool = False,
             backend: str = "chisel",
             regression_model: str = "linear_regression",
-            stream_weights: int = 0
+            stream_weights: int = 0,
+            use_uram: bool = False
         ):
 
         # initialise parent class
