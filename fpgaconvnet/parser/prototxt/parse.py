@@ -399,16 +399,29 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
     def get_hardware(self):
 
         # create pooling layer hardware
-        return SqueezeLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            coarse_in   =self.node.parameters.coarse_in,
-            coarse_out  =self.node.parameters.coarse_out,
-            data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-            backend =self.backend,
-            regression_model =self.regression_model,
-        )
+        if self.dimensionality == 2:
+            return SqueezeLayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
+        elif self.dimensionality == 3:
+            return SqueezeLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                coarse_in   =self.node.parameters.coarse_in,
+                coarse_out  =self.node.parameters.coarse_out,
+                data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
 
 class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
 
@@ -479,16 +492,29 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
     def get_hardware(self):
 
         # create eltwise layer hardware
-        return SplitLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            ports_out=self.node.parameters.ports_out,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-            coarse=self.node.parameters.coarse,
-            backend =self.backend,
-            regression_model =self.regression_model,
-        )
+        if self.dimensionality == 2:
+            return SplitLayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                ports_out=self.node.parameters.ports_out,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                coarse=self.node.parameters.coarse,
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
+        elif self.dimensionality == 3:
+            return SplitLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                ports_out=self.node.parameters.ports_out,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                coarse=self.node.parameters.coarse,
+                backend =self.backend,
+                regression_model =self.regression_model,
+            )
 
 class ParsePrototxtConcatNode(ParsePrototxtNode):
 
