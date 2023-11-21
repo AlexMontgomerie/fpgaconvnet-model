@@ -304,7 +304,7 @@ class InnerProductLayer3D(Layer3D):
 
         # weight usage
         weight_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
-                self.cols_in())/float(self.coarse_in*self.coarse_out)
+                self.cols_in()*self.depth_in())/float(self.coarse_in*self.coarse_out)
 
         if self.double_buffered:
             weight_memory_depth *= 2
