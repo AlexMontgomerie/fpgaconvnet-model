@@ -2,13 +2,12 @@ import random
 from typing import ClassVar, List
 from dataclasses import dataclass
 
+
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
-
-# DEFAULT_FITTER = NNLSHeuristicResourceFitter()
 
 @dataclass(kw_only=True)
 class AccumChisel(ModuleChiselBase):
@@ -25,9 +24,6 @@ class AccumChisel(ModuleChiselBase):
     # class variables
     name: ClassVar[str] = "accum"
     register: ClassVar[bool] = True
-
-    # def memory_usage(self):
-    #     return int(self.filters/self.groups)*self.data_width
 
     @property
     def input_ports(self) -> list[Port]:
@@ -73,23 +69,23 @@ class AccumChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-                "Logic_LUT" : np.array([
+                "Logic_LUT" : [
                     self.filters, self.channels, # parameter logic
                     self.streams*self.data_t.width, # input word logic
                     self.streams, # input streams logic
                     int2bits(self.channels), # channel cntr
                     int2bits(self.filters), # filter cntr
                     1, # extra
-                ]),
-                "LUT_RAM"   : np.array([
+                ],
+                "LUT_RAM" : [
                     # queue_lutram_resource_model(
                     #     2, self.streams*self.data_width), # output buffer
                     self.streams*self.data_t.width*self.filters, # filter memory memory (size)
                     self.streams*self.data_t.width, # filter memory memory (word width)
                     self.filters, # filter memory memory (depth)
-                ]),
-                "LUT_SR"    : np.array([0]),
-                "ff"        : np.array([
+                ],
+                "LUT_SR" : [0],
+                "ff" : [
                     self.data_t.width,  # input val cache
                     self.streams*self.data_t.width,  # input val cache
                     int2bits(self.channels), # channel_cntr
@@ -97,19 +93,18 @@ class AccumChisel(ModuleChiselBase):
                     self.channels, # channel parameter reg
                     self.filters, # filter parameter reg
                     1, # other registers
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                ],
+                "DSP" : [0],
+                "BRAM36" : [0],
+                "BRAM18" : [0],
             }
-
 
     def functional_model(self, data: np.ndarray) -> np.ndarray:
 
         # check input dimensions
-        iter_space_len = len(self.input_iteration_space(0))
+        iter_space_len = len(self.input_iter_space[0])
         assert(len(data.shape) >= iter_space_len)
-        assert(data.shape[-iter_space_len] == self.input_iteration_space(0))
+        assert(data.shape[-iter_space_len] == self.input_iter_space[0])
 
         # accumulate across the channel dimension
         return np.sum(data, axis=-3)

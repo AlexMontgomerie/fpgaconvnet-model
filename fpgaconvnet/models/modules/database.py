@@ -18,6 +18,22 @@ class Record:
     module: ModuleBase
     docs: list[dict]
 
+    def __post_init__(self):
+
+        # filter out invalid documents
+        self.docs = list(filter(self.is_valid_doc, self.docs))
+
+    def is_valid_doc(self, doc: dict) -> bool:
+        if "config" not in doc:
+            return False
+        if "resource" not in doc:
+            return False
+        if "power" not in doc:
+            return False
+        if "timing" not in doc:
+            return False
+        return True
+
     def build_module(self, config) -> ModuleBase:
         return from_dict(data_class=self.module, data=config)
 

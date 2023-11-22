@@ -66,22 +66,22 @@ class AccumHLS(AccumHLSBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([
+            "LUT" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols, self.rows, self.channels
-            ]),
-            "FF"    : np.array([
+            ],
+            "FF" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols,self.rows,self.channels
-            ]),
-            "DSP"   : np.array([
+            ],
+            "DSP" : [
                 self.filters, self.groups ,self.accum_t.width,
                 self.cols, self.rows, self.channels
-            ]),
-            "BRAM"  : np.array([
+            ],
+            "BRAM" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols, self.rows, self.channels
-            ]),
+            ],
         }
 
     def functional_model(self, data):
@@ -131,22 +131,22 @@ class AccumHLS3D(ModuleHLS3DBase, AccumHLSBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([
+            "LUT" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols, self.rows, self.channels, self.depth
-            ]),
-            "FF"    : np.array([
+            ],
+            "FF" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols, self.rows, self.channels, self.depth
-            ]),
-            "DSP"   : np.array([
+            ],
+            "DSP" : [
                 self.filters, self.groups ,self.accum_t.width,
                 self.cols, self.rows, self.channels, self.depth
-            ]),
-            "BRAM"  : np.array([
+            ],
+            "BRAM" : [
                 self.filters, self.groups, self.accum_t.width,
                 self.cols, self.rows, self.channels, self.depth
-            ]),
+            ],
         }
 
     def functional_model(self, data):

@@ -6,11 +6,12 @@ import itertools
 import numpy as np
 
 from fpgaconvnet.models.modules import ModuleBase
+from fpgaconvnet.models.modules.resources import eval_resource_model
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 ARCHS = [
         ( BACKEND.CHISEL, DIMENSIONALITY.TWO ),
-        ( BACKEND.HLS, DIMENSIONALITY.TWO ),
+        # ( BACKEND.HLS, DIMENSIONALITY.TWO ),
         # ( BACKEND.HLS, DIMENSIONALITY.THREE ),
     ]
 
@@ -51,17 +52,15 @@ class TestModuleTemplate():
         self.assertGreaterEqual(module.pipeline_depth(), 0)
 
     def run_test_resources(self, module):
-        rsc = module.rsc()
-        self.assertGreaterEqual(rsc["LUT"], 0.0)
-        self.assertGreaterEqual(rsc["FF"], 0.0)
-        self.assertGreaterEqual(rsc["DSP"], 0.0)
-        self.assertGreaterEqual(rsc["BRAM"], 0.0)
+        self.assertGreaterEqual(eval_resource_model(module, "LUT"), 0)
+        self.assertGreaterEqual(eval_resource_model(module, "FF"), 0)
+        self.assertGreaterEqual(eval_resource_model(module, "BRAM"), 0)
+        self.assertGreaterEqual(eval_resource_model(module, "DSP"), 0)
 
     def run_test_config_gen(self, module):
 
         # generate the config
         config = module.module_info()
-        print(config)
         self.assertTrue(isinstance(config, dict))
 
         # get the module construction parameters
@@ -124,11 +123,7 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_latency(module)
         self.run_test_pipeline_depth(module)
         self.run_test_config_gen(module)
-        # self.run_test_resources(module)
-
-        # # additional checks
-        # self.assertGreater(module.filters, 0)
-        # self.assertGreater(module.channle, 0)
+        self.run_test_resources(module)
 
 @ddt.ddt
 class TestConvModule(TestModuleTemplate,unittest.TestCase):

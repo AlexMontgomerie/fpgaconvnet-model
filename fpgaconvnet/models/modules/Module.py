@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, field, asdict
 from xgboost import XGBRegressor
 from abc import ABC, ABCMeta, abstractmethod
-from typing import ClassVar, Dict
+from typing import Callable, ClassVar, Dict
 from dacite import from_dict
 
 from fpgaconvnet.data_types import FixedPoint
@@ -27,13 +27,13 @@ class Port:
 
     @property
     def port_width(self) -> int:
-        return self.data_type.width*np.prod(self.simd_lanes)
+        return self.data_type.width*int(np.prod(self.simd_lanes))
 
 
 class ModuleBaseMeta(type, metaclass=ABCMeta):
 
     # dictionary lookup for modules
-    MODULE_REGISTRY = {}
+    MODULE_REGISTRY: dict[str, object] = {}
 
     def __new__(cls, *args, **kwargs):
         # instantiate a new type corresponding to the type of class being defined
@@ -48,24 +48,27 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         return dict(cls.MODULE_REGISTRY)
 
     @classmethod
-    def get_all_modules(cls, name: str, backend: str, dimensionality: int):
+    def get_all_modules(cls, name: str, backend: BACKEND, dimensionality: DIMENSIONALITY):
 
         # get all the modules in the registry
         modules = list(cls.MODULE_REGISTRY.values())
 
         # filter all the modules with the given name
-        modules = list(filter(lambda m: m.name == name, modules))
+        name_filter_fn = lambda m: m.name == name
+        modules = list(filter(name_filter_fn, modules))
 
         # filter all the modules with the given backend
-        modules = list(filter(lambda m: m.backend == backend, modules))
+        backend_filter_fn = lambda m: m.backend == backend
+        modules = list(filter(backend_filter_fn, modules))
 
         # filter all the modules with the given dimensionality
-        modules = list(filter(lambda m: dimensionality in m.dimensionality, modules))
+        dim_filter_fn = lambda m: dimensionality in m.dimensionality
+        modules = list(filter(dim_filter_fn, modules))
 
         return modules
 
     @classmethod
-    def build(cls, name: str, config: dict, backend: str, dimensionality: int):
+    def build(cls, name: str, config: dict, backend: BACKEND, dimensionality: DIMENSIONALITY):
 
         # get all the relevant modules
         modules = cls.get_all_modules(name, backend, dimensionality)
@@ -203,8 +206,9 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         info["dimensionality"] = [ d.value for d in self.dimensionality ]
         return info
 
-    def resource_parameters_heuristics(self) -> Dict[str, int]:
-        return {}
+    # def resources(self) -> dict[str, int]:
+    #     return { rsc_type: fpgaconvnet.models.modules.resources.eval_resource_model(self, rsc_model) for \
+    #             rsc_type, rsc_model in self.default_resource_models.items() }
 
 @dataclass(kw_only=True)
 class ModuleChiselBase(ModuleBase):
