@@ -20,7 +20,7 @@ jobs:
 
     - name: Fetch optimiser repo
       run: |
-        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        BRANCH=${GITHUB_REF##*/}
         URL=https://github.com/AlexMontgomerie/fpgaconvnet-optimiser.git    
         if [ -z $(git ls-remote --heads $URL $BRANCH) ]; then
           echo "Warning! branch $BRANCH does not exist. use dev instead"
@@ -50,4 +50,6 @@ jobs:
         
     - name: Run Optimisation Tests
       run: |
-        bash fpgaconvnet-optimiser/tests/run_models.sh
+        cd fpgaconvnet-optimiser
+        bash tests/run_models.sh
+        cd ..
