@@ -17,7 +17,7 @@ class ConcatChisel(ModuleChiselBase):
     ports: int
     channels: list[int]
     data_t: FixedPoint = FixedPoint(16, 8)
-    input_buffer_depth: list[int] = field(default_factory=list)
+    input_buffer_depth: list[int] = field(default_factory=list) # type: ignore
     output_buffer_depth: int = 0
 
     # class variables
@@ -71,7 +71,7 @@ class ConcatChisel(ModuleChiselBase):
         return [ sum(self.channels), self.streams, self.data_t.width,
                 sum(self.input_buffer_depth), self.output_buffer_depth ]
 
-    def functional_model(self, data: list[np.ndarray]) -> np.ndarray:
+    def functional_model(self, *data: np.ndarray) -> np.ndarray:
 
         # check input dimensionality
         assert len(data) == self.ports_in , "Not enough input ports"

@@ -16,7 +16,7 @@ class EltwiseChisel(ModuleChiselBase):
     data_t: FixedPoint = FixedPoint(16, 8)
     eltwise_type: str = "add"
     broadcast: bool = False
-    input_buffer_depth: list[int] = field(default_factory=list)
+    input_buffer_depth: list[int] = field(default_factory=list) # type: ignore
     output_buffer_depth: int = 0
 
     # class variables
@@ -86,7 +86,8 @@ class EltwiseChisel(ModuleChiselBase):
     #         "DSP"   : 0 if self.eltwise_type == "add" else 1
     #     }
 
-    def functional_model(self, data):
+    def functional_model(self, *data: np.ndarray) -> np.ndarray:
+
         # check input dimensionality
         assert len(data) == self.ports , "ERROR: invalid number of ports"
 

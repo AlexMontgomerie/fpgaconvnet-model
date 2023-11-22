@@ -19,7 +19,7 @@ class PadChisel(ModuleChiselBase):
     pad_bottom: int
     pad_left: int
     pad_value: float = 0.0
-    data_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = FixedPoint(16, 8)
     input_buffer_depth: int = 2
     output_buffer_depth: int = 2
 
@@ -61,7 +61,7 @@ class PadChisel(ModuleChiselBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ np.prod(self.input_iter_space[0]) / np.prod(self.output_iter_space[0]) ]
+        return [ float(np.prod(self.input_iter_space[0])) / float(np.prod(self.output_iter_space[0])) ]
 
     @property
     def rate_out(self) -> list[float]:
@@ -76,13 +76,13 @@ class PadChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([1]),
-            "LUT_RAM"   : np.array([1]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([1]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
     # def rsc(self):

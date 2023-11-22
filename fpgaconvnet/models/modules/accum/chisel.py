@@ -1,13 +1,15 @@
 import random
-from typing import ClassVar, List
+from typing import ClassVar, List, Optional
 from dataclasses import dataclass
 
 
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port, CHISEL_RSC_TYPES
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
+
 
 @dataclass(kw_only=True)
 class AccumChisel(ModuleChiselBase):
@@ -68,7 +70,7 @@ class AccumChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.acc_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        return {
+        base_parameters = {
                 "Logic_LUT" : [
                     self.filters, self.channels, # parameter logic
                     self.streams*self.data_t.width, # input word logic
@@ -85,7 +87,7 @@ class AccumChisel(ModuleChiselBase):
                     self.filters, # filter memory memory (depth)
                 ],
                 "LUT_SR" : [0],
-                "ff" : [
+                "FF" : [
                     self.data_t.width,  # input val cache
                     self.streams*self.data_t.width,  # input val cache
                     int2bits(self.channels), # channel_cntr
@@ -98,8 +100,14 @@ class AccumChisel(ModuleChiselBase):
                 "BRAM36" : [0],
                 "BRAM18" : [0],
             }
+        base_parameters["LUT"] = [ *base_parameters["Logic_LUT"], *base_parameters["LUT_RAM"],
+                                    *base_parameters["LUT_SR"] ]
+        base_parameters["BRAM"] = [ *base_parameters["BRAM18"], *base_parameters["BRAM36"] ]
+        return base_parameters
 
-    def functional_model(self, data: np.ndarray) -> np.ndarray:
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
+
+        data = inputs[0]
 
         # check input dimensions
         iter_space_len = len(self.input_iter_space[0])
@@ -109,4 +117,27 @@ class AccumChisel(ModuleChiselBase):
         # accumulate across the channel dimension
         return np.sum(data, axis=-3)
 
+
+try:
+    DEFAULT_ACCUM_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(AccumChisel,
+                                    rsc_type, "default") for rsc_type in CHISEL_RSC_TYPES }
+except FileNotFoundError:
+    print("CRITICAL WARNING: default resource models not found, default resource modelling will fail")
+
+@eval_resource_model.register
+def _(m: AccumChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the resource model
+    model: ResourceModel = _model if _model is not None else DEFAULT_ACCUM_RSC_MODELS[rsc_type]
+
+    # check the correct resource type
+    assert rsc_type in CHISEL_RSC_TYPES, f"Invalid resource type: {rsc_type}"
+    assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # get the resource model
+    match rsc_type:
+        case "DSP":
+            return 0
+        case _:
+            return model(m)
 

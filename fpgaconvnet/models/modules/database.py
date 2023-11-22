@@ -21,7 +21,10 @@ class Record:
     def __post_init__(self):
 
         # filter out invalid documents
+        num_docs_prev = len(self.docs)
         self.docs = list(filter(self.is_valid_doc, self.docs))
+        if len(self.docs) != num_docs_prev:
+            print(f"WARNING: {num_docs_prev - len(self.docs)} invalid documents found")
 
     def is_valid_doc(self, doc: dict) -> bool:
         if "config" not in doc:
@@ -34,8 +37,8 @@ class Record:
             return False
         return True
 
-    def build_module(self, config) -> ModuleBase:
-        return from_dict(data_class=self.module, data=config)
+    def build_module(self, config: dict) -> ModuleBase:
+        return from_dict(data_class=self.module, data=config) # type: ignore
 
     def modules(self) -> list[ModuleBase]:
         return [ self.build_module(d["config"]) for d in self.docs ]

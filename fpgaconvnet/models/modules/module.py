@@ -32,6 +32,11 @@ class Port:
 
 class ModuleBaseMeta(type, metaclass=ABCMeta):
 
+    name: ClassVar[str]
+    backend: ClassVar[BACKEND]
+    dimensionality: ClassVar[set[DIMENSIONALITY]]
+    register: ClassVar[bool] = False
+
     # dictionary lookup for modules
     MODULE_REGISTRY: dict[str, object] = {}
 
@@ -161,7 +166,7 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         return [ p.simd_lanes for p in self.output_ports ]
 
     @abstractmethod
-    def functional_model(self, data: np.ndarray) -> np.ndarray:
+    def functional_model(self, *data: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod

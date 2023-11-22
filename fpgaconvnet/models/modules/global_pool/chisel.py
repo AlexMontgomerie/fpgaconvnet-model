@@ -67,28 +67,28 @@ class GlobalPoolChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
-                self.acc_width, # adder
-                self.data_width, # adder
+            "Logic_LUT" : [
+                self.acc_t.width, # adder
+                self.data_t.width, # adder
                 int2bits(self.channels), # channel_cntr
                 int2bits(self.rows*self.cols), # spatial cntr
                 1,
-            ]),
-            "LUT_RAM"   : np.array([
+            ],
+            "LUT_RAM"   : [
                 # queue_lutram_resource_model(
-                #     4, self.data_width), # buffer
-            ]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([
-                self.data_width, # input cache
+                #     4, self.data_t.width), # buffer
+            ],
+            "LUT_SR"    : [0],
+            "FF"        : [
+                self.data_t.width, # input cache
                 int2bits(self.channels), # channel_cntr
                 int2bits(self.rows*self.cols), # spatial cntr
-                self.acc_width*self.channels, # accumulation reg
+                self.acc_t.width*self.channels, # accumulation reg
                 1, # other registers
-            ]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            ],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
     # def rsc(self, coef=None, model=None):
@@ -99,7 +99,7 @@ class GlobalPoolChisel(ModuleChiselBase):
     #     if self.regression_model == "linear_regression":
     #         # get the dsp usage
     #         rsc["DSP"] = dsp_multiplier_resource_model(
-    #                 self.data_width, self.acc_width)
+    #                 self.data_t.width, self.acc_t.width)
 
     #     return rsc
 

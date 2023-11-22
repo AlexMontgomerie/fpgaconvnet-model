@@ -13,7 +13,7 @@ class ConvHLSBase(ModuleHLSBase):
     # hardware parameters
     fine: int
     filters: int
-    kernel_size: Union[list[int], int]
+    kernel_size: list[int]
     groups: int = 1
     data_t: FixedPoint = FixedPoint(16, 8)
     weight_t: FixedPoint = FixedPoint(16, 8)
@@ -77,23 +77,23 @@ class ConvHLS(ConvHLSBase):
 
     def resource_parameters(self) -> list[int]:
         return [ self.rows, self.cols, self.groups, self.channels,
-                self.filters, np.prod(self.kernel_size), self.fine,
-                self.data_t.width, self.weight_t.width, self.accum_t.width ]
+                self.filters, int(np.prod(self.kernel_size)), self.fine,
+                self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"  : np.array([
-                self.int2bits(self.filters),
-                self.int2bits(self.cols*self.rows),
-                self.int2bits(self.channels)
-            ]),
-            "FF"   : np.array([
-                self.int2bits(self.filters),
-                self.int2bits(self.cols*self.rows),
-                self.int2bits(self.channels)
-            ]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
+            "LUT"  : [
+                int2bits(self.filters),
+                int2bits(self.cols*self.rows),
+                int2bits(self.channels)
+            ],
+            "FF"   : [
+                int2bits(self.filters),
+                int2bits(self.cols*self.rows),
+                int2bits(self.channels)
+            ],
+            "DSP"  : [1],
+            "BRAM" : [1]
         }
 
     # def rsc(self,coef=None, model=None):
@@ -165,23 +165,23 @@ class ConvHLS3D(ModuleHLS3DBase, ConvHLSBase):
 
     def resource_parameters(self) -> list[int]:
         return [ self.rows, self.cols, self.depth, self.groups, self.channels,
-                self.filters, np.prod(self.kernel_size), self.fine,
-                self.data_t.width, self.weight_t.width, self.accum_t.width ]
+                self.filters, int(np.prod(self.kernel_size)), self.fine,
+                self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"  : np.array([
-                self.int2bits(self.filters),
-                self.int2bits(self.cols*self.rows*self.depth),
-                self.int2bits(self.channels)
-            ]),
-            "FF"   : np.array([
-                self.int2bits(self.filters),
-                self.int2bits(self.cols*self.rows*self.depth),
-                self.int2bits(self.channels)
-            ]),
-            "DSP"  : np.array([1]),
-            "BRAM" : np.array([1])
+            "LUT"  : [
+                int2bits(self.filters),
+                int2bits(self.cols*self.rows*self.depth),
+                int2bits(self.channels)
+            ],
+            "FF"   : [
+                int2bits(self.filters),
+                int2bits(self.cols*self.rows*self.depth),
+                int2bits(self.channels)
+            ],
+            "DSP"  : [1],
+            "BRAM" : [1]
         }
 
     def functional_model(self,data,weights):

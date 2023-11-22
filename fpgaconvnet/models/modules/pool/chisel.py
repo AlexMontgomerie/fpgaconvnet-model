@@ -14,7 +14,7 @@ from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 class PoolChisel(ModuleChiselBase):
 
     # hardware parameters
-    kernel_size: Union[list[int], int]
+    kernel_size: list[int]
     data_t: FixedPoint = FixedPoint(16, 8)
     pool_type: str = "max"
     input_buffer_depth: int = 0
@@ -69,36 +69,36 @@ class PoolChisel(ModuleChiselBase):
         return [ 1.0 ]
 
     def pipeline_depth(self) -> int:
-        return math.log(np.prod(self.kernel_size), 2)
+        return int(math.log(np.prod(self.kernel_size), 2))
 
     def resource_parameters(self) -> list[int]:
-        return [ np.prod(self.kernel_size), self.streams, self.data_t.width,
+        return [ int(np.prod(self.kernel_size)), self.streams, self.data_t.width,
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT"  : np.array([
+            "Logic_LUT"  : [
                 self.kernel_size[0]*self.kernel_size[1],
-                self.data_width*self.kernel_size[0]*self.kernel_size[1], # tree buffer
-                self.data_width*int2bits(self.kernel_size[0]*self.kernel_size[1]), # tree buffer
+                self.data_t.width*self.kernel_size[0]*self.kernel_size[1], # tree buffer
+                self.data_t.width*int2bits(self.kernel_size[0]*self.kernel_size[1]), # tree buffer
                 self.kernel_size[0],self.kernel_size[1], # input ready
                 1,
-            ]),
-            "LUT_RAM"  : np.array([
+            ],
+            "LUT_RAM"  : [
                 # queue_lutram_resource_model(
-                #     int2bits(self.kernel_size[0]*self.kernel_size[1])+1, self.data_width), # buffer
+                #     int2bits(self.kernel_size[0]*self.kernel_size[1])+1, self.data_t.width), # buffer
                 1,
-            ]),
-            "LUT_SR"  : np.array([0]),
-            "FF"   : np.array([
-                self.data_width, # output buffer
-                self.data_width*self.kernel_size[0]*self.kernel_size[1], # op tree input
+            ],
+            "LUT_SR"  : [0],
+            "FF"   : [
+                self.data_t.width, # output buffer
+                self.data_t.width*self.kernel_size[0]*self.kernel_size[1], # op tree input
                 int2bits(self.kernel_size[0]*self.kernel_size[1]), # shift register
                 1,
-            ]),
-            "DSP"  : np.array([0]),
-            "BRAM36" : np.array([0]),
-            "BRAM18" : np.array([0]),
+            ],
+            "DSP"  : [0],
+            "BRAM36" : [0],
+            "BRAM18" : [0],
         }
 
 

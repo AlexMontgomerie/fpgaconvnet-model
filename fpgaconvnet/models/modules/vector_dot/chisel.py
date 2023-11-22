@@ -73,44 +73,47 @@ class VectorDotChisel(ModuleChiselBase):
     #     return self.filters*(self.channels-1)
 
     def resource_parameters(self) -> list[int]:
-        return [ self.filters, self.streams, self.fine, np.prod(self.kernel_size),
+        return [ self.filters, self.streams, self.fine,
                 self.input_buffer_depth, self.weight_buffer_depth, self.output_buffer_depth,
                 self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
-                self.fine, self.data_t.width, self.weight_width,
+            "Logic_LUT" : [
+                self.fine, self.data_t.width, self.weight_t.width,
                 self.streams*self.data_t.width*self.fine,
-                self.streams*self.weight_width*self.fine,
-                self.streams*self.acc_width*self.fine, # adder tree
+                self.streams*self.weight_t.width*self.fine,
+                self.streams*self.acc_t.width*self.fine, # adder tree
                 self.filters, # ready logic
                 int2bits(self.filters), # filter counter
                 1,
-            ]),
-            "LUT_RAM"   : np.array([
+            ],
+            "LUT_RAM"   : [
                 # queue_lutram_resource_model(
-                #     int2bits(self.fine)+1, self.streams*self.acc_width), # buffer
+                #     int2bits(self.fine)+1, self.streams*self.acc_t.width), # buffer
                 1,
-            ]),
-            "LUT_SR"    : np.array([
+            ],
+            "LUT_SR"    : [
                 int2bits(self.fine)+1, # tree buffer valid
-            ]),
-            "FF"    : np.array([
-                self.acc_width, # output buffer TODO
+            ],
+            "FF"    : [
+                self.acc_t.width, # output buffer TODO
                 self.filters, self.fine, # parameters
                 int2bits(self.filters), # filter counter
                 int2bits(self.fine)+1, # tree buffer valid
-                self.streams*self.acc_width*self.fine, # adder tree reg
-                self.streams*self.acc_width, # output buffer
+                self.streams*self.acc_t.width*self.fine, # adder tree reg
+                self.streams*self.acc_t.width, # output buffer
                 1,
-            ]),
-            "DSP"       : np.array([self.streams*self.fine]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            ],
+            "DSP"       : [self.streams*self.fine],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
-    def functional_model(self, data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
+
+        # unpack the inputs
+        data, weights = inputs
 
         # replicate for filter dimension
         partial = np.repeat(np.expand_dims(data, axis=-3), self.filters, axis=-3)

@@ -65,21 +65,21 @@ class BiasChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
+            "Logic_LUT" : [
                     self.data_t.width,
-                ]),
-            "LUT_RAM"   : np.array([
+                ],
+            "LUT_RAM"   : [
                     self.data_t.width*self.channels,
-                ]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([
+                ],
+            "LUT_SR"    : [0],
+            "FF"        : [
                     self.data_t.width,
                     int2bits(self.channels),
                     1,
-                ]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+                ],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
 

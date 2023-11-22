@@ -82,7 +82,10 @@ class SparseVectorMultiplyChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.weight_buffer_depth, self.output_buffer_depth,
                 self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
-    def functional_model(self, data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
+
+        # unpack the inputs
+        data, weights = inputs
 
         tmp = np.repeat(np.expand_dims(data, axis=-3), self.filters, axis=-3)
         return np.multiply(tmp, weights)

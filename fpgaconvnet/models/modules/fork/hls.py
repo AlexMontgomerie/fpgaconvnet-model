@@ -12,7 +12,7 @@ class ForkHLSBase(ModuleHLSBase):
 
     # hardware parameters
     coarse: int
-    kernel_size: Union[list[int], int]
+    kernel_size: list[int]
     data_t: FixedPoint = FixedPoint(16, 8)
 
     # class variables
@@ -77,7 +77,8 @@ class ForkHLS(ForkHLSBase):
         return [ [self.rows, self.cols, self.channels] ]
 
     def resource_parameters(self) -> list[int]:
-        return [ self.rows, self.cols, self.channels, self.fine, self.coarse, self.data_t.width ]
+        return [ self.rows, self.cols, self.channels,
+                int(np.prod(self.kernel_size)), self.coarse, self.data_t.width ]
 
 @dataclass
 class ForkHLS3D(ModuleHLS3DBase, ForkHLSBase):
@@ -104,5 +105,5 @@ class ForkHLS3D(ModuleHLS3DBase, ForkHLSBase):
 
     def resource_parameters(self) -> list[int]:
         return [ self.rows, self.cols, self.depth, self.channels,
-                        self.fine, self.coarse, self.data_t.width ]
+                        int(np.prod(self.kernel_size)), self.coarse, self.data_t.width ]
 

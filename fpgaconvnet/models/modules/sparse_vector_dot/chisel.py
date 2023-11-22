@@ -42,13 +42,13 @@ class SparseVectorDotChisel(ModuleChiselBase):
     def input_ports(self) -> list[Port]:
         return [
             Port(
-                simd_lanes=[self.streams, np.prod(self.kernel_size)],
+                simd_lanes=[self.streams, int(np.prod(self.kernel_size))],
                 data_type=self.data_t,
                 buffer_depth=self.input_buffer_depth,
                 name="io_in"
             ),
             Port(
-                simd_lanes=[self.streams, np.prod(self.kernel_size)],
+                simd_lanes=[self.streams, int(np.prod(self.kernel_size))],
                 data_type=self.weight_t,
                 buffer_depth=self.weight_buffer_depth,
                 name="io_weights"
@@ -85,51 +85,51 @@ class SparseVectorDotChisel(ModuleChiselBase):
     #     return self.filters*(self.channels-1)
 
     def resource_parameters(self) -> list[int]:
-        return [ self.filters, self.streams, self.fine, np.prod(self.kernel_size),
+        return [ self.filters, self.streams, self.fine, int(np.prod(self.kernel_size)),
                 self.input_buffer_depth, self.weight_buffer_depth, self.output_buffer_depth,
                 self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
-                self.fine, self.data_width, self.weight_width,
-                self.data_width*self.fine,
-                self.weight_width*self.fine,
-                self.acc_width*self.fine, # adder tree
+            "Logic_LUT" : [
+                self.fine, self.data_t.width, self.weight_t.width,
+                self.data_t.width*self.fine,
+                self.weight_t.width*self.fine,
+                self.acc_t.width*self.fine, # adder tree
                 self.filters, # ready logic
                 int2bits(self.filters), # filter counter
                 1,
-            ]),
-            "LUT_RAM"   : np.array([
+            ],
+            "LUT_RAM"   : [
                 # queue_lutram_resource_model(
-                #     int2bits(self.fine)+3, self.acc_width), # buffer
+                #     int2bits(self.fine)+3, self.acc_t.width), # buffer
                 1,
-            ]),
-            "LUT_SR"    : np.array([
+            ],
+            "LUT_SR"    : [
                 int2bits(self.fine)+1, # tree buffer valid
-            ]),
-            "FF"    : np.array([
-                self.acc_width, # output buffer TODO
+            ],
+            "FF"    : [
+                self.acc_t.width, # output buffer TODO
                 int2bits(self.filters), # filter counter
                 int2bits(self.fine)+1, # tree buffer valid
-                self.acc_width*self.fine, # adder tree reg
-                # self.acc_width*(2**(int2bits(self.fine))), # tree buffer registers
-                # self.acc_width*int2bits(self.fine), # tree buffer
+                self.acc_t.width*self.fine, # adder tree reg
+                # self.acc_t.width*(2**(int2bits(self.fine))), # tree buffer registers
+                # self.acc_t.width*int2bits(self.fine), # tree buffer
                 1,
-            ]),
-            "DSP"       : np.array([self.fine]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            ],
+            "DSP"       : [self.fine],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
-    def functional_model(self, data: np.ndarray) -> np.ndarray:
+    # def functional_model(self, data: np.ndarray) -> np.ndarray:
 
-        # check input dimensions
-        iter_space_len = len(self.input_iteration_space(0))
-        assert(len(data.shape) >= iter_space_len)
-        assert(data.shape[-iter_space_len] == self.input_iteration_space(0))
+    #     # check input dimensions
+    #     iter_space_len = len(self.input_iter_space[0])
+    #     assert(len(data.shape) >= iter_space_len)
+    #     assert(data.shape[-iter_space_len] == self.input_iteration_space(0))
 
-        # accumulate across the channel dimension
-        return np.sum(data, axis=-3)
+    #     # accumulate across the channel dimension
+    #     return np.sum(data, axis=-3)
 
 

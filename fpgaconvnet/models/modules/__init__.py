@@ -14,9 +14,9 @@ def int2bits(n):
     return math.ceil(math.log(n, 2))
 
 
-CHISEL_RSC_TYPES = [ "LUT", "FF", "BRAM", "DSP" ]
+CHISEL_RSC_TYPES: list[str] = [ "LUT", "FF", "BRAM", "DSP" ]
 
-from .Module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3DBase, ModuleChiselBase
+from .module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3DBase, ModuleChiselBase
 # from .resources import ResourceModel, eval_resource_model, get_cached_resource_model
 
 from .accum import AccumChisel, AccumHLS, AccumHLS3D

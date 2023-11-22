@@ -55,7 +55,7 @@ class ResizeChisel(ModuleChiselBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ 1.0 / np.prod(self.scales) ]
+        return [ 1.0 / float(np.prod(self.scales)) ]
 
     @property
     def rate_out(self) -> list[float]:
@@ -72,13 +72,13 @@ class ResizeChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([1]),
-            "LUT_RAM"   : np.array([1]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([1]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
 

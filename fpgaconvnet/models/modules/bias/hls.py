@@ -76,10 +76,10 @@ class BiasHLS(BiasHLSBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([0]),
-            "BRAM"  : np.array([0]),
+            "LUT"   : [1],
+            "FF"    : [1],
+            "DSP"   : [0],
+            "BRAM"  : [0],
         }
 
 @dataclass
@@ -100,9 +100,9 @@ class BiasHLS3D(ModuleHLS3DBase, BiasHLSBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([0]),
-            "BRAM"  : np.array([0]),
+            "LUT"   : [1],
+            "FF"    : [1],
+            "DSP"   : [0],
+            "BRAM"  : [0],
         }
 

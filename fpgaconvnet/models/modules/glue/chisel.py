@@ -63,32 +63,32 @@ class GlueChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
             return {
-                "Logic_LUT" : np.array([
-                    self.streams*self.data_t.width*self.coarse_in, # tree buffer
-                    self.streams*self.data_t.width*int2bits(self.coarse_in), # tree buffer
-                    self.coarse_in, # input ready
+                "Logic_LUT" : [
+                    self.streams*self.data_t.width*self.coarse, # tree buffer
+                    self.streams*self.data_t.width*int2bits(self.coarse), # tree buffer
+                    self.coarse, # input ready
                     1,
-                ]),
-                "LUT_RAM" : np.array([
+                ],
+                "LUT_RAM" : [
                     # queue_lutram_resource_model(
-                    #     int2bits(self.coarse_in)+1, self.streams*self.data_t.width), # buffer
+                    #     int2bits(self.coarse)+1, self.streams*self.data_t.width), # buffer
                     1,
-                ]),
-                "LUT_SR" : np.array([
-                    int2bits(self.coarse_in), # tree buffer valid
+                ],
+                "LUT_SR" : [
+                    int2bits(self.coarse), # tree buffer valid
                     1,
-                ]),
-                "FF" : np.array([
-                    self.coarse_in, # coarse in parameter
+                ],
+                "FF" : [
+                    self.coarse, # coarse in parameter
                     self.streams*self.data_t.width, # output buffer
-                    int2bits(self.coarse_in), # tree buffer valid
-                    self.streams*self.data_t.width*(2**(int2bits(self.coarse_in))), # tree buffer registers
-                    self.streams*self.data_t.width*self.coarse_in, # tree buffer registers
+                    int2bits(self.coarse), # tree buffer valid
+                    self.streams*self.data_t.width*(2**(int2bits(self.coarse))), # tree buffer registers
+                    self.streams*self.data_t.width*self.coarse, # tree buffer registers
                     1,
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                ],
+                "DSP"       : [0],
+                "BRAM36"    : [0],
+                "BRAM18"    : [0],
             }
 
 

@@ -58,7 +58,7 @@ class HardswishChisel(ModuleChiselBase):
         return 1
 
     def resource_parameters(self) -> list[int]:
-        return [ self.streams, self.data_t.width,
+        return [ self.streams, self.input_t.width, self.output_t.width,
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     @staticmethod

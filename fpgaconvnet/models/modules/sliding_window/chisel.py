@@ -78,8 +78,8 @@ class SlidingWindowChisel(ModuleChiselBase):
         return (self.kernel_size[0]-1)*self.cols*self.channels + (self.kernel_size[1]-1)*self.channels
 
     def resource_parameters(self) -> list[int]:
-        window_buffer_ram_style_int = 0 if self.ram_style == "distributed" else 1 # TODO: use an enumeration instead
-        line_buffer_ram_style_int = 0 if self.ram_style == "distributed" else 1 # TODO: use an enumeration instead
+        window_buffer_ram_style_int = 0 if self.window_buffer_ram_style == "distributed" else 1 # TODO: use an enumeration instead
+        line_buffer_ram_style_int = 0 if self.line_buffer_ram_style == "distributed" else 1 # TODO: use an enumeration instead
         return [ self.rows, self.cols, self.channels, self.streams, self.data_t.width,
                 window_buffer_ram_style_int, line_buffer_ram_style_int,
                 self.input_buffer_depth, self.output_buffer_depth,
@@ -87,34 +87,34 @@ class SlidingWindowChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
             return {
-                "Logic_LUT" : np.array([
-                    self.data_width,
+                "Logic_LUT" : [
+                    self.data_t.width,
                     (self.kernel_size[0]-1),
                     self.kernel_size[0]*(self.kernel_size[1]-1),
-                    self.data_width*(self.kernel_size[0]-1),
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1),
-                ]),
-                "LUT_RAM"   : np.array([1
+                    self.data_t.width*(self.kernel_size[0]-1),
+                    self.data_t.width*self.kernel_size[0]*(self.kernel_size[1]-1),
+                ],
+                "LUT_RAM"   : [1
                     # line_buffer_lutram, # line buffer
                     # window_buffer_lutram, # window buffer
                     # frame_buffer_lutram, # frame buffer
-                ]),
-                "LUT_SR"    : np.array([1]),
-                "FF"        : np.array([
+                ],
+                "LUT_SR"    : [1],
+                "FF"        : [
                     int2bits(self.rows), # row_cntr
                     int2bits(self.cols), # col_cntr
                     int2bits(self.channels), # channel_cntr
-                    self.data_width, # input buffer
-                    self.data_width*self.kernel_size[0]*self.kernel_size[1], # output buffer (data)
+                    self.data_t.width, # input buffer
+                    self.data_t.width*self.kernel_size[0]*self.kernel_size[1], # output buffer (data)
                     self.kernel_size[0]*self.kernel_size[1], # output buffer (valid)
-                    self.data_width*(self.kernel_size[0]-1), # line buffer
-                    self.data_width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
+                    self.data_t.width*(self.kernel_size[0]-1), # line buffer
+                    self.data_t.width*self.kernel_size[0]*(self.kernel_size[1]-1), # window buffer
                     self.kernel_size[0]*self.kernel_size[1], # frame buffer
                     1,
-                ]),
-                "DSP"       : np.array([0]),
-                "BRAM36"    : np.array([0]),
-                "BRAM18"    : np.array([0]),
+                ],
+                "DSP"       : [0],
+                "BRAM36"    : [0],
+                "BRAM18"    : [0],
             }
 
     # def rsc(self,coef=None, model=None):

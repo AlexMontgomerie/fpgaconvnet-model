@@ -66,23 +66,23 @@ class ForkChisel(ModuleChiselBase):
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([
-                self.streams*np.prod(self.kernel_size), # input buffer
-                self.streams*self.data_width*np.prod(self.kernel_size), # input buffer
-                self.streams*np.prod(self.kernel_size)*self.coarse, # output buffer
-                self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer
+            "Logic_LUT" : [
+                self.streams*self.fine, # input buffer
+                self.streams*self.data_t.width*self.fine, # input buffer
+                self.streams*self.fine*self.coarse, # output buffer
+                self.streams*self.data_t.width*self.fine*self.coarse, # output buffer
                 1,
-            ]),
-            "LUT_RAM"   : np.array([0]),
-            "LUT_SR"    : np.array([0]),
-            "FF"    : np.array([
-                self.streams*np.prod(self.kernel_size), # input buffer (ready)
-                self.streams*self.data_width*np.prod(self.kernel_size)*self.coarse, # output buffer (data)
+            ],
+            "LUT_RAM"   : [0],
+            "LUT_SR"    : [0],
+            "FF"    : [
+                self.streams*self.fine, # input buffer (ready)
+                self.streams*self.data_t.width*self.fine*self.coarse, # output buffer (data)
                 1,
-            ]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            ],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
 

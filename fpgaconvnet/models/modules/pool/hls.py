@@ -11,7 +11,7 @@ from fpgaconvnet.models.modules import int2bits, ModuleHLSBase, ModuleHLS3DBase,
 class PoolHLSBase(ModuleHLSBase):
 
     # hardware parameters
-    kernel_size: Union[list[int], int]
+    kernel_size: list[int]
     pool_t: FixedPoint = FixedPoint(16, 8)
 
     # class variables
@@ -71,14 +71,14 @@ class PoolHLS(PoolHLSBase):
         return [ [self.rows, self.cols, self.channels] ]
 
     def resource_parameters(self) -> list[int]:
-        return [ self.rows, self.cols, self.channels, np.prod(self.kernel_size), self.pool_t.width ]
+        return [ self.rows, self.cols, self.channels, int(np.prod(self.kernel_size)), self.pool_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([0]),
-            "BRAM"  : np.array([0]),
+            "LUT"   : [1],
+            "FF"    : [1],
+            "DSP"   : [0],
+            "BRAM"  : [0],
         }
 
     def functional_model(self, data):
@@ -126,14 +126,14 @@ class PoolHLS3D(ModuleHLS3DBase, PoolHLSBase):
         return [ [self.rows, self.cols, self.depth, self.channels] ]
 
     def resource_parameters(self) -> list[int]:
-        return [ self.rows, self.cols, self.depth, self.channels, np.prod(self.kernel_size), self.pool_t.width ]
+        return [ self.rows, self.cols, self.depth, self.channels, int(np.prod(self.kernel_size)), self.pool_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "LUT"   : np.array([1]),
-            "FF"    : np.array([1]),
-            "DSP"   : np.array([0]),
-            "BRAM"  : np.array([0]),
+            "LUT"   : [1],
+            "FF"    : [1],
+            "DSP"   : [0],
+            "BRAM"  : [0],
         }
 
     def functional_model(self, data):

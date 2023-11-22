@@ -69,33 +69,33 @@ class SqueezeChisel(ModuleChiselBase):
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         buffer_size = lcm(self.coarse_in, self.coarse_out)
         return {
-            "Logic_LUT" : np.array([
+            "Logic_LUT" : [
                 (buffer_size//self.coarse_in), # buffer ready
-                self.data_width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
+                self.data_t.width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
                 (buffer_size//self.coarse_in),
                 (buffer_size//self.coarse_out),
                 self.coarse_in,
                 self.coarse_out,
-                self.data_width*self.coarse_out, # DCFull on the output
+                self.data_t.width*self.coarse_out, # DCFull on the output
                 1,
-            ]),
-            "LUT_RAM"   : np.array([
+            ],
+            "LUT_RAM"   : [
                 # buffer_lutram, # buffer
                 1,
-            ]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([
+            ],
+            "LUT_SR"    : [0],
+            "FF"        : [
                 int2bits(buffer_size//self.coarse_in), # cntr_in
                 buffer_size, # buffer registers
-                self.data_width*self.coarse_out, # DCFull on the output (data)
+                self.data_t.width*self.coarse_out, # DCFull on the output (data)
                 self.coarse_out, # DCFull on the output (ready and valid)
                 self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
                 1,
 
-            ]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            ],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
 

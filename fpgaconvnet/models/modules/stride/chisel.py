@@ -56,7 +56,7 @@ class StrideChisel(ModuleChiselBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ 1.0 / np.prod(self.scales) ]
+        return [ 1.0 / float(np.prod(self.stride)) ]
 
     @property
     def rate_out(self) -> list[float]:
@@ -66,18 +66,18 @@ class StrideChisel(ModuleChiselBase):
         return 1
 
     def resource_parameters(self) -> list[int]:
-        return [ self.rows, self.cols, self.channels, self.streams, np.prod(self.kernel_size),
+        return [ self.rows, self.cols, self.channels, self.streams, int(np.prod(self.kernel_size)),
                 *self.stride, self.data_t.width, self.input_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return {
-            "Logic_LUT" : np.array([1]),
-            "LUT_RAM"   : np.array([1]),
-            "LUT_SR"    : np.array([0]),
-            "FF"        : np.array([1]),
-            "DSP"       : np.array([0]),
-            "BRAM36"    : np.array([0]),
-            "BRAM18"    : np.array([0]),
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
         }
 
 

@@ -6,7 +6,8 @@ from typing import Optional
 from functools import singledispatch
 
 import numpy as np
-import sklearn.metrics
+import sklearn.metrics # type: ignore
+import matplotlib.pyplot as plt # type: ignore
 
 from fpgaconvnet.models.modules import ModuleBaseMeta, ModuleBase, CHISEL_RSC_TYPES
 from fpgaconvnet.models.modules.database import Record
@@ -41,10 +42,10 @@ class ResourceModel(ABC):
         with open(cache_path, "rb") as f:
             return pickle.load(f)
 
-    def get_accuracy(self, train: Record, test: Record):
+    def get_accuracy(self, test: Record):
 
-        # fit to the training data
-        self.fit(train)
+        # # fit to the training data
+        # self.fit(train)
 
         # get the predictions and golden data
         test_predictions = [self.eval(m) for m in test.modules() ]
@@ -52,20 +53,31 @@ class ResourceModel(ABC):
 
         # collect all the accuracy metrics
         mae = sklearn.metrics.mean_absolute_error(test_golden, test_predictions)
+        mape = sklearn.metrics.mean_absolute_percentage_error(test_golden, test_predictions)
         mse = sklearn.metrics.mean_squared_error(test_golden, test_predictions)
         r2 = sklearn.metrics.r2_score(test_golden, test_predictions)
 
         # return the accuracy metrics
         return {
             "mae": mae,
+            "mape": mape,
             "mse": mse,
             "r2": r2
         }
 
+    def plot_model_error(self, test: Record):
+
+        # get the predictions and golden data
+        test_predictions = [self.eval(m) for m in test.modules() ]
+        test_golden = test.resources(self.rsc_type)
+
+        # plot the error
+        plt.scatter(test_golden, test_predictions)
+        plt.show()
 
 class NNLSResourceModel(ResourceModel):
 
-    import sklearn.linear_model
+    import sklearn.linear_model # type: ignore
 
     def __post_init__(self):
 
@@ -87,7 +99,7 @@ class NNLSResourceModel(ResourceModel):
 
 class NNLSHeuristicResourceModel(ResourceModel):
 
-    import sklearn.linear_model
+    import sklearn.linear_model # type: ignore
 
     def __post_init__(self):
 
@@ -116,7 +128,7 @@ class SVRResourceModel(ResourceModel):
     kernel: str = "rbf"
     degree: int = 3
 
-    import sklearn.svm
+    import sklearn.svm # type: ignore
 
     def __post_init__(self):
 
@@ -140,11 +152,15 @@ class SVRResourceModel(ResourceModel):
 
 
 @singledispatch
-def eval_resource_model(m: ModuleBase, rsc_type: str, model: Optional[ResourceModel] = None) -> int:
+def eval_resource_model(m: ModuleBase, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+    if _model is None:
+        raise NotImplementedError(f"ERROR: No resource model given")
+
+    model: ResourceModel = _model
     assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
     return model(m)
 
-def get_cached_resource_model(m: ModuleBaseMeta, rsc_type: str, name: str) -> dict[str, ResourceModel]:
+def get_cached_resource_model(m: ModuleBaseMeta, rsc_type: str, name: str) -> ResourceModel:
 
     # get the cache path
     # filename = f"{name}.{rsc_type}.{m.name}.{m.backend.name}.{list(m.dimensionality)[0].value}.model"

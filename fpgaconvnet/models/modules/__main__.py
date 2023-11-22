@@ -13,7 +13,8 @@ from dacite import from_dict
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
-from fpgaconvnet.models.modules.resources import ResourceModel, SVRResourceModel, eval_resource_model
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
+from fpgaconvnet.models.modules.resources import SVRResourceModel, NNLSHeuristicResourceModel
 from fpgaconvnet.models.modules.database import get_database, Record
 
 def main():
@@ -48,6 +49,8 @@ def main():
     match config["model"]["type"]:
         case "SVR":
             model = from_dict(data_class=SVRResourceModel, data=config["model"])
+        case "NNLSHeuristic":
+            model = from_dict(data_class=NNLSHeuristicResourceModel, data=config["model"])
         case _:
             raise NotImplementedError(f"Unsupported model type: {config['model']['type']}")
 
@@ -76,7 +79,7 @@ def main():
     model.fit(train_data)
 
     # get the accuracy
-    accuracy = model.get_accuracy(train_data, test_data)
+    accuracy = model.get_accuracy(test_data)
     print(tabulate([accuracy], headers="keys"))
 
     # cache the model locally
