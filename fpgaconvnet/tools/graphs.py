@@ -18,10 +18,10 @@ def print_graph(graph):
         print(f"{node}\t: {edges}")
 
 def get_input_nodes(graph):
-    return [ edge for edge, deg in graph.in_degree() if not deg ]
+    return sorted([ edge for edge, deg in graph.in_degree() if not deg ])
 
 def get_output_nodes(graph):
-    return [ edge for edge, deg in graph.out_degree() if not deg ]
+    return sorted([ edge for edge, deg in graph.out_degree() if not deg ])
 
 def get_next_nodes(graph, node):
     return sorted(list(graph.successors(node)))
@@ -37,9 +37,9 @@ def get_prev_nodes_all(graph, node):
 
 def get_multiport_layers(graph, direction):
     if direction == "in":
-        return [ node for node in graph.nodes() if graph.nodes[node]['type'] in MULTIPORT_LAYERS_IN ]
+        return [ node for node in ordered_node_list(graph) if graph.nodes[node]['type'] in MULTIPORT_LAYERS_IN ]
     elif direction == "out":
-        return [ node for node in graph.nodes() if graph.nodes[node]['type'] in MULTIPORT_LAYERS_OUT ]
+        return [ node for node in ordered_node_list(graph) if graph.nodes[node]['type'] in MULTIPORT_LAYERS_OUT ]
     else:
         raise ValueError("direction must be 'in' or 'out'")
 

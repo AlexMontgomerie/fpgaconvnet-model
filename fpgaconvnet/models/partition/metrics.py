@@ -216,7 +216,7 @@ def get_resource_usage(self):
             'URAM'  : 0
         }
         # iterate over nodes in partition
-        for node in self.graph.nodes():
+        for node in graphs.ordered_node_list(self.graph):
             # get the resource usage of the node
             resource_usage_node = self.graph.nodes[node]['hw'].resource()
             # update total resource usage for partition
