@@ -18,7 +18,7 @@ class ConcatChisel(ModuleChiselBase):
     channels: list[int]
     data_t: FixedPoint = FixedPoint(16, 8)
     input_buffer_depth: list[int] = field(default_factory=list) # type: ignore
-    output_buffer_depth: int = 0
+    output_buffer_depth: int = 2
 
     # class variables
     name: ClassVar[str] = "concat"
@@ -29,6 +29,8 @@ class ConcatChisel(ModuleChiselBase):
 
         if len(self.input_buffer_depth) == 0:
             self.input_buffer_depth = [0]*self.ports
+
+        # call previous post init methods
 
     @property
     def input_ports(self) -> list[Port]:
