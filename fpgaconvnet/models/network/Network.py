@@ -52,7 +52,7 @@ class Network():
         self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
 
         # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph), data_width=self.data_width) ]
+        self.partitions = [ Partition(copy.deepcopy(self.graph), self.dimensionality, data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)

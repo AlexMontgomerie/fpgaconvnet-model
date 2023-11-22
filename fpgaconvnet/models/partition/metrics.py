@@ -39,15 +39,29 @@ def get_pipeline_depth(self, node=None):
         # get the size out
         size_out = [ n.size_out() for n in node_hw ]
 
+        # get the latency
+        latency = [ n.latency() for n in node_hw ]
+
+        # get the rate in
         rate_in = [ n.rate_in() for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
 
-        # get the path depth
-        delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
+        # old delay calculation
+        # delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
+        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
+        # multiport delay calculation
+        # delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
+        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+        #             ]) for j in range(len(node_hw)) ])
+        # new delay calculation TODO: verify whether we should use latency[j] or interval at the propagation delay stage
+        propagation_delay = sum([(node_depth[j] * latency[j]) / size_in[j] for j in range(len(node_hw))])
+        backpropagation_delay = sum([ (interval/size_in[0]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
+        delay = propagation_delay + backpropagation_delay
 
         # append to toal path delays
         path_delays.append(delay)

@@ -54,3 +54,4 @@ from .VectorDot3D import VectorDot3D
 from .GlobalPool3D import GlobalPool3D
 from .EltWise3D import EltWise3D
 from .Pad3D import Pad3D
+from .ShiftScale3D import ShiftScale3D

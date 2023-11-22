@@ -41,6 +41,7 @@ from .ReLULayer3D import ReLULayer3D
 from .HardswishLayer3D import HardswishLayer3D
 from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
+from .SplitLayer3D import SplitLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
 from .GlobalPoolingLayer3D import GlobalPoolingLayer3D
 
