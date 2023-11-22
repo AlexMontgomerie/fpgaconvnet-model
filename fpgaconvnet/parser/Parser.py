@@ -16,7 +16,7 @@ import numpy as np
 
 from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.models.network import Network
-from fpgaconvnet.models.layers import SplitLayer
+from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
 
 import fpgaconvnet.tools.graphs as graphs
 
@@ -211,7 +211,7 @@ class Parser:
         # return model and quantisation
         return model_opt, quant_format
 
-    def add_split(self, graph):
+    def add_split(self, graph, dimensionality):
         # iterate over nodes in the graph
         nodes = list(graph.nodes())
         for node in nodes:
@@ -221,20 +221,37 @@ class Parser:
             if len(nodes_out) > 1 and not graph.nodes[node]['type'] == LAYER_TYPE.Chop:
                 # create a split node
                 split_node  = f"{node}_split"
-                graph.add_node(split_node,
-                    type=LAYER_TYPE.Split,
-                    onnx_node=graph.nodes[node]["onnx_node"],
-                    onnx_input=graph.nodes[node]["onnx_input"],
-                    onnx_output=graph.nodes[node]["onnx_output"],
-                    hw=SplitLayer(
-                        graph.nodes[node]['hw'].rows_out(),
-                        graph.nodes[node]['hw'].cols_out(),
-                        graph.nodes[node]['hw'].channels_out(),
-                        graph.nodes[node]['hw'].streams_out(),
-                        len(nodes_out),
-                        data_t=graph.nodes[node]['hw'].data_t,
+                if dimensionality == 2:
+                    graph.add_node(split_node,
+                        type=LAYER_TYPE.Split,
+                        onnx_node=graph.nodes[node]["onnx_node"],
+                        onnx_input=graph.nodes[node]["onnx_input"],
+                        onnx_output=graph.nodes[node]["onnx_output"],
+                        hw=SplitLayer(
+                            graph.nodes[node]['hw'].rows_out(),
+                            graph.nodes[node]['hw'].cols_out(),
+                            graph.nodes[node]['hw'].channels_out(),
+                            graph.nodes[node]['hw'].streams_out(),
+                            len(nodes_out),
+                            data_t=graph.nodes[node]['hw'].data_t,
+                        )
                     )
-                )
+                elif dimensionality == 3:
+                    graph.add_node(split_node,
+                        type=LAYER_TYPE.Split,
+                        onnx_node=graph.nodes[node]["onnx_node"],
+                        onnx_input=graph.nodes[node]["onnx_input"],
+                        onnx_output=graph.nodes[node]["onnx_output"],
+                        hw=SplitLayer3D(
+                            graph.nodes[node]['hw'].rows_out(),
+                            graph.nodes[node]['hw'].cols_out(),
+                            graph.nodes[node]['hw'].depth_out(),
+                            graph.nodes[node]['hw'].channels_out(),
+                            graph.nodes[node]['hw'].streams_out(),
+                            len(nodes_out),
+                            data_t=graph.nodes[node]['hw'].data_t,
+                        )
+                    )
                 # iterate over nodes out
                 for node_out in nodes_out:
                     # remove edge from original node
@@ -303,7 +320,7 @@ class Parser:
             graph.add_edge(node.name, f"{node.name}_scale_shift")
 
         # add split nodes to the graph
-        graph = self.add_split(graph)
+        graph = self.add_split(graph, dimensionality)
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
@@ -312,7 +329,7 @@ class Parser:
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
-    def get_hardware_from_prototxt_node(self, node):
+    def get_hardware_from_prototxt_node(self, node, dimensionality):
 
         # register converters
         converter = {
@@ -339,7 +356,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, backend=self.backend,
+            return converter[node_type](node, dimensionality, backend=self.backend,
                     regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
@@ -364,17 +381,21 @@ class Parser:
             for layer in partition.layers:
 
                 # get the hardware for the node
-                hardware = self.get_hardware_from_prototxt_node(layer)
+                hardware = self.get_hardware_from_prototxt_node(layer, net.dimensionality)
+
+                # todo: move this inside get_hardware_from_prototxt_node
+                hardware.stream_inputs = hardware.node.parameters.stream_inputs
+                hardware.stream_outputs = hardware.node.parameters.stream_outputs
 
                 # add node to graph
-                graph.add_node( layer.name, **hardware.get_node_info() )
+                graph.add_node( layer.name, **hardware.get_node_info(net.graph) )
 
                 # get edges from the hardware
                 for edge in hardware.get_edges_in():
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph, batch_size=partition.batch_size)
+            new_partition = Partition(graph, net.dimensionality, batch_size=partition.batch_size)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)

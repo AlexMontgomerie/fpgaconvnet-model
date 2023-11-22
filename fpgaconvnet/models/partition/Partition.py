@@ -10,6 +10,7 @@ class Partition():
     def __init__(
             self,
             graph,
+            dimensionality,
             batch_size=1,
             wr_factor=1,
             data_width=16
@@ -17,6 +18,9 @@ class Partition():
 
         ## graph for partition
         self.graph = graph
+
+        ## dimensionality
+        self.dimensionality = dimensionality
 
         ## batch size
         self.batch_size = batch_size
