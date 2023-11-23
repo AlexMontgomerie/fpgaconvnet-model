@@ -20,7 +20,7 @@ jobs:
 
     - name: Fetch optimiser repo
       run: |
-        BRANCH=${GITHUB_BASE_REF:-${GITHUB_REF#refs/heads/}}
+        BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
         URL=https://github.com/AlexMontgomerie/fpgaconvnet-optimiser.git    
         if [ -z $(git ls-remote --heads $URL $BRANCH) ]; then
           echo "Warning! branch $BRANCH does not exist. use dev instead"
