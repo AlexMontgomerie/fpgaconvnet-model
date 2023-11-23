@@ -438,9 +438,14 @@ class MultiPortLayer3D:
 
     def resource(self):
         # bram for fifos
-        fifo_bram = sum([bram_array_resource_model(
-                self.buffer_depth[i], self.data_t.width, 'fifo'
-            )*self.streams_in(i) for i in range(self.ports_in) ])
+        self.inputs_ram_usage = []
+        for i in range(self.ports_in):
+            if not self.stream_inputs[i]:
+                bram = bram_array_resource_model(self.buffer_depth[i], self.data_t.width, 'fifo')*self.streams_in(i)
+            else:
+                bram = 0
+            self.inputs_ram_usage.append(bram)
+        fifo_bram = sum(self.inputs_ram_usage)
         return {
             "LUT"   : 0,
             "FF"    : 0,
