@@ -12,8 +12,8 @@ class ReLUChisel(ModuleChiselBase):
 
     # hardware parameters
     data_t: FixedPoint = FixedPoint(16, 8)
-    input_buffer_depth: int = 0
-    output_buffer_depth: int = 0
+    input_buffer_depth: int = 2
+    output_buffer_depth: int = 2
 
     # class variables
     name: ClassVar[str] = "relu"

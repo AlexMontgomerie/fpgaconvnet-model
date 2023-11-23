@@ -14,8 +14,8 @@ class BiasChisel(ModuleChiselBase):
     channels: int
     data_t: FixedPoint = FixedPoint(32, 16)
     ram_style: str = "distributed"
-    input_buffer_depth: int = 0
-    output_buffer_depth: int = 0
+    input_buffer_depth: int = 2
+    output_buffer_depth: int = 2
 
     # class variables
     name: ClassVar[str] = "bias"
