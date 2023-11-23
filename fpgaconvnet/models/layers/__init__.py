@@ -10,7 +10,9 @@ from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 class Layer:
     pass
 
-from .convolution import ConvolutionLayerBase, ConvolutionLayerChisel
+from .convolution import ConvolutionLayerChisel
+from .relu import ReLULayerChisel, ReLULayerHLS, ReLULayerHLS3D
+from .pooling import PoolingLayerChisel, PoolingLayerHLS, PoolingLayerHLS3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer

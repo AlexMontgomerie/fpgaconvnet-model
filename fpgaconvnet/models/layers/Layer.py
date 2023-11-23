@@ -39,6 +39,7 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
 
         # get all the modules in the registry
         modules = list(cls.LAYER_REGISTRY.values())
+        print(modules)
 
         # filter all the modules with the given name
         modules = list(filter(lambda m: m.name == name, modules))
@@ -159,11 +160,19 @@ class LayerBase(metaclass=LayerBaseMeta):
 
 
     @abstractmethod
-    def shape_in(self) -> list[int]:
+    def input_shape(self) -> list[int]:
         pass
 
     @abstractmethod
-    def shape_out(self) -> list[int]:
+    def output_shape(self) -> list[int]:
+        pass
+
+    @abstractmethod
+    def input_shape_dict(self) -> dict[str,int]:
+        pass
+
+    @abstractmethod
+    def output_shape_dict(self) -> dict[str,int]:
         pass
 
     @abstractmethod
@@ -192,13 +201,13 @@ class LayerBase(metaclass=LayerBaseMeta):
             """
             return self.coarse_out
 
-    @abstractmethod
-    def width_in(self):
-        pass
+    # @abstractmethod
+    # def width_in(self):
+    #     pass
 
-    @abstractmethod
-    def width_out(self):
-        pass
+    # @abstractmethod
+    # def width_out(self):
+    #     pass
 
     def workload_in(self) -> int:
         """
@@ -207,7 +216,7 @@ class LayerBase(metaclass=LayerBaseMeta):
         Returns:
             int: The total number of elements in the input tensor of this layer.
         """
-        return np.prod(self.shape_in())
+        return int(np.prod(self.input_shape()))
 
     def workload_out(self) -> int:
             """
@@ -216,7 +225,7 @@ class LayerBase(metaclass=LayerBaseMeta):
             Returns:
                 The total number of output elements for this layer.
             """
-            return np.prod(self.shape_out())
+            return int(np.prod(self.output_shape()))
 
     def size_in(self) -> int:
         return self.workload_in() / self.streams_in()
@@ -315,6 +324,10 @@ class LayerBase(metaclass=LayerBaseMeta):
     def functional_model(self, data, batch_size=1):
         raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
 
+
+
+
+
 @dataclass(kw_only=True)
 class Layer2D(LayerBase):
     rows: int
@@ -366,17 +379,25 @@ class Layer2D(LayerBase):
         return abs(balance_module_rates(
             self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
 
-    def shape_in(self) -> list[int]: # TODO: add documentation
+    def input_shape(self) -> list[int]:
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
 
-    def shape_out(self) -> list[int]: # TODO: add documentation
+    def output_shape(self) -> list[int]:
         return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
-    def width_in(self):
-        return self.data_t.width
+    def input_shape_dict(self) -> dict[str,int]:
+        return {
+            "rows": self.rows_in(),
+            "cols": self.cols_in(),
+            "channels": self.channels_in(),
+        }
 
-    def width_out(self):
-       return self.data_t.width
+    def output_shape_dict(self) -> dict[str,int]:
+        return {
+            "rows": self.rows_out(),
+            "cols": self.cols_out(),
+            "channels": self.channels_out(),
+        }
 
     def get_coarse_in_feasible(self):
         return get_factors(int(self.channels_in()))
@@ -401,6 +422,10 @@ class Layer2D(LayerBase):
 
     #     return cluster, "_".join([name,"edge"]), "_".join([name,"edge"])
 
+
+
+
+
 @dataclass(kw_only=True)
 class Layer3D(Layer2D):
     depth: int
@@ -413,11 +438,27 @@ class Layer3D(Layer2D):
     def depth_out(self) -> int:
        return self.depth
 
-    def shape_in(self) -> list[int]: # TODO: add documentation
+    def input_shape(self) -> list[int]:
         return [ self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in() ]
 
-    def shape_out(self) -> list[int]: # TODO: add documentation
+    def output_shape(self) -> list[int]: # TODO: add documentation
         return [ self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out() ]
+
+    def input_shape_dict(self) -> dict[str,int]:
+        return {
+            "rows": self.rows_in(),
+            "cols": self.cols_in(),
+            "depth": self.depth_in(),
+            "channels": self.channels_in(),
+        }
+
+    def output_shape_dict(self) -> dict[str,int]:
+        return {
+            "rows": self.rows_out(),
+            "cols": self.cols_out(),
+            "depth": self.depth_out(),
+            "channels": self.channels_out(),
+        }
 
     def layer_info(self, parameters, batch_size=1):
         super().layer_info(self, parameters, batch_size)

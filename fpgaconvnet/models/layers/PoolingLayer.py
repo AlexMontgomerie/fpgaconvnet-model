@@ -95,8 +95,8 @@ class PoolingLayer:
     def pad(self) -> List[int]:
         return [
             self.pad_top,
-            self.pad_left,
             self.pad_bottom,
+            self.pad_left,
             self.pad_right,
         ]
 

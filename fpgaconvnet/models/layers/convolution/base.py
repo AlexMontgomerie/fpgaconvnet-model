@@ -157,11 +157,11 @@ class ConvolutionLayerBase(LayerBase):
     def functional_model(self,data,weights,bias,batch_size=1):
         import torch
 
-        assert data.shape == self.input_shape    , "ERROR (data): invalid row dimension"
+        assert data.shape == self.input_shape, "ERROR (data): invalid row dimension"
 
-        assert weights.shape[0] == self.filters                 , "ERROR (weights): invalid filter dimension"
-        assert weights.shape[1] == self.channels//self.groups   , "ERROR (weights): invalid channel dimension"
-        assert weights.shape[2:] == self.kernel_size            , "ERROR (weights): invalid kernel dimension"
+        assert weights.shape[0] == self.filters, "ERROR (weights): invalid filter dimension"
+        assert weights.shape[1] == self.channels//self.groups, "ERROR (weights): invalid channel dimension"
+        assert weights.shape[2:] == self.kernel_size, "ERROR (weights): invalid kernel dimension"
 
         assert bias.shape[0] == self.filters, "ERROR (bias): invalid filter dimension"
 
