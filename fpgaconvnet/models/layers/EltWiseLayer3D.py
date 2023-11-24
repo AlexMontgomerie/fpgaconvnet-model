@@ -58,6 +58,9 @@ class EltWiseLayer3D(MultiPortLayer3D):
         # update the layer
         self.update()
 
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.depth_in()
+
     @property
     def coarse(self) -> int:
         return self._coarse

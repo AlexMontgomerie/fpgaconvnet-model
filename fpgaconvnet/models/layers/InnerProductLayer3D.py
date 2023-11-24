@@ -99,6 +99,13 @@ class InnerProductLayer3D(Layer3D):
 
         self.update()
 
+    def get_operations(self):
+        # 1 MAC = 2 OPs
+        ops = 2*self.channels_in()*self.filters
+        if self.has_bias:
+            ops += self.filters
+        return ops
+
     @property
     def filters(self) -> int:
         return self._filters
@@ -220,7 +227,10 @@ class InnerProductLayer3D(Layer3D):
 
     def get_parameters_size(self):
         weights_size = self.channels * self.filters
-        bias_size = 0
+        if self.has_bias:
+            bias_size = self.filters
+        else:
+            bias_size = 0
         return {
             "weights"   : weights_size,
             "bias"      : bias_size

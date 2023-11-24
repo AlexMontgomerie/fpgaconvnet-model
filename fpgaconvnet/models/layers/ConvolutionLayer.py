@@ -530,17 +530,24 @@ class ConvolutionLayer(Layer):
         return get_factors(self.filters//(self.groups*self.coarse_out))
 
     def get_parameters_size(self):
-        weights_size = self.channels_in() * ( self.filters // self.groups ) * self.kernel_size[0] * self.kernel_size[1]
-        bias_size = 0
+        weights_size = (self.channels_in() * self.filters) // self.groups \
+                * self.kernel_size[0] * self.kernel_size[1]
+        if self.has_bias:
+            bias_size = self.filters
+        else:
+            bias_size = 0
         return {
             "weights"   : weights_size,
             "bias"      : bias_size
         }
 
     def get_operations(self):
-        ops = self.kernel_size[0]*self.kernel_size[1]*self.channels_in()*self.filters*self.rows_out()*self.cols_out()
+        # 1 MAC = 2 OPs
+        ops = 2 * (self.channels_in() * self.filters) // self.groups \
+                * self.kernel_size[0] * self.kernel_size[1] \
+                * self.rows_out() * self.cols_out()
         if self.has_bias:
-            ops += self.filters*self.rows_out()*self.cols_out()
+            ops += self.filters * self.rows_out() * self.cols_out()
         return ops
 
     def resource(self):
