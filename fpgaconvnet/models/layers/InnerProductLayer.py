@@ -197,7 +197,7 @@ class InnerProductLayer(Layer):
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].data_width = self.acc_t.width
         if self.data_packing:
-            self.modules['glue'].streams = self.coarse_group*self.coarse_out
+            self.modules['glue'].streams = self.coarse_out
 
         # bias
         self.modules['bias'].rows           = 1

@@ -486,6 +486,8 @@ class MultiPortLayer3D:
         parameters.coarse_out   = self.streams_out()
         parameters.ports_in     = self.ports_in
         parameters.ports_out    = self.ports_out
+        parameters.stream_inputs.extend(self.stream_inputs)
+        parameters.stream_outputs.extend(self.stream_outputs)
         self.data_t.to_protobuf(parameters.data_t)
 
     def get_operations(self):
