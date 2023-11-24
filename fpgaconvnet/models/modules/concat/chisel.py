@@ -1,11 +1,12 @@
-from typing import ClassVar
+from typing import ClassVar, Optional
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
+from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port, CHISEL_RSC_TYPES
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
 
 # DEFAULT_FITTER = NNLSHeuristicResourceFitter()
 
@@ -80,4 +81,26 @@ class ConcatChisel(ModuleChiselBase):
         # concatenate along the channel dimension
         return np.concatenate(data, axis=-2)
 
+try:
+    DEFAULT_CONCAT_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(ConcatChisel,
+                                    rsc_type, "default") for rsc_type in CHISEL_RSC_TYPES }
+except FileNotFoundError:
+    print("CRITICAL WARNING: default resource models not found for Concat, default resource modelling will fail")
+
+@eval_resource_model.register
+def _(m: ConcatChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the resource model
+    model: ResourceModel = _model if _model is not None else DEFAULT_CONCAT_RSC_MODELS[rsc_type]
+
+    # check the correct resource type
+    assert rsc_type in CHISEL_RSC_TYPES, f"Invalid resource type: {rsc_type}"
+    assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # get the resource model
+    match rsc_type:
+        case "DSP":
+            return 0
+        case _:
+            return model(m)
 

@@ -164,26 +164,26 @@ class LayerBase(metaclass=LayerBaseMeta):
         pass
 
     @abstractmethod
-    def input_shape(self) -> list[int]:
+    def input_shape(self, port_idx: int = 0) -> list[int]:
         pass
 
     @abstractmethod
-    def output_shape(self) -> list[int]:
+    def output_shape(self, port_idx: int = 0) -> list[int]:
         pass
 
     @abstractmethod
-    def input_shape_dict(self) -> dict[str,int]:
+    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
         pass
 
     @abstractmethod
-    def output_shape_dict(self) -> dict[str,int]:
+    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
         pass
 
-    def rate_in(self) -> float:
-        return self.size_in() / float(self.latency())
+    def rate_in(self, port_idx: int = 0) -> float:
+        return self.size_in(port_idx) / float(self.latency())
 
-    def rate_out(self) -> float:
-        return self.size_out() / float(self.latency())
+    def rate_out(self, port_idx: int = 0) -> float:
+        return self.size_out(port_idx) / float(self.latency())
 
     def streams_in(self) -> int:
             """
@@ -211,29 +211,29 @@ class LayerBase(metaclass=LayerBaseMeta):
     # def width_out(self):
     #     pass
 
-    def workload_in(self) -> int:
+    def workload_in(self, port_idx: int = 0) -> int:
         """
         Returns the total number of elements in the input tensor of this layer.
 
         Returns:
             int: The total number of elements in the input tensor of this layer.
         """
-        return math.prod(self.input_shape())
+        return math.prod(self.input_shape(port_idx))
 
-    def workload_out(self) -> int:
+    def workload_out(self, port_idx: int = 0) -> int:
         """
         Calculates the total number of output elements for this layer.
 
         Returns:
             The total number of output elements for this layer.
         """
-        return math.prod(self.output_shape())
+        return math.prod(self.output_shape(port_idx))
 
-    def size_in(self) -> int:
-        return self.workload_in() / self.streams_in()
+    def size_in(self, port_idx: int = 0) -> int:
+        return self.workload_in(port_idx) / self.streams_in()
 
-    def size_out(self) -> int:
-        return self.workload_out() / self.streams_out()
+    def size_out(self, port_idx: int = 0) -> int:
+        return self.workload_out(port_idx) / self.streams_out()
 
     def latency(self) -> int:
         # return max(self.latency_in(), self.latency_out())

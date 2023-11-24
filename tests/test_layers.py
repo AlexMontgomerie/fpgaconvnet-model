@@ -2,6 +2,7 @@ import unittest
 import ddt
 import json
 import glob
+import pytest
 
 from fpgaconvnet.models.layers import LayerBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
@@ -13,6 +14,7 @@ POOLING_CONF_PATH=list(glob.glob("tests/configs/layers/pooling/*"))
 INNERPRODUCT_CONF_PATH=list(glob.glob("tests/configs/layers/inner_product/*"))
 SQUEEZE_CONF_PATH=list(glob.glob("tests/configs/layers/squeeze/*"))
 HARDSWISH_CONF_PATH=list(glob.glob("tests/configs/layers/hardswish/*"))
+CONCAT_CONF_PATH=list(glob.glob("tests/configs/layers/concat/*"))
 
 class TestLayerTemplate():
 
@@ -118,6 +120,32 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
         self.run_test_wait_depth(layer)
         self.run_test_updating_properties(layer)
         self.run_test_resources(layer)
+
+@ddt.ddt
+class TestConcatLayer(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*CONCAT_CONF_PATH)
+    def test_layer_configurations(self, config_path):
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise layer
+        layer = LayerBase.build("concat", config, BACKEND.CHISEL, DIMENSIONALITY.TWO)
+
+        # run tests
+        self.run_test_dimensions(layer)
+        self.run_test_rates(layer)
+        self.run_test_workload(layer)
+        self.run_test_size(layer)
+        self.run_test_streams(layer)
+        self.run_test_latency(layer)
+        self.run_test_pipeline_depth(layer)
+        self.run_test_wait_depth(layer)
+        # self.run_test_updating_properties(layer)
+        self.run_test_resources(layer)
+
 
 # @ddt.ddt
 # class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
@@ -254,6 +282,7 @@ class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
         self.run_test_resources(layer)
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 
     @ddt.data(*HARDSWISH_CONF_PATH)

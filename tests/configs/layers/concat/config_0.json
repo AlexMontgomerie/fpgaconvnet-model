@@ -1,0 +1,9 @@
+{
+    "rows": 10,
+    "cols": 10,
+    "channels": [4,8],
+    "ports": 2,
+    "data_width": 16,
+    "binary_point": 8,
+    "description": "simple two port test, different channel dimensions"
+}

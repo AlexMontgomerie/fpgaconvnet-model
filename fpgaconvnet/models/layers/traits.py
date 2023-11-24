@@ -25,6 +25,7 @@ class LayerMatchingCoarse(LayerBase):
         try:
             match name:
                 case "coarse" | "coarse_in" | "coarse_out":
+                    print(f"WARNING: setting {name} to {value}")
                     assert(value in self.get_coarse_in_feasible())
                     assert(value in self.get_coarse_out_feasible())
                     super().__setattr__("coarse_in", value)
@@ -68,35 +69,24 @@ class Layer2D(LayerBase):
     def channels_out(self) -> int:
        return self.channels
 
-    def build_rates_graph(self):
-
-        # create the rates graph
-        rates_graph = np.zeros(shape=(len(self.modules.keys()),
-                                      len(self.modules.keys())+1) , dtype=float )
-
-        # iterate over modules
-        for i, module in enumerate(self.modules.keys()):
-            # update rates_graph
-            rates_graph[i,i] = self.modules[module].rate_in[0]
-            rates_graph[i,i+1] = self.modules[module].rate_out[0]
-
-        # return rates_graph
-        return rates_graph
-
-    def input_shape(self) -> list[int]:
+    def input_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx == 0
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
 
-    def output_shape(self) -> list[int]:
+    def output_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx == 0
         return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
-    def input_shape_dict(self) -> dict[str,int]:
+    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx == 0
         return {
             "rows": self.rows_in(),
             "cols": self.cols_in(),
             "channels": self.channels_in(),
         }
 
-    def output_shape_dict(self) -> dict[str,int]:
+    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx == 0
         return {
             "rows": self.rows_out(),
             "cols": self.cols_out(),
@@ -131,13 +121,16 @@ class Layer3D(Layer2D):
     def depth_out(self) -> int:
        return self.depth
 
-    def input_shape(self) -> list[int]:
+    def input_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx == 0
         return [ self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in() ]
 
-    def output_shape(self) -> list[int]:
+    def output_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx == 0
         return [ self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out() ]
 
-    def input_shape_dict(self) -> dict[str,int]:
+    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx == 0
         return {
             "rows": self.rows_in(),
             "cols": self.cols_in(),
@@ -145,7 +138,8 @@ class Layer3D(Layer2D):
             "channels": self.channels_in(),
         }
 
-    def output_shape_dict(self) -> dict[str,int]:
+    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx == 0
         return {
             "rows": self.rows_out(),
             "cols": self.cols_out(),
@@ -157,4 +151,89 @@ class Layer3D(Layer2D):
         super().layer_info(self, parameters, batch_size)
         parameters.depth_in     = self.depth_in()
         parameters.depth_out    = self.depth_out()
+
+
+@dataclass(kw_only=True)
+class MultiPortLayer2D(LayerBase):
+    rows: list[int]
+    cols: list[int]
+    channels: list[int]
+
+    ports_in: int = 1
+    ports_out: int = 1
+
+    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
+
+    def rows_in(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_in
+        return self.rows[port_idx]
+
+    def cols_in(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_in
+        return self.cols[port_idx]
+
+    def channels_in(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_in
+        return self.channels[port_idx]
+
+    def rows_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_out
+        return self.rows[port_idx]
+
+    def cols_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_out
+        return self.cols[port_idx]
+
+    def channels_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_out
+        return self.channels[port_idx]
+
+    def input_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx < self.ports_in
+        return [ self.rows_in(port_idx), self.cols_in(port_idx), self.channels_in(port_idx) ]
+
+    def output_shape(self, port_idx: int = 0) -> list[int]:
+        assert port_idx < self.ports_out
+        return [ self.rows_out(port_idx), self.cols_out(port_idx), self.channels_out(port_idx) ]
+
+    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx < self.ports_in
+        return {
+            "rows": self.rows_in(port_idx),
+            "cols": self.cols_in(port_idx),
+            "channels": self.channels_in(port_idx),
+        }
+
+    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
+        assert port_idx < self.ports_out
+        return {
+            "rows": self.rows_out(port_idx),
+            "cols": self.cols_out(port_idx),
+            "channels": self.channels_out(port_idx),
+        }
+
+    def get_coarse_in_feasible(self) -> list[int]:
+        coarse_in_feasible = set(get_factors(self.channels_in(0)))
+        for i in range(1, self.ports_in):
+            coarse_in_feasible = coarse_in_feasible.intersection(set(get_factors(self.channels_in(i))))
+        print(list(coarse_in_feasible))
+        return list(coarse_in_feasible)
+
+    def get_coarse_out_feasible(self) -> list[int]:
+        coarse_out_feasible = set(get_factors(self.channels_out(0)))
+        for i in range(1, self.ports_in):
+            # coarse_out_feasible &= set(get_factors(self.channels_out(i)))
+            coarse_out_feasible = coarse_out_feasible.intersection(set(get_factors(self.channels_out(i))))
+        print(list(coarse_out_feasible))
+        return list(coarse_out_feasible)
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(self, parameters, batch_size)
+        parameters.rows_in      = self.rows_in()
+        parameters.cols_in      = self.cols_in()
+        parameters.channels_in  = self.channels_in()
+        parameters.rows_out     = self.rows_out()
+        parameters.cols_out     = self.cols_out()
+        parameters.channels_out = self.channels_out()
+
 

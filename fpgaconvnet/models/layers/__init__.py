@@ -14,6 +14,7 @@ class Layer3D:
     pass
 
 
+from .concat import ConcatLayerChisel2D
 from .convolution import ConvolutionLayerChisel
 from .global_pooling import GlobalPoolingLayerChisel2D, GlobalPoolingLayerChisel3D
 from .hardswish import HardswishLayerChisel2D, HardswishLayerChisel3D, HardswishLayerHLS2D, HardswishLayerHLS3D

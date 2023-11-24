@@ -1,18 +1,20 @@
-from typing import ClassVar
+import math
+from typing import ClassVar, Any
 from dataclasses import dataclass
 from collections import OrderedDict
+from overrides import override
 
-import pydot
 import numpy as np
 from dacite import from_dict
+import networkx as nx
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 
-from fpgaconvnet.models.layers import LayerBase, Layer2D, Layer3D
-from fpgaconvnet.models.layers.traits import LayerMatchingCoarse
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.models.layers.traits import LayerMatchingCoarse, MultiPortLayer2D
 from fpgaconvnet.models.modules import ModuleBase
 
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
@@ -24,7 +26,36 @@ class SplitLayerBase(LayerMatchingCoarse, LayerBase):
     ports: int
     data_t: FixedPoint = FixedPoint(16,8)
 
-    name: ClassVar[str] = "relu"
+    name: ClassVar[str] = "split"
+
+    def __setattr__(self, name: str, value: Any) -> None:
+
+        if not hasattr(self, "is_init"):
+            super().__setattr__(name, value)
+            return
+
+        try:
+            match name:
+                case "ports" | "ports_out":
+                    super().__setattr__("ports", value)
+                    super().__setattr__("ports_out", value)
+                    super().__setattr__("ports_in", 1)
+
+                case "ports_in":
+                    raise ValueError("ERROR: cannot set ports_out (always 1)")
+
+                case _:
+                    super().__setattr__(name, value)
+
+        except AttributeError:
+            print(f"WARNING: unable to set attribute {name}, trying super method")
+            super().__setattr__(name, value)
+
+
+@dataclass(kw_only=True)
+class SplitLayerChiselMixin(SplitLayerBase):
+
+    backend: ClassVar[BACKEND] = BACKEND.CHISEL
 
     @property
     def module_lookup(self) -> dict:
@@ -32,35 +63,58 @@ class SplitLayerBase(LayerMatchingCoarse, LayerBase):
             "fork": self.get_fork_parameters,
         })
 
-    def get_fork_parameters(self) -> dict:
+    def get_split_parameters(self) -> dict:
+        return {
+            "repetitions": math.prod(self.input_shape())//self.streams(),
+            "coarse": self.ports,
+            "streams": self.coarse,
+            "data_t": self.data_t,
+            "is_sync": True,
+            "fine": 1,
+        }
 
-        match self.backend:
+    def build_module_graph(self) -> nx.DiGraph:
 
-            case BACKEND.HLS:
-                return {
-                    **self.input_shape_dict(),
-                    "channels": self.channels//self.coarse,
-                    "data_t": self.data_t,
-                }
+        # get the module graph
+        self.graph = nx.DiGraph()
 
-            case BACKEND.CHISEL:
-                return {
-                    "repetitions": int(np.prod(self.input_shape()))//self.coarse,
-                    "streams": self.coarse,
-                    "fine": 1,
-                    "coarse": self.ports,
-                    "data_t": self.data_t,
-                }
+        # add the split module
+        self.graph.add_node("split", module=self.modules["split"])
 
-class SplitLayerChisel(Layer2D, SplitLayerBase):
-    backend: ClassVar[BACKEND] = BACKEND.CHISEL
-    register: ClassVar[bool] = True
 
-class SplitLayerHLS(SplitLayerBase, Layer2D):
-    backend: ClassVar[BACKEND] = BACKEND.HLS
-    register: ClassVar[bool] = True
+@dataclass(kw_only=True)
+class SplitLayer2DMixin(SplitLayerBase, MultiPortLayer2D):
+    rows: int
+    cols: int
+    channels: int
 
-class SplitLayerHLS3D(SplitLayerBase, Layer3D):
-    backend: ClassVar[BACKEND] = BACKEND.HLS
-    register: ClassVar[bool] = True
+    @override
+    def rows_in(self, port_idx: int = 0) -> int:
+        assert port_idx == 0
+        return self.rows
+
+    @override
+    def cols_in(self, port_idx: int = 0) -> int:
+        assert port_idx == 0
+        return self.cols
+
+    @override
+    def channels_in(self, port_idx: int = 0) -> int:
+        assert port_idx == 0
+        return self.channels
+
+    @override
+    def rows_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_iut
+        return self.rows
+
+    @override
+    def cols_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_iut
+        return self.cols
+
+    @override
+    def channels_out(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_iut
+        return self.channels
 

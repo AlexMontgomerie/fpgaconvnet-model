@@ -8,8 +8,6 @@ from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port, CHISEL_RSC_TYPES
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
 
-# DEFAULT_FITTER = NNLSHeuristicResourceFitter()
-
 @dataclass(kw_only=True)
 class PoolChisel(ModuleChiselBase):
 
