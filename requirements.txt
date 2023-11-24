@@ -21,3 +21,4 @@ nvidia-pyindex
 onnx-graphsurgeon
 ddt
 pymongo
+scikit-learn
