@@ -1,7 +1,5 @@
-import importlib
 import math
-from typing import Union, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 

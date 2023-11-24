@@ -3,7 +3,7 @@ The chop/fork/branch layer.
 Takes one stream input and outputs several streams using the fork module.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, List
 
 import pydot

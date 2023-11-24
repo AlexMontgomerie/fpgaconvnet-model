@@ -1,4 +1,3 @@
-import random
 from typing import ClassVar, Optional
 from dataclasses import dataclass
 

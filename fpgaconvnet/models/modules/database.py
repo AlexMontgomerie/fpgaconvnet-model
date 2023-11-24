@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 from tqdm import tqdm
 from dacite import from_dict
-from typing import Tuple, Dict
+from typing import Tuple
 import random
 
 from pymongo import MongoClient

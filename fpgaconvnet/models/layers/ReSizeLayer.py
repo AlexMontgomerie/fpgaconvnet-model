@@ -1,6 +1,5 @@
-import math
-from dataclasses import dataclass, field
-from typing import Any, List, Union
+from dataclasses import dataclass
+from typing import Any, List
 
 import numpy as np
 import onnx

@@ -1,8 +1,5 @@
-import collections
-from abc import ABC, ABCMeta, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import ClassVar, Any
-import math
 
 import numpy as np
 import pydot
@@ -25,17 +22,22 @@ class LayerMatchingCoarse(LayerBase):
             super().__setattr__(name, value)
             return
 
-        match name:
-            case "coarse" | "coarse_in" | "coarse_out":
-                assert(value in self.get_coarse_in_feasible())
-                assert(value in self.get_coarse_out_feasible())
-                super().__setattr__("coarse_in", value)
-                super().__setattr__("coarse_out", value)
-                super().__setattr__("coarse", value)
-                self.update()
+        try:
+            match name:
+                case "coarse" | "coarse_in" | "coarse_out":
+                    assert(value in self.get_coarse_in_feasible())
+                    assert(value in self.get_coarse_out_feasible())
+                    super().__setattr__("coarse_in", value)
+                    super().__setattr__("coarse_out", value)
+                    super().__setattr__("coarse", value)
+                    self.update()
 
-            case _:
-                super().__setattr__(name, value)
+                case _:
+                    super().__setattr__(name, value)
+
+        except AttributeError:
+            print(f"WARNING: unable to set attribute {name}, trying super method")
+            super().__setattr__(name, value)
 
     def streams(self) -> int:
         return self.coarse

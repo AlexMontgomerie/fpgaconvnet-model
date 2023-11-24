@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import ClassVar
 import numpy as np
-import random
 
 from fpgaconvnet.models.modules import Port, ModuleBaseMeta, ModuleHLSBase, ModuleHLS3DBase, int2bits
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY

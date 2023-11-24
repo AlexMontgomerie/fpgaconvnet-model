@@ -2,17 +2,25 @@
 Layers are comprised of modules. They have the same functionality of the equivalent layers of the CNN model.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from .Layer import LayerBaseMeta, LayerBase, Layer2D, Layer3D
+from .layer import LayerBaseMeta, LayerBase
 from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
 class Layer:
     pass
 
+class Layer3D:
+    pass
+
+
 from .convolution import ConvolutionLayerChisel
-from .relu import ReLULayerChisel, ReLULayerHLS, ReLULayerHLS3D
-from .pooling import PoolingLayerChisel, PoolingLayerHLS, PoolingLayerHLS3D
+from .global_pooling import GlobalPoolingLayerChisel2D, GlobalPoolingLayerChisel3D
+from .hardswish import HardswishLayerChisel2D, HardswishLayerChisel3D, HardswishLayerHLS2D, HardswishLayerHLS3D
+from .pooling import PoolingLayerChisel2D, PoolingLayerChisel3D, PoolingLayerHLS2D, PoolingLayerHLS3D
+from .relu import ReLULayerChisel2D, ReLULayerChisel3D, ReLULayerHLS2D, ReLULayerHLS3D
+from .squeeze import SqueezeLayerChisel2D, SqueezeLayerChisel3D, SqueezeLayerHLS2D, SqueezeLayerHLS3D
+from .threshold_relu import ThresholdReLULayerChisel2D, ThresholdReLULayerChisel3D, ThresholdReLULayerHLS2D, ThresholdReLULayerHLS3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer

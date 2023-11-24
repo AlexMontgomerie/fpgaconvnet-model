@@ -1,13 +1,13 @@
-import random
 import math
-from typing import ClassVar, List
+from typing import ClassVar, Optional
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
+from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port, CHISEL_RSC_TYPES
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
 
 @dataclass(kw_only=True)
 class SlidingWindowChisel(ModuleChiselBase):
@@ -80,7 +80,8 @@ class SlidingWindowChisel(ModuleChiselBase):
     def resource_parameters(self) -> list[int]:
         window_buffer_ram_style_int = 0 if self.window_buffer_ram_style == "distributed" else 1 # TODO: use an enumeration instead
         line_buffer_ram_style_int = 0 if self.line_buffer_ram_style == "distributed" else 1 # TODO: use an enumeration instead
-        return [ self.rows, self.cols, self.channels, self.streams, self.data_t.width,
+        return [ self.rows, self.cols, self.channels,
+                self.streams, self.data_t.width,
                 window_buffer_ram_style_int, line_buffer_ram_style_int,
                 self.input_buffer_depth, self.output_buffer_depth,
                 *self.kernel_size, *self.stride ]
@@ -145,3 +146,27 @@ class SlidingWindowChisel(ModuleChiselBase):
 
         # return the windows
         return windows
+
+try:
+    DEFAULT_SLIDING_WINDOW_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(SlidingWindowChisel,
+                                    rsc_type, "default") for rsc_type in CHISEL_RSC_TYPES }
+except FileNotFoundError:
+    print("CRITICAL WARNING: default resource models not found for SlidingWindow, default resource modelling will fail")
+
+@eval_resource_model.register
+def _(m: SlidingWindowChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the resource model
+    model: ResourceModel = _model if _model is not None else DEFAULT_SLIDING_WINDOW_RSC_MODELS[rsc_type]
+
+    # check the correct resource type
+    assert rsc_type in CHISEL_RSC_TYPES, f"Invalid resource type: {rsc_type}"
+    assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # get the resource model
+    match rsc_type:
+        case "DSP":
+            return 0
+        case _:
+            return model(m)
+

@@ -1,5 +1,4 @@
-import random
-from typing import ClassVar, List
+from typing import ClassVar
 from dataclasses import dataclass
 
 import numpy as np

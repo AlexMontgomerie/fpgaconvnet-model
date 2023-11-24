@@ -2,7 +2,7 @@
 
 """
 from collections import OrderedDict
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import math
@@ -41,7 +41,6 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
 
         # get all the modules in the registry
         layers = list(cls.LAYER_REGISTRY.values())
-        print(layers)
 
         # filter all the modules with the given name
         layers = list(filter(lambda m: m.name == name, layers))
@@ -73,6 +72,8 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
 
         # create a new instance of the module
         return from_dict(data_class=layer, data=config)
+        # inst.__post_init__()
+        # return inst
 
 
     @classmethod
@@ -103,7 +104,6 @@ class LayerBase(metaclass=LayerBaseMeta):
         self.output_t = self.data_t
         self.stream_inputs = [False]
         self.stream_outputs = [False]
-        self.is_init = True
 
         # create the module instances
         for name, config_fn in self.module_lookup.items():
@@ -112,6 +112,9 @@ class LayerBase(metaclass=LayerBaseMeta):
 
         # create the module graph
         self.build_module_graph()
+
+        # set as initialised
+        self.is_init = True
 
     def __setattr__(self, name, value):
         """
@@ -132,19 +135,24 @@ class LayerBase(metaclass=LayerBaseMeta):
             super().__setattr__(name, value)
             return
 
-        match name:
-            case "coarse_in":
-                assert(value in self.get_coarse_in_feasible())
-                super().__setattr__(name, value)
-                self.update()
+        try:
+            match name:
+                case "coarse_in":
+                    assert(value in self.get_coarse_in_feasible())
+                    super().__setattr__(name, value)
+                    self.update()
 
-            case "coarse_out":
-                assert(value in self.get_coarse_out_feasible())
-                super().__setattr__(name, value)
-                self.update()
+                case "coarse_out":
+                    assert(value in self.get_coarse_out_feasible())
+                    super().__setattr__(name, value)
+                    self.update()
 
-            case _:
-                super().__setattr__(name, value)
+                case _:
+                    super().__setattr__(name, value)
+
+        except AttributeError:
+            print(f"WARNING: unable to set attribute {name}, trying super method")
+            super().__setattr__(name, value)
 
 
     def update(self):

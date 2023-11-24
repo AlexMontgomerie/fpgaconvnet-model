@@ -1,5 +1,4 @@
-import math
-from typing import Any, Union, List
+from typing import Any
 from dataclasses import dataclass, field
 
 import numpy as np

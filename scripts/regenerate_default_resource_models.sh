@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULES=( "accum" "relu" "squeeze" )
+MODULES=( "accum" "relu" "squeeze" "sliding_window" "pad" "pool" "hardswish" )
 
 # iterate over the modules
 for m in ${MODULES[@]}; do

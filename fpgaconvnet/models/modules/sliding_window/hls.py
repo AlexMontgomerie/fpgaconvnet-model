@@ -1,6 +1,5 @@
-import random
 import math
-from typing import ClassVar, Union
+from typing import ClassVar
 from dataclasses import dataclass
 
 import numpy as np

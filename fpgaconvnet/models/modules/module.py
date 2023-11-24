@@ -2,17 +2,11 @@
 Base class for all hardware module models.
 '''
 
-import re
-import importlib
 import numpy as np
-import math
-import os
-import copy
-import random
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from xgboost import XGBRegressor
-from abc import ABC, ABCMeta, abstractmethod
-from typing import Callable, ClassVar, Dict
+from abc import ABCMeta, abstractmethod
+from typing import ClassVar
 from dacite import from_dict
 
 from fpgaconvnet.data_types import FixedPoint
@@ -212,12 +206,11 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         return info
 
     def update(self, config: dict):
-        for name, value in config.items():
-            setattr(self, name, value)
-
-    # def resources(self) -> dict[str, int]:
-    #     return { rsc_type: fpgaconvnet.models.modules.resources.eval_resource_model(self, rsc_model) for \
-    #             rsc_type, rsc_model in self.default_resource_models.items() }
+        current = self.module_info()
+        result = {**current, **config}
+        self = from_dict(self.__class__, result)
+        # for name, value in config.items():
+        #     setattr(self, name, value)
 
 @dataclass(kw_only=True)
 class ModuleChiselBase(ModuleBase):

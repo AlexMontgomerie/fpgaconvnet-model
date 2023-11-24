@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import pydot
 
 # from fpgaconvnet.models.modules import Activation3D

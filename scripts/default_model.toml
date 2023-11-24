@@ -1,0 +1,9 @@
+[database]
+collection = "chisel-latest"
+filters = {}
+
+[model]
+type = "SVR"
+kernel = "poly"
+degree = 3
+

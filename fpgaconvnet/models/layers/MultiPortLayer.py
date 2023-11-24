@@ -1,7 +1,7 @@
 import collections
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import List, ClassVar, Any, ClassVar, Union
+from typing import List, ClassVar, ClassVar
 
 import numpy as np
 import pydot
@@ -9,7 +9,7 @@ from google.protobuf.json_format import MessageToDict
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers.Layer import LayerBaseMeta
+from fpgaconvnet.models.layers.layer import LayerBaseMeta
 from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
 
 

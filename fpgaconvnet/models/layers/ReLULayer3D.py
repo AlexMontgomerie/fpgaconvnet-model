@@ -1,5 +1,5 @@
 from typing import Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import pydot
 import numpy as np
