@@ -11,7 +11,7 @@ from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 
-from fpgaconvnet.models.modules import ShiftScale
+# from fpgaconvnet.models.modules import ShiftScale
 from fpgaconvnet.models.layers import Layer
 
 @dataclass(kw_only=True)

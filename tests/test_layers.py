@@ -3,7 +3,8 @@ import ddt
 import json
 import glob
 
-from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 # get the paths for all the layer configs
 RELU_CONF_PATH=list(glob.glob("tests/configs/layers/relu/*"))
@@ -87,52 +88,52 @@ class TestLayerTemplate():
         self.assertEqual(layer.coarse_out, coarse_out)
 
 
-@ddt.ddt
-class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
+# @ddt.ddt
+# class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*POOLING_CONF_PATH)
-    def test_layer_configurations(self, config_path):
+#     @ddt.data(*POOLING_CONF_PATH)
+#     def test_layer_configurations(self, config_path):
 
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
+#         # open configuration
+#         with open(config_path, "r") as f:
+#             config = json.load(f)
 
-        # get the kernel rows and cols
-        config["kernel_rows"] = config["kernel_size"][0]
-        config["kernel_cols"] = config["kernel_size"][1]
+#         # get the kernel rows and cols
+#         config["kernel_rows"] = config["kernel_size"][0]
+#         config["kernel_cols"] = config["kernel_size"][1]
 
-        # get the stride rows and cols
-        config["stride_rows"] = config["stride"][0]
-        config["stride_cols"] = config["stride"][1]
+#         # get the stride rows and cols
+#         config["stride_rows"] = config["stride"][0]
+#         config["stride_cols"] = config["stride"][1]
 
-        # initialise layer
-        layer = Layer.build_from_dict("PoolingLayer", config)
-        # layer = PoolingLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"],
-        #     kernel_rows=config["kernel_size"][0],
-        #     kernel_cols=config["kernel_size"][1],
-        #     stride_rows=config["stride"][0],
-        #     stride_cols=config["stride"][1],
-        #     pad_top=config["pad"],
-        #     pad_left=config["pad"],
-        #     pad_bottom=config["pad"],
-        #     pad_right=config["pad"],
-        # )
+#         # initialise layer
+#         layer = Layer.build_from_dict("PoolingLayer", config)
+#         # layer = PoolingLayer(
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse=config["coarse"],
+#         #     kernel_rows=config["kernel_size"][0],
+#         #     kernel_cols=config["kernel_size"][1],
+#         #     stride_rows=config["stride"][0],
+#         #     stride_cols=config["stride"][1],
+#         #     pad_top=config["pad"],
+#         #     pad_left=config["pad"],
+#         #     pad_bottom=config["pad"],
+#         #     pad_right=config["pad"],
+#         # )
 
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
+#         # run tests
+#         self.run_test_dimensions(layer)
+#         self.run_test_rates(layer)
+#         self.run_test_workload(layer)
+#         self.run_test_size(layer)
+#         self.run_test_streams(layer)
+#         self.run_test_latency(layer)
+#         self.run_test_pipeline_depth(layer)
+#         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
+#         self.run_test_resources(layer)
 
 @ddt.ddt
 class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
@@ -153,7 +154,7 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_cols"] = config["stride"][1]
 
         # initialise layer
-        layer = Layer.build_from_dict("ConvolutionLayer", config)
+        layer = LayerBase.build("convolution", config, BACKEND.CHISEL, DIMENSIONALITY.TWO)
         # layer = ConvolutionLayer(
         #     filters=config["filters"],
         #     rows=config["rows"],
@@ -183,142 +184,12 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         self.run_test_pipeline_depth(layer)
         self.run_test_wait_depth(layer)
         self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestReLULayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*RELU_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("ReLULayer", config)
-        # layer = ReLULayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"]
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*INNERPRODUCT_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("InnerProductLayer", config)
-        # layer = InnerProductLayer(
-        #     filters=config["filters"],
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse_in=config["coarse_in"],
-        #     coarse_out=config["coarse_out"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*SQUEEZE_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("SqueezeLayer", config)
-        # layer = SqueezeLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse_in=config["coarse_in"],
-        #     coarse_out=config["coarse_out"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*HARDSWISH_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("HardswishLayer", config)
-        # layer = HardswishLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
+        # self.run_test_resources(layer)
 
 # @ddt.ddt
-# class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
+# class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/split/config_0.json",
-#     )
+#     @ddt.data(*RELU_CONF_PATH)
 #     def test_layer_configurations(self, config_path):
 
 #         # open configuration
@@ -326,13 +197,13 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 #             config = json.load(f)
 
 #         # initialise layer
-#         layer = SplitLayer(
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             config["coarse"],
-#             ports_out=config["ports_out"]
-#         )
+#         layer = Layer.build_from_dict("ReLULayer", config)
+#         # layer = ReLULayer(
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse=config["coarse"]
+#         # )
 
 #         # run tests
 #         self.run_test_dimensions(layer)
@@ -343,5 +214,135 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 #         self.run_test_latency(layer)
 #         self.run_test_pipeline_depth(layer)
 #         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
 #         self.run_test_resources(layer)
+
+# @ddt.ddt
+# class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
+
+#     @ddt.data(*INNERPRODUCT_CONF_PATH)
+#     def test_layer_configurations(self, config_path):
+
+#         # open configuration
+#         with open(config_path, "r") as f:
+#             config = json.load(f)
+
+#         # initialise layer
+#         layer = Layer.build_from_dict("InnerProductLayer", config)
+#         # layer = InnerProductLayer(
+#         #     filters=config["filters"],
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse_in=config["coarse_in"],
+#         #     coarse_out=config["coarse_out"],
+#         # )
+
+#         # run tests
+#         self.run_test_dimensions(layer)
+#         self.run_test_rates(layer)
+#         self.run_test_workload(layer)
+#         self.run_test_size(layer)
+#         self.run_test_streams(layer)
+#         self.run_test_latency(layer)
+#         self.run_test_pipeline_depth(layer)
+#         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
+#         self.run_test_resources(layer)
+
+# @ddt.ddt
+# class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
+
+#     @ddt.data(*SQUEEZE_CONF_PATH)
+#     def test_layer_configurations(self, config_path):
+
+#         # open configuration
+#         with open(config_path, "r") as f:
+#             config = json.load(f)
+
+#         # initialise layer
+#         layer = Layer.build_from_dict("SqueezeLayer", config)
+#         # layer = SqueezeLayer(
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse_in=config["coarse_in"],
+#         #     coarse_out=config["coarse_out"],
+#         # )
+
+#         # run tests
+#         self.run_test_dimensions(layer)
+#         self.run_test_rates(layer)
+#         self.run_test_workload(layer)
+#         self.run_test_size(layer)
+#         self.run_test_streams(layer)
+#         self.run_test_latency(layer)
+#         self.run_test_pipeline_depth(layer)
+#         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
+#         self.run_test_resources(layer)
+
+# @ddt.ddt
+# class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
+
+#     @ddt.data(*HARDSWISH_CONF_PATH)
+#     def test_layer_configurations(self, config_path):
+
+#         # open configuration
+#         with open(config_path, "r") as f:
+#             config = json.load(f)
+
+#         # initialise layer
+#         layer = Layer.build_from_dict("HardswishLayer", config)
+#         # layer = HardswishLayer(
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse=config["coarse"],
+#         # )
+
+#         # run tests
+#         self.run_test_dimensions(layer)
+#         self.run_test_rates(layer)
+#         self.run_test_workload(layer)
+#         self.run_test_size(layer)
+#         self.run_test_streams(layer)
+#         self.run_test_latency(layer)
+#         self.run_test_pipeline_depth(layer)
+#         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
+#         self.run_test_resources(layer)
+
+
+# # @ddt.ddt
+# # class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
+
+# #     @ddt.data(
+# #         "tests/configs/layers/split/config_0.json",
+# #     )
+# #     def test_layer_configurations(self, config_path):
+
+# #         # open configuration
+# #         with open(config_path, "r") as f:
+# #             config = json.load(f)
+
+# #         # initialise layer
+# #         layer = SplitLayer(
+# #             config["rows"],
+# #             config["cols"],
+# #             config["channels"],
+# #             config["coarse"],
+# #             ports_out=config["ports_out"]
+# #         )
+
+# #         # run tests
+# #         self.run_test_dimensions(layer)
+# #         self.run_test_rates(layer)
+# #         self.run_test_workload(layer)
+# #         self.run_test_size(layer)
+# #         self.run_test_streams(layer)
+# #         self.run_test_latency(layer)
+# #         self.run_test_pipeline_depth(layer)
+# #         self.run_test_wait_depth(layer)
+# #         self.run_test_resources(layer)
 

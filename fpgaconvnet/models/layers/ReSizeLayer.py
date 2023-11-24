@@ -6,13 +6,14 @@ import numpy as np
 import onnx
 import pydot
 
-from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import Layer
-from fpgaconvnet.models.modules import ReSize
+# from fpgaconvnet.data_types import FixedPoint
+# from fpgaconvnet.models.layers import Layer
+# from fpgaconvnet.models.modules import ReSize
 
 
 @dataclass(kw_only=True)
-class ReSizeLayer(Layer):
+# class ReSizeLayer(Layer):
+class ReSizeLayer:
     scales: List[int]
     mode: str = "nearest"
     coarse: int = 1

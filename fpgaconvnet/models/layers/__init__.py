@@ -4,10 +4,15 @@ Layers are comprised of modules. They have the same functionality of the equival
 
 from dataclasses import dataclass, field
 
-from .Layer import LayerBaseMeta, LayerBase, Layer, Layer3D
+from .Layer import LayerBaseMeta, LayerBase, Layer2D, Layer3D
 from .MultiPortLayer import MultiPortLayerBase, MultiPortLayer, MultiPortLayer3D
 
-from .convolution import ConvolutionLayerBaseMeta, ConvolutionLayerBase, ConvolutionLayerChisel
+class Layer:
+    pass
+
+from .convolution import ConvolutionLayerChisel
+from .relu import ReLULayerChisel, ReLULayerHLS, ReLULayerHLS3D
+from .pooling import PoolingLayerChisel, PoolingLayerHLS, PoolingLayerHLS3D
 
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer

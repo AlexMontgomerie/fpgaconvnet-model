@@ -8,16 +8,17 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import Layer3D
 
-from fpgaconvnet.models.modules import Conv3D
-from fpgaconvnet.models.modules import Fork3D
-from fpgaconvnet.models.modules import Accum3D
-from fpgaconvnet.models.modules import Glue3D
-from fpgaconvnet.models.modules import Bias3D
-from fpgaconvnet.models.modules import VectorDot3D
-from fpgaconvnet.models.modules import ShiftScale3D
+# from fpgaconvnet.models.modules import Conv3D
+# from fpgaconvnet.models.modules import Fork3D
+# from fpgaconvnet.models.modules import Accum3D
+# from fpgaconvnet.models.modules import Glue3D
+# from fpgaconvnet.models.modules import Bias3D
+# from fpgaconvnet.models.modules import VectorDot3D
+# from fpgaconvnet.models.modules import ShiftScale3D
 
 @dataclass(kw_only=True)
-class InnerProductLayer3D(Layer3D):
+# class InnerProductLayer3D(Layer3D):
+class InnerProductLayer3D:
     filters: int
     coarse_in: int = 1
     coarse_out: int = 1

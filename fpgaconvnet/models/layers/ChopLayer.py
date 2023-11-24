@@ -9,7 +9,7 @@ from typing import Any, List
 import pydot
 
 from fpgaconvnet.models.layers import MultiPortLayer
-from fpgaconvnet.models.modules import Fork
+# from fpgaconvnet.models.modules import Fork
 
 
 @dataclass(kw_only=True)

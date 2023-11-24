@@ -13,44 +13,32 @@ def int2bits(n):
     """
     return math.ceil(math.log(n, 2))
 
-from .Module import Module
-from .Accum import Accum
-from .ShiftScale import ShiftScale
-from .Conv import Conv
-from .Fork import Fork
-from .Glue import Glue
-from .Pool import Pool
-from .MaxPool import MaxPool
-# from .Pool import AvgPool
-from .ReLU import ReLU
-from .Hardswish import Hardswish
-from .ReSize import ReSize
-from .ThresholdedReLU import ThresholdedReLU
-from .SlidingWindow import SlidingWindow
-from .Squeeze import Squeeze
-from .Bias import Bias
-from .VectorDot import VectorDot
-from .SparseVectorDot import SparseVectorDot
-from .GlobalPool import GlobalPool
-from .Concat import Concat
-from .EltWise import EltWise
-from .Stride import Stride
 
-# 3D modules
-from .Module3D import Module3D
-from .Accum3D import Accum3D
-from .ShiftScale3D import ShiftScale3D
-from .Conv3D import Conv3D
-from .Fork3D import Fork3D
-from .Glue3D import Glue3D
-from .Hardswish3D import Hardswish3D
-from .Pool3D import Pool3D
-from .Activation3D import Activation3D
-from .ReLU3D import ReLU3D
-from .SlidingWindow3D import SlidingWindow3D
-from .Squeeze3D import Squeeze3D
-from .Bias3D import Bias3D
-from .VectorDot3D import VectorDot3D
-from .GlobalPool3D import GlobalPool3D
-from .EltWise3D import EltWise3D
-from .Pad3D import Pad3D
+CHISEL_RSC_TYPES: list[str] = [ "LUT", "FF", "BRAM" ]
+
+from .module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3DBase, ModuleChiselBase
+# from .resources import ResourceModel, eval_resource_model, get_cached_resource_model
+
+from .accum import AccumChisel, AccumHLS, AccumHLS3D
+from .bias import BiasChisel, BiasHLS, BiasHLS3D
+from .concat import ConcatChisel
+from .conv import ConvHLS, ConvHLS3D
+from .eltwise import EltwiseChisel
+from .fork import ForkChisel, ForkHLS, ForkHLS3D
+from .global_pool import GlobalPoolChisel
+from .glue import GlueChisel, GlueHLS, GlueHLS3D
+from .hardswish import HardswishChisel
+from .pad import PadChisel
+from .pool import PoolChisel, PoolHLS, PoolHLS3D
+from .relu import ReLUChisel, ReLUHLS, ReLUHLS3D
+from .resize import ResizeChisel
+from .shift_scale import ShiftScaleChisel
+from .sliding_window import SlidingWindowChisel, SlidingWindowHLS, SlidingWindowHLS3D
+from .sparse_vector_dot import SparseVectorDotChisel
+from .sparse_vector_multiply import SparseVectorMultiplyChisel
+from .squeeze import SqueezeChisel, SqueezeHLS, SqueezeHLS3D
+from .stride import StrideChisel
+from .threshold_relu import ThresholdedReLUChisel
+from .vector_dot import VectorDotChisel
+
+

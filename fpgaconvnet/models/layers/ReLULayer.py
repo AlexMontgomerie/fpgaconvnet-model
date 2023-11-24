@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from fpgaconvnet.models.modules import ReLU
+# from fpgaconvnet.models.modules import ReLU
 from fpgaconvnet.models.layers import Layer
 
 @dataclass(kw_only=True)

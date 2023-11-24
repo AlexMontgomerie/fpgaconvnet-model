@@ -1,9 +1,4 @@
-from .base import ConvolutionLayerBaseMeta, ConvolutionLayerBase, ConvolutionLayerTrait2D
-from .backend import ConvolutionLayerTraitChisel
-
-from dataclasses import dataclass, field
-
-@dataclass(kw_only=True)
-class ConvolutionLayerChisel(ConvolutionLayerTraitChisel, ConvolutionLayerTrait2D, ConvolutionLayerBase):
-    pass
-
+from .base import ConvolutionLayerBase, ConvolutionLayer2DBase, ConvolutionLayer3DBase
+from .chisel import ConvolutionLayerChisel
+from .hls import ConvolutionLayerHLS, ConvolutionLayer3DHLS
+from .sparse import ConvolutionLayerSparseChisel, ConvolutionLayerSparsePointwiseChisel, ConvolutionLayerSparseSkippingChisel

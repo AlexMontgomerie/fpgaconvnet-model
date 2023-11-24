@@ -9,14 +9,14 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model
 from fpgaconvnet.data_types import FixedPoint
 
-from fpgaconvnet.models.modules import SlidingWindow
-from fpgaconvnet.models.modules import Conv
-from fpgaconvnet.models.modules import Fork
-from fpgaconvnet.models.modules import Accum
-from fpgaconvnet.models.modules import Glue
-from fpgaconvnet.models.modules import Bias
-from fpgaconvnet.models.modules import VectorDot
-from fpgaconvnet.models.modules import ShiftScale
+# from fpgaconvnet.models.modules import SlidingWindowChisel
+# from fpgaconvnet.models.modules import ConvHLS
+# from fpgaconvnet.models.modules import ForkHLS
+# from fpgaconvnet.models.modules import AccumHLS
+# from fpgaconvnet.models.modules import GlueHLS
+# from fpgaconvnet.models.modules import BiasHLS
+# from fpgaconvnet.models.modules import VectorDotChisel
+# from fpgaconvnet.models.modules import ShiftScaleHLS
 
 @dataclass(kw_only=True)
 class InnerProductLayer(Layer):

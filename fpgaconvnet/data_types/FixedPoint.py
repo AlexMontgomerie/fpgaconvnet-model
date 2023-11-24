@@ -7,6 +7,12 @@ class FixedPoint:
     width: int
     binary_point: int
 
+    def to_dict(self):
+        return {
+            "width": self.width,
+            "binary_point": self.binary_point
+        }
+
     def to_protobuf(self, fixed_point):
         fixed_point.width = self.width
         fixed_point.binary_point = self.binary_point

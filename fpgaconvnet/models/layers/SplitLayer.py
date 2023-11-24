@@ -8,13 +8,13 @@ from typing import Any
 
 import pydot
 
-from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import MultiPortLayer
-from fpgaconvnet.models.modules import Fork
+# from fpgaconvnet.data_types import FixedPoint
+# from fpgaconvnet.models.layers import MultiPortLayer
+# from fpgaconvnet.models.modules import Fork
 
 
 @dataclass(kw_only=True)
-class SplitLayer(MultiPortLayer):
+class SplitLayer:
     coarse: int = 1
     ports_out: int = 1
     backend: str = "chisel"

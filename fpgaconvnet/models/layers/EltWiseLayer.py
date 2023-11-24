@@ -6,7 +6,7 @@ import pydot
 
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers import MultiPortLayer
-from fpgaconvnet.models.modules import EltWise
+# from fpgaconvnet.models.modules import EltWise
 
 
 @dataclass(kw_only=True)

@@ -1,6 +1,6 @@
 import importlib
 import math
-from typing import Union, List
+from typing import Union, ClassVar
 from abc import ABC, ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 
@@ -13,72 +13,15 @@ from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 
-from fpgaconvnet.models.layers import LayerBaseMeta, Layer, Layer3D
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.models.layers.traits import Layer2D, Layer3D
 from fpgaconvnet.models.modules import *
 
-from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY, SPARSITY
-
-from .backend import ConvolutionLayerTraitHLS, ConvolutionLayerTraitChisel
-from .dimensions import ConvolutionLayerTrait2D, ConvolutionLayerTrait3D
-from .sparse import ConvolutionLayerTraitSparse, ConvolutionLayerTraitSparsePointwise
-
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 
-class ConvolutionLayerBaseMeta(LayerBaseMeta):
-
-    @classmethod
-    def build_type_from_arch(cls, arch: Architecture, conf: dict):
-
-        # a list for all the base classes
-        base_classes = [Layer, ConvolutionLayerBase]
-
-        # add the backend base class
-        match arch.backend:
-            case BACKEND.HLS:
-                base_classes.append(ConvolutionLayerTraitHLS)
-            case BACKEND.CHISEL:
-                base_classes.append(ConvolutionLayerTraitChisel)
-            case _:
-                raise ValueError(f"Invalid backend {arch.backend}")
-
-        # add the dimensionality base
-        if arch.dimensionality == DIMENSIONALITY.THREE:
-            base_classes.extend([Layer3D, ConvolutionLayerTrait3D])
-        else:
-            base_classes.extend([ConvolutionLayerTrait2D])
-
-        # optionally add a sparsity base class
-        if arch.sparsity == SPARSITY.SPARSE:
-
-            # firstly, make sure it uses the chisel backend
-            assert arch.backend == BACKEND.CHISEL, "Sparse layers are only supported in the chisel backend"
-
-            # get the kernel size product
-            kernel_size = np.prod([ conf.get(key, 1) for key in ["kernel_rows", "kernel_cols", "kernel_depth"] ])
-
-            if kernel_size == 1:
-                # choose a pointwise version
-                base_classes.append(ConvolutionLayerTraitSparsePointwise)
-            else:
-                # choose a generic sparse version
-                base_classes.append(ConvolutionLayerTraitSparse)
-
-        # create a new type that inherits from all the base classes
-        ## this is inspired by https://stackoverflow.com/a/21061856
-        return dataclass(kw_only=True)(type("ConvolutionLayer"+str(arch), tuple(reversed(base_classes)), {}))
-
-    @classmethod
-    def build_from_arch(cls, arch: Architecture, conf: dict):
-
-        # create the type from architecture and configuration
-        convolution_type = cls.build_type_from_arch(arch, conf)
-
-        # create an instance of the new convolution type
-        return from_dict(data_class=convolution_type, data=conf)
-
-
 @dataclass(kw_only=True)
-class ConvolutionLayerBase(metaclass=ConvolutionLayerBaseMeta):
+class ConvolutionLayerBase(LayerBase):
     filters: int
     groups: int = 1
     coarse_group: int = 1
@@ -87,25 +30,8 @@ class ConvolutionLayerBase(metaclass=ConvolutionLayerBaseMeta):
     output_t: FixedPoint = FixedPoint(16,8)
     weight_t: FixedPoint = FixedPoint(16,8)
     acc_t: FixedPoint = FixedPoint(32,16)
-    has_bias: int = 0
-    stream_weights: int = 0
-    use_uram: bool = False
-    regression_model: str = "linear_regression"
 
-
-    def __post_init__(self):
-
-        # call parent post init
-        super().__post_init__()
-
-        # check if the layer is depthwise
-        self.depthwise = (self.groups == self.channels) and (self.groups == self.filters)
-        self.pointwise = np.prod(self.kernel_size) == 1
-
-
-    @abstractmethod
-    def update_modules(self):
-        raise NotImplementedError
+    name: ClassVar[str] = "convolution"
 
     def __setattr__(self, name, value):
 
@@ -131,30 +57,70 @@ class ConvolutionLayerBase(metaclass=ConvolutionLayerBaseMeta):
             case _:
                 super().__setattr__(name, value)
 
+    @property
+    def pointwise(self) -> bool:
+        return np.prod(self.kernel_size) == 1
+
+    @property
+    def depthwise(self) -> bool:
+        return self.groups == self.channels and self.groups == self.filters
+
+    @property
+    @abstractmethod
+    def kernel_size(self) -> list[int]:
+        pass
+
+    @property
+    @abstractmethod
+    def stride(self) -> list[int]:
+        pass
+
+    @property
+    @abstractmethod
+    def pad(self) -> list[int]:
+        pass
+
+    def rows_in(self) -> int:
+        return self.rows
+
+    def cols_in(self) -> int:
+        return self.cols
+
+    def channels_in(self) -> int:
+        return self.channels
+
+    def rows_out(self) -> int:
+        assert "sliding_window" in self.modules.keys()
+        return self.modules["sliding_window"].rows_out
+
+    def cols_out(self) -> int:
+        assert "sliding_window" in self.modules.keys()
+        return self.modules["sliding_window"].cols_out
+
     def channels_out(self) -> int:
         return self.filters
 
     def streams_in(self) -> int:
-        return self.coarse_in*self.coarse_group
+        return int(self.coarse_in*self.coarse_group)
 
     def streams_out(self) -> int:
-        return self.coarse_out*self.coarse_group
+        return int(self.coarse_out*self.coarse_group)
 
-    def get_coarse_group_feasible(self) -> List[int]:
+    def get_coarse_group_feasible(self) -> list[int]:
         return get_factors(self.groups)
 
-    def get_coarse_in_feasible(self) -> List[int]:
-        return get_factors(int(self.channels_in())//self.groups)
+    def get_coarse_in_feasible(self) -> list[int]:
+        return get_factors(self.channels_in() // self.groups)
 
-    def get_coarse_out_feasible(self) -> List[int]:
-        return get_factors(int(self.channels_out())//self.groups)
+    def get_coarse_out_feasible(self) -> list[int]:
+        return get_factors(self.channels_out() // self.groups)
 
     @abstractmethod
-    def get_fine_feasible(self) -> List[int]:
-        raise NotImplementedError
+    def get_fine_feasible(self) -> list[int]:
+        pass
 
-    def get_weights_reloading_feasible(self) -> List[int]:
-        return get_factors(self.filters//(self.groups*self.coarse_out))
+    def get_weights_reloading_feasible(self) -> list[int]:
+        return get_factors(self.filters // (self.groups*self.coarse_out))
 
     def get_parameters_size(self) -> dict:
         weights_size = self.channels_in() * ( self.filters // self.groups ) * np.prod(self.kernel_size)
@@ -188,4 +154,146 @@ class ConvolutionLayerBase(metaclass=ConvolutionLayerBaseMeta):
     @abstractmethod
     def resource(self) -> dict:
         raise NotImplementedError
+
+    def functional_model(self,data,weights,bias,batch_size=1):
+        import torch
+
+        assert data.shape == self.input_shape, "ERROR (data): invalid row dimension"
+
+        assert weights.shape[0] == self.filters, "ERROR (weights): invalid filter dimension"
+        assert weights.shape[1] == self.channels//self.groups, "ERROR (weights): invalid channel dimension"
+        assert weights.shape[2:] == self.kernel_size, "ERROR (weights): invalid kernel dimension"
+
+        assert bias.shape[0] == self.filters, "ERROR (bias): invalid filter dimension"
+
+        # instantiate convolution layer
+        convolution_layer = torch.nn.Conv2d(self.channels_in(), self.filters,
+                self.kernel_size, stride=self.stride, padding=0, groups=self.groups)
+
+        # update weights
+        convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
+
+        # update bias
+        convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
+
+        # # get the padding
+        # padding = [
+        #     self.pad_left,
+        #     self.pad_right,
+        #     self.pad_top,
+        #     self.pad_bottom
+        # ]
+
+        # return output featuremap
+        data = np.moveaxis(data, -1, 0)
+        data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
+        data = torch.nn.functional.pad(torch.from_numpy(data), self.pad, "constant", 0.0)
+        return convolution_layer(data).detach().numpy()
+
+
+@dataclass(kw_only=True)
+class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
+    kernel_rows: int = 1
+    kernel_cols: int = 1
+    stride_rows: int = 1
+    stride_cols: int = 1
+    pad_top: int = 0
+    pad_right: int = 0
+    pad_bottom: int = 0
+    pad_left: int = 0
+
+    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
+
+    @property
+    def kernel_size(self) -> list[int]:
+        return [ self.kernel_rows, self.kernel_cols ]
+
+    @property
+    def stride(self) -> list[int]:
+        return [ self.stride_rows, self.stride_cols ]
+
+    @property
+    def pad(self) -> list[int]: # TODO: change order
+        return [
+            self.pad_top,
+            self.pad_left,
+            self.pad_bottom,
+            self.pad_right,
+        ]
+
+    @kernel_size.setter
+    def kernel_size(self, val: list[int]) -> None:
+        assert(len(val) == 2, "kernel size must be a list of two integers")
+        self.kernel_rows = val[0]
+        self.kernel_cols = val[1]
+
+    @stride.setter
+    def stride(self, val: list[int]) -> None:
+        assert(len(val) == 2, "stride must be a list of two integers")
+        self.stride_rows = val[0]
+        self.stride_cols = val[1]
+
+    @pad.setter
+    def pad(self, val: list[int]) -> None:
+        assert(len(val) == 4, "pad must be a list of four integers")
+        self.pad_top    = val[0]
+        self.pad_right  = val[3]
+        self.pad_bottom = val[2]
+        self.pad_left   = val[1]
+
+@dataclass(kw_only=True)
+class ConvolutionLayer3DBase(ConvolutionLayer2DBase, Layer3D):
+    kernel_depth: int = 1
+    stride_depth: int = 1
+    pad_front: int = 0
+    pad_back: int = 0
+
+    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.THREE
+
+    def depth_out(self) -> int:
+        assert "sliding_window" in self.modules.keys()
+        return self.modules["sliding_window"].depth_out
+
+    @property
+    def kernel_size(self) -> list[int]:
+        return [ self.kernel_rows, self.kernel_cols, self.kernel_depth ]
+
+    @property
+    def stride(self) -> list[int]:
+        return [ self.stride_rows, self.stride_cols, self.stride_depth ]
+
+    @property
+    def pad(self) -> list[int]:
+        return [
+            self.pad_top,
+            self.pad_left,
+            self.pad_front,
+            self.pad_bottom,
+            self.pad_right,
+            self.pad_back,
+        ]
+
+    @kernel_size.setter
+    def kernel_size(self, val: list[int]) -> None:
+        assert(len(val) == 3, "kernel size must be a list of three integers")
+        self.kernel_rows    = val[0]
+        self.kernel_cols    = val[1]
+        self.kernel_depth   = val[2]
+
+    @stride.setter
+    def stride(self, val: list[int]) -> None:
+        assert(len(val) == 3, "stride must be a list of three integers")
+        self.stride_rows    = val[0]
+        self.stride_cols    = val[1]
+        self.stride_depth   = val[2]
+
+    @pad.setter
+    def pad(self, val: list[int]) -> None:
+        assert(len(val) == 6, "pad must be a list of six integers")
+        self.pad_top    = val[0]
+        self.pad_right  = val[4]
+        self.pad_bottom = val[3]
+        self.pad_left   = val[1]
+        self.pad_front  = val[2]
+        self.pad_back   = val[5]
 

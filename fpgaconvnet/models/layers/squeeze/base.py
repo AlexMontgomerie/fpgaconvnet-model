@@ -1,0 +1,95 @@
+import importlib
+import math
+from typing import Union, ClassVar
+from abc import ABC, ABCMeta, abstractmethod
+from dataclasses import dataclass, field
+from collections import OrderedDict
+
+import pydot
+import numpy as np
+from dacite import from_dict
+import networkx as nx
+
+import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
+from fpgaconvnet.models.layers.utils import get_factors
+from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
+
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.models.modules import ModuleBase
+
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
+from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
+
+@dataclass(kw_only=True)
+class SqueezeLayerBase(LayerBase):
+
+    coarse_in: int
+    coarse_out: int
+    data_t: FixedPoint = FixedPoint(16, 8)
+
+    name: ClassVar[str] = "squeeze"
+
+    def functional_model(self, data, batch_size=1):
+        import torch
+
+        assert data.shape == self.inputs_shape(), "ERROR: invalid input shape dimension"
+
+        # return the data as is
+        return data
+
+class SqueezeLayerChiselMixin(SqueezeLayerBase):
+
+    backend: ClassVar[BACKEND] = BACKEND.CHISEL
+
+    @property
+    def module_lookup(self) -> dict:
+        return OrderedDict({
+            "squeeze": self.get_squeeze_parameters,
+        })
+
+    def get_squeeze_parameters(self) -> dict:
+        return {
+            "repetitions": math.prod(self.input_shape())//self.streams_in(),
+            "coarse_in": self.coarse_in,
+            "coarse_out": self.coarse_out,
+            "streams": 1,
+            "data_t": self.data_t,
+        }
+
+    def build_module_graph(self) -> nx.DiGraph:
+
+        # get the module graph
+        self.graph = nx.DiGraph()
+
+        # add the squeeze module
+        self.graph.add_node("squeeze", module=self.modules["squeeze"])
+
+
+class SqueezeLayerHLSMixin(SqueezeLayerBase):
+
+    backend: ClassVar[BACKEND] = BACKEND.HLS
+
+    @property
+    def module_lookup(self) -> dict:
+        return OrderedDict({
+            "squeeze": self.get_squeeze_parameters,
+        })
+
+    def get_squeeze_parameters(self) -> dict:
+        return {
+            **self.input_shape_dict(),
+            "channels": self.channels//self.coarse,
+            "coarse_in": self.coarse_in,
+            "coarse_out": self.coarse_out,
+            "data_t": self.data_t,
+        }
+
+    def build_module_graph(self) -> nx.DiGraph:
+
+        # get the module graph
+        self.graph = nx.DiGraph()
+
+        # add the squeeze module
+        self.graph.add_node(f"squeeze", module=self.modules["squeeze"])
+

@@ -3,7 +3,7 @@ from typing import Any, List
 
 from fpgaconvnet.models.layers import MultiPortLayer
 from fpgaconvnet.models.layers.utils import get_factors
-from fpgaconvnet.models.modules import Concat
+# from fpgaconvnet.models.modules import Concat
 
 
 @dataclass(kw_only=True)

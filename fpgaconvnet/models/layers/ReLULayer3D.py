@@ -4,11 +4,12 @@ from dataclasses import dataclass, field
 import pydot
 import numpy as np
 
-from fpgaconvnet.models.modules import ReLU3D
-from fpgaconvnet.models.layers import Layer3D
+# from fpgaconvnet.models.modules import ReLU3D
+# from fpgaconvnet.models.layers import Layer3D
 
 @dataclass(kw_only=True)
-class ReLULayer3D(Layer3D):
+# class ReLULayer3D(Layer3D):
+class ReLULayer3D:
     coarse: int = 1
     backend: str = "chisel" # default to no bias for old configs
     regression_model: str = "linear_regression"

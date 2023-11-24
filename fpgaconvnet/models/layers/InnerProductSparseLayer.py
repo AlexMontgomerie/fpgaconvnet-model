@@ -1,9 +1,10 @@
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers.ConvolutionPointwiseSparseLayer import ConvolutionPointwiseSparseLayer
+# from fpgaconvnet.models.layers.ConvolutionPointwiseSparseLayer import ConvolutionPointwiseSparseLayer
 
-class InnerProductSparseLayer(ConvolutionPointwiseSparseLayer):
+# class InnerProductSparseLayer(ConvolutionPointwiseSparseLayer):
+class InnerProductSparseLayer:
     def __init__(
             self,
             filters: int,
