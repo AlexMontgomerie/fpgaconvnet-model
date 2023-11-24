@@ -97,7 +97,7 @@ class PoolingLayer3D(Layer3D):
         self.update()
 
     def get_operations(self):
-        return self.filters*self.rows_out()*self.cols_out()*self.depth_out()\
+        return self.channels_in()*self.rows_out()*self.cols_out()*self.depth_out()\
             *self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2]
 
     def rows_out(self) -> int:
