@@ -19,3 +19,5 @@ tqdm
 pyparsing<3
 nvidia-pyindex
 onnx-graphsurgeon
+ddt
+pymongo
