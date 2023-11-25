@@ -33,7 +33,10 @@ class SqueezeLayer3D(Layer3D):
         self.regression_model = regression_model
 
         # initialise modules
-        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, self.channels, self.coarse_in, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
+        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, 
+            self.channels//(min(self.coarse_in, self.coarse_out)), 
+            self.coarse_in, self.coarse_out, 
+            backend=self.backend, regression_model=self.regression_model)
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)
@@ -42,7 +45,7 @@ class SqueezeLayer3D(Layer3D):
         self.modules["squeeze3d"].rows = self.rows
         self.modules["squeeze3d"].cols = self.cols
         self.modules["squeeze3d"].depth = self.depth
-        self.modules["squeeze3d"].channels = self.channels
+        self.modules["squeeze3d"].channels = self.channels//(min(self.coarse_in, self.coarse_out))
         self.modules["squeeze3d"].coarse_in = self.coarse_in
         self.modules["squeeze3d"].coarse_out = self.coarse_out
         self.modules["squeeze3d"].data_width = self.data_t.width
