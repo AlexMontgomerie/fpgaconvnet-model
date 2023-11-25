@@ -3,10 +3,11 @@ from typing import ClassVar
 from dataclasses import dataclass
 from collections import OrderedDict
 from overrides import override
-import pydot
+import pydot # type: ignore
 import numpy as np
+from abc import abstractmethod
 from dacite import from_dict
-import networkx as nx
+import networkx as nx # type: ignore
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -28,6 +29,10 @@ class GlobalPoolingLayerBase(LayerMatchingCoarse, LayerBase):
     data_t: FixedPoint = FixedPoint(16,8)
 
     name: ClassVar[str] = "global_pool"
+
+    @abstractmethod
+    def channels_in(self) -> int: ...
+
 
     def get_operations(self):
         return math.prod(self.input_shape())

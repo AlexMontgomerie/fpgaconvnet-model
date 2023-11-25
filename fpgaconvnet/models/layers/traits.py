@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import ClassVar, Any
+from abc import abstractmethod
 
 import numpy as np
-import pydot
+import pydot # type: ignore
 from dacite import from_dict
 from google.protobuf.json_format import MessageToDict
 
@@ -164,29 +165,41 @@ class MultiPortLayer2D(LayerBase):
 
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
 
+    @abstractmethod
     def rows_in(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_in
-        return self.rows[port_idx]
+        pass
+        # assert port_idx < self.ports_in
+        # return self.rows[port_idx]
 
+    @abstractmethod
     def cols_in(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_in
-        return self.cols[port_idx]
+        pass
+        # assert port_idx < self.ports_in
+        # return self.cols[port_idx]
 
+    @abstractmethod
     def channels_in(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_in
-        return self.channels[port_idx]
+        pass
+        # assert port_idx < self.ports_in
+        # return self.channels[port_idx]
 
+    @abstractmethod
     def rows_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_out
-        return self.rows[port_idx]
+        pass
+        # assert port_idx < self.ports_out
+        # return self.rows[port_idx]
 
+    @abstractmethod
     def cols_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_out
-        return self.cols[port_idx]
+        pass
+        # assert port_idx < self.ports_out
+        # return self.cols[port_idx]
 
+    @abstractmethod
     def channels_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_out
-        return self.channels[port_idx]
+        pass
+        # assert port_idx < self.ports_out
+        # return self.channels[port_idx]
 
     def input_shape(self, port_idx: int = 0) -> list[int]:
         assert port_idx < self.ports_in

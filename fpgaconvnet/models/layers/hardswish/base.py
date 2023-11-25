@@ -2,11 +2,12 @@ import math
 from typing import ClassVar
 from dataclasses import dataclass, field
 from collections import OrderedDict
+from abc import abstractmethod
 
-import pydot
+import pydot # type: ignore
 import numpy as np
 from dacite import from_dict
-import networkx as nx
+import networkx as nx # type: ignore
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -81,7 +82,7 @@ class HardswishLayerHLSMixin(HardswishLayerBase):
     def get_hardswish_parameters(self) -> dict:
         return {
             **self.input_shape_dict(),
-            "channels": self.channels//self.coarse,
+            "channels": self.channels//self.coarse, # type: ignore
             "input_t": self.input_t,
             "output_t": self.output_t,
         }

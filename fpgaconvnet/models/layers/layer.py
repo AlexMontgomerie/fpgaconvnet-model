@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import math
 
-import networkx as nx
+import networkx as nx # type: ignore
 import numpy as np
-import pydot
+import pydot # type: ignore
 from dacite import from_dict
 from google.protobuf.json_format import MessageToDict
 
@@ -37,7 +37,7 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
         return dict(cls.LAYER_REGISTRY)
 
     @classmethod
-    def get_all_layers(cls, name: str, backend: str, dimensionality: int):
+    def get_all_layers(cls, name: str, backend: BACKEND, dimensionality: DIMENSIONALITY):
 
         # get all the modules in the registry
         layers = list(cls.LAYER_REGISTRY.values())
@@ -54,7 +54,7 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
         return layers
 
     @classmethod
-    def build(cls, name: str, config: dict, backend: str, dimensionality: int):
+    def build(cls, name: str, config: dict, backend: BACKEND, dimensionality: DIMENSIONALITY):
 
         # get all the relevant layers
         layers = cls.get_all_layers(name, backend, dimensionality)
@@ -78,7 +78,7 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
 
     @classmethod
     def build_from_dict(cls, name: str, conf: dict):
-        return from_dict(data_class=cls.LAYER_REGISTRY[name], data=conf)
+        return from_dict(data_class=cls.LAYER_REGISTRY[name], data=conf) # type: ignore
         # inst.__post_init__()
         # return inst
 
@@ -95,7 +95,7 @@ class LayerBase(metaclass=LayerBaseMeta):
 
     name: ClassVar[str]
     backend: ClassVar[BACKEND]
-    dimensionality: ClassVar[set[DIMENSIONALITY]]
+    dimensionality: ClassVar[DIMENSIONALITY]
     register: ClassVar[bool] = False
 
     def __post_init__(self):
@@ -230,10 +230,10 @@ class LayerBase(metaclass=LayerBaseMeta):
         return math.prod(self.output_shape(port_idx))
 
     def size_in(self, port_idx: int = 0) -> int:
-        return self.workload_in(port_idx) / self.streams_in()
+        return self.workload_in(port_idx) // self.streams_in()
 
     def size_out(self, port_idx: int = 0) -> int:
-        return self.workload_out(port_idx) / self.streams_out()
+        return self.workload_out(port_idx) // self.streams_out()
 
     def latency(self) -> int:
         # return max(self.latency_in(), self.latency_out())
@@ -251,7 +251,7 @@ class LayerBase(metaclass=LayerBaseMeta):
     # def wait_depth(self):
     #     return sum([ self.modules[module].wait_depth() for module in self.modules ])
 
-    def resource(self, model: Optional[ResourceModel] = None):
+    def resource(self, model: Optional[ResourceModel] = None) -> dict[str,int]:
 
         # initialise resources
         resources = {

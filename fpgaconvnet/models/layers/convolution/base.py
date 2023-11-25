@@ -1,6 +1,8 @@
-from typing import ClassVar
+from typing import ClassVar, Optional
 from abc import abstractmethod
 from dataclasses import dataclass
+from overrides import override
+import math
 
 import pydot
 import numpy as np
@@ -10,6 +12,7 @@ import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
+from fpgaconvnet.models.modules.resources import ResourceModel
 
 from fpgaconvnet.models.layers import LayerBase
 from fpgaconvnet.models.layers.traits import Layer2D, Layer3D
@@ -39,7 +42,8 @@ class ConvolutionLayerBase(LayerBase):
 
         match name:
             case "groups":
-                assert(value in get_factors(self.channels_in()))
+                assert(value in get_factors(self.channels))
+                assert(value in get_factors(self.filters))
                 super().__setattr__(name, value)
 
             case "coarse_group":
@@ -57,7 +61,7 @@ class ConvolutionLayerBase(LayerBase):
 
     @property
     def pointwise(self) -> bool:
-        return np.prod(self.kernel_size) == 1
+        return math.prod(self.kernel_size) == 1
 
     @property
     def depthwise(self) -> bool:
@@ -77,26 +81,6 @@ class ConvolutionLayerBase(LayerBase):
     @abstractmethod
     def pad(self) -> list[int]:
         pass
-
-    def rows_in(self) -> int:
-        return self.rows
-
-    def cols_in(self) -> int:
-        return self.cols
-
-    def channels_in(self) -> int:
-        return self.channels
-
-    def rows_out(self) -> int:
-        assert "sliding_window" in self.modules.keys()
-        return self.modules["sliding_window"].rows_out
-
-    def cols_out(self) -> int:
-        assert "sliding_window" in self.modules.keys()
-        return self.modules["sliding_window"].cols_out
-
-    def channels_out(self) -> int:
-        return self.filters
 
     def streams_in(self) -> int:
         return int(self.coarse_in*self.coarse_group)
@@ -121,7 +105,7 @@ class ConvolutionLayerBase(LayerBase):
         return get_factors(self.filters // (self.groups*self.coarse_out))
 
     def get_parameters_size(self) -> dict:
-        weights_size = self.channels_in() * ( self.filters // self.groups ) * np.prod(self.kernel_size)
+        weights_size = self.channels_in() * ( self.filters // self.groups ) * math.prod(self.kernel_size)
         bias_size = 0
         return {
             "weights"   : weights_size,
@@ -129,13 +113,13 @@ class ConvolutionLayerBase(LayerBase):
         }
 
     def get_operations(self) -> int:
-        ops = np.prod(self.kernel_size)*self.channels_in()*np.prod(self.shape_out)
+        ops = math.prod(self.kernel_size)*self.channels_in()*math.prod(self.shape_out)
         if self.has_bias:
-            ops += np.prod(self.shape_out)
+            ops += math.prod(self.shape_out)
         return ops
 
     def get_weight_memory_depth(self) -> int:
-        return (self.filters//self.groups)*self.channels_in()*np.prod(self.kernel_size)// \
+        return (self.filters//self.groups)*self.channels_in()*math.prod(self.kernel_size)// \
                                 (self.fine*self.coarse_in*self.coarse_out*self.coarse_group)
 
     def get_weight_resources(self) -> (int, int):
@@ -149,9 +133,19 @@ class ConvolutionLayerBase(LayerBase):
         # return the memory resource model
         return bram_rsc, 0  # (bram usage, uram usage)
 
-    @abstractmethod
-    def resource(self) -> dict:
-        raise NotImplementedError
+    @override
+    def resource(self, model: Optional[ResourceModel] = None):
+
+        # get the module resources
+        rsc = super().resource(model)
+
+        # get the weights resources
+        weights_bram, weights_uram = self.get_weight_resources()
+        rsc["BRAM"] += weights_bram
+        rsc["URAM"] = weights_uram
+
+        # return the resource usage
+        return rsc
 
     def functional_model(self,data,weights,bias,batch_size=1):
         import torch
@@ -200,8 +194,6 @@ class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
     pad_bottom: int = 0
     pad_left: int = 0
 
-    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
-
     @property
     def kernel_size(self) -> list[int]:
         return [ self.kernel_rows, self.kernel_cols ]
@@ -239,14 +231,42 @@ class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
         self.pad_bottom = val[2]
         self.pad_left   = val[1]
 
+    def rows_in(self) -> int:
+        return self.rows
+
+    def cols_in(self) -> int:
+        return self.cols
+
+    def channels_in(self) -> int:
+        return self.channels
+
+    def rows_out(self) -> int:
+        assert "sliding_window" in self.modules.keys()
+        return self.modules["sliding_window"].rows_out
+
+    def cols_out(self) -> int:
+        assert "sliding_window" in self.modules.keys()
+        return self.modules["sliding_window"].cols_out
+
+    def channels_out(self) -> int:
+        return self.filters
+
+    def pipeline_depth(self):
+        # pipeline depth of the sliding window minus the total words in the pipeline from padding
+        # plus the words needed to fill the accum buffer
+        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+                (self.kernel_cols-1)*self.channels//self.coarse_in + \
+                ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
+
 @dataclass(kw_only=True)
-class ConvolutionLayer3DBase(ConvolutionLayer2DBase, Layer3D):
+class ConvolutionLayer3DBase(Layer3D, ConvolutionLayer2DBase):
     kernel_depth: int = 1
     stride_depth: int = 1
     pad_front: int = 0
     pad_back: int = 0
 
-    dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.THREE
+    def depth_in(self) -> int:
+        return self.depth
 
     def depth_out(self) -> int:
         assert "sliding_window" in self.modules.keys()

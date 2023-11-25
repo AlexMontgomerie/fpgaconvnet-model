@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import numpy as np
 from dacite import from_dict
-import networkx as nx
+import networkx as nx # type: ignore
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
@@ -51,6 +51,16 @@ class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
             print(f"WARNING: unable to set attribute {name}, trying super method")
             super().__setattr__(name, value)
 
+    def get_coarse_feasible(self) -> list[int]:
+        coarse_in_feasible = super().get_coarse_in_feasible()
+        coarse_out_feasible = super().get_coarse_out_feasible()
+        return list(set(coarse_in_feasible).intersection(set(coarse_out_feasible)))
+
+    def get_coarse_in_feasible(self) -> list[int]:
+        return self.get_coarse_feasible()
+
+    def get_coarse_out_feasible(self) -> list[int]:
+        return self.get_coarse_feasible()
 
 @dataclass(kw_only=True)
 class ConcatLayerChiselMixin(ConcatLayerBase):
@@ -83,8 +93,9 @@ class ConcatLayerChiselMixin(ConcatLayerBase):
 
 @dataclass(kw_only=True)
 class ConcatLayer2DMixin(ConcatLayerBase, MultiPortLayer2D):
-    rows: int
-    cols: int
+    rows: int # type: ignore
+    cols: int # type: ignore
+    channels: list[int]
 
     def rows_in(self, port_idx: int = 0) -> int:
         assert port_idx < self.ports_in
@@ -93,6 +104,10 @@ class ConcatLayer2DMixin(ConcatLayerBase, MultiPortLayer2D):
     def cols_in(self, port_idx: int = 0) -> int:
         assert port_idx < self.ports_in
         return self.cols
+
+    def channels_in(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_in
+        return self.channels[port_idx]
 
     def rows_out(self, port_idx: int = 0) -> int:
         assert port_idx == 0

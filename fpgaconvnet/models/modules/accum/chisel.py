@@ -133,6 +133,10 @@ def _(m: AccumChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> 
     assert rsc_type in CHISEL_RSC_TYPES, f"Invalid resource type: {rsc_type}"
     assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
 
+    # return zero if channels are 1
+    if m.channels == 1:
+        return 0
+
     # get the resource model
     match rsc_type:
         case "DSP":

@@ -63,7 +63,7 @@ class SplitLayerChiselMixin(SplitLayerBase):
             "fork": self.get_fork_parameters,
         })
 
-    def get_split_parameters(self) -> dict:
+    def get_fork_parameters(self) -> dict:
         return {
             "repetitions": math.prod(self.input_shape())//self.streams(),
             "coarse": self.ports,
@@ -105,16 +105,16 @@ class SplitLayer2DMixin(SplitLayerBase, MultiPortLayer2D):
 
     @override
     def rows_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_iut
+        assert port_idx < self.ports_out
         return self.rows
 
     @override
     def cols_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_iut
+        assert port_idx < self.ports_out
         return self.cols
 
     @override
     def channels_out(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports_iut
+        assert port_idx < self.ports_out
         return self.channels
 
