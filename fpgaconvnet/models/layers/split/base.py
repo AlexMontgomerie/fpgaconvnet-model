@@ -79,7 +79,7 @@ class SplitLayerChiselMixin(SplitLayerBase):
         self.graph = nx.DiGraph()
 
         # add the split module
-        self.graph.add_node("split", module=self.modules["split"])
+        self.graph.add_node("fork", module=self.modules["fork"])
 
 
 @dataclass(kw_only=True)

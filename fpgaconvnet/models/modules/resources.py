@@ -153,8 +153,13 @@ class SVRResourceModel(ResourceModel):
 
 @singledispatch
 def eval_resource_model(m: ModuleBase, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the backend and dimensionality
+    backend = m.backend.name
+    dimensionality = min(m.dimensionality).value
+
     if _model is None:
-        raise NotImplementedError(f"ERROR: No resource model given")
+        raise NotImplementedError(f"ERROR: No resource model given for module: {m.name} ({backend}, {dimensionality}) and resource type: {rsc_type}")
 
     model: ResourceModel = _model
     assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
@@ -162,9 +167,12 @@ def eval_resource_model(m: ModuleBase, rsc_type: str, _model: Optional[ResourceM
 
 def get_cached_resource_model(m: ModuleBaseMeta, rsc_type: str, name: str) -> ResourceModel:
 
+    # get the backend and dimensionality
+    backend = m.backend.name.lower()
+    dimensionality = min(m.dimensionality).value
+
     # get the cache path
-    # filename = f"{name}.{rsc_type}.{m.name}.{m.backend.name}.{list(m.dimensionality)[0].value}.model"
-    filename = f"{name}.{rsc_type}.{m.name}.{m.backend.name.lower()}.2.model"
+    filename = f"{name}.{rsc_type}.{m.name}.{backend}.{dimensionality}.model"
     cache_path = os.path.join(os.path.dirname(__file__), "..", "cache", "modules", filename)
     model = ResourceModel.load_model(cache_path)
 

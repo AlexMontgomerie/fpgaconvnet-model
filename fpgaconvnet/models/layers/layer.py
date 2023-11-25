@@ -19,6 +19,7 @@ from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
+from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError
 
 class LayerBaseMeta(type, metaclass=ABCMeta):
 
@@ -60,12 +61,12 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
         layers = cls.get_all_layers(name, backend, dimensionality)
 
         # check there is at least 1 module
-        assert len(layers) > 0, f"No layers found for name={name}, \
-                backend={backend.name}, dimensionality={dimensionality.value}"
+        if len(layers) == 0:
+            raise LayerNotImplementedError(f"No layers found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
 
         # check there is only a single module left
-        assert len(layers) == 1, f"Too many layers found for name={name}, \
-                backend={backend.name}, dimensionality={dimensionality.value}"
+        if len(layers) > 1:
+            raise AmbiguousLayerError(f"Too many layers found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
 
         # get the module class
         layer= layers[0]

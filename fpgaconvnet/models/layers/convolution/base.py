@@ -42,17 +42,17 @@ class ConvolutionLayerBase(LayerBase):
 
         match name:
             case "groups":
-                assert(value in get_factors(self.channels))
-                assert(value in get_factors(self.filters))
+                assert value in get_factors(self.channels)
+                assert value in get_factors(self.filters)
                 super().__setattr__(name, value)
 
             case "coarse_group":
-                assert(value in self.get_coarse_group_feasible())
+                assert value in self.get_coarse_group_feasible()
                 super().__setattr__(name, value)
                 self.update()
 
             case "fine":
-                assert(value in self.get_fine_feasible())
+                assert value in self.get_fine_feasible()
                 super().__setattr__(name, value)
                 self.update()
 
@@ -134,7 +134,7 @@ class ConvolutionLayerBase(LayerBase):
         return bram_rsc, 0  # (bram usage, uram usage)
 
     @override
-    def resource(self, model: Optional[ResourceModel] = None):
+    def resource(self, model: Optional[ResourceModel] = None) -> dict[str,int]:
 
         # get the module resources
         rsc = super().resource(model)
@@ -184,7 +184,7 @@ class ConvolutionLayerBase(LayerBase):
 
 
 @dataclass(kw_only=True)
-class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
+class ConvolutionLayer2DMixin(ConvolutionLayerBase, Layer2D):
     kernel_rows: int = 1
     kernel_cols: int = 1
     stride_rows: int = 1
@@ -213,19 +213,19 @@ class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
 
     @kernel_size.setter
     def kernel_size(self, val: list[int]) -> None:
-        assert(len(val) == 2, "kernel size must be a list of two integers")
+        assert len(val) == 2, "kernel size must be a list of two integers"
         self.kernel_rows = val[0]
         self.kernel_cols = val[1]
 
     @stride.setter
     def stride(self, val: list[int]) -> None:
-        assert(len(val) == 2, "stride must be a list of two integers")
+        assert len(val) == 2, "stride must be a list of two integers"
         self.stride_rows = val[0]
         self.stride_cols = val[1]
 
     @pad.setter
     def pad(self, val: list[int]) -> None:
-        assert(len(val) == 4, "pad must be a list of four integers")
+        assert len(val) == 4, "pad must be a list of four integers"
         self.pad_top    = val[0]
         self.pad_right  = val[3]
         self.pad_bottom = val[2]
@@ -259,7 +259,7 @@ class ConvolutionLayer2DBase(ConvolutionLayerBase, Layer2D):
                 ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
 
 @dataclass(kw_only=True)
-class ConvolutionLayer3DBase(Layer3D, ConvolutionLayer2DBase):
+class ConvolutionLayer3DMixin(Layer3D, ConvolutionLayer2DMixin):
     kernel_depth: int = 1
     stride_depth: int = 1
     pad_front: int = 0
@@ -293,21 +293,21 @@ class ConvolutionLayer3DBase(Layer3D, ConvolutionLayer2DBase):
 
     @kernel_size.setter
     def kernel_size(self, val: list[int]) -> None:
-        assert(len(val) == 3, "kernel size must be a list of three integers")
+        assert len(val) == 3, "kernel size must be a list of three integers"
         self.kernel_rows    = val[0]
         self.kernel_cols    = val[1]
         self.kernel_depth   = val[2]
 
     @stride.setter
     def stride(self, val: list[int]) -> None:
-        assert(len(val) == 3, "stride must be a list of three integers")
+        assert len(val) == 3, "stride must be a list of three integers"
         self.stride_rows    = val[0]
         self.stride_cols    = val[1]
         self.stride_depth   = val[2]
 
     @pad.setter
     def pad(self, val: list[int]) -> None:
-        assert(len(val) == 6, "pad must be a list of six integers")
+        assert len(val) == 6, "pad must be a list of six integers"
         self.pad_top    = val[0]
         self.pad_right  = val[4]
         self.pad_bottom = val[3]

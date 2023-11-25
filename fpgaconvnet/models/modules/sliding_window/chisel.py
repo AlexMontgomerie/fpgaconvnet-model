@@ -29,8 +29,8 @@ class SlidingWindowChisel(ModuleChiselBase):
     register: ClassVar[bool] = True
 
     def __post_init__(self):
-        assert len(self.kernel_size) == 2, "SlidingWindowChisel only supports 3D kernel size"
-        assert len(self.stride) == 2, "SlidingWindowChisel only supports 3D stride"
+        assert len(self.kernel_size) == 2, "SlidingWindowChisel only supports 2D kernel size"
+        assert len(self.stride) == 2, "SlidingWindowChisel only supports 2D stride"
 
     @property
     def rows_out(self) -> int:

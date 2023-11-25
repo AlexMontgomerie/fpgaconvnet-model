@@ -11,6 +11,7 @@ from dacite import from_dict
 
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.exceptions import ModuleNotImplementedError, AmbiguousModuleError
 
 @dataclass(kw_only=True)
 class Port:
@@ -73,12 +74,12 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         modules = cls.get_all_modules(name, backend, dimensionality)
 
         # check there is at least 1 module
-        assert len(modules) > 0, f"No modules found for name={name}, \
-                backend={backend.name}, dimensionality={dimensionality.value}"
+        if len(modules) == 0:
+            raise ModuleNotImplementedError(f"No modules found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
 
         # check there is only a single module left
-        assert len(modules) == 1, f"Too many modules found for name={name}, \
-                backend={backend.name}, dimensionality={dimensionality.value}"
+        if len(modules) > 1:
+            raise AmbiguousModuleError(f"Too many modules found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
 
         # get the module class
         module = modules[0]

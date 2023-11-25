@@ -141,10 +141,7 @@ class PoolingLayerHLSMixin(PoolingLayerBase):
         return {
             **self.input_shape_dict(),
             "channels": self.channels//self.streams(),
-            "pad_top": self.pad_top,
-            "pad_right": self.pad_right,
-            "pad_bottom": self.pad_bottom,
-            "pad_left": self.pad_left,
+            "pad": self.pad,
             "kernel_size": self.kernel_size,
             "stride": self.stride,
             "data_t": self.data_t,

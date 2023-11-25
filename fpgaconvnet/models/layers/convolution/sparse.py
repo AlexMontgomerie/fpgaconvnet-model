@@ -12,12 +12,12 @@ import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
-from fpgaconvnet.models.layers.convolution.base import ConvolutionLayer2DBase
+from fpgaconvnet.models.layers.convolution.base import ConvolutionLayer2DMixin
 from fpgaconvnet.models.layers.convolution.backend import ConvolutionLayerChiselMixin
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 
 @dataclass(kw_only=True)
-class ConvolutionLayerSparseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer2DBase):
+class ConvolutionLayerSparseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer2DMixin):
 
     sparsity: list[float]
     interleaving_method: str = "opt"
@@ -228,7 +228,7 @@ class ConvolutionLayerSparseSkippingChisel(ConvolutionLayerSparseSkippingChisel)
         })
 
 @dataclass(kw_only=True)
-class ConvolutionLayerSparsePointwiseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer2DBase):
+class ConvolutionLayerSparsePointwiseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer2DMixin):
 
     kernel_rows: int = 1
     kernel_cols: int = 1

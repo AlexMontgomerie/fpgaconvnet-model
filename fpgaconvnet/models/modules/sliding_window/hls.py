@@ -20,6 +20,13 @@ class SlidingWindowHLSBase(ModuleHLSBase):
     name: ClassVar[str] = "sliding_window"
     register: ClassVar[bool] = False
 
+    def __post_init__(self):
+        assert len(self.kernel_size) == min(self.dimensionality).value, \
+                f"{self.__class__} only supports {min(self.dimensionality).value}D kernel size"
+        assert len(self.stride) == min(self.dimensionality).value, \
+                f"{self.__class__} only supports {min(self.dimensionality).value}D stride"
+        assert len(self.pad) == 2*min(self.dimensionality).value, \
+                f"{self.__class__} only supports {min(self.dimensionality).value}D pad"
     @property
     def input_ports(self) -> list[Port]:
         return [ Port(
@@ -37,6 +44,21 @@ class SlidingWindowHLSBase(ModuleHLSBase):
             buffer_depth=2,
             name="io_out"
         )]
+
+    @property
+    def rate_in(self) -> list[float]:
+        # get the input size
+        input_size = math.prod(self.input_iter_space[0][:-1])
+        # get the padded input size
+        padded_input_size = math.prod([ self.input_iter_space[0][i] + \
+                self.pad[2*i] + self.pad[2*i+1] for i in range(len(self.input_iter_space[0][:-1])) ])
+        # ratio between shapes
+        return [ input_size/float(padded_input_size) ]
+
+    @property
+    def rate_out(self) -> list[float]:
+        return [ (self.rows_out*self.cols_out)/float(self.rows*self.cols) ]
+
 
 @dataclass
 class SlidingWindowHLS(SlidingWindowHLSBase): #FIXME
