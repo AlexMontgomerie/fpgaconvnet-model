@@ -1,51 +1,34 @@
 import os
 import toml
-from dataclasses import dataclass, field
+from typing import ClassVar, Union
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 @dataclass
-class Platform:
-    # device specification
-    part: str = ""
-    board: str = ""
-    # resources
-    resources: dict = field(default_factory=dict)
-    # system
+class PlatformBase:
+
+    part: str
+    resources: dict[str,int]
+    reconf_time: float
     board_freq: float = 100.0
     mem_bw: float = 10.0
-    reconf_time: float = 10.0
     port_width: int = 512
 
-    def __post_init__(self):
-        self.get_name()
-        self.get_family()
+    family: ClassVar[str]
+    resource_types: ClassVar[list[str]]
 
-    def get_family(self):
-        pass
+    def get_resource(self, rsc_type: str) -> int:
+        if rsc_type not in self.resource_types:
+            raise ValueError(f"resource type {rsc_type} not supported by family {self.family} (should be one of {self.resource_types})")
+        return self.resources[rsc_type]
 
-    def get_name(self):
-        if self.board:
-            self.name = self.board.split(":")[1]
-            return self.name
+    def get_resource_database_filters(self) -> dict[str,Union[str,dict[str,int]]]:
+        filters = { "fpga": self.part }
+        for rsc_type, rsc_max in self.resource_types.items():
+            filters[f"resource.{rsc_type}"] = { "$lt", self.get_resource(rsc_type) }
+        return filters
 
-    def get_dsp(self):
-        return self.resources.get("DSP", 0)
-
-    def get_bram(self):
-        return self.resources.get("BRAM", 0)
-
-    def get_uram(self):
-        return self.resources.get("URAM", 0)
-
-    def get_lut(self):
-        return self.resources.get("LUT", 0)
-
-    def get_ff(self):
-        return self.resources.get("FF", 0)
-
-    def get_mem_bw(self):
-        return self.mem_bw
-
-    def update(self, platform_path):
+    def update_from_toml(self, platform_path: str):
 
         # make sure toml configuration
         assert os.path.splitext(platform_path)[1] == ".toml", "must be a TOML configuration file"
@@ -55,9 +38,7 @@ class Platform:
             conf = toml.load(f)
 
         # update fields
-        ## device
         self.part = conf["device"]["part"]
-        self.board = conf["device"]["board"]
 
         ## resources
         for resource, val in conf["resources"].items():
@@ -84,8 +65,8 @@ class Platform:
         ip_head = 20  # Bytes
         udp_head = 8  # Bytes
         max_packet_size = 576  # Bytes, reassembly buffer size
-        
+
         # todo: apply the constraint as bandwidth instead of port width
-        eff_bw = self.eth_bw * (max_packet_size - mac_head - ip_head - udp_head) / max_packet_size 
+        eff_bw = self.eth_bw * (max_packet_size - mac_head - ip_head - udp_head) / max_packet_size
         eth_port_width = eff_bw / (self.board_freq / 1000)  # in bits
         return int(eth_port_width)
