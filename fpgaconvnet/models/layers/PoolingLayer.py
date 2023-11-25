@@ -76,6 +76,10 @@ class PoolingLayer(Layer):
 
         self.update()
 
+    def get_operations(self):
+        return self.channels_in()*self.rows_out()*self.cols_out()\
+            *self.kernel_size[0]*self.kernel_size[1]
+
     def rows_out(self) -> int:
         return self.modules["sliding_window"].rows_out()
 

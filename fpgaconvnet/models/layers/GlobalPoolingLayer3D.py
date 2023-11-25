@@ -51,6 +51,9 @@ class GlobalPoolingLayer3D(Layer3D):
 
         self.update()
 
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.depth_in()
+
     def rows_out(self) -> int:
         return 1
 

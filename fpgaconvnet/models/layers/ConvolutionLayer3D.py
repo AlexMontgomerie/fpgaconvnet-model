@@ -630,15 +630,26 @@ class ConvolutionLayer3D(Layer3D):
         return get_factors(self.filters//(self.groups*self.coarse_out))
 
     def get_parameters_size(self):
-        weights_size = self.channels_in() * ( self.filters // self.groups ) * self.kernel_rows * self.kernel_cols * self.kernel_depth
-        bias_size = 0
+        weights_size =  (self.channels_in() * self.filters) // self.groups \
+             * self.kernel_rows * self.kernel_cols * self.kernel_depth
+        if self.has_bias:
+            bias_size = self.filters
+        else:
+            bias_size = 0
         return {
             "weights"   : weights_size,
             "bias"      : bias_size
         }
 
     def get_operations(self):
-        return self.kernel_rows*self.kernel_cols*self.kernel_depth*self.channels_in()*self.filters*self.rows_out()*self.cols_out()*self.depth_out()
+        # 1 MAC = 2 OPs
+        ops = 2* (self.channels_in() * self.filters) // self.groups \
+            * self.kernel_rows * self.kernel_cols * self.kernel_depth \
+            * self.rows_out() * self.cols_out() * self.depth_out()
+        if self.has_bias:
+            ops += self.filters \
+                * self.rows_out() * self.cols_out() * self.depth_out()
+        return ops
 
     def resource(self):
 

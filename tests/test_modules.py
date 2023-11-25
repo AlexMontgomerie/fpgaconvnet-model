@@ -116,7 +116,7 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
 
         # initialise module
         module = Glue(config["rows"],config["cols"],config["channels"],
-                config["filters"],config["coarse_in"],config["coarse_out"],backend=BACKEND)
+                config["filters"],config["coarse_in"],config["coarse_out"],config["coarse_group"],backend=BACKEND)
 
         # run tests
         self.run_test_methods_exist(module)

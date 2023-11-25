@@ -101,7 +101,11 @@ class InnerProductLayer(Layer):
         self.update()
 
     def get_operations(self):
-        return self.channels_in()*self.rows_in()*self.cols_in()*self.filters
+        # 1 MAC = 2 OPs
+        ops = 2*self.channels_in()*self.filters
+        if self.has_bias:
+            ops += self.filters
+        return ops
 
     @property
     def filters(self) -> int:
@@ -197,7 +201,7 @@ class InnerProductLayer(Layer):
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].data_width = self.acc_t.width
         if self.data_packing:
-            self.modules['glue'].streams = self.coarse_group*self.coarse_out
+            self.modules['glue'].streams = self.coarse_out
 
         # bias
         self.modules['bias'].rows           = 1
@@ -222,7 +226,10 @@ class InnerProductLayer(Layer):
 
     def get_parameters_size(self):
         weights_size = self.channels * self.filters
-        bias_size = 0
+        if self.has_bias:
+            bias_size = self.filters
+        else:
+            bias_size = 0
         return {
             "weights"   : weights_size,
             "bias"      : bias_size

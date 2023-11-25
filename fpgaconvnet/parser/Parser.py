@@ -384,8 +384,8 @@ class Parser:
                 hardware = self.get_hardware_from_prototxt_node(layer, net.dimensionality)
 
                 # todo: move this inside get_hardware_from_prototxt_node
-                hardware.stream_inputs = hardware.node.parameters.stream_inputs
-                hardware.stream_outputs = hardware.node.parameters.stream_outputs
+                hardware.hw.stream_inputs = hardware.node.parameters.stream_inputs
+                hardware.hw.stream_outputs = hardware.node.parameters.stream_outputs
 
                 # add node to graph
                 graph.add_node( layer.name, **hardware.get_node_info(net.graph) )

@@ -63,22 +63,6 @@ def get_branch_edges_all(partitions):
                     network_branch_edges.append((prev_node, node))
     return network_branch_edges
 
-def fix_branch_inconsistencies(graph, network_branch_edges):
-    mandatory_edges = []
-    io_edges = []
-    for edge in network_branch_edges:
-        if edge[0] in graph.nodes() and edge[1] in graph.nodes():
-            mandatory_edges.append(edge)
-        elif edge[0] in graph.nodes() or edge[1] in graph.nodes():
-            io_edges.append(edge)
-
-    for edge in mandatory_edges:
-        if edge not in list(graph.edges()):
-            print(f"adding missing edge {edge} to graph")
-            graph.add_edge(edge[0], edge[1])
-
-    return graph
-
 def ordered_node_list(graph): # TODO: make work for parallel networks
     return list( nx.topological_sort(graph) )
 
@@ -126,11 +110,25 @@ def split_graph_vertical(graph, nodes):
     right_graph = graph.subgraph(right_nodes).copy()
     return left_graph, right_graph
 
-def merge_graphs_horizontal(graph_prev, graph_next):
-    graph = nx.compose(graph_prev,graph_next)
-    prev_output_node = get_output_nodes(graph_prev)[0]
-    next_input_node  = get_input_nodes(graph_next)[0]
-    graph.add_edge(prev_output_node, next_input_node)
+def merge_graphs_horizontal(graph_prev, graph_next, network_branch_edges):
+    graph = nx.compose(graph_prev, graph_next)
+    prev_output_nodes = get_output_nodes(graph_prev)
+    next_input_nodes  = get_input_nodes(graph_next)
+
+    for edge in network_branch_edges:
+        if edge[0] in graph.nodes() and edge[1] in graph.nodes() \
+            and edge not in list(graph.edges()):
+            print(f"create branch edge {edge}")
+            graph.add_edge(edge[0], edge[1])
+            if edge[0] in prev_output_nodes:
+                prev_output_nodes.remove(edge[0])
+            if edge[1] in next_input_nodes:
+                next_input_nodes.remove(edge[1])
+
+    if len(prev_output_nodes) > 0 and len(next_input_nodes) > 0:
+        print(f"create edge {edge}")
+        graph.add_edge(prev_output_nodes[0], next_input_nodes[0])
+
     return graph
 
 def merge_graphs_vertical(graph_prev, graph_next):

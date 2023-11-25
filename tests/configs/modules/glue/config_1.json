@@ -6,6 +6,7 @@
     "filters": 512,
     "coarse_in": 32,
     "coarse_out": 32,
+    "coarse_group": 1,
     "rows_out": 28,
     "cols_out": 28,
     "channels_out": 512,

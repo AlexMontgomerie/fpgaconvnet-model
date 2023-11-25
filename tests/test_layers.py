@@ -59,11 +59,9 @@ class TestLayerTemplate():
     def run_test_resources(self,layer):
         # check resources
         rsc = layer.resource()
-        self.assertEqual(set(list(rsc.keys())), set(["BRAM","DSP","LUT","FF"]))
-        self.assertTrue(rsc["LUT"] >= 0)
-        self.assertTrue(rsc["FF"] >= 0)
-        self.assertTrue(rsc["DSP"] >= 0)
-        self.assertTrue(rsc["BRAM"] >= 0)
+        for k in rsc:
+            self.assertTrue(k in ["BRAM","DSP","LUT","FF","URAM"] )
+            self.assertTrue(rsc[k] >= 0)
 
     def run_test_updating_properties(self, layer):
         # updating coarse in
