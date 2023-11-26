@@ -228,6 +228,10 @@ class SlidingWindow(Module):
             # ensure zero DSPs
             rsc["DSP"] = 0
 
+            # correct the LUTRAM estimate
+            rsc["LUT"] = rsc["LUT"] - rsc["LUT_RAM"] + self.line_buffer_lutram +\
+                    self.window_buffer_lutram + self.frame_buffer_lutram
+
         # return the resource usage
         return rsc
 
