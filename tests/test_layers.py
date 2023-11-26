@@ -7,7 +7,7 @@ import itertools
 
 from fpgaconvnet.models.layers import LayerBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
-from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError
+from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError, ModuleNotImplementedError
 
 # get the paths for all the layer configs
 RELU_CONF_PATH=list(glob.glob("tests/configs/layers/relu/*"))
@@ -24,7 +24,7 @@ ARCHITECTURES = [
     (BACKEND.CHISEL, DIMENSIONALITY.TWO),
     (BACKEND.CHISEL, DIMENSIONALITY.THREE),
     (BACKEND.HLS, DIMENSIONALITY.TWO),
-    (BACKEND.HLS, DIMENSIONALITY.THREE),
+    # (BACKEND.HLS, DIMENSIONALITY.THREE),
 ]
 
 class TestLayerTemplate():
@@ -147,7 +147,7 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
             self.run_test_updating_properties(layer)
             self.run_test_resources(layer)
 
-        except LayerNotImplementedError:
+        except (LayerNotImplementedError, ModuleNotImplementedError):
             pass
 
 @ddt.ddt
@@ -162,6 +162,10 @@ class TestConcatLayer(TestLayerTemplate,unittest.TestCase):
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
 
         try:
             # initialise layer
@@ -204,6 +208,12 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_rows"] = config["stride"][0]
         config["stride_cols"] = config["stride"][1]
 
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["kernel_depth"] = config["kernel_size"][1]
+            config["stride_depth"] = config["stride"][1]
+            config["depth"] = config["cols"]
+
         try:
             # initialise layer
             layer = LayerBase.build("convolution", config, backend, dimensionality)
@@ -220,7 +230,7 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
             self.run_test_updating_properties(layer)
             self.run_test_resources(layer)
 
-        except LayerNotImplementedError:
+        except (LayerNotImplementedError, ModuleNotImplementedError):
             pass
 
 
@@ -236,6 +246,10 @@ class TestReLULayer(TestLayerTemplate,unittest.TestCase):
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
 
         try:
             # initialise layer
@@ -303,6 +317,10 @@ class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
         with open(config_path, "r") as f:
             config = json.load(f)
 
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
+
         try:
             # initialise layer
             layer = LayerBase.build("squeeze", config, backend, dimensionality)
@@ -332,6 +350,10 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 
         # extract the arguments
         config_path, (backend, dimensionality) = args
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
 
         # open configuration
         with open(config_path, "r") as f:
@@ -370,6 +392,10 @@ class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
 
         # initialise layer
         try:

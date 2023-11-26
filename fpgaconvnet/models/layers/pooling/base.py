@@ -169,7 +169,7 @@ class PoolingLayerHLSMixin(PoolingLayerBase):
             self.graph.add_node(f"pool_{i}", module=self.modules["pool"])
 
             # create the connections
-            self.graph.add_edge("sliding_window_{i}", "pool_{i}")
+            self.graph.add_edge(f"sliding_window_{i}", f"pool_{i}")
 
 class PoolingLayer2DMixin(PoolingLayerBase, Layer2D):
     kernel_rows: int = 2

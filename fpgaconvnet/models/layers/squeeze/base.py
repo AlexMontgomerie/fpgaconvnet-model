@@ -63,6 +63,13 @@ class SqueezeLayerChiselMixin(SqueezeLayerBase):
         # add the squeeze module
         self.graph.add_node("squeeze", module=self.modules["squeeze"])
 
+    # def rate_in(self, port_idx: int = 0) -> list[float]:
+    #     assert port_idx == 0, "ERROR: invalid port index"
+    #     return min(1.0, super().rate_in())
+
+    # def rate_out(self, port_idx: int = 0) -> list[float]:
+    #     assert port_idx == 0, "ERROR: invalid port index"
+    #     return min(1.0, super().rate_out())
 
 class SqueezeLayerHLSMixin(SqueezeLayerBase):
 
@@ -77,7 +84,7 @@ class SqueezeLayerHLSMixin(SqueezeLayerBase):
     def get_squeeze_parameters(self) -> dict:
         return {
             **self.input_shape_dict(),
-            "channels": self.channels//self.coarse,
+            "channels": self.channels//self.streams_in(),
             "coarse_in": self.coarse_in,
             "coarse_out": self.coarse_out,
             "data_t": self.data_t,
