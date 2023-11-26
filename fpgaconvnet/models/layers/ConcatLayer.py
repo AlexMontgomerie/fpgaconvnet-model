@@ -105,7 +105,7 @@ class ConcatLayer(MultiPortLayer):
         # concat
         self.modules["concat"].rows     = self.rows_in()
         self.modules["concat"].cols     = self.cols_in()
-        self.modules["concat"].channels = self.channels
+        self.modules["concat"].channels = self.channels_in() // self.coarse
         self.modules["concat"].ports_in = self.ports_in
 
     def layer_info(self,parameters,batch_size=1):
