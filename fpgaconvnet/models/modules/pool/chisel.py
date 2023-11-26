@@ -5,8 +5,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port, CHISEL_RSC_TYPES
+from fpgaconvnet.models.modules import int2bits, ModuleChiselBase, Port
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
+from fpgaconvnet.platform import DEFAULT_CHISEL_PLATFORM
 
 @dataclass(kw_only=True)
 class PoolChisel(ModuleChiselBase):
@@ -22,15 +23,15 @@ class PoolChisel(ModuleChiselBase):
     name: ClassVar[str] = "pool"
     register: ClassVar[bool] = True
 
-    def __post_init__(self):
+    # def __post_init__(self):
 
-        # format kernel size as a 2 element list
-        if isinstance(self.kernel_size, int):
-            self.kernel_size = [self.kernel_size]*2
-        elif isinstance(self.kernel_size, list):
-            assert len(self.kernel_size) == 2, "Must specify two kernel dimensions"
-        else:
-            raise TypeError
+    #     # format kernel size as a 2 element list
+    #     if isinstance(self.kernel_size, int):
+    #         self.kernel_size = [self.kernel_size]*2
+    #     elif isinstance(self.kernel_size, list):
+    #         assert len(self.kernel_size) == 2, "Must specify two kernel dimensions"
+    #     else:
+    #         raise TypeError
 
     @property
     def input_iter_space(self) -> list[list[int]]:
@@ -118,7 +119,7 @@ class PoolChisel(ModuleChiselBase):
 
 try:
     DEFAULT_POOL_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(PoolChisel,
-                                    rsc_type, "default") for rsc_type in CHISEL_RSC_TYPES }
+                                    rsc_type, "default") for rsc_type in DEFAULT_CHISEL_PLATFORM.resource_types }
 except FileNotFoundError:
     print("CRITICAL WARNING: default resource models not found for Pool, default resource modelling will fail")
 
@@ -129,7 +130,6 @@ def _(m: PoolChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> i
     model: ResourceModel = _model if _model is not None else DEFAULT_POOL_RSC_MODELS[rsc_type]
 
     # check the correct resource type
-    assert rsc_type in CHISEL_RSC_TYPES, f"Invalid resource type: {rsc_type}"
     assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
 
     # get the resource model

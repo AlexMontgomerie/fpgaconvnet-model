@@ -1,0 +1,16 @@
+[device]
+name = "zedboard"
+part = "xc7z020clg484-1"
+board = "xilinx.com:zc702:part0:1.4"
+
+[resources]
+DSP   = 220
+BRAM  = 280
+FF    = 106400
+LUT   = 53200
+
+[system]
+board_frequency = 200 # in MHz
+memory_bandwidth = 100.0 # in Gbps
+reconfiguration_time = 0.08255 # in seconds
+port_width = 128

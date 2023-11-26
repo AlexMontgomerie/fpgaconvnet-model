@@ -1,0 +1,10 @@
+[database]
+collection = "hls"
+filters = {}
+
+[model]
+type = "NNLS"
+# type = "SVR"
+# kernel = "poly"
+# degree = 3
+

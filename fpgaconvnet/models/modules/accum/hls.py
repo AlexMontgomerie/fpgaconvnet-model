@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Optional
 import numpy as np
 
 from fpgaconvnet.models.modules import Port, ModuleBaseMeta, ModuleHLSBase, ModuleHLS3DBase, int2bits
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
 from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.platform import DEFAULT_HLS_PLATFORM
 
 @dataclass
 class AccumHLSBase(ModuleHLSBase):
@@ -179,4 +181,31 @@ class AccumHLS3D(ModuleHLS3DBase, AccumHLSBase):
                         float(data[index[0],index[1],index[2],g*channels_per_group+index[3],index[4]])
 
         return out
+
+
+try:
+    DEFAULT_ACCUM_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(AccumHLS,
+                                    rsc_type, "default") for rsc_type in DEFAULT_HLS_PLATFORM.resource_types }
+except FileNotFoundError:
+    print("CRITICAL WARNING: default resource models not found for Accum, default resource modelling will fail")
+
+@eval_resource_model.register
+def _(m: AccumHLS, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the resource model
+    model: ResourceModel = _model if _model is not None else DEFAULT_ACCUM_RSC_MODELS[rsc_type]
+
+    # check the correct resource type
+    assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # return zero if channels are 1
+    if m.channels == 1:
+        return 0
+
+    # get the resource model
+    match rsc_type:
+        case "DSP":
+            return 0
+        case _:
+            return model(m)
 

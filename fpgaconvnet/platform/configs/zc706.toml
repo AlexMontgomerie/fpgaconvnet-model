@@ -1,0 +1,16 @@
+[device]
+name = "zc706"
+part = "xc7z045ffg900-2"
+board = ""
+
+[resources]
+DSP   = 900
+BRAM  = 1090
+FF    = 437200
+LUT   = 218600
+
+[system]
+board_frequency = 200 # in MHz
+memory_bandwidth = 100.0 # in Gbps
+reconfiguration_time = 0.08255 # in seconds
+port_width = 128

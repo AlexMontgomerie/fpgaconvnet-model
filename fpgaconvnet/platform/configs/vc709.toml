@@ -1,0 +1,18 @@
+[device]
+name = "vc709"
+#family = ""
+part = "xc7vx690tffg1761-2"
+board = "" #TODO: add board file
+
+[resources]
+DSP   = 3600
+BRAM  = 2940
+FF    = 866000
+LUT   = 433000
+
+[system]
+board_frequency = 300 # in MHz
+memory_bandwidth = 135.83 # in Gbps
+reconfiguration_time = 0.08255 # in seconds
+axi_ports = 2
+axi_data_width = 128

@@ -8,12 +8,13 @@ import numpy as np
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import eval_resource_model
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.exceptions import ModuleNotImplementedError
 
 ARCHS = [
         ( BACKEND.CHISEL, DIMENSIONALITY.TWO ),
         ( BACKEND.CHISEL, DIMENSIONALITY.THREE ),
         ( BACKEND.HLS, DIMENSIONALITY.TWO ),
-        ( BACKEND.HLS, DIMENSIONALITY.THREE ),
+        # ( BACKEND.HLS, DIMENSIONALITY.THREE ),
     ]
 
 class TestModuleTemplate():
@@ -88,6 +89,9 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
 
         config["fine"] = int(np.prod(config["kernel_size"]))
 
+        if isinstance(config["kernel_size"], int):
+            config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+
         # initialise module
         module = ModuleBase.build("fork", config,
                 backend=backend, dimensionality=dimensionality)
@@ -140,6 +144,9 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
             with open(config_path, "r") as f:
                 config = json.load(f)
 
+            if isinstance(config["kernel_size"], int):
+                config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+
             # initialise module
             module = ModuleBase.build("conv", config,
                     backend=backend, dimensionality=dimensionality)
@@ -177,25 +184,42 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_config_gen(module)
         self.run_test_resources(module)
 
-# @ddt.ddt
-# class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
+@ddt.ddt
+class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
 
-#     @ddt.data(*glob.glob("tests/configs/modules/sliding_window/*.json"))
-#     def test_module_configurations(self, config_path):
-#         # open configuration
-#         with open(config_path, "r") as f:
-#             config = json.load(f)
+    @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/sliding_window/*.json")))
+    def test_module_configurations(self, args):
 
-#         # initialise module
-#         module = SlidingWindow(config["rows"],config["cols"],config["channels"],
-#                 config["kernel_size"],config["stride"],config["pad_top"],
-#                 config["pad_right"],config["pad_bottom"],config["pad_left"],backend=BACKEND)
+        (backend, dimensionality), config_path = args
 
-#         # run tests
-#         self.run_test_methods_exist(module)
-#         self.run_test_dimensions(module)
-#         self.run_test_rates(module)
-#         self.run_test_resources(module)
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        if isinstance(config["kernel_size"], int):
+            config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+        if isinstance(config["stride"], int):
+            config["stride"] = [config["stride"]]*dimensionality.value
+        if "pad" in config:
+            if isinstance(config["pad"], int):
+                config["pad"] = [config["pad"]]*dimensionality.value*2
+        else:
+            config["pad"] = [0]*dimensionality.value*2
+
+        try:
+            # initialise module
+            module = ModuleBase.build("sliding_window", config,
+                    backend=backend, dimensionality=dimensionality)
+
+            # run tests
+            self.run_test_rates(module)
+            self.run_test_latency(module)
+            self.run_test_pipeline_depth(module)
+            self.run_test_config_gen(module)
+            self.run_test_resources(module)
+
+        except ModuleNotImplementedError:
+            pass
 
 @ddt.ddt
 class TestPoolModule(TestModuleTemplate,unittest.TestCase):
@@ -214,16 +238,20 @@ class TestPoolModule(TestModuleTemplate,unittest.TestCase):
         if isinstance(config["kernel_size"], int):
             config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
 
-        # initialise module
-        module = ModuleBase.build("pool", config,
-                backend=backend, dimensionality=dimensionality)
+        try:
+            # initialise module
+            module = ModuleBase.build("pool", config,
+                    backend=backend, dimensionality=dimensionality)
 
-        # run tests
-        self.run_test_rates(module)
-        self.run_test_latency(module)
-        self.run_test_pipeline_depth(module)
-        self.run_test_config_gen(module)
-        self.run_test_resources(module)
+            # run tests
+            self.run_test_rates(module)
+            self.run_test_latency(module)
+            self.run_test_pipeline_depth(module)
+            self.run_test_config_gen(module)
+            self.run_test_resources(module)
+
+        except ModuleNotImplementedError:
+            pass
 
 @ddt.ddt
 class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):

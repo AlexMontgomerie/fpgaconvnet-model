@@ -1,10 +1,13 @@
-from typing import ClassVar
+from typing import ClassVar, Optional
 from dataclasses import dataclass
 
 import numpy as np
 
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.modules import int2bits, ModuleHLSBase, ModuleHLS3DBase, Port
+from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model, get_cached_resource_model
+from fpgaconvnet.platform import DEFAULT_HLS_PLATFORM
+
 
 @dataclass(kw_only=True)
 class PoolHLSBase(ModuleHLSBase):
@@ -158,4 +161,29 @@ class PoolHLS3D(ModuleHLS3DBase, PoolHLSBase):
                 out[index] = np.mean(data[index])
 
         return out
+
+
+try:
+    DEFAULT_POOL_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(PoolHLS,
+                                    rsc_type, "default") for rsc_type in DEFAULT_HLS_PLATFORM.resource_types }
+except FileNotFoundError:
+    print("CRITICAL WARNING: default resource models not found for Pool, default resource modelling will fail")
+
+@eval_resource_model.register
+def _(m: PoolHLS, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+
+    # get the resource model
+    model: ResourceModel = _model if _model is not None else DEFAULT_POOL_RSC_MODELS[rsc_type]
+
+    # check the correct resource type
+    assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # get the resource model
+    match rsc_type:
+        case "DSP":
+            return 0
+        case "BRAM":
+            return 0
+        case _:
+            return model(m)
 

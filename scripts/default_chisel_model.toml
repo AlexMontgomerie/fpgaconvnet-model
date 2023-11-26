@@ -3,7 +3,8 @@ collection = "chisel-latest"
 filters = {}
 
 [model]
-type = "SVR"
-kernel = "poly"
-degree = 3
+type = "NNLS"
+# type = "SVR"
+# kernel = "poly"
+# degree = 3
 

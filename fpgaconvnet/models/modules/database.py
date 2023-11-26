@@ -31,10 +31,10 @@ class Record:
             return False
         if "resource" not in doc:
             return False
-        if "power" not in doc:
-            return False
-        if "timing" not in doc:
-            return False
+        # if "power" not in doc:
+        #     return False
+        # if "timing" not in doc:
+        #     return False
         return True
 
     def build_module(self, config: dict) -> ModuleBase:
