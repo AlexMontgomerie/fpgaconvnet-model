@@ -89,6 +89,7 @@ def get_pipeline_depth_fast(self):
             return node_pipeline_depth[node]
 
     # get the first node of the graph
+    # TODO: fix for multiple input nodes (once this function is actually used)
     start_node = graphs.get_input_nodes(self.graph)[0]
 
     # return pipeline depth from start node
@@ -112,7 +113,6 @@ def get_cycle(self):
     # get the interval for the partition
     interval = self.get_interval()
     # get pipeline depth of partition
-    input_node = graphs.get_input_nodes(self.graph)[0]
     pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # return the latency (in seconds)
     batch_size  = int(self.batch_size)
@@ -143,15 +143,18 @@ def get_bandwidth_in(self,freq):
     max_latency = interval * self.slow_down_factor
     # get workload and streams in
     bw_in = []
-    inputs = graphs.get_input_nodes(self.graph)
+    inputs = graphs.get_input_nodes(self.graph, allow_multiport=True)
     for node in self.graph.nodes():
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_inputs)):
             if hw.stream_inputs[i] or node in inputs:
                 workload = hw.workload_in()
                 if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
-                    # implement line buffer with off-chip memory
-                    workload = workload * hw.kernel_size[0]
+                    # implement line or tensor buffer with off-chip memory
+                    if self.dimensionality == 2:
+                        workload = workload * hw.kernel_size[0]
+                    elif self.dimensionality == 3:
+                        workload = workload * hw.kernel_size[0] * hw.kernel_size[2]
                 streams = hw.streams_in()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
@@ -166,7 +169,7 @@ def get_bandwidth_out(self,freq):
     max_latency = interval * self.slow_down_factor
     # get workload and streams out
     bw_out = []
-    outputs = graphs.get_output_nodes(self.graph)
+    outputs = graphs.get_output_nodes(self.graph, allow_multiport=True)
     for node in self.graph.nodes():
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_outputs)):

@@ -3,7 +3,7 @@ import copy
 
 import fpgaconvnet.tools.graphs as graphs
 
-def update_partitions(self):
+def update_partitions(self, update_streams=True):
 
     # remove all auxiliary layers
     for partition_index in range(len(self.partitions)):
@@ -22,7 +22,7 @@ def update_partitions(self):
     for partition_index in range(len(self.partitions)):
 
         ## update the partitions
-        self.partitions[partition_index].update()
+        self.partitions[partition_index].update(update_streams=update_streams)
 
         ## update batch size for partitions
         self.partitions[partition_index].batch_size = self.batch_size

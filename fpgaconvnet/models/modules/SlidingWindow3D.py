@@ -285,6 +285,8 @@ class SlidingWindow3D(Module3D):
         rsc = Module3D.rsc(self, coef, model)
 
         if self.regression_model == "linear_regression":
+            # get the buffer estimates
+            self.buffer_estimate()
 
             # add the bram estimation
             rsc["BRAM"] = self.line_buffer_bram + self.window_buffer_bram +\
@@ -292,6 +294,11 @@ class SlidingWindow3D(Module3D):
 
             # ensure zero DSPs
             rsc["DSP"] = 0
+
+            # correct the LUTRAM estimate
+            rsc["LUT"] = rsc["LUT"] - rsc["LUT_RAM"] + self.line_buffer_lutram +\
+                    self.window_buffer_lutram + self.tensor_buffer_lutram +\
+                    self.frame_buffer_lutram
 
         # return the resource usage
         return rsc

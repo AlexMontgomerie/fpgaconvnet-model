@@ -69,7 +69,7 @@ def add_squeeze(self):
             self.graph.remove_edge(start_node,end_node)
 
     # check difference in input streams
-    inputs = graphs.get_input_nodes(self.graph)
+    inputs = graphs.get_input_nodes(self.graph, allow_multiport=True)
     for i, input_node in enumerate(inputs):
         if self.streams_in[i] != self.graph.nodes[input_node]['hw'].streams_in():
             # add node to graph
@@ -109,7 +109,7 @@ def add_squeeze(self):
             # add edge to graph
             self.graph.add_edge(new_node,input_node)
     # check difference in output streams
-    outputs = graphs.get_output_nodes(self.graph)
+    outputs = graphs.get_output_nodes(self.graph, allow_multiport=True)
     for i, output_node in enumerate(outputs):
         if self.streams_out[i] != self.graph.nodes[output_node]['hw'].streams_out():
             # add node to graph
@@ -150,12 +150,12 @@ def add_squeeze(self):
 
 def remove_node_by_type(self, layer_type):
     # remove input squeeze module
-    for input_node in graphs.get_input_nodes(self.graph):
+    for input_node in graphs.get_input_nodes(self.graph, allow_multiport=True):
         if input_node in self.graph.nodes:
             if self.graph.nodes[input_node]['type'] == layer_type:
                 self.graph.remove_node(input_node)
     # remove output squeeze module
-    for output_node in graphs.get_output_nodes(self.graph):
+    for output_node in graphs.get_output_nodes(self.graph, allow_multiport=True):
         if output_node in self.graph.nodes:
             if self.graph.nodes[output_node]['type'] == layer_type:
                 self.graph.remove_node(output_node)
