@@ -66,7 +66,7 @@ def get_partition_order(self): # may need to update for
         ## return first partition node occurs in
         return partition_occurence[0]
     # iterate over each node in graph and find which partition it is in
-    nodes = graphs.get_input_nodes(self.graph)
+    nodes = graphs.get_input_nodes(self.graph, allow_multiport=True)
     while nodes:
         # store partition order in this iteration
         partition_order_iter = []
@@ -79,7 +79,7 @@ def get_partition_order(self): # may need to update for
         nodes_next = []
         # iterate over partitions in current iteration
         for i in partition_order_iter:
-            for node_out in graphs.get_output_nodes(self.partitions[i].graph):
+            for node_out in graphs.get_output_nodes(self.partitions[i].graph, allow_multiport=True):
                 while not node_out in self.graph:
                     node_out = graphs.get_prev_nodes(self.partitions[i].graph, node_out)[0]
                 for node_next in graphs.get_next_nodes(self.graph, node_out):

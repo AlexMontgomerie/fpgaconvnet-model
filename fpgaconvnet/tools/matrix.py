@@ -13,13 +13,15 @@ def get_node_list_matrix(graph):
 
 def get_edge_list_matrix(graph):
     edge_list = []
-    input_node  = graphs.get_input_nodes(graph)[0]
-    output_node = graphs.get_output_nodes(graph)[0]
-    edge_list.append( (None,input_node) )
+    input_nodes  = graphs.get_input_nodes(graph, allow_multiport=True)
+    output_nodes = graphs.get_output_nodes(graph, allow_multiport=True)
+    for input_node in input_nodes:
+        edge_list.append( (None,input_node) )
     for node in graph.nodes():
         for edge in graphs.get_next_nodes(graph,node):
             edge_list.append( (node,edge) )
-    edge_list.append((output_node,None))
+    for output_node in output_nodes:
+        edge_list.append((output_node,None))
     return edge_list
 
 def get_edges_in(node,edge_list):
@@ -101,8 +103,8 @@ def _matrix(graph, weight_in, weight_out, node_list=[], edge_list=[]):
     matrix = np.zeros( shape=( len(edge_list), len(node_list) ), dtype=float )
 
     # nodes in and out
-    nodes_in  = graphs.get_input_nodes(graph)
-    nodes_out = graphs.get_output_nodes(graph)
+    nodes_in  = graphs.get_input_nodes(graph, allow_multiport=True)
+    nodes_out = graphs.get_output_nodes(graph, allow_multiport=True)
 
     # input connections
     for node_in in nodes_in:

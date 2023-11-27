@@ -17,11 +17,17 @@ def print_graph(graph):
         edges = list(edges)
         print(f"{node}\t: {edges}")
 
-def get_input_nodes(graph):
-    return sorted([ edge for edge, deg in graph.in_degree() if not deg ])
+def get_input_nodes(graph, allow_multiport=False):
+    if allow_multiport:
+        return sorted([ edge for edge, deg in graph.in_degree() if not deg or (graph.nodes[edge]['type'] in MULTIPORT_LAYERS_IN and graph.nodes[edge]['hw'].ports_in > deg) ])
+    else:
+        return sorted([ edge for edge, deg in graph.in_degree() if not deg ])
 
-def get_output_nodes(graph):
-    return sorted([ edge for edge, deg in graph.out_degree() if not deg ])
+def get_output_nodes(graph, allow_multiport=False):
+    if allow_multiport:
+        return sorted([ edge for edge, deg in graph.out_degree() if not deg or (graph.nodes[edge]['type'] in MULTIPORT_LAYERS_OUT and graph.nodes[edge]['hw'].ports_out > deg) ])
+    else:
+        return sorted([ edge for edge, deg in graph.out_degree() if not deg ])
 
 def get_next_nodes(graph, node):
     return sorted(list(graph.successors(node)))

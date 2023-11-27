@@ -407,16 +407,18 @@ class Parser:
 
     def remove_node_by_type(self, graph, layer_type):
         # get input and output graphs
-        input_node  = graphs.get_input_nodes(graph)[0]
-        output_node = graphs.get_output_nodes(graph)[0]
+        input_nodes  = graphs.get_input_nodes(graph, allow_multiport=True)
+        output_nodes = graphs.get_output_nodes(graph, allow_multiport=True)
         # remove input squeeze module
-        if input_node in graph.nodes:
-            if graph.nodes[input_node]['type'] == layer_type:
-                graph.remove_node(input_node)
+        for input_node in input_nodes:
+            if input_node in graph.nodes:
+                if graph.nodes[input_node]['type'] == layer_type:
+                    graph.remove_node(input_node)
         # remove output squeeze module
-        if output_node in graph.nodes:
-            if graph.nodes[output_node]['type'] == layer_type:
-                graph.remove_node(output_node)
+        for output_node in output_nodes:
+            if output_node in graph.nodes:
+                if graph.nodes[output_node]['type'] == layer_type:
+                    graph.remove_node(output_node)
         # remove intermediate squeeze modules
         remove_nodes = []
         for node in graph.nodes():

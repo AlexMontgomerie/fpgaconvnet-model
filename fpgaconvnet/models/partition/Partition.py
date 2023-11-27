@@ -26,8 +26,8 @@ class Partition():
         self.batch_size = batch_size
 
         ## ports
-        self.ports_in   = len(graphs.get_input_nodes(self.graph))
-        self.ports_out  = len(graphs.get_output_nodes(self.graph))
+        self.ports_in   = len(graphs.get_input_nodes(self.graph, allow_multiport=True))
+        self.ports_out  = len(graphs.get_output_nodes(self.graph, allow_multiport=True))
 
         ## streams in and out
         self.streams_in  = [1] * self.ports_in
@@ -84,6 +84,7 @@ class Partition():
             style="filled", fillcolor="mediumblue"))
 
         # get input and output node
+        # TODO: fix multiple input/output node support as part of the refactoring of this function
         input_node = graphs.get_input_nodes(self.graph)[0]
         output_node = graphs.get_output_nodes(self.graph)[0]
 
@@ -130,26 +131,26 @@ class Partition():
         return max_latency
 
     def is_input_memory_bound(self):
-        input_node  = graphs.get_input_nodes(self.graph)[0]
+        input_nodes  = graphs.get_input_nodes(self.graph, allow_multiport=True)
         max_compute_latency = self.max_compute_node_latency()
 
         for node in self.graph.nodes():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and \
-                self.graph.nodes[input_node]["hw"].latency() > max_compute_latency
+        return any([self.graph.nodes[input_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[input_node]["hw"].latency() > max_compute_latency for input_node in input_nodes])
 
     def is_output_memory_bound(self):
-        output_node  = graphs.get_output_nodes(self.graph)[0]
+        output_nodes  = graphs.get_output_nodes(self.graph, allow_multiport=True)
         max_compute_latency = self.max_compute_node_latency()
 
         for node in self.graph.nodes():
             if self.graph.nodes[node]["type"] == LAYER_TYPE.InnerProduct:
                 return False
 
-        return self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and \
-                self.graph.nodes[output_node]["hw"].latency() > max_compute_latency
+        return any([self.graph.nodes[output_node]["type"] == LAYER_TYPE.Squeeze and \
+                self.graph.nodes[output_node]["hw"].latency() > max_compute_latency for output_node in output_nodes])
 
     def get_wr_layer(self):
         if not self.enable_wr:

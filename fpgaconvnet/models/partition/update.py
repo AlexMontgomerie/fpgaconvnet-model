@@ -13,15 +13,10 @@ from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
 MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
 
-def update(self):
-    ## update streams in and out
-    self.input_nodes = graphs.get_input_nodes(self.graph)
-    self.output_nodes = graphs.get_output_nodes(self.graph)
+def update(self, update_streams=True):
 
     ## update sizes
     self.wr_layer = self.wr_layer if self.wr_layer != "None" else None
-    self.size_in  = self.graph.nodes[self.input_nodes[0]]['hw'].size_in()
-    self.size_out = self.graph.nodes[self.input_nodes[0]]['hw'].size_out()
     if self.wr_layer != None:
         self.size_wr = self.graph.nodes[self.wr_layer]['hw'].get_parameters_size()['weights']
     else:
@@ -34,6 +29,17 @@ def update(self):
     ## add auxiliary layers
     self.remove_squeeze()
     self.add_squeeze()
+
+    ## update streams in and out
+    self.input_nodes = graphs.get_input_nodes(self.graph, allow_multiport=True)
+    self.ports_in = len(self.input_nodes)
+
+    self.output_nodes = graphs.get_output_nodes(self.graph, allow_multiport=True)
+    self.ports_out = len(self.output_nodes)
+
+    if update_streams:
+        self.streams_in = [self.graph.nodes[input_node]['hw'].streams_in() for input_node in self.input_nodes]
+        self.streams_out = [self.graph.nodes[output_node]['hw'].streams_out() for output_node in self.output_nodes]
 
     # ## update buffer depths
     for node in self.graph.nodes:
@@ -148,8 +154,8 @@ def reduce_squeeze_fanout(self):
     """
 
     def _add_dummy_squeeze():
-        inputs = graphs.get_input_nodes(self.graph)
-        for i, input_node in enumerate(inputs):
+        inputs = graphs.get_input_nodes(self.graph, allow_multiport=True)
+        for input_node in inputs:
             # add node to graph
             new_node  = "_".join([input_node,"squeeze"])
             # add node to node info
@@ -181,8 +187,8 @@ def reduce_squeeze_fanout(self):
             # add edge to graph
             self.graph.add_edge(new_node,input_node)
         # check difference in output streams
-        outputs = graphs.get_output_nodes(self.graph)
-        for i, output_node in enumerate(outputs):
+        outputs = graphs.get_output_nodes(self.graph, allow_multiport=True)
+        for output_node in outputs:
             # add node to graph
             new_node  = "_".join(["squeeze",output_node])
             # add node to node info
