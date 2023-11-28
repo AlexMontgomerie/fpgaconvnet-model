@@ -86,6 +86,19 @@ class SparseVectorMultiplyChisel(ModuleChiselBase):
 
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 
+        # get the input data
+        data = inputs[0]
+        weights = inputs[1]
+
+        # check input dimensions
+        iter_space_len = len(self.input_iter_space[0])
+        assert(len(data.shape) >= iter_space_len)
+        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
+
+        iter_space_len = len(self.input_iter_space[1])
+        assert(len(weights.shape) >= iter_space_len)
+        assert(list(weights.shape[-iter_space_len:]) == self.input_iter_space[1])
+
         # unpack the inputs
         data, weights = inputs
 

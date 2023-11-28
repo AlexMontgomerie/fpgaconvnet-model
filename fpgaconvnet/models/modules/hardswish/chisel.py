@@ -67,7 +67,15 @@ class HardswishChisel(ModuleChiselBase):
     def hardswish(x):
         return x * max(0, min(1, (x + 3) / 6))
 
-    def functional_model(self, data):
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
+
+        # get the input data
+        data = inputs[0]
+
+        # check input dimensions
+        iter_space_len = len(self.input_iter_space[0])
+        assert(len(data.shape) >= iter_space_len)
+        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
         # apply hardswish to all elements
         return np.vectorize(self.hardswish)(data)

@@ -100,12 +100,15 @@ class SqueezeChisel(ModuleChiselBase):
         }
 
 
-    def functional_model(self, data):
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 
-        # # check input dimensions
-        # iter_space_len = len(self.input_iter_space[0])
-        # assert(len(data.shape) >= iter_space_len)
-        # assert(data.shape[-iter_space_len] == self.input_iter_space[0])
+        # get the input data
+        data = inputs[0]
+
+        # check input dimensions
+        iter_space_len = len(self.input_iter_space[0])
+        assert(len(data.shape) >= iter_space_len)
+        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
         # add the bias term to the data
         return data

@@ -87,7 +87,10 @@ class ForkChisel(ModuleChiselBase):
         }
 
 
-    def functional_model(self, data):
+    def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
+
+        # get the input data
+        data = inputs[0]
 
         # replicate for coarse streams
         return np.repeat(np.expand_dims(data, axis=-2), self.coarse, axis=-2)
