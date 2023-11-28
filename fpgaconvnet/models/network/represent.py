@@ -1,6 +1,7 @@
 import os
 import json
 import inspect
+import onnx
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
@@ -14,7 +15,7 @@ import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
-
+from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
 
 def get_model_input_nodes(self, i):
     onnx_input_nodes = [ self.partitions[i].graph.nodes[n]["onnx_node"] \
@@ -158,6 +159,7 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
             layer = partition.layers.add()
             # layer.name = onnx_helper.format_onnx_name(node)
             layer.name = node
+
             # todo: implement these activations
             layer.type = fpgaconvnet.tools.layer_enum.to_proto_layer_type(
                     self.partitions[i].graph.nodes[node]['type'])
@@ -167,12 +169,19 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
                 layer.op_type = self.partitions[i].graph.nodes[node]['type'].name
             elif self.partitions[i].graph.nodes[node]['type'] in [LAYER_TYPE.Pooling, LAYER_TYPE.GlobalPooling]:
                 layer.op_type = self.partitions[i].graph.nodes[node]['hw'].pool_type
-
+            elif self.partitions[i].graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+                hw = self.partitions[i].graph.nodes[node]['hw']
+                if type(hw) == ConvolutionPointwiseSparseLayer:
+                    layer.op_type = 'pointwise_sparse'
+                elif type(hw) == ConvolutionSparseLayer:
+                    layer.op_type = 'sparse'
+                else:
+                    layer.op_type = 'dense'
             layer.onnx_node = self.partitions[i].graph.nodes[node]['onnx_node']
 
             # nodes into layer
             prev_nodes = graphs.get_prev_nodes(self.partitions[i].graph, node)
-            prev_nodes = list(self.get_prev_nodes_ordered(node, i))
+            # prev_nodes = list(self.get_prev_nodes_ordered(node, i))
 
             if not prev_nodes:
                 stream_in = layer.streams_in.add()
@@ -223,3 +232,19 @@ def save_all_partitions(self, filepath, input_output_from_model=True):
     with open(filepath,"w") as f:
         f.write(MessageToJson(partitions, preserving_proto_field_name=True))
 
+def write_channel_indices_to_onnx(self, onnx_path):
+    onnx_model = onnx.load(onnx_path)
+    for partition_index in range(len(self.partitions)):
+        partition = self.partitions[partition_index]
+        for node in partition.graph.nodes():
+            # choose to apply to convolution node only
+            if partition.graph.nodes[node]['type'] == LAYER_TYPE.Convolution:
+                # choose max fine for convolution node
+                onnx_node = next(filter(lambda x: x.name == node, onnx_model.graph.node))
+
+                hw = partition.graph.nodes[node]['hw']
+                if type(hw) in [ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer]:
+                    channel_indices = hw.get_stream_sparsity()[1]
+                    new_attr = onnx.helper.make_attribute("channel indices", channel_indices)
+                    onnx_node.attribute.append(new_attr)
+    onnx.save(onnx_model, onnx_path)

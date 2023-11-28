@@ -19,20 +19,66 @@ def get_pipeline_depth(self, node=None):
         pipeline depth (in cycles) from the first node
         in the partition to `node`
     """
-    if node is None:
-        node = graphs.get_input_nodes(self.graph)[0]
-    # find the pipeline depth of the current node
-    pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
-    # find the longest path to end from this node
-    if self.graph.out_degree(node) == 0:
-        return pipeline_depth
-    else:
-        next_nodes = graphs.get_next_nodes(self.graph,node)
-        if len(next_nodes) > 1:
-            # simple identity cannot be the longest path
-            next_nodes = [node for node in next_nodes if self.graph.nodes[node]['type'] != LAYER_TYPE.EltWise]
-        return pipeline_depth + max([
-            self.get_pipeline_depth(edge) for edge in next_nodes])
+
+    path_delays = []
+
+    # get the longest path
+    all_paths = [nx.dag_longest_path(self.graph)]
+
+    # initiation interval of the hardware
+    interval = self.get_interval()
+
+    for path in all_paths:
+
+        # get the hardware model for each node in the path
+        node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
+
+        # get the size in
+        size_in = [ n.size_in() for n in node_hw ]
+
+        # get the size out
+        size_out = [ n.size_out() for n in node_hw ]
+
+        rate_in = [ n.rate_in() for n in node_hw ]
+
+        # get the pipeline depth of each node
+        node_depth = [ n.pipeline_depth() for n in node_hw ]
+
+        # get the path depth
+        delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
+                np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+                    ]) for j in range(len(node_hw)) ])
+
+        # append to toal path delays
+        path_delays.append(delay)
+
+    return max(path_delays)
+
+def get_pipeline_depth_fast(self):
+
+    # memoisation of pipeline depths
+    node_pipeline_depth = {}
+
+    def _pipeline_depth_node(node):
+
+        # find the pipeline depth of the current node
+        pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
+
+        # find the longest path to end from this node
+        if self.graph.out_degree(node) == 0:
+            return pipeline_depth
+        elif node in node_pipeline_depth:
+            return node_pipeline_depth[node]
+        else:
+            node_pipeline_depth[node] = pipeline_depth + max([
+                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+            return node_pipeline_depth[node]
+
+    # get the first node of the graph
+    start_node = graphs.get_input_nodes(self.graph)[0]
+
+    # return pipeline depth from start node
+    return _pipeline_depth_node(start_node)
 
 def get_interval(self):
     """
@@ -92,11 +138,11 @@ def get_bandwidth_in(self,freq):
                 if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
                     # implement line buffer with off-chip memory
                     workload = workload * hw.kernel_size[0]
-                streams = hw.streams_in() 
+                streams = hw.streams_in()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
                 bitwidth = hw.data_t.width
-                # convert bits per cycle to Gbps, freq in MHz   
+                # convert bits per cycle to Gbps, freq in MHz
                 bw_in.append((rate*streams*bitwidth*freq)/1000)
     return bw_in
 
@@ -112,11 +158,11 @@ def get_bandwidth_out(self,freq):
         for i in range(len(hw.stream_outputs)):
             if hw.stream_outputs[i] or node in outputs:
                 workload = hw.workload_out()
-                streams = hw.streams_out() 
+                streams = hw.streams_out()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
                 bitwidth = hw.data_t.width
-                # convert bits per cycle to Gbps, freq in MHz   
+                # convert bits per cycle to Gbps, freq in MHz
                 bw_out.append((rate*streams*bitwidth*freq)/1000)
     return bw_out
 
@@ -130,7 +176,7 @@ def get_bandwidth_weight(self,freq):
         if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
             bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
             latency = self.graph.nodes[node]['hw'].latency()
-            # convert bits per cycle to Gbps, freq in MHz   
+            # convert bits per cycle to Gbps, freq in MHz
             bw_weight.append((bits_per_cycle*latency*freq/max_latency)/1000)
     return bw_weight
 

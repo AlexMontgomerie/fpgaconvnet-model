@@ -14,3 +14,7 @@ matplotlib
 pandas
 toml
 protobuf==3.20.3
+pymongo
+tqdm
+pyparsing<3
+dacite==1.8.1

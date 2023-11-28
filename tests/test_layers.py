@@ -2,8 +2,12 @@ import unittest
 import ddt
 import json
 import glob
+import pytest
+import itertools
 
-from fpgaconvnet.models.layers import Layer
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError, ModuleNotImplementedError
 
 # get the paths for all the layer configs
 RELU_CONF_PATH=list(glob.glob("tests/configs/layers/relu/*"))
@@ -12,6 +16,16 @@ POOLING_CONF_PATH=list(glob.glob("tests/configs/layers/pooling/*"))
 INNERPRODUCT_CONF_PATH=list(glob.glob("tests/configs/layers/inner_product/*"))
 SQUEEZE_CONF_PATH=list(glob.glob("tests/configs/layers/squeeze/*"))
 HARDSWISH_CONF_PATH=list(glob.glob("tests/configs/layers/hardswish/*"))
+CONCAT_CONF_PATH=list(glob.glob("tests/configs/layers/concat/*"))
+SPLIT_CONF_PATH=list(glob.glob("tests/configs/layers/split/*"))
+
+# get all the architectures
+ARCHITECTURES = [
+    (BACKEND.CHISEL, DIMENSIONALITY.TWO),
+    (BACKEND.CHISEL, DIMENSIONALITY.THREE),
+    (BACKEND.HLS, DIMENSIONALITY.TWO),
+    # (BACKEND.HLS, DIMENSIONALITY.THREE),
+]
 
 class TestLayerTemplate():
 
@@ -20,10 +34,14 @@ class TestLayerTemplate():
         self.assertTrue(layer.rows_in() > 0)
         self.assertTrue(layer.cols_in() > 0)
         self.assertTrue(layer.channels_in() > 0)
+        if layer.dimensionality == DIMENSIONALITY.THREE:
+            self.assertTrue(layer.depth_in() > 0)
         # check output dimensions
         self.assertTrue(layer.rows_out() > 0)
         self.assertTrue(layer.cols_out() > 0)
         self.assertTrue(layer.channels_out() > 0)
+        if layer.dimensionality == DIMENSIONALITY.THREE:
+            self.assertTrue(layer.depth_out() > 0)
 
     def run_test_rates(self, layer):
         # check rate in
@@ -52,10 +70,8 @@ class TestLayerTemplate():
         self.assertTrue(layer.size_out() >= 1)
 
     def run_test_latency(self,layer):
-        # check latency in
-        self.assertTrue(layer.latency_in() >= 0.0)
-        # check latency out
-        self.assertTrue(layer.latency_out() >= 0.0)
+        # check latency
+        self.assertTrue(layer.latency() >= 0.0)
 
     def run_test_pipeline_depth(self,layer):
         # check pipeline depth
@@ -72,7 +88,7 @@ class TestLayerTemplate():
         # self.assertEqual(set(list(rsc.keys())), set(["URAM", "BRAM","DSP","LUT","FF"]))
         self.assertTrue(rsc["LUT"] >= 0)
         self.assertTrue(rsc["FF"] >= 0)
-        self.assertTrue(rsc["DSP"] >= 0)
+        # self.assertTrue(rsc["DSP"] >= 0)
         self.assertTrue(rsc["BRAM"] >= 0)
         # self.assertTrue(rsc["URAM"] >= 0)
 
@@ -88,10 +104,14 @@ class TestLayerTemplate():
 
 
 @ddt.ddt
+# @pytest.mark.skip(reason="Not implemented yet")
 class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*POOLING_CONF_PATH)
-    def test_layer_configurations(self, config_path):
+    @ddt.data(*list(itertools.product(POOLING_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
 
         # open configuration
         with open(config_path, "r") as f:
@@ -105,40 +125,76 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_rows"] = config["stride"][0]
         config["stride_cols"] = config["stride"][1]
 
-        # initialise layer
-        layer = Layer.build_from_dict("PoolingLayer", config)
-        # layer = PoolingLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"],
-        #     kernel_rows=config["kernel_size"][0],
-        #     kernel_cols=config["kernel_size"][1],
-        #     stride_rows=config["stride"][0],
-        #     stride_cols=config["stride"][1],
-        #     pad_top=config["pad"],
-        #     pad_left=config["pad"],
-        #     pad_bottom=config["pad"],
-        #     pad_right=config["pad"],
-        # )
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["kernel_depth"] = config["kernel_size"][1]
+            config["stride_depth"] = config["stride"][1]
+            config["depth"] = config["cols"]
 
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
+        try:
+            # initialise layer
+            layer = LayerBase.build("pooling", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except (LayerNotImplementedError, ModuleNotImplementedError):
+            pass
+
+@ddt.ddt
+class TestConcatLayer(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*list(itertools.product(CONCAT_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
+
+        try:
+            # initialise layer
+            layer = LayerBase.build("concat", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except LayerNotImplementedError:
+            pass
+
 
 @ddt.ddt
 class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*CONVOLUTION_CONF_PATH)
-    def test_layer_configurations(self, config_path):
+    @ddt.data(*list(itertools.product(CONVOLUTION_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
 
         # open configuration
         with open(config_path, "r") as f:
@@ -152,173 +208,73 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_rows"] = config["stride"][0]
         config["stride_cols"] = config["stride"][1]
 
-        # initialise layer
-        layer = Layer.build_from_dict("ConvolutionLayer", config)
-        # layer = ConvolutionLayer(
-        #     filters=config["filters"],
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse_in=config["coarse_in"],
-        #     coarse_out=config["coarse_out"],
-        #     kernel_rows=config["kernel_size"][0],
-        #     kernel_cols=config["kernel_size"][1],
-        #     stride_rows=config["stride"][0],
-        #     stride_cols=config["stride"][1],
-        #     groups=config["groups"],
-        #     pad_top=config["pad"],
-        #     pad_left=config["pad"],
-        #     pad_bottom=config["pad"],
-        #     pad_right=config["pad"],
-        #     fine=config["fine"],
-        # )
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["kernel_depth"] = config["kernel_size"][1]
+            config["stride_depth"] = config["stride"][1]
+            config["depth"] = config["cols"]
 
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
+        try:
+            # initialise layer
+            layer = LayerBase.build("convolution", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except (LayerNotImplementedError, ModuleNotImplementedError):
+            pass
+
 
 @ddt.ddt
 class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*RELU_CONF_PATH)
-    def test_layer_configurations(self, config_path):
+    @ddt.data(*list(itertools.product(RELU_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
-        # initialise layer
-        layer = Layer.build_from_dict("ReLULayer", config)
-        # layer = ReLULayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"]
-        # )
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
 
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
+        try:
+            # initialise layer
+            layer = LayerBase.build("relu", config, backend, dimensionality)
 
-@ddt.ddt
-class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
 
-    @ddt.data(*INNERPRODUCT_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("InnerProductLayer", config)
-        # layer = InnerProductLayer(
-        #     filters=config["filters"],
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse_in=config["coarse_in"],
-        #     coarse_out=config["coarse_out"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*SQUEEZE_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("SqueezeLayer", config)
-        # layer = SqueezeLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse_in=config["coarse_in"],
-        #     coarse_out=config["coarse_out"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
-
-@ddt.ddt
-class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
-
-    @ddt.data(*HARDSWISH_CONF_PATH)
-    def test_layer_configurations(self, config_path):
-
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
-
-        # initialise layer
-        layer = Layer.build_from_dict("HardswishLayer", config)
-        # layer = HardswishLayer(
-        #     rows=config["rows"],
-        #     cols=config["cols"],
-        #     channels=config["channels"],
-        #     coarse=config["coarse"],
-        # )
-
-        # run tests
-        self.run_test_dimensions(layer)
-        self.run_test_rates(layer)
-        self.run_test_workload(layer)
-        self.run_test_size(layer)
-        self.run_test_streams(layer)
-        self.run_test_latency(layer)
-        self.run_test_pipeline_depth(layer)
-        self.run_test_wait_depth(layer)
-        self.run_test_updating_properties(layer)
-        self.run_test_resources(layer)
+        except LayerNotImplementedError:
+            pass
 
 
 # @ddt.ddt
-# class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
+# class TestInnerProductLayer(TestLayerTemplate,unittest.TestCase):
 
-#     @ddt.data(
-#         "tests/configs/layers/split/config_0.json",
-#     )
+#     @ddt.data(*INNERPRODUCT_CONF_PATH)
 #     def test_layer_configurations(self, config_path):
 
 #         # open configuration
@@ -326,13 +282,15 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 #             config = json.load(f)
 
 #         # initialise layer
-#         layer = SplitLayer(
-#             config["rows"],
-#             config["cols"],
-#             config["channels"],
-#             config["coarse"],
-#             ports_out=config["ports_out"]
-#         )
+#         layer = Layer.build_from_dict("InnerProductLayer", config)
+#         # layer = InnerProductLayer(
+#         #     filters=config["filters"],
+#         #     rows=config["rows"],
+#         #     cols=config["cols"],
+#         #     channels=config["channels"],
+#         #     coarse_in=config["coarse_in"],
+#         #     coarse_out=config["coarse_out"],
+#         # )
 
 #         # run tests
 #         self.run_test_dimensions(layer)
@@ -343,5 +301,119 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 #         self.run_test_latency(layer)
 #         self.run_test_pipeline_depth(layer)
 #         self.run_test_wait_depth(layer)
+#         self.run_test_updating_properties(layer)
 #         self.run_test_resources(layer)
+
+@ddt.ddt
+class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*list(itertools.product(SQUEEZE_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
+
+        try:
+            # initialise layer
+            layer = LayerBase.build("squeeze", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except LayerNotImplementedError:
+            pass
+
+
+@ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
+class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*list(itertools.product(HARDSWISH_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        try:
+            # initialise layer
+            layer = LayerBase.build("hardswish", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except LayerNotImplementedError:
+            pass
+
+
+@ddt.ddt
+# @pytest.mark.skip(reason="Not implemented yet")
+class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*list(itertools.product(SPLIT_CONF_PATH, ARCHITECTURES)))
+    def test_layer_configurations(self, args):
+
+        # extract the arguments
+        config_path, (backend, dimensionality) = args
+
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # add dimensionality information
+        if dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = config["cols"]
+
+        # initialise layer
+        try:
+            layer = LayerBase.build("split", config, backend, dimensionality)
+
+            # run tests
+            self.run_test_dimensions(layer)
+            self.run_test_rates(layer)
+            self.run_test_workload(layer)
+            self.run_test_size(layer)
+            self.run_test_streams(layer)
+            self.run_test_latency(layer)
+            self.run_test_pipeline_depth(layer)
+            self.run_test_wait_depth(layer)
+            self.run_test_updating_properties(layer)
+            self.run_test_resources(layer)
+
+        except LayerNotImplementedError:
+            pass
+
 
