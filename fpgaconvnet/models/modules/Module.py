@@ -78,9 +78,20 @@ class Module:
             match self.regression_model:
                 case "linear_regression":
                     # get the coefficients from the cache path and load
-                    coef_path = os.path.join(rsc_cache_path,
-                            f"{module_identifier}_{rsc_type}.npy".lower())
-                    self.rsc_coef[rsc_type] = np.load(coef_path)
+                    if self.__class__.__name__ == "Squeeze" or self.__class__.__name__ == "Squeeze3D":
+                        match rsc_type:
+                            case "FF":
+                                self.rsc_coef[rsc_type] = np.array([0, 15.87391647, 3.48485944, 0, 5.69486761, 1084.90151568])
+                            case "Logic_LUT":
+                                self.rsc_coef[rsc_type] = np.array([0, 2.22688964, 0, 0, 235.5859881, 0, 3.29301748, 0])
+                            case "LUT_RAM":
+                                self.rsc_coef[rsc_type] = np.array([48.82925296])
+                            case _:
+                                self.rsc_coef[rsc_type] = np.array([0])
+                    else:
+                        coef_path = os.path.join(rsc_cache_path,
+                                f"{module_identifier}_{rsc_type}.npy".lower())
+                        self.rsc_coef[rsc_type] = np.load(coef_path, allow_pickle=True)
                 case "xgboost" | "xgboost-kernel":
                     # get the coefficients from the cache path and load
                     model_path = os.path.join(rsc_cache_path,
