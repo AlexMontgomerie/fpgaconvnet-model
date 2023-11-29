@@ -22,3 +22,4 @@ onnx-graphsurgeon
 ddt
 pymongo
 scikit-learn
+pytest

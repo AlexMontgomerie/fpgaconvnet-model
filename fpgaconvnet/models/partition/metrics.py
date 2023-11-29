@@ -23,7 +23,11 @@ def get_pipeline_depth(self, node=None):
     path_delays = []
 
     # get the longest path
-    all_paths = [nx.dag_longest_path(self.graph)]
+    if node is None:
+        all_paths = [nx.dag_longest_path(self.graph)]
+    else:
+         input_node = graphs.get_input_nodes(self.partitions[0].graph)[0]
+         all_paths = [max(nx.all_simple_paths(self.partitions[0].graph, input_node, node), key=lambda x: len(x))]
 
     # initiation interval of the hardware
     interval = self.get_interval()
