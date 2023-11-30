@@ -13,7 +13,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/AlexMontgomerie/fpgaconvnet-model",
     include_package_data=True,
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_namespace_packages(
+        include=['fpgaconvnet.*']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

@@ -32,16 +32,16 @@ def add_squeeze(self):
             # print("Start Node:", start_node)
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[start_node]["onnx_node"],
-                onnx_input=self.graph.nodes[start_node]["onnx_input"],
-                onnx_output=self.graph.nodes[start_node]["onnx_output"],
+                # onnx_node=self.graph.nodes[start_node]["onnx_node"],
+                # onnx_input=self.graph.nodes[start_node]["onnx_input"],
+                # onnx_output=self.graph.nodes[start_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[start_node]['hw'].rows_out(),
                     self.graph.nodes[start_node]['hw'].cols_out(),
                     self.graph.nodes[start_node]['hw'].channels_out(),
                     self.graph.nodes[start_node]['hw'].streams_out(),
                     self.graph.nodes[end_node]['hw'].streams_in(),
-                    data_t=self.graph.nodes[start_node]['hw'].output_t,
+                    # data_t=self.graph.nodes[start_node]['hw'].output_t,
                 )
             )
 
@@ -59,16 +59,16 @@ def add_squeeze(self):
             # add node to node info
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[input_node]["onnx_node"],
-                onnx_input=self.graph.nodes[input_node]["onnx_input"],
-                onnx_output=self.graph.nodes[input_node]["onnx_output"],
+                # onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                # onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                # onnx_output=self.graph.nodes[input_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[input_node]['hw'].rows_in(),
                     self.graph.nodes[input_node]['hw'].cols_in(),
                     self.graph.nodes[input_node]['hw'].channels_in(),
                     self.streams_in,
                     self.graph.nodes[input_node]['hw'].streams_in(),
-                    data_t=self.graph.nodes[input_node]['hw'].input_t,
+                    # data_t=self.graph.nodes[input_node]['hw'].input_t,
                 )
             )
             # add edge to graph
@@ -82,16 +82,16 @@ def add_squeeze(self):
             # add node to node info
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[output_node]["onnx_node"],
-                onnx_input=self.graph.nodes[output_node]["onnx_input"],
-                onnx_output=self.graph.nodes[output_node]["onnx_output"],
+                # onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                # onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                # onnx_output=self.graph.nodes[output_node]["onnx_output"],
                 hw=SqueezeLayer(
                     self.graph.nodes[output_node]['hw'].rows_out(),
                     self.graph.nodes[output_node]['hw'].cols_out(),
                     self.graph.nodes[output_node]['hw'].channels_out(),
                     self.graph.nodes[output_node]['hw'].streams_out(),
                     self.streams_out,
-                    data_t=self.graph.nodes[output_node]['hw'].output_t,
+                    # data_t=self.graph.nodes[output_node]['hw'].output_t,
                 )
             )
             self.graph.add_edge(output_node,new_node)
