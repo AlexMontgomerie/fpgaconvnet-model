@@ -5,8 +5,8 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
-def get_quant_param(model, data_width=16, weight_width=8,
-        acc_width=24, block_floating_point=False, binary_point_scale=0.5):
+def get_quant_param(model, data_width=8, weight_width=8,
+        acc_width=16, block_floating_point=True, binary_point_scale=0.5):
 
     # dictionary of quantisation parameters
     quant_param = {}

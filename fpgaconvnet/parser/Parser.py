@@ -1,40 +1,34 @@
 import copy
-import sys
 import importlib
 import os
 import random
-
-from graphviz import Digraph
-import networkx as nx
-import onnx
-from onnxsim import simplify
-import onnx.numpy_helper
-import onnx.utils
-import onnxoptimizer as optimizer
-import pydot
-import numpy as np
-
-from fpgaconvnet.models.partition import Partition
-from fpgaconvnet.models.network import Network
-from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
-
-import fpgaconvnet.tools.graphs as graphs
+import sys
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.parser.onnx.parse as onnx_parse
 import fpgaconvnet.parser.onnx.passes as onnx_passes
-
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
-
+import fpgaconvnet.proto.fpgaconvnet_pb2
+import fpgaconvnet.tools.graphs as graphs
+import networkx as nx
+import numpy as np
+import onnxoptimizer as optimizer
+import pydot
+from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
+from fpgaconvnet.models.network import Network
+from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.parser.onnx.parse import *
 from fpgaconvnet.parser.prototxt.parse import *
-
-
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
-
-
+from fpgaconvnet.tools.layer_enum import (LAYER_TYPE, from_onnx_op_type,
+                                          from_proto_layer_type)
 from google.protobuf import json_format
-import fpgaconvnet.proto.fpgaconvnet_pb2
+from graphviz import Digraph
+from onnxsim import simplify
+
+import onnx
+import onnx.numpy_helper
+import onnx.utils
+
 
 class Parser:
 
@@ -265,12 +259,13 @@ class Parser:
     def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
-        if save_opt_model:
-            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
-            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)
+
+        if save_opt_model:
+            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
+            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # create a networkx graph
         graph = nx.DiGraph()
