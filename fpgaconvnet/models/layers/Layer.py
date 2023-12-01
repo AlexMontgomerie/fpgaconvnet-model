@@ -300,11 +300,12 @@ class Layer:
         # return max(self.latency_in(), self.latency_out())
         return max([ self.modules[module].latency() for module in self.modules ])
 
+    def start_depth(self):
+        return 0 # number of input samples required to create a complete output channel
+
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
-
-    def wait_depth(self):
-        return sum([ self.modules[module].wait_depth() for module in self.modules ])
+        # return [ self.modules[module].pipeline_depth() for module in self.modules ][0]
 
     def resource(self):
         return {

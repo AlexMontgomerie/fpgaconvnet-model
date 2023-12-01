@@ -107,6 +107,8 @@ class SlidingWindow(Module):
                 (self.kernel_size[1]-1)*self.channels - \
                 ( self.pad_top * self.cols * self.channels + \
                 (self.pad_left+self.pad_right)*self.channels )
+        # return self.cols*(self.channels)*(self.kernel_size[0]-1)+\
+        #         self.channels*(self.kernel_size[1]-1)
 
     def wait_depth(self):
         """
@@ -150,7 +152,7 @@ class SlidingWindow(Module):
         self.window_buffer_width = (self.kernel_size[1]-1) * self.streams * self.data_width
         self.window_buffer_bram = self.kernel_size[0] * bram_array_resource_model(
                     self.window_buffer_depth, self.window_buffer_width, "fifo")
-        if self.window_buffer_bram == 0:            
+        if self.window_buffer_bram == 0:
             self.window_buffer_lutram = self.kernel_size[0] * queue_lutram_resource_model(
                         self.window_buffer_depth, self.window_buffer_width)
         else:
@@ -166,7 +168,7 @@ class SlidingWindow(Module):
                 queue_lutram_resource_model(
                 self.frame_buff_depth, self.frame_buff_width)
         else:
-            self.frame_buffer_lutram = 0    
+            self.frame_buffer_lutram = 0
 
     def utilisation_model(self):
         # get the buffer estimates

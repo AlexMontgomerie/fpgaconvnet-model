@@ -358,12 +358,19 @@ class ConvolutionLayer(Layer):
     #             (self.pad_left+self.pad_right)*self.channels//self.coarse_in ) + \
     #             self.channels//self.coarse_in
 
-    def pipeline_depth(self):
-        # pipeline depth of the sliding window minus the total words in the pipeline from padding
-        # plus the words needed to fill the accum buffer
-        return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
-                (self.kernel_cols-1)*self.channels//self.coarse_in + \
-                ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
+    # def pipeline_depth(self):
+    #     # pipeline depth of the sliding window minus the total words in the pipeline from padding
+    #     # plus the words needed to fill the accum buffer
+    #     return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+    #             (self.kernel_cols-1)*self.channels//self.coarse_in + \
+    #             ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
+    #     return (self.kernel_rows-1)*(self.cols+self.pad_left+self.pad_right)*self.channels//self.coarse_in + \
+    #             (self.kernel_cols-1)*self.channels//self.coarse_in + \
+    #             ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
+
+    def start_depth(self):
+        return (self.kernel_rows-1)*self.cols*self.channels//self.streams_in() + \
+                (self.kernel_cols-1)*self.channels//self.streams_in()
 
     def update(self):
 
