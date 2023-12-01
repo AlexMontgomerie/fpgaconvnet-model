@@ -249,7 +249,7 @@ class Parser:
         return graph
 
     def onnx_to_fpgaconvnet(self, onnx_filepath, platform_filepath,
-            multi_fpga=False, save_opt_model=True, **quantisation_args):
+            multi_fpga=False, save_opt_model=True, rsc_allocation=1.0, **quantisation_args):
 
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
@@ -318,7 +318,7 @@ class Parser:
         # return the graph
         platform = Platform()
         platform.update(platform_filepath)
-        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality, multi_fpga=multi_fpga)
+        return Network("from_onnx", onnx_model, graph, platform, dimensionality=dimensionality, multi_fpga=multi_fpga, rsc_allocation=rsc_allocation)
 
     def get_hardware_from_prototxt_node(self, node):
 

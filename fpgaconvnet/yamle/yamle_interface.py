@@ -22,7 +22,7 @@ def _onnx_is_empty(path: str) -> bool:
     graph = onnx.load(path).graph
     return len(graph.node) == 0
 
-def get_yamle_model_cost(model_path: str, platform_path: str) -> Dict[str, float]:
+def get_yamle_model_cost(model_path: str, platform_path: str, rsc_allocation=0.8) -> Dict[str, float]:
     # check model is not empty
     # assert(not _onnx_is_empty(model_path), "Error: Got an empty onnx graph.")
     if _onnx_is_empty(model_path):
@@ -36,7 +36,7 @@ def get_yamle_model_cost(model_path: str, platform_path: str) -> Dict[str, float
     parser = Parser(backend="chisel", quant_mode="auto", convert_gemm_to_conv=False, custom_onnx=True)
 
     # get the network
-    net = parser.onnx_to_fpgaconvnet(model_path, platform_path, save_opt_model=False)
+    net = parser.onnx_to_fpgaconvnet(model_path, platform_path, save_opt_model=False, rsc_allocation=rsc_allocation)
 
     # greedy optimiser
     opt = GreedyPartition(net)
@@ -59,7 +59,12 @@ def get_yamle_model_cost(model_path: str, platform_path: str) -> Dict[str, float
     opt.net.update_partitions()
 
     # run optimiser
-    opt.run_solver()
+    feasible = opt.run_solver()
+    if not feasible:
+        return {
+            "latency": float("nan"),
+            "throughput": float("nan")
+        }
 
     # update all partitions
     opt.net.update_partitions()
