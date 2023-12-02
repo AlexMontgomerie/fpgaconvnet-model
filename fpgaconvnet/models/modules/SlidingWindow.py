@@ -106,7 +106,7 @@ class SlidingWindow(Module):
         return (self.kernel_size[0]-1)*(self.cols+self.pad_left+self.pad_right)*self.channels + \
                 (self.kernel_size[1]-1)*self.channels - \
                 ( self.pad_top * self.cols * self.channels + \
-                (self.pad_left+self.pad_right)*self.channels )
+                self.pad_left * self.channels )
         # return self.cols*(self.channels)*(self.kernel_size[0]-1)+\
         #         self.channels*(self.kernel_size[1]-1)
 

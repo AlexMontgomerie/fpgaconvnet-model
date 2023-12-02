@@ -126,7 +126,7 @@ def get_pipeline_depth(self, node=None):
             # print(node_depth[i], channels_out[i-1], num_bursts, prev_interval, delay_per_burst, delay)
 
         # append to toal path delays
-        # print(delay)
+        print(delay)
         return delay
 
     # print(all_paths)
@@ -275,7 +275,7 @@ def get_total_operations(self):
         else:
             ops += self.graph.nodes[node]['hw'].get_operations()
     return ops
-    
+
 def get_total_sparse_operations(self):
     sparse_ops = 0
     for node in self.graph.nodes():

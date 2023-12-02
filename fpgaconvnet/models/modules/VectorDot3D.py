@@ -31,7 +31,7 @@ class VectorDot3D(Module3D):
         self.load_resource_coefficients(self.module_identifier)
 
     def pipeline_depth(self):
-        return self.fine
+        return int(math.log(self.fine, 2)) + 1
 
     def module_info(self):
         return {

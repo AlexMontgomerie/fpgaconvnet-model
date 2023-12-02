@@ -42,7 +42,7 @@ class GlobalPoolingLayer3D(Layer3D):
         self._coarse = coarse
 
         self.pool_type = op_type
-        
+
         # init modules
         self.modules["global_pool3d"] = GlobalPool3D(
                 self.rows_in(), self.cols_in(), self.depth_in(),
@@ -62,6 +62,9 @@ class GlobalPoolingLayer3D(Layer3D):
 
     def depth_out(self) -> int:
         return 1
+
+    def start_depth(self):
+        return self.rows*self.cols*self.channels
 
     @property
     def coarse(self) -> int:

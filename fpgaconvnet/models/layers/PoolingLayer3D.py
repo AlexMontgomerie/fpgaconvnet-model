@@ -109,6 +109,11 @@ class PoolingLayer3D(Layer3D):
     def depth_out(self) -> int:
         return self.modules["sliding_window3d"].depth_out()
 
+    def start_depth(self):
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.depth*self.channels + \
+                (self.kernel_cols-1-self.pad_left)*self.depth*self.channels + \
+                (self.kernel_depth-1-self.pad_front)*self.channels
+
     @property
     def kernel_size(self) -> List[int]:
         return [ self._kernel_rows, self._kernel_cols, self._kernel_depth ]

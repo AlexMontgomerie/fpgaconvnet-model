@@ -81,11 +81,15 @@ class PoolingLayer(Layer):
     #             (self.kernel_cols-1)*self.channels//self.streams_in()
 
     def start_depth(self):
-        return (self.kernel_rows-1)*self.cols*self.channels + \
-                (self.kernel_cols-1)*self.channels - \
-                ( self.pad_top * self.cols * self.channels + \
-                (self.pad_left+self.pad_right)*self.channels ) + \
-                self.channels
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels + \
+                (self.kernel_cols-1-self.pad_left)*self.channels
+
+    # def start_depth(self):
+    #     return (self.kernel_rows-1)*self.cols*self.channels + \
+    #             (self.kernel_cols-1)*self.channels - \
+    #             ( self.pad_top * self.cols * self.channels + \
+    #             (self.pad_left+self.pad_right)*self.channels ) + \
+    #             self.channels
 
     def get_operations(self):
         return self.channels_in()*self.rows_out()*self.cols_out()\

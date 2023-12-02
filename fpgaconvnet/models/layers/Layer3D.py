@@ -71,7 +71,7 @@ class Layer3D:
         self.output_t = self.data_t
         self.stream_inputs = [False]
         self.stream_outputs = [False]
-        
+
     @property
     def rows(self) -> int:
         return self._rows
@@ -334,6 +334,9 @@ class Layer3D:
 
     def latency(self):
         return max(self.latency_in(), self.latency_out())
+
+    def start_depth(self):
+        return 0 # number of input samples required to create a complete output channel
 
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])

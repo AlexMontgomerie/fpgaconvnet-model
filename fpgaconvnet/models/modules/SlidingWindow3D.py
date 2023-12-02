@@ -114,10 +114,12 @@ class SlidingWindow3D(Module3D):
         return (self.rows_out()*self.cols_out()*self.depth_out())/float(self.rows*self.cols*self.depth)
 
     def pipeline_depth(self):
-        return (self.cols+self.pad_left+self.pad_right)*(self.depth+self.pad_front+self.pad_back)*(self.channels)*(self.kernel_rows-1) +\
-               (self.depth+self.pad_front+self.pad_back)*(self.channels)*(self.kernel_cols-1) +\
-               (self.channels)*(self.kernel_depth-1)
-               # self.channels*((self.kernel_rows-1)*self.kernel_cols*self.kernel_depth + (self.kernel_cols-1)*self.kernel_depth + (self.kernel_depth-1))
+        return (self.cols+self.pad_left+self.pad_right)*(self.depth+self.pad_front+self.pad_back)*self.channels*(self.kernel_rows-1) +\
+               (self.depth+self.pad_front+self.pad_back)*self.channels*(self.kernel_cols-1) +\
+               self.channels*(self.kernel_depth-1) - \
+                ( self.pad_top * self.cols * self.depth * self.channels + \
+                self.pad_front * self.cols * self.channels + \
+                self.pad_left * self.channels )
 
     def wait_depth(self):
         """
@@ -198,7 +200,7 @@ class SlidingWindow3D(Module3D):
                 queue_lutram_resource_model(
                 self.frame_buff_depth, self.frame_buff_width)
         else:
-            self.frame_buffer_lutram = 0  
+            self.frame_buffer_lutram = 0
 
 
     def utilisation_model(self):
