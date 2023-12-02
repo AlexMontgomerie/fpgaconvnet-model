@@ -48,7 +48,7 @@ def test_simple_gap_network():
     assert net.partitions[0].get_pipeline_depth("Conv_5") == pytest.approx(7317, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_6") == pytest.approx(7320, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_7") == pytest.approx(7415, abs=ABS_TOL)
-    assert False
+    # assert False
 
 @ddt.ddt()
 def test_unet_single_branch_network():
@@ -96,7 +96,7 @@ def test_unet_single_branch_network():
     assert net.partitions[0].get_pipeline_depth("Conv_12") == pytest.approx(27875, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_14") == pytest.approx(32379, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_16") == pytest.approx(32416, abs=ABS_TOL)
-    assert False
+    # assert False
 
 
 
