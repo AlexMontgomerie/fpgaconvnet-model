@@ -390,6 +390,9 @@ class MultiPortLayer:
     def latency(self):
         return max(self.latency_in(), self.latency_out())
 
+    def start_depth(self):
+        return 0 # number of input samples required to create a complete output channel
+
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
 

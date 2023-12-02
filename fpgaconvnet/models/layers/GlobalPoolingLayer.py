@@ -101,7 +101,7 @@ class GlobalPoolingLayer(Layer):
         self.acc_t.to_protobuf(parameters.acc_t)
 
     def start_depth(self):
-        return self.rows*self.cols*self.channels//self.streams_in()
+        return self.rows*self.cols*self.channels
 
     def update(self):
         # pool

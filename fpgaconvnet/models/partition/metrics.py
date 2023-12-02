@@ -27,7 +27,7 @@ def get_pipeline_depth(self, node=None):
         all_paths = [nx.dag_longest_path(self.graph)]
     else:
          input_node = graphs.get_input_nodes(self.graph)[0]
-         print(input_node)
+         # print(input_node)
          all_paths = [max(nx.all_simple_paths(self.graph, input_node, node), key=lambda x: len(x))]
 
     # initiation interval of the hardware
@@ -40,9 +40,11 @@ def get_pipeline_depth(self, node=None):
 
         # get the size in
         size_in = [ n.size_in() for n in node_hw ]
+        workload_in = [ n.workload_in() for n in node_hw ]
 
         # get the size out
         size_out = [ n.size_out() for n in node_hw ]
+        workload_out = [ n.workload_out() for n in node_hw ]
 
         # get the latency
         latency = [ n.latency() for n in node_hw ]
@@ -59,6 +61,12 @@ def get_pipeline_depth(self, node=None):
         # get the channels in and out
         channels_in = [ n.channels_in() for n in node_hw ]
         channels_out = [ n.channels_out() for n in node_hw ]
+
+        # get the streams in and out
+        streams_in = [ n.streams_in() for n in node_hw ]
+        # channels_out = [ n.channels_out() for n in node_hw ]
+
+        # streams_in = [ n.streams_in() for n in node_hw ]
 
         # if len(path) == 1:
         #     return node_depth[0]*node_hw[0].interval()
@@ -96,31 +104,32 @@ def get_pipeline_depth(self, node=None):
 
             # get how many bursts of the previous node are required
             # to fill the input buffer of the current node
-            num_bursts = max(math.ceil(start_depth[i]/channels_out[i-1]) - 1, 0)
+            num_bursts = max(math.ceil(start_depth[i]/channels_in[i]) - 1, 0)
 
             # get the interval for the previous nodes
-            prev_interval = max([ latency[j] for j in range(i+1) ])
+            prev_interval = max([ latency[j] for j in range(i) ])
 
             # get the delay per burst
-            delay_per_burst = (prev_interval/size_out[i-1]) * channels_out[i-1]
+            delay_per_burst = (prev_interval/workload_in[i]) * channels_in[i]
             # delay_per_burst = channels_out[i-1]
 
             # add the delay per burst to the total delay
             delay += num_bursts * delay_per_burst
 
             # add the remaining cycles from the current burst
-            delay += start_depth[i] - num_bursts * channels_out[i-1]
+            delay += start_depth[i] - num_bursts * channels_in[i]
 
             # add the delay from the pipeline minus the depth filled by the start_depth
-            delay += pipeline_depth[i] - start_depth[i]
+            delay += pipeline_depth[i] - start_depth[i]//streams_in[i]
+            # delay += pipeline_depth[i]
 
-            print(node_depth[i], channels_out[i-1], num_bursts, prev_interval, delay_per_burst, delay)
+            # print(node_depth[i], channels_out[i-1], num_bursts, prev_interval, delay_per_burst, delay)
 
         # append to toal path delays
-        print(delay)
+        # print(delay)
         return delay
 
-    print(all_paths)
+    # print(all_paths)
     return max([ get_path_delay(path) for path in all_paths ])
 
 def get_pipeline_depth_fast(self):
