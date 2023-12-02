@@ -25,13 +25,13 @@ class ReSize(Module):
         pass
 
     def rows_out(self):
-        return self.rows * self.scales[0]
+        return int(self.rows * self.scales[0])
 
     def cols_out(self):
-        return self.cols * self.scales[1]
+        return int(self.cols * self.scales[1])
 
     def channels_out(self):
-        return self.channels * self.scales[2]
+        return int(self.channels * self.scales[2])
 
     def rate_in(self):
         return np.prod(self.scales)

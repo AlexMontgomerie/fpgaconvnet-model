@@ -268,10 +268,22 @@ def get_total_bandwidth(self,freq):
     return sum(bw_in) + sum(bw_out) + sum(bw_weight)
 
 def get_total_operations(self):
-    return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])
-
+    ops = 0
+    for node in self.graph.nodes():
+        if node == self.wr_layer:
+            ops += self.graph.nodes[node]['hw'].get_operations() * self.wr_factor
+        else:
+            ops += self.graph.nodes[node]['hw'].get_operations()
+    return ops
+    
 def get_total_sparse_operations(self):
-    return sum([self.graph.nodes[node]['hw'].get_sparse_operations() for node in self.graph.nodes])
+    sparse_ops = 0
+    for node in self.graph.nodes():
+        if node == self.wr_layer:
+            sparse_ops += self.graph.nodes[node]['hw'].get_sparse_operations() * self.wr_factor
+        else:
+            sparse_ops += self.graph.nodes[node]['hw'].get_sparse_operations()
+    return sparse_ops
 
 def get_resource_usage(self):
         # initialise resource usage at 0
