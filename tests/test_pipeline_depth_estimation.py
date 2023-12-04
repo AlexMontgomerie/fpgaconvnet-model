@@ -15,7 +15,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 PLATFORM = "examples/platforms/zedboard.toml"
 
-ABS_TOL = 2000
+ABS_TOL = 500
 
 @ddt.ddt()
 def test_simple_gap_network():
@@ -48,7 +48,7 @@ def test_simple_gap_network():
     assert net.partitions[0].get_pipeline_depth("Conv_5") == pytest.approx(7317, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_6") == pytest.approx(7320, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_7") == pytest.approx(7415, abs=ABS_TOL)
-    # assert False
+    assert False
 
 @ddt.ddt()
 def test_unet_single_branch_network():
@@ -149,7 +149,7 @@ def test_unet_two_branch_network():
 
     # check the correct pipeline depth for each node
     # assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(156, abs=ABS_TOL)
-    assert net.partitions[0].get_pipeline_depth("Conv_2") == pytest.approx(1999, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_2") == pytest.approx(1991, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("MaxPool_4") == pytest.approx(6234, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_5") == pytest.approx(15182, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_7") == pytest.approx(24405, abs=ABS_TOL)

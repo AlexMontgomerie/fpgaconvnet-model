@@ -6,6 +6,8 @@ import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
+from fpgaconvnet.models.layers import MultiPortLayer
+
 def get_node_delay(self, node):
 
     # get the path to the node
@@ -34,10 +36,18 @@ def get_node_delay(self, node):
         # get the interval of the node and all ancestors
         prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
         prev_rate_out = min([ self.graph.nodes[pred]["hw"].size_out() / float(self.graph.nodes[pred]["hw"].latency()) for pred in nx.ancestors(self.graph, node) ])
+        # print(list(nx.ancestors(self.graph, node)))
+
+        def get_total_size_in(n):
+            if isinstance(n, MultiPortLayer):
+                return sum([ self.graph.nodes[n]["hw"].size_in(j) for j in range(self.graph.nodes[n]["hw"].ports_in) ])
+            else:
+                return self.graph.nodes[n]["hw"].size_in()
 
         # get the cycles per word
         # cycles_per_word = prev_interval/node_hw[i].workload_in()
         cycles_per_word = prev_interval/node_hw[i].size_in()
+        # cycles_per_word = max([ self.graph.nodes[pred]["hw"].latency()/get_total_size_in(pred) for pred in nx.ancestors(self.graph, node) ])
         # cycles_per_word = max(prev_interval/node_hw[i-1].workload_out(), 1/prev_rate_out)
         # cycles_per_word = max(prev_interval/node_hw[i].size_in(), 1/prev_rate_out)
         # cycles_per_word = 1/prev_rate_out
