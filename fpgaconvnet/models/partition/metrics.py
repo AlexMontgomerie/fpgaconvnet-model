@@ -6,6 +6,61 @@ import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
+def get_node_delay(self, node):
+
+    # get the path to the node
+    input_node = graphs.get_input_nodes(self.graph)[0]
+    path = max(nx.all_simple_paths(
+        self.graph, input_node, node), key=lambda x: len(x))
+
+    # get the hardware model for each node in the path
+    node_hw = [ self.graph.nodes[n]["hw"] for n in path ]
+
+    # # initialise with the first node delay
+    delay = node_hw[0].pipeline_depth()
+    # delay = 0
+
+    # iterate over the nodes in the path
+    for i, node in enumerate(path):
+
+        # skip the first node
+        if i == 0:
+            continue
+
+        # get how many bursts of the previous node are required
+        # to fill the input buffer of the current node
+        num_bursts = max(math.ceil(node_hw[i].start_depth()/node_hw[i].channels_in()) - 1, 0)
+
+        # get the interval of the node and all ancestors
+        prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
+        prev_rate_out = min([ self.graph.nodes[pred]["hw"].size_out() / float(self.graph.nodes[pred]["hw"].latency()) for pred in nx.ancestors(self.graph, node) ])
+
+        # get the cycles per word
+        # cycles_per_word = prev_interval/node_hw[i].workload_in()
+        cycles_per_word = prev_interval/node_hw[i].size_in()
+        # cycles_per_word = max(prev_interval/node_hw[i-1].workload_out(), 1/prev_rate_out)
+        # cycles_per_word = max(prev_interval/node_hw[i].size_in(), 1/prev_rate_out)
+        # cycles_per_word = 1/prev_rate_out
+
+        # get the delay per burst
+        delay_per_burst = cycles_per_word * node_hw[i].channels_in() // node_hw[i].streams_in()
+
+        # add the delay per burst to the total delay
+        delay += num_bursts * delay_per_burst
+
+        # add the remaining cycles from the current burst
+        delay += (node_hw[i].start_depth() - num_bursts * node_hw[i].channels_in()) * cycles_per_word
+
+        # add the delay from the pipeline minus the depth filled by the start_depth
+        delay += node_hw[i].pipeline_depth() - node_hw[i].start_depth()//node_hw[i].streams_in()
+
+        print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", node_hw[i].start_depth(), "pipeline_depth: ", node_hw[i].pipeline_depth(), "workload_in: ", node_hw[i].workload_in(), "channels_in: ", node_hw[i].channels_in())
+
+    # append to toal path delays
+    print(delay)
+    return delay
+
+
 def get_pipeline_depth(self, node=None):
     """
     Parameters
@@ -20,117 +75,15 @@ def get_pipeline_depth(self, node=None):
         in the partition to `node`
     """
 
-    path_delays = []
-
     # get the longest path
     if node is None:
-        all_paths = [nx.dag_longest_path(self.graph)]
+        output_node = graphs.get_output_nodes(self.graph)[-1]
+        return self.get_node_delay(output_node)
     else:
-         input_node = graphs.get_input_nodes(self.graph)[0]
-         # print(input_node)
-         all_paths = [max(nx.all_simple_paths(self.graph, input_node, node), key=lambda x: len(x))]
+        return self.get_node_delay(node)
 
-    # initiation interval of the hardware
-    interval = self.get_interval()
-
-    def get_path_delay(path):
-
-        # get the hardware model for each node in the path
-        node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
-
-        # get the size in
-        size_in = [ n.size_in() for n in node_hw ]
-        workload_in = [ n.workload_in() for n in node_hw ]
-
-        # get the size out
-        size_out = [ n.size_out() for n in node_hw ]
-        workload_out = [ n.workload_out() for n in node_hw ]
-
-        # get the latency
-        latency = [ n.latency() for n in node_hw ]
-
-        # get the rate in
-        rate_in = [ n.rate_in() for n in node_hw ]
-        rate_out = [ n.rate_out() for n in node_hw ]
-
-        # get the pipeline depth of each node
-        node_depth = [ n.pipeline_depth() for n in node_hw ]
-        start_depth = [ n.start_depth() for n in node_hw ]
-        pipeline_depth = [ n.pipeline_depth() for n in node_hw ]
-
-        # get the channels in and out
-        channels_in = [ n.channels_in() for n in node_hw ]
-        channels_out = [ n.channels_out() for n in node_hw ]
-
-        # get the streams in and out
-        streams_in = [ n.streams_in() for n in node_hw ]
-        # channels_out = [ n.channels_out() for n in node_hw ]
-
-        # streams_in = [ n.streams_in() for n in node_hw ]
-
-        # if len(path) == 1:
-        #     return node_depth[0]*node_hw[0].interval()
-        # else:
-        #     return 0 + get_path_delay(path[1:])
-
-
-        # old delay calculation
-        # delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
-        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
-        # multiport delay calculation
-        # delay = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
-        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
-        # new delay calculation TODO: verify whether we should use latency[j] or interval at the propagation delay stage
-        # propagation_delay = sum([(node_depth[j] * latency[j]) / size_in[j] for j in range(len(node_hw))])
-        # backpropagation_delay = sum([ (interval/size_in[0]) * \
-        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
-        # delay = propagation_delay + backpropagation_delay
-        curr_node_interval = lambda i: max([ latency[j] for j in range(i) ])
-        # curr_rate = lambda i: curr_node_interval(i)/max(size_in[i], size_out[i-1])
-        curr_rate = lambda i: curr_node_interval(i)/size_out[i-1]
-        # curr_rate = lambda i: min(rate_in[i], rate_out[i-1])
-        delay = sum([ node_depth[i]*curr_rate(i) for i in range(1, len(node_hw)) ]) + node_depth[0]
-        # delay = sum([ node_depth[i]/curr_rate(i) for i in range(1, len(node_hw)) ]) + node_depth[0]/rate_in[0]
-        # delay = sum([ node_depth[i] for i in range(1, len(node_hw)) ]) + node_depth[0]
-
-        # initialise with the first node delay
-        delay = node_depth[0]
-
-        # iterate over the nodes in the path
-        for i in range(1, len(node_hw)):
-
-            # get how many bursts of the previous node are required
-            # to fill the input buffer of the current node
-            num_bursts = max(math.ceil(start_depth[i]/channels_in[i]) - 1, 0)
-
-            # get the interval for the previous nodes
-            prev_interval = max([ latency[j] for j in range(i) ])
-
-            # get the delay per burst
-            delay_per_burst = (prev_interval/workload_in[i]) * channels_in[i]
-            # delay_per_burst = channels_out[i-1]
-
-            # add the delay per burst to the total delay
-            delay += num_bursts * delay_per_burst
-
-            # add the remaining cycles from the current burst
-            delay += start_depth[i] - num_bursts * channels_in[i]
-
-            # add the delay from the pipeline minus the depth filled by the start_depth
-            delay += pipeline_depth[i] - start_depth[i]//streams_in[i]
-            # delay += pipeline_depth[i]
-
-            # print(node_depth[i], channels_out[i-1], num_bursts, prev_interval, delay_per_burst, delay)
-
-        # append to toal path delays
-        print(delay)
-        return delay
-
-    # print(all_paths)
-    return max([ get_path_delay(path) for path in all_paths ])
+    # # find the slowest of all paths
+    # return max([ self.get_path_delay(path) for path in all_paths ])
 
 def get_pipeline_depth_fast(self):
 
