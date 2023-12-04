@@ -167,4 +167,35 @@ def test_unet_two_branch_network():
     assert net.partitions[0].get_pipeline_depth("Conv_28") == pytest.approx(112044, abs=ABS_TOL)
 
 
+@ddt.ddt()
+def test_vgg11_toy_network():
 
+    # initialise network
+    parser = Parser(backend="chisel")
+    net = parser.onnx_to_fpgaconvnet("tests/models/vgg11_toy.onnx", save_opt_model=False)
+    net = parser.prototxt_to_fpgaconvnet(net, "tests/configs/network/vgg11_toy.json")
+
+    net.update_partitions()
+
+    assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(139, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_1") == pytest.approx(147, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_2") == pytest.approx(759, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_3") == pytest.approx(2339, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_4") == pytest.approx(2342, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_5") == pytest.approx(8888, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_6") == pytest.approx(23111, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_7") == pytest.approx(23120, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_8") == pytest.approx(41161, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_9") == pytest.approx(41164, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_10") == pytest.approx(82646, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_11") == pytest.approx(167594, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_12") == pytest.approx(167597, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_13") == pytest.approx(254593, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_14") == pytest.approx(254596
+, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_15") == pytest.approx(337562, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_16") == pytest.approx(396915, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_17") == pytest.approx(396938, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_18") == pytest.approx(456291, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_19") == pytest.approx(456300, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("GlobalMaxPool_20") == pytest.approx(468597, abs=ABS_TOL)
