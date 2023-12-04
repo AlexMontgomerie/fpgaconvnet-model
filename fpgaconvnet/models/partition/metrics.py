@@ -12,9 +12,11 @@ def get_node_delay(self, node):
 
     # get the path to the node
     input_node = graphs.get_input_nodes(self.graph)[0]
-    path = max(nx.all_simple_paths(
-        self.graph, input_node, node), key=lambda x: len(x))
-
+    if len(self.graph.nodes()) > 1 and input_node != node:
+        path = max(nx.all_simple_paths(
+            self.graph, input_node, node), key=lambda x: len(x))
+    else:
+        path = [input_node]
     # get the hardware model for each node in the path
     node_hw = [ self.graph.nodes[n]["hw"] for n in path ]
 
@@ -64,10 +66,10 @@ def get_node_delay(self, node):
         # add the delay from the pipeline minus the depth filled by the start_depth
         delay += node_hw[i].pipeline_depth() - node_hw[i].start_depth()//node_hw[i].streams_in()
 
-        print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", node_hw[i].start_depth(), "pipeline_depth: ", node_hw[i].pipeline_depth(), "workload_in: ", node_hw[i].workload_in(), "channels_in: ", node_hw[i].channels_in())
+        # print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", node_hw[i].start_depth(), "pipeline_depth: ", node_hw[i].pipeline_depth(), "workload_in: ", node_hw[i].workload_in(), "channels_in: ", node_hw[i].channels_in())
 
     # append to toal path delays
-    print(delay)
+    # print(delay)
     return delay
 
 
