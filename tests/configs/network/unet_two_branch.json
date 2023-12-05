@@ -1,0 +1,2433 @@
+{
+  "partition": [
+    {
+      "id": 0,
+      "ports": 1,
+      "batch_size": 1,
+      "input_nodes": [
+        "input.1"
+      ],
+      "output_nodes": [
+        "123"
+      ],
+      "weights_reloading_factor": 1,
+      "weights_reloading_layer": "Conv_28",
+      "layers": [
+        {
+          "name": "Conv_0",
+          "onnx_node": "Conv_0",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "in",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_0"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_0_Relu_1",
+              "coarse": 1,
+              "node": "Relu_1"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 3,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 16,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 48,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_125",
+          "bias_path": "onnx::Conv_126"
+        },
+        {
+          "name": "Relu_1",
+          "onnx_node": "Relu_1",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_0_Relu_1",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_0"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_1_Conv_2",
+              "coarse": 1,
+              "node": "Conv_2"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_2",
+          "onnx_node": "Conv_2",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_1_Conv_2",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_1"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_2_Conv_2_squeeze_Relu_3",
+              "coarse": 2,
+              "node": "Conv_2_squeeze_Relu_3"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 2,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 16,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 128,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_128",
+          "bias_path": "onnx::Conv_129"
+        },
+        {
+          "name": "Conv_2_squeeze_Relu_3",
+          "onnx_node": "Conv_2",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_2_Conv_2_squeeze_Relu_3",
+              "coarse": 2,
+              "buffer_depth": 2,
+              "node": "Conv_2"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_2_squeeze_Relu_3_Relu_3",
+              "coarse": 1,
+              "node": "Relu_3"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 2,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_3",
+          "onnx_node": "Relu_3",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_2_squeeze_Relu_3_Relu_3",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_2_squeeze_Relu_3"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_3_Relu_3_split",
+              "coarse": 1,
+              "node": "Relu_3_split"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_3_split",
+          "onnx_node": "Relu_3",
+          "type": "SPLIT",
+          "streams_in": [
+            {
+              "name": "Relu_3_Relu_3_split",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_3"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_3_split_Concat_23",
+              "coarse": 1,
+              "node": "Concat_23"
+            },
+            {
+              "name": "Relu_3_split_MaxPool_4",
+              "coarse": 1,
+              "node": "MaxPool_4"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "ports_in": 1,
+            "ports_out": 2,
+            "mem_bw_in_array": [
+              100.0
+            ],
+            "mem_bw_out_array": [
+              50.0,
+              50.0
+            ],
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false,
+              false
+            ]
+          }
+        },
+        {
+          "name": "MaxPool_4",
+          "onnx_node": "MaxPool_4",
+          "type": "POOLING",
+          "op_type": "max",
+          "streams_in": [
+            {
+              "name": "Relu_3_split_MaxPool_4",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_3_split"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "MaxPool_4_Conv_5",
+              "coarse": 1,
+              "node": "Conv_5"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_bottom": 0,
+            "pad_left": 0,
+            "kernel_rows": 2,
+            "kernel_cols": 2,
+            "kernel_size": [
+              2,
+              2
+            ],
+            "stride_rows": 2,
+            "stride_cols": 2,
+            "stride": [
+              2,
+              2
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_5",
+          "onnx_node": "Conv_5",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "MaxPool_4_Conv_5",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "MaxPool_4"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_5_Relu_6",
+              "coarse": 1,
+              "node": "Relu_6"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 16,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 32,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 512,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_131",
+          "bias_path": "onnx::Conv_132"
+        },
+        {
+          "name": "Relu_6",
+          "onnx_node": "Relu_6",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_5_Relu_6",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_5"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_6_Conv_7",
+              "coarse": 1,
+              "node": "Conv_7"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_7",
+          "onnx_node": "Conv_7",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_6_Conv_7",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_6"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_7_Conv_7_squeeze_Relu_8",
+              "coarse": 2,
+              "node": "Conv_7_squeeze_Relu_8"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 2,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 32,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 512,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_134",
+          "bias_path": "onnx::Conv_135"
+        },
+        {
+          "name": "Conv_7_squeeze_Relu_8",
+          "onnx_node": "Conv_7",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_7_Conv_7_squeeze_Relu_8",
+              "coarse": 2,
+              "buffer_depth": 2,
+              "node": "Conv_7"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_7_squeeze_Relu_8_Relu_8",
+              "coarse": 1,
+              "node": "Relu_8"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 2,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_8",
+          "onnx_node": "Relu_8",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_7_squeeze_Relu_8_Relu_8",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_7_squeeze_Relu_8"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_8_Relu_8_split",
+              "coarse": 1,
+              "node": "Relu_8_split"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_8_split",
+          "onnx_node": "Relu_8",
+          "type": "SPLIT",
+          "streams_in": [
+            {
+              "name": "Relu_8_Relu_8_split",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_8"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_8_split_Concat_16",
+              "coarse": 1,
+              "node": "Concat_16"
+            },
+            {
+              "name": "Relu_8_split_MaxPool_9",
+              "coarse": 1,
+              "node": "MaxPool_9"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "ports_in": 1,
+            "ports_out": 2,
+            "mem_bw_in_array": [
+              100.0
+            ],
+            "mem_bw_out_array": [
+              50.0,
+              50.0
+            ],
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false,
+              false
+            ]
+          }
+        },
+        {
+          "name": "MaxPool_9",
+          "onnx_node": "MaxPool_9",
+          "type": "POOLING",
+          "op_type": "max",
+          "streams_in": [
+            {
+              "name": "Relu_8_split_MaxPool_9",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_8_split"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "MaxPool_9_Conv_10",
+              "coarse": 1,
+              "node": "Conv_10"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_bottom": 0,
+            "pad_left": 0,
+            "kernel_rows": 2,
+            "kernel_cols": 2,
+            "kernel_size": [
+              2,
+              2
+            ],
+            "stride_rows": 2,
+            "stride_cols": 2,
+            "stride": [
+              2,
+              2
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_10",
+          "onnx_node": "Conv_10",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "MaxPool_9_Conv_10",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "MaxPool_9"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_10_Relu_11",
+              "coarse": 1,
+              "node": "Relu_11"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 32,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 64,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 2048,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_137",
+          "bias_path": "onnx::Conv_138"
+        },
+        {
+          "name": "Relu_11",
+          "onnx_node": "Relu_11",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_10_Relu_11",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_10"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_11_Conv_12",
+              "coarse": 1,
+              "node": "Conv_12"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 64,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_12",
+          "onnx_node": "Conv_12",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_11_Conv_12",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_11"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_12_Conv_12_squeeze_Relu_13",
+              "coarse": 2,
+              "node": "Conv_12_squeeze_Relu_13"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 64,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 2,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 64,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 2048,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_140",
+          "bias_path": "onnx::Conv_141"
+        },
+        {
+          "name": "Conv_12_squeeze_Relu_13",
+          "onnx_node": "Conv_12",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_12_Conv_12_squeeze_Relu_13",
+              "coarse": 2,
+              "buffer_depth": 2,
+              "node": "Conv_12"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_12_squeeze_Relu_13_Relu_13",
+              "coarse": 1,
+              "node": "Relu_13"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 64,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 2,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_13",
+          "onnx_node": "Relu_13",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_12_squeeze_Relu_13_Relu_13",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_12_squeeze_Relu_13"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_13_Resize_14",
+              "coarse": 1,
+              "node": "Resize_14"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 64,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Resize_14",
+          "onnx_node": "Resize_14",
+          "type": "RESIZE",
+          "streams_in": [
+            {
+              "name": "Relu_13_Resize_14",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_13"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Resize_14_Conv_15",
+              "coarse": 1,
+              "node": "Conv_15"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 8,
+            "cols_in": 8,
+            "channels_in": 64,
+            "rows_out": 8,
+            "cols_out": 8,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "scale": [
+              1.0,
+              1.0,
+              2.0,
+              2.0
+            ],
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_15",
+          "onnx_node": "Conv_15",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Resize_14_Conv_15",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Resize_14"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_15_Conv_15_squeeze_Concat_16",
+              "coarse": 4,
+              "node": "Conv_15_squeeze_Concat_16"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 64,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 4,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 1,
+            "filters": 32,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_bottom": 0,
+            "pad_left": 0,
+            "kernel_rows": 1,
+            "kernel_cols": 1,
+            "kernel_size": [
+              1,
+              1
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 512,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "model.up_path.0.up.pointwise_conv.weight",
+          "bias_path": "model.up_path.0.up.pointwise_conv.bias"
+        },
+        {
+          "name": "Conv_15_squeeze_Concat_16",
+          "onnx_node": "Conv_15",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_15_Conv_15_squeeze_Concat_16",
+              "coarse": 4,
+              "buffer_depth": 2,
+              "node": "Conv_15"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_15_squeeze_Concat_16_Concat_16",
+              "coarse": 1,
+              "node": "Concat_16"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 4,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Concat_16",
+          "onnx_node": "Concat_16",
+          "type": "CONCAT",
+          "streams_in": [
+            {
+              "name": "Conv_15_squeeze_Concat_16_Concat_16",
+              "coarse": 1,
+              "buffer_depth": 192,
+              "node": "Conv_15_squeeze_Concat_16"
+            },
+            {
+              "name": "Relu_8_split_Concat_16",
+              "coarse": 1,
+              "buffer_depth": 7771,
+              "node": "Relu_8_split"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Concat_16_Conv_17",
+              "coarse": 1,
+              "node": "Conv_17"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 64,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "ports_in": 2,
+            "ports_out": 1,
+            "channels_in_array": [
+              32,
+              32
+            ],
+            "mem_bw_in_array": [
+              100.0,
+              100.0
+            ],
+            "mem_bw_out_array": [
+              100.0
+            ],
+            "stream_inputs": [
+              false,
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_17",
+          "onnx_node": "Conv_17",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Concat_16_Conv_17",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Concat_16"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_17_Conv_17_squeeze_Relu_18",
+              "coarse": 4,
+              "node": "Conv_17_squeeze_Relu_18"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 64,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 4,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 32,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 512,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_143",
+          "bias_path": "onnx::Conv_144"
+        },
+        {
+          "name": "Conv_17_squeeze_Relu_18",
+          "onnx_node": "Conv_17",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_17_Conv_17_squeeze_Relu_18",
+              "coarse": 4,
+              "buffer_depth": 2,
+              "node": "Conv_17"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_17_squeeze_Relu_18_Relu_18",
+              "coarse": 1,
+              "node": "Relu_18"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 4,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_18",
+          "onnx_node": "Relu_18",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_17_squeeze_Relu_18_Relu_18",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_17_squeeze_Relu_18"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_18_Conv_19",
+              "coarse": 1,
+              "node": "Conv_19"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_19",
+          "onnx_node": "Conv_19",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_18_Conv_19",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_18"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_19_Conv_19_squeeze_Relu_20",
+              "coarse": 2,
+              "node": "Conv_19_squeeze_Relu_20"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 2,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 32,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 512,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_146",
+          "bias_path": "onnx::Conv_147"
+        },
+        {
+          "name": "Conv_19_squeeze_Relu_20",
+          "onnx_node": "Conv_19",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_19_Conv_19_squeeze_Relu_20",
+              "coarse": 2,
+              "buffer_depth": 2,
+              "node": "Conv_19"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_19_squeeze_Relu_20_Relu_20",
+              "coarse": 1,
+              "node": "Relu_20"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 2,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_20",
+          "onnx_node": "Relu_20",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_19_squeeze_Relu_20_Relu_20",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_19_squeeze_Relu_20"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_20_Resize_21",
+              "coarse": 1,
+              "node": "Resize_21"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Resize_21",
+          "onnx_node": "Resize_21",
+          "type": "RESIZE",
+          "streams_in": [
+            {
+              "name": "Relu_20_Resize_21",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_20"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Resize_21_Conv_22",
+              "coarse": 1,
+              "node": "Conv_22"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 16,
+            "cols_in": 16,
+            "channels_in": 32,
+            "rows_out": 16,
+            "cols_out": 16,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "scale": [
+              1.0,
+              1.0,
+              2.0,
+              2.0
+            ],
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_22",
+          "onnx_node": "Conv_22",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Resize_21_Conv_22",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Resize_21"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_22_Conv_22_squeeze_Concat_23",
+              "coarse": 4,
+              "node": "Conv_22_squeeze_Concat_23"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 32,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 4,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 1,
+            "filters": 16,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_bottom": 0,
+            "pad_left": 0,
+            "kernel_rows": 1,
+            "kernel_cols": 1,
+            "kernel_size": [
+              1,
+              1
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 128,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "model.up_path.1.up.pointwise_conv.weight",
+          "bias_path": "model.up_path.1.up.pointwise_conv.bias"
+        },
+        {
+          "name": "Conv_22_squeeze_Concat_23",
+          "onnx_node": "Conv_22",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_22_Conv_22_squeeze_Concat_23",
+              "coarse": 4,
+              "buffer_depth": 2,
+              "node": "Conv_22"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_22_squeeze_Concat_23_Concat_23",
+              "coarse": 1,
+              "node": "Concat_23"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 4,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Concat_23",
+          "onnx_node": "Concat_23",
+          "type": "CONCAT",
+          "streams_in": [
+            {
+              "name": "Conv_22_squeeze_Concat_23_Concat_23",
+              "coarse": 1,
+              "buffer_depth": 128,
+              "node": "Conv_22_squeeze_Concat_23"
+            },
+            {
+              "name": "Relu_3_split_Concat_23",
+              "coarse": 1,
+              "buffer_depth": 17297,
+              "node": "Relu_3_split"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Concat_23_Conv_24",
+              "coarse": 1,
+              "node": "Conv_24"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 32,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "ports_in": 2,
+            "ports_out": 1,
+            "channels_in_array": [
+              16,
+              16
+            ],
+            "mem_bw_in_array": [
+              100.0,
+              100.0
+            ],
+            "mem_bw_out_array": [
+              100.0
+            ],
+            "stream_inputs": [
+              false,
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_24",
+          "onnx_node": "Conv_24",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Concat_23_Conv_24",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Concat_23"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_24_Conv_24_squeeze_Relu_25",
+              "coarse": 4,
+              "node": "Conv_24_squeeze_Relu_25"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 32,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 4,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 16,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 128,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_149",
+          "bias_path": "onnx::Conv_150"
+        },
+        {
+          "name": "Conv_24_squeeze_Relu_25",
+          "onnx_node": "Conv_24",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_24_Conv_24_squeeze_Relu_25",
+              "coarse": 4,
+              "buffer_depth": 2,
+              "node": "Conv_24"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_24_squeeze_Relu_25_Relu_25",
+              "coarse": 1,
+              "node": "Relu_25"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 4,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_25",
+          "onnx_node": "Relu_25",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_24_squeeze_Relu_25_Relu_25",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_24_squeeze_Relu_25"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_25_Conv_26",
+              "coarse": 1,
+              "node": "Conv_26"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_26",
+          "onnx_node": "Conv_26",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_25_Conv_26",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_25"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_26_Conv_26_squeeze_Relu_27",
+              "coarse": 2,
+              "node": "Conv_26_squeeze_Relu_27"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 2,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 9,
+            "filters": 16,
+            "pad_top": 1,
+            "pad_right": 1,
+            "pad_bottom": 1,
+            "pad_left": 1,
+            "kernel_rows": 3,
+            "kernel_cols": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 128,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "onnx::Conv_152",
+          "bias_path": "onnx::Conv_153"
+        },
+        {
+          "name": "Conv_26_squeeze_Relu_27",
+          "onnx_node": "Conv_26",
+          "type": "SQUEEZE",
+          "streams_in": [
+            {
+              "name": "Conv_26_Conv_26_squeeze_Relu_27",
+              "coarse": 2,
+              "buffer_depth": 2,
+              "node": "Conv_26"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Conv_26_squeeze_Relu_27_Relu_27",
+              "coarse": 1,
+              "node": "Relu_27"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 2,
+            "coarse_out": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Relu_27",
+          "onnx_node": "Relu_27",
+          "type": "RELU",
+          "op_type": "ReLU",
+          "streams_in": [
+            {
+              "name": "Conv_26_squeeze_Relu_27_Relu_27",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Conv_26_squeeze_Relu_27"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "Relu_27_Conv_28",
+              "coarse": 1,
+              "node": "Conv_28"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 16,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse": 1,
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          }
+        },
+        {
+          "name": "Conv_28",
+          "onnx_node": "Conv_28",
+          "type": "CONVOLUTION",
+          "op_type": "dense",
+          "streams_in": [
+            {
+              "name": "Relu_27_Conv_28",
+              "coarse": 1,
+              "buffer_depth": 2,
+              "node": "Relu_27"
+            }
+          ],
+          "streams_out": [
+            {
+              "name": "out",
+              "coarse": 1,
+              "node": "Conv_28"
+            }
+          ],
+          "parameters": {
+            "batch_size": 1,
+            "rows_in": 32,
+            "cols_in": 32,
+            "channels_in": 16,
+            "rows_out": 32,
+            "cols_out": 32,
+            "channels_out": 1,
+            "coarse_in": 1,
+            "coarse_out": 1,
+            "coarse_group": 1,
+            "groups": 1,
+            "fine": 1,
+            "filters": 1,
+            "pad_top": 0,
+            "pad_right": 0,
+            "pad_bottom": 0,
+            "pad_left": 0,
+            "kernel_rows": 1,
+            "kernel_cols": 1,
+            "kernel_size": [
+              1,
+              1
+            ],
+            "stride_rows": 1,
+            "stride_cols": 1,
+            "stride": [
+              1,
+              1
+            ],
+            "mem_bw_in": 100.0,
+            "mem_bw_out": 100.0,
+            "data_t": {},
+            "weight_t": {
+              "width": 8,
+              "binary_point": 0
+            },
+            "acc_t": {
+              "width": 24,
+              "binary_point": 8
+            },
+            "input_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "output_t": {
+              "width": 16,
+              "binary_point": 8
+            },
+            "has_bias": 1,
+            "use_uram": false,
+            "block_floating_point": false,
+            "on_chip_addr_range": 0,
+            "off_chip_buffer_size": 0,
+            "off_chip_interval": -1,
+            "stream_weights": 0,
+            "stream_inputs": [
+              false
+            ],
+            "stream_outputs": [
+              false
+            ]
+          },
+          "weights_path": "model.last.weight",
+          "bias_path": "model.last.bias"
+        }
+      ],
+      "gen_last_width": 16
+    }
+  ]
+}

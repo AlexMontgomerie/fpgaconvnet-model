@@ -367,6 +367,11 @@ class ConvolutionLayer3D(Layer3D):
         self._coarse_group = val
         # self.update()
 
+    def start_depth(self):
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.depth*self.channels + \
+                (self.kernel_cols-1-self.pad_left)*self.depth*self.channels + \
+                (self.kernel_depth-1-self.pad_front)*self.channels
+
     def rows_out(self) -> int:
         return self.modules["sliding_window3d"].rows_out()
 
@@ -693,7 +698,7 @@ class ConvolutionLayer3D(Layer3D):
             if self.weight_t.width <= 4 and self.input_t.width <= 4:
                 vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.25
             elif self.weight_t.width <= 8 and self.input_t.width <= 8:
-                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5           
+                vector_dot_rsc["DSP"] = vector_dot_rsc["DSP"]*0.5
 
             if self.data_packing:
                 rsc = { rsc_type: (
@@ -808,7 +813,7 @@ class ConvolutionLayer3D(Layer3D):
     from fpgaconvnet.models.layers.utils import off_chip_addr_range, on_chip_addr_range, off_chip_buffer_size
     from fpgaconvnet.models.layers.utils import stream_bits, stream_cycles, stream_bw
     from fpgaconvnet.models.layers.utils import stream_rsc, stream_buffer
-    
+
     def visualise(self, name):
         cluster = pydot.Cluster(name, label=name,
                 style="dashed", bgcolor="lightpink")

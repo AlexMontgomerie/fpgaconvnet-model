@@ -100,6 +100,9 @@ class GlobalPoolingLayer(Layer):
         parameters.coarse = self.coarse
         self.acc_t.to_protobuf(parameters.acc_t)
 
+    def start_depth(self):
+        return self.rows*self.cols*self.channels
+
     def update(self):
         # pool
         self.modules['global_pool'].rows     = self.rows_in()

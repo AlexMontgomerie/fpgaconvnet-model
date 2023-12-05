@@ -132,7 +132,7 @@ def merge_graphs_horizontal(graph_prev, graph_next, network_branch_edges):
                 next_input_nodes.remove(edge[1])
 
     if len(prev_output_nodes) > 0 and len(next_input_nodes) > 0:
-        print(f"create edge {edge}")
+        print(f"create edge {(prev_output_nodes[0], next_input_nodes[0])}")
         graph.add_edge(prev_output_nodes[0], next_input_nodes[0])
 
     return graph
