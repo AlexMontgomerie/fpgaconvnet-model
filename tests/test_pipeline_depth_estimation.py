@@ -179,6 +179,54 @@ def test_vgg11_toy_network():
     assert net.partitions[0].get_pipeline_depth("GlobalMaxPool_20") == pytest.approx(468597, abs=ABS_TOL)
 
 @ddt.ddt()
+def test_vgg19_toy_network():
+
+    # initialise network
+    parser = Parser(backend="chisel")
+    net = parser.onnx_to_fpgaconvnet("tests/models/vgg19_toy.onnx", save_opt_model=False)
+    net = parser.prototxt_to_fpgaconvnet(net, "tests/configs/network/vgg19_toy.json")
+
+    net.update_partitions()
+
+    assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(54, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_1") == pytest.approx(65, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_2") == pytest.approx(415, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_3") == pytest.approx(424, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_4") == pytest.approx(2023, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_5") == pytest.approx(5238, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_6") == pytest.approx(5241, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_7") == pytest.approx(8619, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_8") == pytest.approx(8634, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_9") == pytest.approx(11913, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_10") == pytest.approx(18581, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_11") == pytest.approx(18589, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_12") == pytest.approx(25424, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_13") == pytest.approx(25447, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_14") == pytest.approx(32064, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_15") == pytest.approx(32079, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_16") == pytest.approx(38756, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_17") == pytest.approx(38764, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_18") == pytest.approx(45307, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_19") == pytest.approx(59351, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_20") == pytest.approx(59366, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_21") == pytest.approx(65310, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_22") == pytest.approx(65318, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_23") == pytest.approx(70589, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_24") == pytest.approx(70597, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_25") == pytest.approx(76246, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_26") == pytest.approx(76254, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("MaxPool_27") == pytest.approx(78887, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_28") == pytest.approx(102527, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_29") == pytest.approx(102530, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_30") == pytest.approx(170069, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_31") == pytest.approx(170072, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_32") == pytest.approx(208972, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_33") == pytest.approx(208981, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_34") == pytest.approx(216158, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_35") == pytest.approx(216169, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("GlobalMaxPool_36") == pytest.approx(219255, abs=ABS_TOL)
+
+@ddt.ddt()
 def test_resnet8_network():
 
     # initialise network
