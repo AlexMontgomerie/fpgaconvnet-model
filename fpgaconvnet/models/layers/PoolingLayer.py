@@ -8,6 +8,7 @@ from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import Pool
+from fpgaconvnet.models.modules import Pad
 from fpgaconvnet.models.layers import Layer
 
 class PoolingLayer(Layer):
@@ -62,10 +63,19 @@ class PoolingLayer(Layer):
         self.regression_model = regression_model
 
         # init modules
-        self.modules["sliding_window"] = SlidingWindow(self.rows_in(),
-                self.cols_in(), self.channels_in()//self.coarse,
-                self.kernel_size, self.stride, self.pad_top,
-                self.pad_right, self.pad_bottom, self.pad_left, backend=self.backend, regression_model=self.regression_model)
+        self.modules["pad"] = Pad(
+                self.rows_in(), self.cols_in(), self.channels_in()//self.coarse,
+                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right, backend=self.backend,
+                regression_model=self.regression_model)
+
+        self.modules["sliding_window"] = SlidingWindow(
+            self.rows_in() +self.pad_top + self.pad_bottom,
+            self.cols_in() + self.pad_left + self.pad_right,
+            self.channels_in()//self.coarse,
+            self.kernel_size,
+            self.stride,
+            0, 0, 0, 0, backend=self.backend,
+            regression_model=self.regression_model)
         self.modules["pool"] = Pool(self.rows_out(), self.cols_out(),
                 self.channels_out()//self.coarse, self.kernel_size, backend=self.backend, regression_model=self.regression_model)
 
@@ -274,13 +284,34 @@ class PoolingLayer(Layer):
         parameters.pad_left     = self.pad_left
 
     def update(self):
+        # pad
+        self.modules['pad'].rows     = self.rows
+        self.modules['pad'].cols     = self.cols
+        self.modules['pad'].channels = self.channels//self.coarse
+        self.modules['pad'].data_width = self.data_t.width
+        if self.data_packing:
+            self.modules['pad'].streams = self.coarse
+        self.modules['pad'].pad_top = self.pad_top
+        self.modules['pad'].pad_bottom = self.pad_bottom
+        self.modules['pad'].pad_left = self.pad_left
+        self.modules['pad'].pad_right = self.pad_right
+
         # sliding window
-        self.modules['sliding_window'].rows     = self.rows_in()
-        self.modules['sliding_window'].cols     = self.cols_in()
+        self.modules['sliding_window'].rows     = self.rows_in() + self.pad_top + self.pad_bottom
+        self.modules['sliding_window'].cols     = self.cols_in() + self.pad_left + self.pad_right
         self.modules['sliding_window'].channels = int(self.channels_in()/self.coarse)
+        self.modules['sliding_window'].kernel_cols = self.kernel_cols
+        self.modules['sliding_window'].kernel_rows = self.kernel_rows
+        self.modules['sliding_window'].stride_cols = self.stride_cols
+        self.modules['sliding_window'].stride_rows = self.stride_rows
         self.modules['sliding_window'].data_width = self.data_t.width
         if self.data_packing:
             self.modules['sliding_window'].streams = self.coarse
+        self.modules['sliding_window'].pad_top = 0
+        self.modules['sliding_window'].pad_bottom = 0
+        self.modules['sliding_window'].pad_left = 0
+        self.modules['sliding_window'].pad_right = 0
+
         # pool
         self.modules['pool'].rows     = self.rows_out()
         self.modules['pool'].cols     = self.cols_out()
@@ -294,30 +325,35 @@ class PoolingLayer(Layer):
 
     def resource(self):
 
+        pad_rsc     = self.modules['pad'].rsc()
         sw_rsc      = self.modules['sliding_window'].rsc()
         pool_rsc    = self.modules['pool'].rsc()
 
         # Total
         if self.data_packing:
             return {
-                "LUT"  :  sw_rsc['LUT'] +
+                "LUT"  :  pad_rsc['LUT'] + sw_rsc['LUT'] +
                         pool_rsc['LUT'],
-                "FF"   :  sw_rsc['FF'] +
+                "FF"   :  pad_rsc['FF'] + sw_rsc['FF'] +
                         pool_rsc['FF'],
-                "BRAM" :  sw_rsc['BRAM'] +
+                "BRAM" :  pad_rsc['BRAM'] + sw_rsc['BRAM'] +
                         pool_rsc['BRAM'],
-                "DSP" :   sw_rsc['DSP'] +
+                "DSP" :   pad_rsc['DSP'] + sw_rsc['DSP'] +
                         pool_rsc['DSP']
             }
         else:
             return {
-                "LUT"  :  sw_rsc['LUT']*self.coarse +
+                "LUT"  :  pad_rsc['LUT']*self.coarse +
+                        sw_rsc['LUT']*self.coarse +
                         pool_rsc['LUT']*self.coarse,
-                "FF"   :  sw_rsc['FF']*self.coarse +
+                "FF"   :  pad_rsc['FF']*self.coarse +
+                        sw_rsc['FF']*self.coarse +
                         pool_rsc['FF']*self.coarse,
-                "BRAM" :  sw_rsc['BRAM']*self.coarse +
+                "BRAM" :  pad_rsc['BRAM']*self.coarse +
+                        sw_rsc['BRAM']*self.coarse +
                         pool_rsc['BRAM']*self.coarse,
-                "DSP" :   sw_rsc['DSP']*self.coarse +
+                "DSP" :   pad_rsc['DSP']*self.coarse +
+                        sw_rsc['DSP']*self.coarse +
                         pool_rsc['DSP']*self.coarse
             }
 

@@ -316,7 +316,8 @@ class PoolingLayer3D(Layer3D):
         self.modules['pad3d'].depth    = self.depth
         self.modules['pad3d'].channels = self.channels//self.coarse
         self.modules['pad3d'].data_width = self.data_t.width
-        self.modules['pad3d'].streams = self.coarse
+        if self.data_packing:
+            self.modules['pad3d'].streams = self.coarse
         self.modules['pad3d'].pad_top = self.pad_top
         self.modules['pad3d'].pad_bottom = self.pad_bottom
         self.modules['pad3d'].pad_left = self.pad_left
@@ -336,7 +337,8 @@ class PoolingLayer3D(Layer3D):
         self.modules['sliding_window3d'].stride_rows = self.stride_rows
         self.modules['sliding_window3d'].stride_depth= self.stride_depth
         self.modules['sliding_window3d'].data_width = self.data_t.width
-        self.modules['sliding_window3d'].streams = self.coarse
+        if self.data_packing:
+            self.modules['sliding_window3d'].streams = self.coarse
         self.modules['sliding_window3d'].pad_top = 0
         self.modules['sliding_window3d'].pad_bottom = 0
         self.modules['sliding_window3d'].pad_left = 0
@@ -349,30 +351,49 @@ class PoolingLayer3D(Layer3D):
         self.modules['pool3d'].cols     = self.cols_out()
         self.modules['pool3d'].depth    = self.depth_out()
         self.modules['pool3d'].channels = int(self.channels_in()/self.coarse)
-        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
-        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
-        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
+        self.modules['pool3d'].kernel_cols = self.kernel_cols
+        self.modules['pool3d'].kernel_rows = self.kernel_rows
+        self.modules['pool3d'].kernel_depth= self.kernel_depth
         self.modules['pool3d'].data_width = self.data_t.width
+        if self.data_packing:
+            self.modules['pool3d'].streams = self.coarse
 
     def get_fine_feasible(self):
         return [1]
 
     def resource(self):
 
+        pad_rsc     = self.modules['pad3d'].rsc()
         sw_rsc      = self.modules['sliding_window3d'].rsc()
         pool_rsc    = self.modules['pool3d'].rsc()
 
         # Total
-        return {
-            "LUT"  :  sw_rsc['LUT'] +
-                      pool_rsc['LUT']*self.coarse,
-            "FF"   :  sw_rsc['FF'] +
-                      pool_rsc['FF']*self.coarse,
-            "BRAM" :  sw_rsc['BRAM'] +
-                      pool_rsc['BRAM']*self.coarse,
-            "DSP" :   sw_rsc['DSP'] +
-                      pool_rsc['DSP']*self.coarse
-        }
+        if self.data_packing:
+            return {
+                "LUT"  :  pad_rsc['LUT'] + sw_rsc['LUT'] +
+                        pool_rsc['LUT'],
+                "FF"   :  pad_rsc['FF'] + sw_rsc['FF'] +
+                        pool_rsc['FF'],
+                "BRAM" :  pad_rsc['BRAM'] + sw_rsc['BRAM'] +
+                        pool_rsc['BRAM'],
+                "DSP" :   pad_rsc['DSP'] + sw_rsc['DSP'] +
+                        pool_rsc['DSP']
+            }
+        else:
+            return {
+                "LUT"  :  pad_rsc['LUT']*self.coarse +
+                        sw_rsc['LUT']*self.coarse +
+                        pool_rsc['LUT']*self.coarse,
+                "FF"   :  pad_rsc['FF']*self.coarse +
+                        sw_rsc['FF']*self.coarse +
+                        pool_rsc['FF']*self.coarse,
+                "BRAM" :  pad_rsc['BRAM']*self.coarse +
+                        sw_rsc['BRAM']*self.coarse +
+                        pool_rsc['BRAM']*self.coarse,
+                "DSP" :   pad_rsc['DSP']*self.coarse +
+                        sw_rsc['DSP']*self.coarse +
+                        pool_rsc['DSP']*self.coarse
+            }
 
     def visualise(self, name):
 
