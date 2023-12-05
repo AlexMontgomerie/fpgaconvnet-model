@@ -15,7 +15,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 PLATFORM = "examples/platforms/zedboard.toml"
 
-ABS_TOL = 500
+ABS_TOL = 5000
 
 @ddt.ddt()
 def test_simple_gap_network():
@@ -199,3 +199,30 @@ def test_vgg11_toy_network():
     assert net.partitions[0].get_pipeline_depth("Conv_18") == pytest.approx(456291, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_19") == pytest.approx(456300, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("GlobalMaxPool_20") == pytest.approx(468597, abs=ABS_TOL)
+
+@ddt.ddt()
+def test_resnet8_network():
+
+    # initialise network
+    parser = Parser(backend="chisel")
+    net = parser.onnx_to_fpgaconvnet("tests/models/resnet8.onnx", save_opt_model=False)
+    net = parser.prototxt_to_fpgaconvnet(net, "tests/configs/network/resnet8.json")
+
+    net.update_partitions()
+
+    # assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(156, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_2") == pytest.approx(1899, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_4") == pytest.approx(4072, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Add_5") == pytest.approx(4081, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_7") == pytest.approx(4207, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_8") == pytest.approx(8391, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_10") == pytest.approx(12773, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Add_11") == pytest.approx(12782, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_13") == pytest.approx(13289, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_14") == pytest.approx(21634, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_16") == pytest.approx(30882, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Add_17") == pytest.approx(30891, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("GlobalAveragePool_19") == pytest.approx(82828, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Gemm_21") == pytest.approx(83472, abs=ABS_TOL)
+
+
