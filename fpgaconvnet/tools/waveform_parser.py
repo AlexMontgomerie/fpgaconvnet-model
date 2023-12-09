@@ -18,7 +18,11 @@ class VCDWaveformParser:
         return time // 2
 
     def get_signal_last_edge(self, signal):
-        time, value = signal.tv[-1]
+        #TODO: This is a hack to get the last edge of the signal when the valid signal is not low at the end of the simulation
+        if len(signal.tv) > 2:
+            time, value = signal.tv[-1]
+        else:
+            time = signal.endtime
         return time // 2
 
     def get_signals_per_layer(self, layer_name):
@@ -55,13 +59,17 @@ class VCDWaveformParser:
         if "Pad" in module_name:
             module_name = "PadFixed"
         elif "SlidingWindow" in module_name:
-            module_name = "SlidingWindowBlockFixed"
+            module_name = "SlidingWindowBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_0_0_valid" in signal]
         elif "Squeeze" in module_name:
             module_name = "SqueezeBlockFixed"
         elif "Fork" in module_name:
             module_name = "ForkBlockFixed"
         elif "Accum" in module_name:
-            module_name = "AccumBlockFixed"
+            module_name = "AccumBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_valid" in signal]
         elif "Glue" in module_name:
             module_name = "GlueBlockFixed"
         elif "Bias" in module_name:
@@ -69,8 +77,6 @@ class VCDWaveformParser:
         elif "VectorDot" in module_name:
             module_name = "VectorDotBlockFixed"
 
-        in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_valid" in signal]
-        out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_valid" in signal]
 
         module_hw_stats = {
             "in_valid_signal": in_valid_signals[0],

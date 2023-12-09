@@ -9,7 +9,8 @@ import pytest
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 300
+ABS_TOL = 200
+REL_TOL = 0.05
 
 class TestLayerTemplate():
 
@@ -377,8 +378,7 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
                 found_config = True
                 break
         if not found_config:
-            return
-            self.run_hw_simulation("pooling", test_id)
+            self.run_hw_simulation("convolution", test_id)
             # Update filtered_dirs
             all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
             filtered_dirs = [d for d in all_dirs if "ConvolutionFixed_Config" in d]
@@ -424,8 +424,8 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
         modeling_latency = layer.latency()
         modeling_pipeline_depth = layer.pipeline_depth()
 
-        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
-        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
 @ddt.ddt
 class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
@@ -487,5 +487,5 @@ class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
         modeling_latency = layer.latency()
         modeling_pipeline_depth = layer.pipeline_depth()
 
-        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
-        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"

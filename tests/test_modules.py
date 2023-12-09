@@ -10,7 +10,8 @@ import pytest
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 300
+ABS_TOL = 200
+REL_TOL = 0.05
 BACKEND = "chisel"
 
 class TestModuleTemplate():
@@ -234,8 +235,7 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
                 found_config = True
                 break
         if not found_config:
-            return
-            self.run_hw_simulation("pooling", test_id)
+            self.run_hw_simulation("pad", test_id)
             # Update filtered_dirs
             all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
             filtered_dirs = [d for d in all_dirs if "PadFixed_Config" in d]
@@ -270,8 +270,8 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
         modeling_latency = module.latency()
         modeling_pipeline_depth = module.pipeline_depth()
 
-        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
-        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
 
 @ddt.ddt
@@ -294,7 +294,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
                 found_config = True
                 break
         if not found_config:
-            self.run_hw_simulation("pooling", test_id)
+            self.run_hw_simulation("sliding_window", test_id)
             # Update filtered_dirs
             all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
             filtered_dirs = [d for d in all_dirs if "SlidingWindowFixed_Config" in d]
@@ -304,7 +304,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
             if f'SlidingWindowFixed_Config_{test_id}_' in dir:
                 simulation_dir = dir
                 break
-        vcd_path = f"{hw_sim_path}/{simulation_dir}/SlidingWindowFixed.vcd"
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/SlidingWindowBlockFixedDUT.vcd"
         vcd_parser = VCDWaveformParser(vcd_path)
         simulation_results = vcd_parser.get_module_stats("SlidingWindow")
         simulation_latency = simulation_results['module_total_cycles']
@@ -331,5 +331,63 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
         modeling_latency = module.latency()
         modeling_pipeline_depth = module.pipeline_depth()
 
-        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
-        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+
+
+@ddt.ddt
+class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/accum_block/test*"))
+    def test_module_configurations(self, test_folder_path):
+        test_id = int(test_folder_path.split("/test_")[-1])
+        hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
+
+        # List all directories in hw_sim_path
+        all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+        # Filter directories based on whether they contain the substring "AccumBlockFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "AccumBlockFixed_Config" in d]
+
+        # Check if the specific configuration has an existing simulation run
+        found_config = False
+        for dir in filtered_dirs:
+            if f'AccumBlockFixed_Config_{test_id}_' in dir:
+                found_config = True
+                break
+        if not found_config:
+            return
+            self.run_hw_simulation("accum", test_id)
+            # Update filtered_dirs
+            all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+            filtered_dirs = [d for d in all_dirs if "AccumBlockFixed_Config" in d]
+
+        # Get the path of the vcd file of the simulation
+        for dir in filtered_dirs:
+            if f'AccumBlockFixed_Config_{test_id}_' in dir:
+                simulation_dir = dir
+                break
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/AccumBlockFixedDUT.vcd"
+        vcd_parser = VCDWaveformParser(vcd_path)
+        simulation_results = vcd_parser.get_module_stats("Accum")
+        simulation_latency = simulation_results['module_total_cycles']
+        simulation_pipeline_depth = simulation_results['module_pipeline_depth_cycles']
+
+        config_path = f"{test_folder_path}/config.json"
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = Accum(config["rows"],
+                       config["cols"],
+                       config["channels"],
+                       config["filters"],
+                       config["groups"],
+                       streams=config["streams"],
+                       backend=BACKEND)
+
+        modeling_latency = module.latency()
+        modeling_pipeline_depth = module.pipeline_depth()
+
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
