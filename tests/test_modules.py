@@ -3,8 +3,15 @@ import unittest
 import ddt
 import json
 from fpgaconvnet.models.modules import *
+import glob
+import os
+from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
+import pytest
 
-BACKEND="chisel"
+# Define the path to the hardware backend directory (fpgaconvnet-chisel)
+HW_BACKEND_PATH = "../fpgaconvnet-chisel"
+ABS_TOL = 300
+BACKEND = "chisel"
 
 class TestModuleTemplate():
 
@@ -40,6 +47,12 @@ class TestModuleTemplate():
         self.assertGreaterEqual(rsc["FF"], 0.0)
         self.assertGreaterEqual(rsc["DSP"], 0.0)
         self.assertGreaterEqual(rsc["BRAM"], 0.0)
+
+    def run_hw_simulation(self, layer, index):
+        # run hardware simulation
+        os.system(f"python {HW_BACKEND_PATH}/scripts/data/generate_module_block_data.py -l {layer} -n {index} -p {HW_BACKEND_PATH}")
+        # sbt "testOnly fpgaconvnet.layers.${name}_test.ConfigTest"
+        os.system(f"cd {HW_BACKEND_PATH} && sbt -Dconfig_idx={index} 'testOnly fpgaconvnet.layers.{layer}_block_test.ConfigTest' && cd -")
 
 @ddt.ddt
 class TestForkModule(TestModuleTemplate,unittest.TestCase):
@@ -201,3 +214,122 @@ class TestReLUModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_resources(module)
 
 
+@ddt.ddt
+class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/pad/test*"))
+    def test_module_configurations(self, test_folder_path):
+        test_id = int(test_folder_path.split("/test_")[-1])
+        hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
+
+        # List all directories in hw_sim_path
+        all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+        # Filter directories based on whether they contain the substring "PadFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "PadFixed_Config" in d]
+
+        # Check if the specific configuration has an existing simulation run
+        found_config = False
+        for dir in filtered_dirs:
+            if f'PadFixed_Config_{test_id}_' in dir:
+                found_config = True
+                break
+        if not found_config:
+            return
+            self.run_hw_simulation("pooling", test_id)
+            # Update filtered_dirs
+            all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+            filtered_dirs = [d for d in all_dirs if "PadFixed_Config" in d]
+
+        # Get the path of the vcd file of the simulation
+        for dir in filtered_dirs:
+            if f'PadFixed_Config_{test_id}_' in dir:
+                simulation_dir = dir
+                break
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/PadFixed.vcd"
+        vcd_parser = VCDWaveformParser(vcd_path)
+        simulation_results = vcd_parser.get_module_stats("Pad")
+        simulation_latency = simulation_results['module_total_cycles']
+        simulation_pipeline_depth = simulation_results['module_pipeline_depth_cycles']
+
+        config_path = f"{test_folder_path}/config.json"
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise layer
+        module = Pad(config["rows"],
+                     config["cols"],
+                     config["channels"],
+                     config["pad_top"],
+                     config["pad_right"],
+                     config["pad_bottom"],
+                     config["pad_left"],
+                     streams=config["streams"],
+                     backend=BACKEND)
+
+        modeling_latency = module.latency()
+        modeling_pipeline_depth = module.pipeline_depth()
+
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+
+
+@ddt.ddt
+class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/sliding_window_block/test*"))
+    def test_module_configurations(self, test_folder_path):
+        test_id = int(test_folder_path.split("/test_")[-1])
+        hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
+
+        # List all directories in hw_sim_path
+        all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+        # Filter directories based on whether they contain the substring "SlidingWindowFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "SlidingWindowFixed_Config" in d]
+
+        # Check if the specific configuration has an existing simulation run
+        found_config = False
+        for dir in filtered_dirs:
+            if f'SlidingWindowFixed_Config_{test_id}_' in dir:
+                found_config = True
+                break
+        if not found_config:
+            self.run_hw_simulation("pooling", test_id)
+            # Update filtered_dirs
+            all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+            filtered_dirs = [d for d in all_dirs if "SlidingWindowFixed_Config" in d]
+
+        # Get the path of the vcd file of the simulation
+        for dir in filtered_dirs:
+            if f'SlidingWindowFixed_Config_{test_id}_' in dir:
+                simulation_dir = dir
+                break
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/SlidingWindowFixed.vcd"
+        vcd_parser = VCDWaveformParser(vcd_path)
+        simulation_results = vcd_parser.get_module_stats("SlidingWindow")
+        simulation_latency = simulation_results['module_total_cycles']
+        simulation_pipeline_depth = simulation_results['module_pipeline_depth_cycles']
+
+        config_path = f"{test_folder_path}/config.json"
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = SlidingWindow(config["rows"],
+                               config["cols"],
+                               config["channels"],
+                               config["kernel_size"],
+                               config["stride"],
+                               config["pad_top"],
+                               config["pad_right"],
+                               config["pad_bottom"],
+                               config["pad_left"],
+                               streams=config["streams"],
+                               backend=BACKEND)
+
+        modeling_latency = module.latency()
+        modeling_pipeline_depth = module.pipeline_depth()
+
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
