@@ -28,7 +28,7 @@ def test_simple_gap_network():
     net.update_partitions()
 
     # check the correct pipeline depth for each node
-    # assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(86, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Conv_0") == pytest.approx(86, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_1") == pytest.approx(94, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_2") == pytest.approx(520, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_3") == pytest.approx(528, abs=ABS_TOL)
@@ -169,8 +169,7 @@ def test_vgg11_toy_network():
     assert net.partitions[0].get_pipeline_depth("Conv_11") == pytest.approx(167594, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_12") == pytest.approx(167597, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_13") == pytest.approx(254593, abs=ABS_TOL)
-    assert net.partitions[0].get_pipeline_depth("Relu_14") == pytest.approx(254596
-, abs=ABS_TOL)
+    assert net.partitions[0].get_pipeline_depth("Relu_14") == pytest.approx(254596, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("MaxPool_15") == pytest.approx(337562, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Conv_16") == pytest.approx(396915, abs=ABS_TOL)
     assert net.partitions[0].get_pipeline_depth("Relu_17") == pytest.approx(396938, abs=ABS_TOL)
