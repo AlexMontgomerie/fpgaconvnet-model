@@ -95,4 +95,3 @@ class Pad(Module):
                 out[index] += data[index[0],index[1],index[2],index[3]]
 
         return out
-

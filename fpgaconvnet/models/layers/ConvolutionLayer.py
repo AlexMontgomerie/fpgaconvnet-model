@@ -11,6 +11,7 @@ from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers import Layer
 
+from fpgaconvnet.models.modules import Pad
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import VectorDot
 from fpgaconvnet.models.modules import Conv
@@ -110,12 +111,11 @@ class ConvolutionLayer(Layer):
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
         self.regression_model = regression_model
 
-        self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
-                self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
-                self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
-                backend=self.backend, regression_model=self.regression_model)
-
         if self.backend == "hls":
+            self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
+                    self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
+                    backend=self.backend, regression_model=self.regression_model)
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
@@ -135,6 +135,19 @@ class ConvolutionLayer(Layer):
                     backend=self.backend, regression_model=self.regression_model)
 
         elif self.backend == "chisel":
+            self.modules["pad"] = Pad(
+                self.rows_in(), self.cols_in(), self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right, backend=self.backend,
+                regression_model=self.regression_model)
+
+            self.modules["sliding_window"] = SlidingWindow(
+                self.rows_in() + self.pad_top + self.pad_bottom,
+                self.cols_in() + self.pad_left + self.pad_right,
+                self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.kernel_size,
+                self.stride,
+                0, 0, 0, 0, backend=self.backend,
+                regression_model=self.regression_model)
 
             self.modules["squeeze"] = Squeeze(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
@@ -354,16 +367,35 @@ class ConvolutionLayer(Layer):
                 (self.kernel_cols-1-self.pad_left)*self.channels
 
     def update(self):
-
-        # sliding window
-        self.modules['sliding_window'].rows     = self.rows
-        self.modules['sliding_window'].cols     = self.cols
-        self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
-        self.modules['sliding_window'].data_width   = self.input_t.width
-        if self.data_packing:
-            self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
-
         if self.backend == "chisel":
+            # pad
+            self.modules['pad'].rows     = self.rows_in()
+            self.modules['pad'].cols     = self.cols_in()
+            self.modules['pad'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['pad'].data_width = self.data_t.width
+            self.modules['pad'].pad_top = self.pad_top
+            self.modules['pad'].pad_bottom = self.pad_bottom
+            self.modules['pad'].pad_left = self.pad_left
+            self.modules['pad'].pad_right = self.pad_right
+            if self.data_packing:
+                self.modules['pad'].streams = self.coarse_in*self.coarse_group
+
+            # sliding window
+            self.modules['sliding_window'].rows     = self.rows_in() + self.pad_top + self.pad_bottom
+            self.modules['sliding_window'].cols     = self.cols_in() + self.pad_left + self.pad_right
+            self.modules['sliding_window'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['sliding_window'].kernel_cols = self.kernel_cols
+            self.modules['sliding_window'].kernel_rows = self.kernel_rows
+            self.modules['sliding_window'].stride_cols = self.stride_cols
+            self.modules['sliding_window'].stride_rows = self.stride_rows
+            self.modules['sliding_window'].data_width = self.data_t.width
+            self.modules['sliding_window'].pad_top = 0
+            self.modules['sliding_window'].pad_bottom = 0
+            self.modules['sliding_window'].pad_left = 0
+            self.modules['sliding_window'].pad_right = 0
+            if self.data_packing:
+                self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
+
             # squeeze
             self.modules['squeeze'].rows     = self.rows_out()
             self.modules['squeeze'].cols     = self.cols_out()
@@ -372,6 +404,14 @@ class ConvolutionLayer(Layer):
             self.modules['squeeze'].data_width = self.input_t.width
             if self.data_packing:
                 self.modules['squeeze'].streams = self.coarse_in*self.coarse_group
+        elif self.backend == "hls":
+            # sliding window
+            self.modules['sliding_window'].rows     = self.rows
+            self.modules['sliding_window'].cols     = self.cols
+            self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
+            self.modules['sliding_window'].data_width   = self.input_t.width
+            if self.data_packing:
+                self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
 
         # fork
         self.modules['fork'].rows     = self.rows_out()
@@ -543,6 +583,7 @@ class ConvolutionLayer(Layer):
         if self.backend == "chisel":
 
             # get module resource models
+            pad_rsc         = self.modules['pad'].rsc()
             sw_rsc          = self.modules['sliding_window'].rsc()
             squeeze_rsc     = self.modules['squeeze'].rsc()
             fork_rsc        = self.modules['fork'].rsc()
@@ -585,6 +626,7 @@ class ConvolutionLayer(Layer):
 
             if self.data_packing:
                 rsc = { rsc_type: (
+                    pad_rsc[rsc_type] +
                     sw_rsc[rsc_type] +
                     squeeze_rsc[rsc_type] +
                     fork_rsc[rsc_type] +
@@ -597,6 +639,7 @@ class ConvolutionLayer(Layer):
             else:
                 # accumulate resource usage based on coarse factors
                 rsc = { rsc_type: (
+                    pad_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
