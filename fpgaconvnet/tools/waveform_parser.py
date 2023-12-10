@@ -76,8 +76,11 @@ class VCDWaveformParser:
             out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_valid" in signal]
         elif "Glue" in module_name:
             module_name = "GlueBlockFixed"
+            raise NotImplementedError("GlueBlockFixed not implemented yet")
         elif "Bias" in module_name:
-            module_name = "BiasBlockFixed"
+            module_name = "BiasBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_valid" in signal]
         elif "VectorDot" in module_name:
             module_name = "VectorDotBlockFixedDUT"
             in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_0_valid" in signal]
