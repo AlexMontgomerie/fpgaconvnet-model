@@ -63,7 +63,9 @@ class VCDWaveformParser:
             in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
             out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_0_0_valid" in signal]
         elif "Squeeze" in module_name:
-            module_name = "SqueezeBlockFixed"
+            module_name = "SqueezeBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_0_valid" in signal]
         elif "Fork" in module_name:
             module_name = "ForkBlockFixed"
         elif "Accum" in module_name:
