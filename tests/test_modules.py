@@ -412,7 +412,7 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
                 found_config = True
                 break
         if not found_config:
-            self.run_hw_simulation("accum", test_id)
+            self.run_hw_simulation("squeeze", test_id)
             # Update filtered_dirs
             all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
             filtered_dirs = [d for d in all_dirs if "SqueezeBlockFixed_Config" in d]
@@ -441,6 +441,63 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
                          config["coarse_out"],
                          streams=config["streams"],
                          backend=BACKEND)
+
+        modeling_latency = module.latency()
+        modeling_pipeline_depth = module.pipeline_depth()
+
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+
+
+@ddt.ddt
+class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/vector_dot_block/test*"))
+    def test_module_configurations(self, test_folder_path):
+        test_id = int(test_folder_path.split("/test_")[-1])
+        hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
+
+        # List all directories in hw_sim_path
+        all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+        # Filter directories based on whether they contain the substring "VectorDotBlockFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "VectorDotBlockFixed_Config" in d]
+
+        # Check if the specific configuration has an existing simulation run
+        found_config = False
+        for dir in filtered_dirs:
+            if f'VectorDotBlockFixed_Config_{test_id}_' in dir:
+                found_config = True
+                break
+        if not found_config:
+            self.run_hw_simulation("vector_dot", test_id)
+            # Update filtered_dirs
+            all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+            filtered_dirs = [d for d in all_dirs if "VectorDotBlockFixed_Config" in d]
+
+        # Get the path of the vcd file of the simulation
+        for dir in filtered_dirs:
+            if f'VectorDotBlockFixed_Config_{test_id}_' in dir:
+                simulation_dir = dir
+                break
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/VectorDotBlockFixedDUT.vcd"
+        vcd_parser = VCDWaveformParser(vcd_path)
+        simulation_results = vcd_parser.get_module_stats("VectorDot")
+        simulation_latency = simulation_results['module_total_cycles']
+        simulation_pipeline_depth = simulation_results['module_pipeline_depth_cycles']
+
+        config_path = f"{test_folder_path}/config.json"
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise module
+        module = VectorDot(config["rows"],
+                           config["cols"],
+                           config["channels"],
+                           config["filters"],
+                           config["fine"],
+                           streams=config["streams"],
+                           backend=BACKEND)
 
         modeling_latency = module.latency()
         modeling_pipeline_depth = module.pipeline_depth()

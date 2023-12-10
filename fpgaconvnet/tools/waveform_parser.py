@@ -77,7 +77,9 @@ class VCDWaveformParser:
         elif "Bias" in module_name:
             module_name = "BiasBlockFixed"
         elif "VectorDot" in module_name:
-            module_name = "VectorDotBlockFixed"
+            module_name = "VectorDotBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_valid" in signal]
 
 
         module_hw_stats = {
