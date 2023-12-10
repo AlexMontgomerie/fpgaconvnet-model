@@ -218,34 +218,34 @@ class TestReLUModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
 
-    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/pad/test*"))
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/pad_block/test*"))
     def test_module_configurations(self, test_folder_path):
         test_id = int(test_folder_path.split("/test_")[-1])
         hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
 
         # List all directories in hw_sim_path
         all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
-        # Filter directories based on whether they contain the substring "PadFixed_Config"
-        filtered_dirs = [d for d in all_dirs if "PadFixed_Config" in d]
+        # Filter directories based on whether they contain the substring "PadBlockFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "PadBlockFixed_Config" in d]
 
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'PadFixed_Config_{test_id}_' in dir:
+            if f'PadBlockFixed_Config_{test_id}_' in dir:
                 found_config = True
                 break
         if not found_config:
             self.run_hw_simulation("pad", test_id)
             # Update filtered_dirs
             all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
-            filtered_dirs = [d for d in all_dirs if "PadFixed_Config" in d]
+            filtered_dirs = [d for d in all_dirs if "PadBlockFixed_Config" in d]
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'PadFixed_Config_{test_id}_' in dir:
+            if f'PadBlockFixed_Config_{test_id}_' in dir:
                 simulation_dir = dir
                 break
-        vcd_path = f"{hw_sim_path}/{simulation_dir}/PadFixed.vcd"
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/PadBlockFixedDUT.vcd"
         vcd_parser = VCDWaveformParser(vcd_path)
         simulation_results = vcd_parser.get_module_stats("Pad")
         simulation_latency = simulation_results['module_total_cycles']

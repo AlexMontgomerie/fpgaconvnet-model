@@ -57,7 +57,9 @@ class VCDWaveformParser:
 
     def get_signals_per_module(self, module_name):
         if "Pad" in module_name:
-            module_name = "PadFixed"
+            module_name = "PadBlockFixedDUT"
+            in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
+            out_valid_signals = [signal for signal in self.signals if f"{module_name}.io_out_0_valid" in signal]
         elif "SlidingWindow" in module_name:
             module_name = "SlidingWindowBlockFixedDUT"
             in_valid_signals = [signal for signal in self.signals if f"{module_name}.io_in_0_valid" in signal]
