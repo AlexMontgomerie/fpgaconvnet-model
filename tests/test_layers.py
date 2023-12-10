@@ -412,17 +412,25 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
             kernel_cols=config["kernel_size"][1],
             stride_rows=config["stride"][0],
             stride_cols=config["stride"][1],
+            groups=config["groups"],
             pad_top=config["pad_top"],
             pad_left=config["pad_left"],
             pad_bottom=config["pad_bottom"],
             pad_right=config["pad_right"],
+            fine=config["fine"],
+            has_bias=config["bias"],
             input_t=FixedPoint(config["input_t"]["width"], config["input_t"]["binary_point"]),
             weight_t=FixedPoint(config["weight_t"]["width"], config["weight_t"]["binary_point"]),
             output_t=FixedPoint(config["output_t"]["width"], config["output_t"]["binary_point"]),
             acc_t=FixedPoint(config["acc_t"]["width"], config["acc_t"]["binary_point"]),
         )
+        layer.update()
+
         modeling_latency = layer.latency()
         modeling_pipeline_depth = layer.pipeline_depth()
+
+        for m in layer.modules:
+            print(f"Module {m}: Latency: {layer.modules[m].latency()}, Pipeline depth: {layer.modules[m].pipeline_depth()}")
 
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"

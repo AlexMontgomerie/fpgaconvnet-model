@@ -36,8 +36,8 @@ class ConvolutionLayer(Layer):
             coarse_group: int = 1,
             kernel_rows: int = 1,
             kernel_cols: int = 1,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
+            stride_rows: int = 1,
+            stride_cols: int = 1,
             groups: int = 1,
             pad_top: int = 0,
             pad_right: int = 0,
@@ -174,8 +174,8 @@ class ConvolutionLayer(Layer):
                 int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, self.coarse_group,
                 backend=self.backend, regression_model=self.regression_model)
 
-        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//self.streams_out(),
-                backend=self.backend, regression_model=self.regression_model)
+        if self.has_bias:
+            self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//self.streams_out(), backend=self.backend, regression_model=self.regression_model)
 
         self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
                 backend=self.backend, regression_model=self.regression_model)
@@ -480,14 +480,15 @@ class ConvolutionLayer(Layer):
         if self.data_packing:
             self.modules['glue'].streams = self.coarse_group*self.coarse_out
 
-        # bias
-        self.modules['bias'].rows           = self.rows_out()
-        self.modules['bias'].cols           = self.cols_out()
-        self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['bias'].data_width     = self.output_t.width
-        self.modules['bias'].biases_width   = self.acc_t.width
-        if self.data_packing:
-            self.modules['bias'].streams = self.coarse_out*self.coarse_group
+        if self.has_bias:
+            # bias
+            self.modules['bias'].rows           = self.rows_out()
+            self.modules['bias'].cols           = self.cols_out()
+            self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['bias'].data_width     = self.output_t.width
+            self.modules['bias'].biases_width   = self.acc_t.width
+            if self.data_packing:
+                self.modules['bias'].streams = self.coarse_out*self.coarse_group
 
         # shift scale
         self.modules['shift_scale'].rows           = self.rows_out()
@@ -590,7 +591,8 @@ class ConvolutionLayer(Layer):
             vector_dot_rsc  = self.modules['vector_dot'].rsc()
             accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
-            bias_rsc        = self.modules['bias'].rsc()
+            if self.has_bias:
+                bias_rsc        = self.modules['bias'].rsc()
             shift_scale_rsc = self.modules['shift_scale'].rsc()
 
             # for streamed inputs, the line buffer is skipped
@@ -657,7 +659,8 @@ class ConvolutionLayer(Layer):
             conv_rsc    = self.modules['conv'].rsc()
             accum_rsc   = self.modules['accum'].rsc()
             glue_rsc    = self.modules['glue'].rsc()
-            bias_rsc    = self.modules['bias'].rsc()
+            if self.has_bias:
+                bias_rsc    = self.modules['bias'].rsc()
 
             # remove redundant modules
             if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
@@ -809,18 +812,19 @@ class ConvolutionLayer(Layer):
                                                     "ERROR (weights): invalid kernel dimension"
         assert weights.shape[3] == self.kernel_size[1],\
                                                     "ERROR (weights): invalid kernel dimension"
-
-        assert bias.shape[0] == self.filters  ,     "ERROR (bias): invalid filter dimension"
+        if self.has_bias:
+            assert bias.shape[0] == self.filters  ,     "ERROR (bias): invalid filter dimension"
 
         # instantiate convolution layer
         convolution_layer = torch.nn.Conv2d(self.channels_in(), self.filters, self.kernel_size,
-                stride=self.stride, padding=0, groups=self.groups)
+                stride=self.stride, padding=0, groups=self.groups, bias=self.has_bias)
 
         # update weights
         convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
 
         # update bias
-        convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
+        if self.has_bias:
+            convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
         # get the padding
         padding = [
@@ -834,8 +838,6 @@ class ConvolutionLayer(Layer):
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
         data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
-        data = convolution_layer(data).detach().numpy()
-        print(data.shape)
-        return data
-        # return convolution_layer(data).detach().numpy()
+        data_out = convolution_layer(data).detach().numpy()
 
+        return data_out

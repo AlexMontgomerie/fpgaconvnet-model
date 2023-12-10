@@ -53,7 +53,107 @@ class VCDWaveformParser:
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
 
+        if layer_type == "Convolution":
+            self.get_conv_modules_stats(layer_hw_stats)
+
         return layer_hw_stats
+
+    def get_conv_modules_stats(self, layer_hw_stats):
+        pad_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.pad_io_in_valid" in signal][0]
+        pad_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.pad_io_out_valid" in signal][0]
+        pad_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[pad_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[pad_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[pad_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[pad_out_valid_signals]])
+        }
+        pad_stats["module_total_cycles"] = pad_stats["last_out_valid_cycles"] - pad_stats["first_in_valid_cycles"]
+        pad_stats["module_pipeline_depth_cycles"] = pad_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['pad'] = pad_stats
+
+        sliding_window_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.sliding_window_io_in_valid" in signal][0]
+        sliding_window_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.sliding_window_io_out_valid" in signal][0]
+        sliding_window_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[sliding_window_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[sliding_window_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[sliding_window_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[sliding_window_out_valid_signals]])
+        }
+        sliding_window_stats["module_total_cycles"] = sliding_window_stats["last_out_valid_cycles"] - sliding_window_stats["first_in_valid_cycles"]
+        sliding_window_stats["module_pipeline_depth_cycles"] = sliding_window_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['sliding_window'] = sliding_window_stats
+
+        squeeze_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.squeeze_io_in_valid" in signal][0]
+        squeeze_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.squeeze_io_out_valid" in signal][0]
+        squeeze_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[squeeze_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[squeeze_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[squeeze_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[squeeze_out_valid_signals]])
+        }
+        squeeze_stats["module_total_cycles"] = squeeze_stats["last_out_valid_cycles"] - squeeze_stats["first_in_valid_cycles"]
+        squeeze_stats["module_pipeline_depth_cycles"] = squeeze_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['squeeze'] = squeeze_stats
+
+        fork_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.fork__io_in_valid" in signal][0]
+        fork_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.fork__io_out_valid" in signal][0]
+        fork_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[fork_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[fork_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[fork_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[fork_out_valid_signals]])
+        }
+        fork_stats["module_total_cycles"] = fork_stats["last_out_valid_cycles"] - fork_stats["first_in_valid_cycles"]
+        fork_stats["module_pipeline_depth_cycles"] = fork_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['fork'] = fork_stats
+
+        vector_dot_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.vector_dot_io_in_valid" in signal][0]
+        vector_dot_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.vector_dot_io_out_valid" in signal][0]
+        vector_dot_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[vector_dot_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[vector_dot_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[vector_dot_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[vector_dot_out_valid_signals]])
+        }
+        vector_dot_stats["module_total_cycles"] = vector_dot_stats["last_out_valid_cycles"] - vector_dot_stats["first_in_valid_cycles"]
+        vector_dot_stats["module_pipeline_depth_cycles"] = vector_dot_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['vector_dot'] = vector_dot_stats
+
+        accum_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.accum_io_in_valid" in signal][0]
+        accum_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.accum_io_out_valid" in signal][0]
+        accum_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[accum_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[accum_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[accum_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[accum_out_valid_signals]])
+        }
+        accum_stats["module_total_cycles"] = accum_stats["last_out_valid_cycles"] - accum_stats["first_in_valid_cycles"]
+        accum_stats["module_pipeline_depth_cycles"] = accum_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['accum'] = accum_stats
+
+        glue_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.glue_io_in_valid" in signal][0]
+        glue_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.glue_io_out_valid" in signal][0]
+        glue_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[glue_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[glue_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[glue_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[glue_out_valid_signals]])
+        }
+        glue_stats["module_total_cycles"] = glue_stats["last_out_valid_cycles"] - glue_stats["first_in_valid_cycles"]
+        glue_stats["module_pipeline_depth_cycles"] = glue_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['glue'] = glue_stats
+
+        bias_in_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.bias_io_in_valid" in signal][0]
+        bias_out_valid_signals = [signal for signal in self.signals if f"ConvolutionBlockFixed.bias_io_out_valid" in signal][0]
+        bias_stats = {
+            "first_in_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[bias_in_valid_signals]]),
+            "last_in_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[bias_in_valid_signals]]),
+            "first_out_valid_cycles": self.get_signal_first_edge(self.data[self.reference_signals[bias_out_valid_signals]]),
+            "last_out_valid_cycles": self.get_signal_last_edge(self.data[self.reference_signals[bias_out_valid_signals]])
+        }
+        bias_stats["module_total_cycles"] = bias_stats["last_out_valid_cycles"] - bias_stats["first_in_valid_cycles"]
+        bias_stats["module_pipeline_depth_cycles"] = bias_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats['bias'] = bias_stats
 
     def get_signals_per_module(self, module_name):
         if "Pad" in module_name:
