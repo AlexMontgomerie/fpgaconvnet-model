@@ -53,8 +53,8 @@ class VCDWaveformParser:
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
 
-        if layer_type == "Convolution":
-            self.get_conv_modules_stats(layer_hw_stats)
+        # if layer_type == "Convolution":
+        #     self.get_conv_modules_stats(layer_hw_stats)
 
         return layer_hw_stats
 

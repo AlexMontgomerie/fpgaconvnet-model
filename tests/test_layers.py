@@ -429,9 +429,6 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
         modeling_latency = layer.latency()
         modeling_pipeline_depth = layer.pipeline_depth()
 
-        for m in layer.modules:
-            print(f"Module {m}: Latency: {layer.modules[m].latency()}, Pipeline depth: {layer.modules[m].pipeline_depth()}")
-
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
