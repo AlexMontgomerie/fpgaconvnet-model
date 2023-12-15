@@ -9,8 +9,8 @@ import pytest
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 200
-REL_TOL = 0.05
+ABS_TOL = 100
+REL_TOL = 0.025
 
 class TestLayerTemplate():
 
@@ -374,7 +374,7 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'ConvolutionFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'ConvolutionFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -385,7 +385,7 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'ConvolutionFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'ConvolutionFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/ConvolutionBlockFixed.vcd"
@@ -448,7 +448,7 @@ class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'PoolingFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'PoolingFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -459,7 +459,7 @@ class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'PoolingFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'PoolingFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/PoolingBlockFixed.vcd"
@@ -488,6 +488,64 @@ class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
             pad_bottom=config["pad_bottom"],
             pad_right=config["pad_right"],
             data_t=FixedPoint(config["data_t"]["width"], config["data_t"]["binary_point"]),
+        )
+        modeling_latency = layer.latency()
+        modeling_pipeline_depth = layer.pipeline_depth()
+
+        assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
+        assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
+
+
+@ddt.ddt
+class TestGlobalPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
+
+    @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/layers/average_pooling/test*"))
+    def test_layer_configurations(self, test_folder_path):
+        test_id = int(test_folder_path.split("/test_")[-1])
+        hw_sim_path = f"{HW_BACKEND_PATH}/test_run_dir"
+
+        # List all directories in hw_sim_path
+        all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+        # Filter directories based on whether they contain the substring "GlobalAveragePoolingFixed_Config"
+        filtered_dirs = [d for d in all_dirs if "GlobalAveragePoolingFixed_Config" in d]
+
+        # Check if the specific configuration has an existing simulation run
+        found_config = False
+        for dir in filtered_dirs:
+            if dir.startswith(f'GlobalAveragePoolingFixed_Config_{test_id}_'):
+                found_config = True
+                break
+        if not found_config:
+            self.run_hw_simulation("average_pooling", test_id)
+            # Update filtered_dirs
+            all_dirs = [d for d in os.listdir(hw_sim_path) if os.path.isdir(os.path.join(hw_sim_path, d))]
+            filtered_dirs = [d for d in all_dirs if "GlobalAveragePoolingFixed_Config" in d]
+
+        # Get the path of the vcd file of the simulation
+        for dir in filtered_dirs:
+            if dir.startswith(f'GlobalAveragePoolingFixed_Config_{test_id}_'):
+                simulation_dir = dir
+                break
+        vcd_path = f"{hw_sim_path}/{simulation_dir}/GlobalAveragePoolingFixed.vcd"
+        vcd_parser = VCDWaveformParser(vcd_path)
+        simulation_results = vcd_parser.get_layer_stats("GlobalPool")
+        simulation_latency = simulation_results['layer_total_cycles']
+        simulation_pipeline_depth = simulation_results['layer_pipeline_depth_cycles']
+
+        config_path = f"{test_folder_path}/config.json"
+        # open configuration
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # initialise layer
+        layer = GlobalPoolingLayer(
+            config["rows_in"],
+            config["cols_in"],
+            config["channels_in"],
+            coarse=config["coarse"],
+            data_t=FixedPoint(config["data_t"]["width"], config["data_t"]["binary_point"]),
+            acc_t=FixedPoint(config["acc_t"]["width"], config["acc_t"]["binary_point"]),
+            op_type="avg"
         )
         modeling_latency = layer.latency()
         modeling_pipeline_depth = layer.pipeline_depth()

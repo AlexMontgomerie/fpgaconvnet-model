@@ -26,7 +26,7 @@ class VCDWaveformParser:
         return time // 2
 
     def get_signals_per_layer(self, layer_name):
-        if "GlobalMaxPool" in layer_name:
+        if "GlobalPool" in layer_name:
             layer_name = "GlobalAveragePoolingFixed"
         elif "MaxPool" in layer_name:
             layer_name = "PoolingBlockFixed"
