@@ -231,7 +231,7 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'PadBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'PadBlockFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -242,7 +242,7 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'PadBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'PadBlockFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/PadBlockFixedDUT.vcd"
@@ -290,7 +290,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'SlidingWindowFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'SlidingWindowFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -301,7 +301,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'SlidingWindowFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'SlidingWindowFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/SlidingWindowBlockFixedDUT.vcd"
@@ -351,7 +351,7 @@ class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'AccumBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'AccumBlockFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -362,7 +362,7 @@ class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'AccumBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'AccumBlockFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/AccumBlockFixedDUT.vcd"
@@ -408,7 +408,7 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'SqueezeBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'SqueezeBlockFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -419,7 +419,7 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'SqueezeBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'SqueezeBlockFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/SqueezeBlockFixedDUT.vcd"
@@ -465,7 +465,7 @@ class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'VectorDotBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'VectorDotBlockFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -476,7 +476,7 @@ class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'VectorDotBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'VectorDotBlockFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/VectorDotBlockFixedDUT.vcd"
@@ -522,7 +522,7 @@ class TestBiasModule_HW(TestModuleTemplate,unittest.TestCase):
         # Check if the specific configuration has an existing simulation run
         found_config = False
         for dir in filtered_dirs:
-            if f'BiasBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'BiasBlockFixed_Config_{test_id}_'):
                 found_config = True
                 break
         if not found_config:
@@ -533,7 +533,7 @@ class TestBiasModule_HW(TestModuleTemplate,unittest.TestCase):
 
         # Get the path of the vcd file of the simulation
         for dir in filtered_dirs:
-            if f'BiasBlockFixed_Config_{test_id}_' in dir:
+            if dir.startswith(f'BiasBlockFixed_Config_{test_id}_'):
                 simulation_dir = dir
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/BiasBlockFixedDUT.vcd"

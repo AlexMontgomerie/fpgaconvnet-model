@@ -25,6 +25,43 @@ class VCDWaveformParser:
             time = signal.endtime
         return time // 2
 
+    def calculate_fire_signals(self, layer_hw_stats, clock):
+        clock_signal = self.data[self.reference_signals[clock]]
+        in_valid_signal = self.data[self.reference_signals[layer_hw_stats["in_valid_signal"]]]
+        in_ready_signal = self.data[self.reference_signals[layer_hw_stats["in_ready_signal"]]]
+        out_valid_signal = self.data[self.reference_signals[layer_hw_stats["out_valid_signal"]]]
+        out_ready_signal = self.data[self.reference_signals[layer_hw_stats["out_ready_signal"]]]
+
+        in_fire_signal = []
+        out_fire_signal = []
+        for (clock_time, _) in clock_signal.tv:
+            in_valid_value = in_valid_signal[clock_time]
+            in_ready_value = in_ready_signal[clock_time]
+            if in_valid_value == '1' and in_ready_value == '1':
+                in_fire_signal.append((clock_time, '1'))
+            else:
+                in_fire_signal.append((clock_time, '0'))
+
+            out_valid_value = out_valid_signal[clock_time]
+            out_ready_value = out_ready_signal[clock_time]
+            if out_valid_value == '1' and out_ready_value == '1':
+                out_fire_signal.append((clock_time, '1'))
+            else:
+                out_fire_signal.append((clock_time, '0'))
+
+        return in_fire_signal, out_fire_signal
+
+    def get_rate(self, fire_signal, start_cycle, end_cycle):
+        word_count = 0
+        for (cycle, value) in fire_signal:
+            if cycle >= start_cycle and cycle <= end_cycle:
+                if value == '1':
+                    word_count += 1
+        word_count = word_count // 2
+        total_cycles = (end_cycle - start_cycle) // 2
+
+        return word_count / total_cycles
+
     def get_signals_per_layer(self, layer_name):
         if "GlobalPool" in layer_name:
             layer_name = "GlobalAveragePoolingFixed"
@@ -34,17 +71,24 @@ class VCDWaveformParser:
             layer_name = "ConvolutionBlockFixed"
 
         in_valid_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_valid" in signal]
+        in_ready_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_ready" in signal]
         out_valid_signals = [signal for signal in self.signals if f"{layer_name}.io_out_0_0_valid" in signal]
+        out_ready_signals = [signal for signal in self.signals if f"{layer_name}.io_out_0_0_ready" in signal]
 
         layer_hw_stats = {
             "in_valid_signal": in_valid_signals[0],
+            "in_ready_signal": in_ready_signals[0],
             "out_valid_signal": out_valid_signals[0],
+            "out_ready_signal": out_ready_signals[0]
         }
         return layer_hw_stats
 
     def get_layer_stats(self, layer_type):
 
+        clock = [signal for signal in self.signals if "clock" in signal][0]
+
         layer_hw_stats = self.get_signals_per_layer(layer_type)
+        in_fire_signal, out_fire_signal = self.calculate_fire_signals(layer_hw_stats, clock)
 
         layer_hw_stats["first_in_valid_cycles"] = self.get_signal_first_edge(self.data[self.reference_signals[layer_hw_stats["in_valid_signal"]]])
         layer_hw_stats["last_in_valid_cycles"] = self.get_signal_last_edge(self.data[self.reference_signals[layer_hw_stats["in_valid_signal"]]])
@@ -52,6 +96,9 @@ class VCDWaveformParser:
         layer_hw_stats["last_out_valid_cycles"] = self.get_signal_last_edge(self.data[self.reference_signals[layer_hw_stats["out_valid_signal"]]])
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats["initial_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
+        layer_hw_stats["average_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["last_in_valid_cycles"]*2)
+        layer_hw_stats["average_rate_out_per_stream"] = self.get_rate(fire_signal=out_fire_signal, start_cycle=layer_hw_stats["first_out_valid_cycles"]*2, end_cycle=layer_hw_stats["last_out_valid_cycles"]*2)
 
         # if layer_type == "Convolution":
         #     self.get_conv_modules_stats(layer_hw_stats)
