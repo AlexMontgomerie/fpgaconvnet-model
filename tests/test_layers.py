@@ -528,7 +528,7 @@ class TestGlobalPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
                 break
         vcd_path = f"{hw_sim_path}/{simulation_dir}/GlobalAveragePoolingFixed.vcd"
         vcd_parser = VCDWaveformParser(vcd_path)
-        simulation_results = vcd_parser.get_layer_stats("GlobalPool")
+        simulation_results = vcd_parser.get_layer_stats("GlobalAveragePool")
         simulation_latency = simulation_results['layer_total_cycles']
         simulation_pipeline_depth = simulation_results['layer_pipeline_depth_cycles']
 

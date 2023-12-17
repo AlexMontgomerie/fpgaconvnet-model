@@ -4,12 +4,21 @@ from vcdvcd import VCDVCD
 @dataclass
 class VCDWaveformParser:
     vcd_path: str
+    is_partition: bool = False
+    offset: int = 0
+    MAXPOOLING_COUNTER: int = 0
+    GLOBALPOOLING_COUNTER: int = 0
+    SQUEEZE_COUNTER: int = 0
 
     def __post_init__(self):
         self.vcd = VCDVCD(self.vcd_path)
         self.signals = self.vcd.signals
         self.reference_signals = self.vcd.references_to_ids
         self.data = self.vcd.data
+        if self.is_partition:
+            offset = [signal for signal in self.signals if "partition.io_in_0_0_valid" in signal]
+            assert len(offset) == 1, "Could not find offset signal."
+            self.offset = self.get_signal_first_edge(self.data[self.reference_signals[offset[0]]]) + 1
 
     def get_signal_first_edge(self, signal):
         time, value = signal.tv[0]
@@ -63,12 +72,26 @@ class VCDWaveformParser:
         return word_count / total_cycles
 
     def get_signals_per_layer(self, layer_name):
-        if "GlobalPool" in layer_name:
-            layer_name = "GlobalAveragePoolingFixed"
-        elif "MaxPool" in layer_name:
-            layer_name = "PoolingBlockFixed"
-        elif "Convolution" in layer_name:
+        if ("GlobalAveragePool" in layer_name or "GlobalMaxPool" in layer_name ) and not "squeeze" in layer_name:
+            if self.GLOBALPOOLING_COUNTER == 0:
+                layer_name = "GlobalAveragePoolingFixed"
+            else:
+                layer_name = f"GlobalAveragePoolingFixed_{self.GLOBALPOOLING_COUNTER}"
+            self.GLOBALPOOLING_COUNTER += 1
+        elif "MaxPool" in layer_name and not "squeeze" in layer_name:
+            if self.MAXPOOLING_COUNTER == 0:
+                layer_name = "PoolingBlockFixed"
+            else:
+                layer_name = f"PoolingBlockFixed_{self.MAXPOOLING_COUNTER}"
+            self.MAXPOOLING_COUNTER += 1
+        elif "Convolution" in layer_name and not "squeeze" in layer_name:
             layer_name = "ConvolutionBlockFixed"
+        elif "squeeze" in layer_name.lower():
+            if self.SQUEEZE_COUNTER == 0:
+                layer_name = "SqueezeLayerFixed"
+            else:
+                layer_name = f"SqueezeLayerFixed_{self.SQUEEZE_COUNTER}"
+            self.SQUEEZE_COUNTER += 1
 
         in_valid_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_valid" in signal]
         in_ready_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_ready" in signal]
@@ -96,6 +119,7 @@ class VCDWaveformParser:
         layer_hw_stats["last_out_valid_cycles"] = self.get_signal_last_edge(self.data[self.reference_signals[layer_hw_stats["out_valid_signal"]]])
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
+        layer_hw_stats["partition_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - self.offset
         layer_hw_stats["initial_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
         layer_hw_stats["average_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["last_in_valid_cycles"]*2)
         layer_hw_stats["average_rate_out_per_stream"] = self.get_rate(fire_signal=out_fire_signal, start_cycle=layer_hw_stats["first_out_valid_cycles"]*2, end_cycle=layer_hw_stats["last_out_valid_cycles"]*2)
