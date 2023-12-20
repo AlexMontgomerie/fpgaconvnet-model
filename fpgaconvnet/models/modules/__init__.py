@@ -20,6 +20,7 @@ from .Conv import Conv
 from .Fork import Fork
 from .Glue import Glue
 from .Pool import Pool
+from .Pad import Pad
 from .MaxPool import MaxPool
 # from .Pool import AvgPool
 from .ReLU import ReLU
