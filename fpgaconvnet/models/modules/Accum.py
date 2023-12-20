@@ -33,7 +33,7 @@ class Accum(Module):
     streams: int = 1
 
     def channels_in(self):
-        return (self.channels*self.filters)//self.groups*self.groups
+        return (self.channels*self.filters)//self.groups
 
     def channels_out(self):
         return self.filters

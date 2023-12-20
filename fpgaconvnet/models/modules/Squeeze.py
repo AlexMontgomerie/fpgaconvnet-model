@@ -30,12 +30,6 @@ class Squeeze(Module):
     regression_model: str = "linear_regression"
     streams: int = 1
 
-    def channels_in(self):
-        return self.channels//self.coarse_in
-
-    def channels_out(self):
-        return self.channels//self.coarse_out
-
     def module_info(self):
         # get the base module fields
         info = Module.module_info(self)
