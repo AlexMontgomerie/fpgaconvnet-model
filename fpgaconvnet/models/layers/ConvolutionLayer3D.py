@@ -723,7 +723,7 @@ class ConvolutionLayer3D(Layer3D):
                 accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
-            if self.has_bias:
+            if self.has_bias == 0:
                 bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if not self.block_floating_point:
                 shift_scale_rsc = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
