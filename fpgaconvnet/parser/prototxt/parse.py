@@ -140,7 +140,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                     backend =self.backend,
                     regression_model =self.regression_model,
                     stream_weights=self.node.parameters.stream_weights,
-                    use_uram = self.node.parameters.use_uram
+                    use_uram = self.node.parameters.use_uram,
+                    input_compression_ratio=self.node.parameters.input_compression_ratio,
+                    output_compression_ratio=self.node.parameters.output_compression_ratio,
+                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
                 )
             elif self.node.op_type == "sparse":
                 return ConvolutionSparseLayer(
@@ -172,7 +175,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                     backend =self.backend,
                     regression_model =self.regression_model,
                     stream_weights=self.node.parameters.stream_weights,
-                    use_uram = self.node.parameters.use_uram
+                    use_uram = self.node.parameters.use_uram,
+                    input_compression_ratio=self.node.parameters.input_compression_ratio,
+                    output_compression_ratio=self.node.parameters.output_compression_ratio,
+                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
                 )
             elif self.node.op_type == "pointwise_sparse":
                 return ConvolutionPointwiseSparseLayer(
@@ -201,7 +207,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                     backend =self.backend,
                     regression_model =self.regression_model,
                     stream_weights=self.node.parameters.stream_weights,
-                    use_uram =self.node.parameters.use_uram
+                    use_uram =self.node.parameters.use_uram,
+                    input_compression_ratio=self.node.parameters.input_compression_ratio,
+                    output_compression_ratio=self.node.parameters.output_compression_ratio,
+                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
                 )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -236,7 +245,10 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
                 backend =self.backend,
                 regression_model =self.regression_model,
                 stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram
+                use_uram =self.node.parameters.use_uram,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio,
+                weight_compression_ratio=self.node.parameters.weight_compression_ratio
             )
         else:
             raise NotImplementedError
@@ -271,7 +283,10 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 backend =self.backend,
                 regression_model =self.regression_model,
                 stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram
+                use_uram =self.node.parameters.use_uram,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio,
+                weight_compression_ratio=self.node.parameters.weight_compression_ratio
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
@@ -291,7 +306,10 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
                 backend =self.backend,
                 regression_model =self.regression_model,
                 stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram
+                use_uram =self.node.parameters.use_uram,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio,
+                weight_compression_ratio=self.node.parameters.weight_compression_ratio
             )
         else:
             raise NotImplementedError
@@ -316,6 +334,8 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
                 data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
@@ -325,6 +345,8 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
                 self.node.parameters.channels_in,
                 coarse=self.node.parameters.coarse,
                 data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         else:
             raise NotImplementedError
@@ -340,7 +362,9 @@ class ParsePrototxtThresholdedReLUNode(ParsePrototxtNode):
             self.node.parameters.channels_in,
             threshold = self.node.parameters.threshold,
             coarse=self.node.parameters.coarse,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point)
+            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            input_compression_ratio=self.node.parameters.input_compression_ratio,
+            output_compression_ratio=self.node.parameters.output_compression_ratio
         )
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):
@@ -366,6 +390,8 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return PoolingLayer3D(
@@ -390,6 +416,8 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
                 data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         else:
             raise NotImplementedError
@@ -409,6 +437,8 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
                 data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return SqueezeLayer3D(
@@ -421,6 +451,8 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
                 data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
 
 class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
@@ -439,6 +471,8 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
                 backend =self.backend,
                 coarse=self.node.parameters.coarse,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return GlobalPoolingLayer3D(
@@ -452,6 +486,8 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
                 backend =self.backend,
                 coarse=self.node.parameters.coarse,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
 
 class ParsePrototxtEltWiseNode(ParsePrototxtNode):
@@ -471,6 +507,8 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
                 backend =self.backend,
                 coarse=self.node.parameters.coarse,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(
@@ -485,6 +523,8 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
                 backend =self.backend,
                 coarse=self.node.parameters.coarse,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
 
 class ParsePrototxtSplitNode(ParsePrototxtNode):
@@ -502,6 +542,8 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
                 coarse=self.node.parameters.coarse,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return SplitLayer3D(
@@ -514,6 +556,8 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
                 coarse=self.node.parameters.coarse,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
 
 class ParsePrototxtConcatNode(ParsePrototxtNode):
@@ -530,6 +574,8 @@ class ParsePrototxtConcatNode(ParsePrototxtNode):
             coarse=self.node.parameters.coarse,
             backend =self.backend,
             regression_model =self.regression_model,
+            input_compression_ratio=self.node.parameters.input_compression_ratio,
+            output_compression_ratio=self.node.parameters.output_compression_ratio
         )
 
 class ParsePrototxtActivationNode(ParsePrototxtNode):
@@ -545,6 +591,8 @@ class ParsePrototxtActivationNode(ParsePrototxtNode):
                 data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return ActivationLayer3D(
@@ -557,6 +605,8 @@ class ParsePrototxtActivationNode(ParsePrototxtNode):
                 coarse=self.node.parameters.coarse,
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         else:
             raise NotImplementedError
@@ -574,6 +624,8 @@ class ParsePrototxtReSizeNode(ParsePrototxtNode):
             data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             backend =self.backend,
             regression_model =self.regression_model,
+            input_compression_ratio=self.node.parameters.input_compression_ratio,
+            output_compression_ratio=self.node.parameters.output_compression_ratio
         )
 
 class ParsePrototxtHardSwishNode(ParsePrototxtNode):
@@ -590,6 +642,8 @@ class ParsePrototxtHardSwishNode(ParsePrototxtNode):
                 output_t=FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
         elif self.dimensionality == 3:
             return HardswishLayer3D(
@@ -602,6 +656,8 @@ class ParsePrototxtHardSwishNode(ParsePrototxtNode):
                 output_t=FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
                 backend =self.backend,
                 regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
             )
 
 class ParsePrototxtChopNode(ParsePrototxtNode):
@@ -618,4 +674,6 @@ class ParsePrototxtChopNode(ParsePrototxtNode):
             data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
             backend =self.backend,
             regression_model =self.regression_model,
+            input_compression_ratio=self.node.parameters.input_compression_ratio,
+            output_compression_ratio=self.node.parameters.output_compression_ratio
         )

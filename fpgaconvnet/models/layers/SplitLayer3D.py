@@ -25,7 +25,9 @@ class SplitLayer3D(MultiPortLayer3D):
             ports_out: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
         """
         Parameters
@@ -69,7 +71,9 @@ class SplitLayer3D(MultiPortLayer3D):
 
         # initialise parent class
         super().__init__([rows], [cols], [depth], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_t=data_t)
+                ports_out=ports_out, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
 

@@ -57,12 +57,17 @@ class ConvolutionLayer3D(Layer3D):
             backend: str = "chisel",
             regression_model: str = "linear_regression",
             stream_weights: int = 0,
-            use_uram: bool = False
+            use_uram: bool = False,
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0],
+            weight_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, depth, channels,
-                coarse_in, coarse_out, data_t=input_t)
+                coarse_in, coarse_out, data_t=input_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # save data types
         self.input_t = input_t
@@ -114,6 +119,7 @@ class ConvolutionLayer3D(Layer3D):
         # off chip weight streaming attributes
         self.weight_array_unit_depth = 0
         self.weight_array_unit_width = 0
+        self.weight_compression_ratio = weight_compression_ratio
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost", "xgboost-kernel"], f"{regression_model} is an invalid regression model"
@@ -580,6 +586,7 @@ class ConvolutionLayer3D(Layer3D):
         else:
             parameters.off_chip_buffer_size = 0
             parameters.off_chip_interval = -1
+        parameters.weight_compression_ratio.extend(self.weight_compression_ratio)
 
     def get_coarse_group_feasible(self):
         return get_factors(self.groups)

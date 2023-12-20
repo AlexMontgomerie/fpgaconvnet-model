@@ -21,7 +21,12 @@ class InnerProductSparseLayer(ConvolutionPointwiseSparseLayer):
             sparsity: list = [],
             clusters: int = 1,
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",  
+            stream_weights: int = 0,
+            use_uram: bool = False,
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0],
+            weight_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
@@ -41,7 +46,12 @@ class InnerProductSparseLayer(ConvolutionPointwiseSparseLayer):
             sparsity=sparsity,
             clusters=clusters,
             backend=backend,
-            regression_model=regression_model
+            regression_model=regression_model,
+            stream_weights=stream_weights,
+            use_uram=use_uram,
+            input_compression_ratio=input_compression_ratio,
+            output_compression_ratio=output_compression_ratio,
+            weight_compression_ratio=weight_compression_ratio
         )
 
     def functional_model(self,data,weights,bias,batch_size=1):

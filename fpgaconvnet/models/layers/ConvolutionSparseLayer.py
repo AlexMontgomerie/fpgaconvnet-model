@@ -46,7 +46,10 @@ class ConvolutionSparseLayer(ConvolutionLayer):
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression",
             stream_weights: int = 0,
-            use_uram: bool = False
+            use_uram: bool = False,
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0],
+            weight_compression_ratio: list = [1.0]
         ):
 
         # flag indicating zero window skipping used
@@ -80,7 +83,10 @@ class ConvolutionSparseLayer(ConvolutionLayer):
             backend=backend,
             regression_model=regression_model,
             stream_weights=stream_weights,
-            use_uram=use_uram
+            use_uram=use_uram,
+            input_compression_ratio=input_compression_ratio,
+            output_compression_ratio=output_compression_ratio,
+            weight_compression_ratio=weight_compression_ratio
         )
 
         # change modules to sparse equivalents

@@ -44,7 +44,10 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression",
             stream_weights: int = 0,
-            use_uram: bool = False
+            use_uram: bool = False,
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0],
+            weight_compression_ratio: list = [1.0]
         ):
 
         # reshape into window sparsity per channel
@@ -78,7 +81,10 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             backend=backend,
             regression_model=regression_model,
             stream_weights=stream_weights,
-            use_uram=use_uram
+            use_uram=use_uram,
+            input_compression_ratio=input_compression_ratio,
+            output_compression_ratio=output_compression_ratio,
+            weight_compression_ratio=weight_compression_ratio
         )
 
         # update modules

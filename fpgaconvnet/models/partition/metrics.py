@@ -177,7 +177,7 @@ def get_bandwidth_in(self,freq):
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_inputs)):
             if hw.stream_inputs[i] or node in inputs:
-                workload = hw.workload_in()
+                workload = hw.workload_in() * hw.input_compression_ratio[i]
                 if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
                     # implement line or tensor buffer with off-chip memory
                     if self.dimensionality == 2:
@@ -203,7 +203,7 @@ def get_bandwidth_out(self,freq):
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_outputs)):
             if hw.stream_outputs[i] or node in outputs:
-                workload = hw.workload_out()
+                workload = hw.workload_out() * hw.output_compression_ratio[i]
                 streams = hw.streams_out()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
@@ -220,7 +220,8 @@ def get_bandwidth_weight(self,freq):
     bw_weight = []
     for node in self.graph.nodes():
         if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
-            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
+            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw() \
+                * self.graph.nodes[node]['hw'].weight_compression_ratio[0]
             latency = self.graph.nodes[node]['hw'].latency()
             # convert bits per cycle to Gbps, freq in MHz
             bw_weight.append((bits_per_cycle*latency*freq/max_latency)/1000)
