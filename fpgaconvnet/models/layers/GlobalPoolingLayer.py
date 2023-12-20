@@ -20,14 +20,19 @@ class GlobalPoolingLayer(Layer):
             acc_t: FixedPoint = FixedPoint(32,16),
             op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",  
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # save acc_t
         self.acc_t = acc_t
 
         # initialise parent class
-        super().__init__(rows, cols, channels, coarse, coarse, data_t=data_t)
+        super().__init__(rows, cols, channels, 
+        coarse, coarse, data_t=data_t,
+        input_compression_ratio=input_compression_ratio,
+        output_compression_ratio=output_compression_ratio)
 
         # update flags
         # self.flags['transformable'] = True

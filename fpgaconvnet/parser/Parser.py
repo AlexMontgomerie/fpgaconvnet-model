@@ -228,6 +228,8 @@ class Parser:
                             graph.nodes[node]['hw'].streams_out(),
                             len(nodes_out),
                             data_t=graph.nodes[node]['hw'].data_t,
+                            input_compression_ratio=graph.nodes[node]['hw'].output_compression_ratio,
+                            output_compression_ratio=[graph.nodes[node]['hw'].output_compression_ratio[0]]*len(nodes_out),
                         )
                     )
                 elif dimensionality == 3:
@@ -244,6 +246,8 @@ class Parser:
                             graph.nodes[node]['hw'].streams_out(),
                             len(nodes_out),
                             data_t=graph.nodes[node]['hw'].data_t,
+                            input_compression_ratio=graph.nodes[node]['hw'].output_compression_ratio,
+                            output_compression_ratio=[graph.nodes[node]['hw'].output_compression_ratio[0]]*len(nodes_out),
                         )
                     )
                 # iterate over nodes out

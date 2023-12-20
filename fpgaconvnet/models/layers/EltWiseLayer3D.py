@@ -24,14 +24,18 @@ class EltWiseLayer3D(MultiPortLayer3D):
             data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__([rows]*ports_in, [cols]*ports_in,
                 [depth]*ports_in,
                 [channels]*ports_in, [coarse]*ports_in,
-                [coarse], ports_in=ports_in, data_t=data_t)
+                [coarse], ports_in=ports_in, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.mem_bw_in = [100.0/self.ports_in] * self.ports_in
 

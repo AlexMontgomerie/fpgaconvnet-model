@@ -18,11 +18,15 @@ class BatchNormLayer(Layer):
             cols: int,
             channels: int,
             coarse: int = 1,
-            data_t: FixedPoint = FixedPoint(32,0)
+            data_t: FixedPoint = FixedPoint(32,0),
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         super().__init__(rows, cols, channels,
-                coarse, coarse, data_t=data_t)
+                coarse, coarse, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.input_t = FixedPoint(32, 0)
         self.scale_t = FixedPoint(32, 0)

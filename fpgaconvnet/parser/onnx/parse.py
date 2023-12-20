@@ -55,6 +55,11 @@ class ParseOnnxNode:
         # flag to convert gemm nodes to convolution
         self.convert_gemm_to_conv = convert_gemm_to_conv
 
+        # stats for encoding weights and activations
+        self.attr.setdefault("input_compression_ratio", [1.0]*len(self.inputs))
+        self.attr.setdefault("output_compression_ratio", [1.0]*len(self.outputs))
+        self.attr.setdefault("weight_compression_ratio", [1.0])
+
         # get hardware
         self.hw = self.get_hardware()
 
@@ -165,7 +170,10 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     has_bias = len(self.inputs) == 3,
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
-                    regression_model=self.regression_model
+                    regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
             elif type_flag == "sparse":
                 return ConvolutionSparseLayer(
@@ -195,7 +203,10 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     skip_all_zero_window = True,
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
-                    regression_model=self.regression_model
+                    regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
             elif type_flag == "pointwise_sparse":
                 return ConvolutionPointwiseSparseLayer(
@@ -223,7 +234,10 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     clusters = 1,
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
-                    regression_model=self.regression_model
+                    regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
@@ -255,7 +269,10 @@ class ParseOnnxConvNode(ParseOnnxNode):
                     self.quant_format["acc_t"]["binary_point"]),
                 has_bias = len(self.inputs) == 3,
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"],
+                weight_compression_ratio = self.attr["weight_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ConvolutionLayer")
@@ -304,7 +321,10 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     has_bias = len(self.inputs) == 3,
                     block_floating_point = self.quant_format["block_floating_point"],
                     backend=self.backend,
-                    regression_model=self.regression_model
+                    regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
             elif self.dimensionality == 3:
                 return InnerProductLayer3D(
@@ -321,7 +341,10 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                         self.quant_format["acc_t"]["binary_point"]),
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
-                    regression_model=self.regression_model
+                    regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
             else:
                 raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
@@ -349,6 +372,9 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                     )
             elif self.dimensionality == 3:
                 return ConvolutionLayer3D(
@@ -372,6 +398,9 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
                     has_bias = len(self.inputs) == 3,
                     backend=self.backend,
                     regression_model=self.regression_model,
+                    input_compression_ratio = self.attr["input_compression_ratio"],
+                    output_compression_ratio = self.attr["output_compression_ratio"],
+                    weight_compression_ratio = self.attr["weight_compression_ratio"]
                 )
             else:
                 raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
@@ -397,7 +426,9 @@ class ParseOnnxReLUNode(ParseOnnxNode):
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
+                    self.quant_format["data_t"]["binary_point"]),
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
@@ -406,7 +437,9 @@ class ParseOnnxReLUNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1],
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
+                    self.quant_format["data_t"]["binary_point"]),
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
@@ -426,7 +459,9 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 input_t = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
+                    self.quant_format["data_t"]["binary_point"],
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"])
             )
         elif self.dimensionality == 3:
             return HardswishLayer3D(
@@ -437,7 +472,9 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 input_t = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
+                    self.quant_format["data_t"]["binary_point"],
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"])
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for HardSwish")
@@ -463,7 +500,9 @@ class ParseOnnxChopNode(ParseOnnxNode):
                 split,
                 ports_out=len(self.outputs),
                 data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
+                    self.quant_format["data_t"]["binary_point"],
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]),
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
@@ -479,7 +518,9 @@ class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
             self.input_shape[3] if len(self.input_shape) == 4 else 1,
             self.input_shape[1],
             self.attr["alpha"],
-            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"],
+            input_compression_ratio = self.attr["input_compression_ratio"],
+            output_compression_ratio = self.attr["output_compression_ratio"])
         )
 
 class ParseOnnxActivationNode(ParseOnnxNode):
@@ -504,7 +545,9 @@ class ParseOnnxActivationNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 4 else 1,
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"],
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"])
             )
         elif self.dimensionality == 3:
             return ActivationLayer3D(
@@ -513,7 +556,9 @@ class ParseOnnxActivationNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1], activation_type=activation_type,
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
+                    self.quant_format["data_t"]["binary_point"],
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"])
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ActivationLayer")
@@ -546,7 +591,9 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return PoolingLayer3D(
@@ -570,7 +617,9 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
@@ -590,7 +639,9 @@ class ParseOnnxReSizeNode(ParseOnnxNode):
             data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                 self.quant_format["data_t"]["binary_point"]),
             backend=self.backend,
-            regression_model=self.regression_model
+            regression_model=self.regression_model,
+            input_compression_ratio = self.attr["input_compression_ratio"],
+            output_compression_ratio = self.attr["output_compression_ratio"]
         )
 
 class ParseOnnxNOPNode(ParseOnnxNode):
@@ -612,7 +663,9 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return SqueezeLayer3D(
@@ -624,7 +677,9 @@ class ParseOnnxNOPNode(ParseOnnxNode):
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
 
 class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
@@ -642,7 +697,9 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return GlobalPoolingLayer3D(
@@ -655,7 +712,9 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
@@ -680,7 +739,9 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(
@@ -696,7 +757,9 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
@@ -729,8 +792,10 @@ class ParseOnnxConcatNode(ParseOnnxNode):
                 ports_in=len(self.inputs),
                 data_t= FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
-                # backend=self.backend,
-                # regression_model=self.regression_model
+                backend=self.backend,
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(
@@ -746,7 +811,9 @@ class ParseOnnxConcatNode(ParseOnnxNode):
                 acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
                     self.quant_format["acc_t"]["binary_point"]),
                 backend=self.backend,
-                regression_model=self.regression_model
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
