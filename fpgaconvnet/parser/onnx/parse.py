@@ -1,16 +1,14 @@
-import onnx
-import numpy as np
 import importlib
 from dataclasses import dataclass
 
-from fpgaconvnet.models.layers import *
-
-
-from fpgaconvnet.data_types import FixedPoint
-
 import fpgaconvnet.parser.onnx.helper as onnx_helper
-
+import numpy as np
+from fpgaconvnet.data_types import FixedPoint
+from fpgaconvnet.models.layers import *
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
+
+import onnx
+
 
 class ParseOnnxNode:
 
@@ -459,9 +457,9 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 input_t = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"],
+                    self.quant_format["data_t"]["binary_point"]),
                 input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"])
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return HardswishLayer3D(
@@ -472,9 +470,9 @@ class ParseOnnxHardSwishNode(ParseOnnxNode):
                 input_t = FixedPoint(self.quant_format["data_t"]["width"],
                     self.quant_format["data_t"]["binary_point"]),
                 output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"],
+                    self.quant_format["data_t"]["binary_point"]),
                 input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"])
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for HardSwish")
@@ -500,9 +498,9 @@ class ParseOnnxChopNode(ParseOnnxNode):
                 split,
                 ports_out=len(self.outputs),
                 data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"],
+                    self.quant_format["data_t"]["binary_point"]),
                 input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"]),
+                output_compression_ratio = self.attr["output_compression_ratio"],
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
@@ -518,9 +516,9 @@ class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
             self.input_shape[3] if len(self.input_shape) == 4 else 1,
             self.input_shape[1],
             self.attr["alpha"],
-            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"],
+            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
             input_compression_ratio = self.attr["input_compression_ratio"],
-            output_compression_ratio = self.attr["output_compression_ratio"])
+            output_compression_ratio = self.attr["output_compression_ratio"]
         )
 
 class ParseOnnxActivationNode(ParseOnnxNode):
@@ -545,9 +543,9 @@ class ParseOnnxActivationNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 4 else 1,
                 self.input_shape[3] if len(self.input_shape) == 4 else 1,
                 self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"],
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"]),
                 input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"])
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ActivationLayer3D(
@@ -556,9 +554,9 @@ class ParseOnnxActivationNode(ParseOnnxNode):
                 self.input_shape[2] if len(self.input_shape) == 5 else 1,
                 self.input_shape[1], activation_type=activation_type,
                 data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"],
+                    self.quant_format["data_t"]["binary_point"]),
                 input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"])
+                output_compression_ratio = self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ActivationLayer")
