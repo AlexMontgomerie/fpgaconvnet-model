@@ -11,6 +11,7 @@ from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers import Layer
 
+from fpgaconvnet.models.modules import Pad
 from fpgaconvnet.models.modules import SlidingWindow
 from fpgaconvnet.models.modules import VectorDot
 from fpgaconvnet.models.modules import Conv
@@ -35,8 +36,8 @@ class ConvolutionLayer(Layer):
             coarse_group: int = 1,
             kernel_rows: int = 1,
             kernel_cols: int = 1,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
+            stride_rows: int = 1,
+            stride_cols: int = 1,
             groups: int = 1,
             pad_top: int = 0,
             pad_right: int = 0,
@@ -116,12 +117,11 @@ class ConvolutionLayer(Layer):
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
         self.regression_model = regression_model
 
-        self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
-                self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
-                self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
-                backend=self.backend, regression_model=self.regression_model)
-
         if self.backend == "hls":
+            self.modules["sliding_window"] = SlidingWindow(self.rows_in(), self.cols_in(),
+                    self.channels_in()//(self.coarse_in*self.coarse_group), self.kernel_size,
+                    self.stride, self.pad_top, self.pad_right, self.pad_bottom, self.pad_left,
+                    backend=self.backend, regression_model=self.regression_model)
 
             self.modules["fork"] = Fork(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
@@ -141,6 +141,19 @@ class ConvolutionLayer(Layer):
                     backend=self.backend, regression_model=self.regression_model)
 
         elif self.backend == "chisel":
+            self.modules["pad"] = Pad(
+                self.rows_in(), self.cols_in(), self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right, backend=self.backend,
+                regression_model=self.regression_model)
+
+            self.modules["sliding_window"] = SlidingWindow(
+                self.rows_in() + self.pad_top + self.pad_bottom,
+                self.cols_in() + self.pad_left + self.pad_right,
+                self.channels_in()//(self.coarse_in*self.coarse_group),
+                self.kernel_size,
+                self.stride,
+                0, 0, 0, 0, backend=self.backend,
+                regression_model=self.regression_model)
 
             self.modules["squeeze"] = Squeeze(self.rows_out(), self.cols_out(),
                     self.channels_in()//(self.coarse_in*self.coarse_group),
@@ -167,8 +180,8 @@ class ConvolutionLayer(Layer):
                 int(self.filters/self.coarse_out), self.coarse_in, self.coarse_out, self.coarse_group,
                 backend=self.backend, regression_model=self.regression_model)
 
-        self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//self.streams_out(),
-                backend=self.backend, regression_model=self.regression_model)
+        if self.has_bias:
+            self.modules["bias"] = Bias(self.rows_out(), self.cols_out(), 1, self.filters//self.streams_out(), backend=self.backend, regression_model=self.regression_model)
 
         self.modules["shift_scale"] = ShiftScale(self.rows_out(), self.cols_out(), 1, self.filters//(self.coarse_out*self.coarse_group),
                 backend=self.backend, regression_model=self.regression_model)
@@ -360,16 +373,35 @@ class ConvolutionLayer(Layer):
                 (self.kernel_cols-1-self.pad_left)*self.channels
 
     def update(self):
-
-        # sliding window
-        self.modules['sliding_window'].rows     = self.rows
-        self.modules['sliding_window'].cols     = self.cols
-        self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
-        self.modules['sliding_window'].data_width   = self.input_t.width
-        if self.data_packing:
-            self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
-
         if self.backend == "chisel":
+            # pad
+            self.modules['pad'].rows     = self.rows_in()
+            self.modules['pad'].cols     = self.cols_in()
+            self.modules['pad'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['pad'].data_width = self.data_t.width
+            self.modules['pad'].pad_top = self.pad_top
+            self.modules['pad'].pad_bottom = self.pad_bottom
+            self.modules['pad'].pad_left = self.pad_left
+            self.modules['pad'].pad_right = self.pad_right
+            if self.data_packing:
+                self.modules['pad'].streams = self.coarse_in*self.coarse_group
+
+            # sliding window
+            self.modules['sliding_window'].rows     = self.rows_in() + self.pad_top + self.pad_bottom
+            self.modules['sliding_window'].cols     = self.cols_in() + self.pad_left + self.pad_right
+            self.modules['sliding_window'].channels = self.channels_in()//(self.coarse_in*self.coarse_group)
+            self.modules['sliding_window'].kernel_cols = self.kernel_cols
+            self.modules['sliding_window'].kernel_rows = self.kernel_rows
+            self.modules['sliding_window'].stride_cols = self.stride_cols
+            self.modules['sliding_window'].stride_rows = self.stride_rows
+            self.modules['sliding_window'].data_width = self.data_t.width
+            self.modules['sliding_window'].pad_top = 0
+            self.modules['sliding_window'].pad_bottom = 0
+            self.modules['sliding_window'].pad_left = 0
+            self.modules['sliding_window'].pad_right = 0
+            if self.data_packing:
+                self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
+
             # squeeze
             self.modules['squeeze'].rows     = self.rows_out()
             self.modules['squeeze'].cols     = self.cols_out()
@@ -378,6 +410,14 @@ class ConvolutionLayer(Layer):
             self.modules['squeeze'].data_width = self.input_t.width
             if self.data_packing:
                 self.modules['squeeze'].streams = self.coarse_in*self.coarse_group
+        elif self.backend == "hls":
+            # sliding window
+            self.modules['sliding_window'].rows     = self.rows
+            self.modules['sliding_window'].cols     = self.cols
+            self.modules['sliding_window'].channels = self.channels//(self.coarse_in*self.coarse_group)
+            self.modules['sliding_window'].data_width   = self.input_t.width
+            if self.data_packing:
+                self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
 
         # fork
         self.modules['fork'].rows     = self.rows_out()
@@ -446,14 +486,15 @@ class ConvolutionLayer(Layer):
         if self.data_packing:
             self.modules['glue'].streams = self.coarse_group*self.coarse_out
 
-        # bias
-        self.modules['bias'].rows           = self.rows_out()
-        self.modules['bias'].cols           = self.cols_out()
-        self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
-        self.modules['bias'].data_width     = self.output_t.width
-        self.modules['bias'].biases_width   = self.acc_t.width
-        if self.data_packing:
-            self.modules['bias'].streams = self.coarse_out*self.coarse_group
+        if self.has_bias:
+            # bias
+            self.modules['bias'].rows           = self.rows_out()
+            self.modules['bias'].cols           = self.cols_out()
+            self.modules['bias'].filters        = self.filters//(self.coarse_out*self.coarse_group)
+            self.modules['bias'].data_width     = self.output_t.width
+            self.modules['bias'].biases_width   = self.acc_t.width
+            if self.data_packing:
+                self.modules['bias'].streams = self.coarse_out*self.coarse_group
 
         # shift scale
         self.modules['shift_scale'].rows           = self.rows_out()
@@ -550,13 +591,15 @@ class ConvolutionLayer(Layer):
         if self.backend == "chisel":
 
             # get module resource models
+            pad_rsc         = self.modules['pad'].rsc()
             sw_rsc          = self.modules['sliding_window'].rsc()
             squeeze_rsc     = self.modules['squeeze'].rsc()
             fork_rsc        = self.modules['fork'].rsc()
             vector_dot_rsc  = self.modules['vector_dot'].rsc()
             accum_rsc       = self.modules['accum'].rsc()
             glue_rsc        = self.modules['glue'].rsc()
-            bias_rsc        = self.modules['bias'].rsc()
+            if self.has_bias:
+                bias_rsc        = self.modules['bias'].rsc()
             shift_scale_rsc = self.modules['shift_scale'].rsc()
 
             # for streamed inputs, the line buffer is skipped
@@ -592,6 +635,7 @@ class ConvolutionLayer(Layer):
 
             if self.data_packing:
                 rsc = { rsc_type: (
+                    pad_rsc[rsc_type] +
                     sw_rsc[rsc_type] +
                     squeeze_rsc[rsc_type] +
                     fork_rsc[rsc_type] +
@@ -604,6 +648,7 @@ class ConvolutionLayer(Layer):
             else:
                 # accumulate resource usage based on coarse factors
                 rsc = { rsc_type: (
+                    pad_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     sw_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     squeeze_rsc[rsc_type]*self.coarse_in*self.coarse_group +
                     fork_rsc[rsc_type]*self.coarse_in*self.coarse_group +
@@ -621,7 +666,8 @@ class ConvolutionLayer(Layer):
             conv_rsc    = self.modules['conv'].rsc()
             accum_rsc   = self.modules['accum'].rsc()
             glue_rsc    = self.modules['glue'].rsc()
-            bias_rsc    = self.modules['bias'].rsc()
+            if self.has_bias:
+                bias_rsc    = self.modules['bias'].rsc()
 
             # remove redundant modules
             if self.kernel_rows == 1 and self.kernel_cols == 1 and self.kernel_depth == 1:
@@ -773,18 +819,19 @@ class ConvolutionLayer(Layer):
                                                     "ERROR (weights): invalid kernel dimension"
         assert weights.shape[3] == self.kernel_size[1],\
                                                     "ERROR (weights): invalid kernel dimension"
-
-        assert bias.shape[0] == self.filters  ,     "ERROR (bias): invalid filter dimension"
+        if self.has_bias:
+            assert bias.shape[0] == self.filters  ,     "ERROR (bias): invalid filter dimension"
 
         # instantiate convolution layer
         convolution_layer = torch.nn.Conv2d(self.channels_in(), self.filters, self.kernel_size,
-                stride=self.stride, padding=0, groups=self.groups)
+                stride=self.stride, padding=0, groups=self.groups, bias=self.has_bias)
 
         # update weights
         convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
 
         # update bias
-        convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
+        if self.has_bias:
+            convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
         # get the padding
         padding = [
@@ -798,8 +845,6 @@ class ConvolutionLayer(Layer):
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
         data = torch.nn.functional.pad(torch.from_numpy(data), padding, "constant", 0.0)
-        data = convolution_layer(data).detach().numpy()
-        print(data.shape)
-        return data
-        # return convolution_layer(data).detach().numpy()
+        data_out = convolution_layer(data).detach().numpy()
 
+        return data_out
