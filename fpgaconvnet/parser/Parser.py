@@ -278,7 +278,10 @@ class Parser:
         extra_quant_nodes = []
 
         # add nodes from onnx to the graph
-        for node in onnx_model.graph.node:
+        for i, node in enumerate(onnx_model.graph.node):
+            # skip final layer if it is a sigmoid or softmax
+            if node.op_type in ['Sigmoid', 'Softmax'] and i == len(onnx_model.graph.node)-1:
+                continue
             # get the node name
             node_name = onnx_helper.format_onnx_name(node)
 
