@@ -60,6 +60,7 @@ class Partition():
     from fpgaconvnet.models.partition.auxiliary import remove_squeeze
 
     # metrics
+    from fpgaconvnet.models.partition.metrics import get_initial_input_rate
     from fpgaconvnet.models.partition.metrics import get_node_delay
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
     from fpgaconvnet.models.partition.metrics import get_interval
