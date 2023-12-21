@@ -8,14 +8,47 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import MultiPortLayer
 
+# def get_initial_output_rate(self, node):
+
+#     # get the previous nodes
+#     prev_nodes = nx.ancestors(self.graph, node)
+
+#     if len(prev_nodes) == 0:
+#         return self.graph.nodes[node]["hw"].rate_out()
+
+#     else:
+
+
 def get_initial_input_rate(self, node):
 
-    # get the previous interval of the prior nodes
-    prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
+    # get the previous nodes
+    prev_nodes = nx.ancestors(self.graph, node)
 
-    # return the input rate based on this previous interval
-    # return self.graph.nodes[node]["hw"].size_in() / prev_interval
-    return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
+    if len(prev_nodes) == 0:
+
+        # return the input rate of the node
+        return self.graph.nodes[node]["hw"].rate_in()
+
+    else:
+
+        # get the previous interval of the prior nodes
+        prev_intervals = []
+        for prev_node in prev_nodes:
+            match self.graph.nodes[prev_node]["type"]:
+                # case LAYER_TYPE.Concat:
+                #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()*2)
+                # case LAYER_TYPE.Pooling:
+                #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()/2)
+                case _:
+                    prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency())
+
+
+        prev_interval = max(prev_intervals)
+
+        # return the input rate based on this previous interval
+        return self.graph.nodes[node]["hw"].size_in() / prev_interval
+        # return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
+        # return self.graph.nodes[node]["hw"].rate_in()
 
 def get_node_delay(self, node):
     def get_total_size_in(n):
@@ -45,24 +78,28 @@ def get_node_delay(self, node):
         if i == 0:
             continue
 
+        # get the channels per stream
+        channels_per_stream = node_hw[i].channels_in() // node_hw[i].streams_in()
+
         # get how many bursts of the previous node are required
         # to fill the input buffer of the current node
-        num_bursts = max(math.ceil(node_hw[i].start_depth()/node_hw[i].channels_in()) - 1, 0)
+        num_bursts = max(math.ceil(node_hw[i].start_depth()/channels_per_stream) - 1, 0)
 
         # get the cycles per word
         cycles_per_word = 1 / self.get_initial_input_rate(node)
 
         # get the delay per burst
-        delay_per_burst = cycles_per_word * node_hw[i].channels_in() // node_hw[i].streams_in()
+        delay_per_burst = cycles_per_word * channels_per_stream
 
         # add the delay per burst to the total delay
         delay += num_bursts * delay_per_burst
 
         # add the remaining cycles from the current burst
-        delay += (node_hw[i].start_depth() - num_bursts * node_hw[i].channels_in()) * cycles_per_word
+        delay += (node_hw[i].start_depth() - num_bursts * channels_per_stream) * cycles_per_word
 
         # add the delay from the pipeline minus the depth filled by the start_depth
-        delay += node_hw[i].pipeline_depth() - node_hw[i].start_depth()//node_hw[i].streams_in()
+        delay += node_hw[i].pipeline_depth() - node_hw[i].start_depth()
+        # delay += node_hw[i].start_depth()
 
         # print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", node_hw[i].start_depth(), "pipeline_depth: ", node_hw[i].pipeline_depth(), "workload_in: ", node_hw[i].workload_in(), "channels_in: ", node_hw[i].channels_in())
 
@@ -136,17 +173,22 @@ def get_interval(self):
     return np.max(np.absolute(interval_matrix))
 
 def get_cycle(self):
-    # get the interval for the partition
-    interval = self.get_interval()
-    # get pipeline depth of partition
-    pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
-    # return the latency (in seconds)
-    batch_size  = int(self.batch_size)
-    wr_factor   = self.wr_factor
-    size_wr     = self.size_wr
-    interval = math.ceil(interval * self.slow_down_factor)
-    batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
-    return batch_cycle
+
+    # # get the interval for the partition
+    # interval = self.get_interval()
+    # # get pipeline depth of partition
+    # pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
+    # # return the latency (in seconds)
+    # batch_size  = int(self.batch_size)
+    # wr_factor   = self.wr_factor
+    # size_wr     = self.size_wr
+    # interval = math.ceil(interval * self.slow_down_factor)
+    # batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
+
+    # calculate the latency for each node, and choose the maximum
+    return max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])
+
+    # return batch_cycle
 
 def get_latency(self, frequency):
     """

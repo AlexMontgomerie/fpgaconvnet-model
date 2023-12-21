@@ -44,6 +44,12 @@ class TestPipelineDepth(unittest.TestCase):
         # vgg 19 toy
         ["tests/models/vgg19_toy.onnx", "tests/configs/network/vgg19_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg19_toy_case_0/PartitionFixedDUT.vcd"],
+        # resnet8
+        ["tests/models/resnet8.onnx", "tests/configs/network/resnet8.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_resnet8_case_0/PartitionFixedDUT.vcd"],
+        # # yolov5n-320
+        # ["tests/models/yolov5n-320.onnx", "tests/configs/network/yolov5n-320.json",
+        #     f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_yolov5n320_case_0/PartitionFixedDUT.vcd"],
     )
     def test_simple_gap_network(self, onnx_path, config_path, vcd_path):
 
@@ -79,11 +85,16 @@ class TestPipelineDepth(unittest.TestCase):
             "Actual Pipeline Depth (cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
         }, headers="keys"))
 
+        print("\nModel Total latency (cycles): ", net.partitions[0].get_cycle())
+        print("Actual Total latency (cycles): ", max([partition_stats[layer]['last_out_valid_cycles'] for layer in partition_stats]))
+
         # iterate over layers of the network
         for layer in partition_stats:
 
+            assert False
+
             # check pipeline depth is conservative
-            assert net.partitions[0].get_pipeline_depth(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
+            # assert net.partitions[0].get_pipeline_depth(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
 
             # check that it is within a reasonable tolerance
             assert net.partitions[0].get_pipeline_depth(layer) == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)

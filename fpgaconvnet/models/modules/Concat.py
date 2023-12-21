@@ -35,6 +35,10 @@ class Concat(Module):
     def rate_in(self, port_index=0):
         return self.channels_in(port_index)/float(sum(self.channels))
 
+    def latency(self):
+        return self.rows*self.cols*sum(self.channels)
+
+
     def module_info(self):
         return {
             'type'      : self.__class__.__name__.upper(),

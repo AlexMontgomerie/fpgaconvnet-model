@@ -18,7 +18,7 @@ class HardswishLayer(Layer):
             input_t: FixedPoint = FixedPoint(16,8),
             output_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression",  
+            regression_model: str = "linear_regression",
             input_compression_ratio: list = [1.0],
             output_compression_ratio: list = [1.0]
         ):

@@ -95,6 +95,8 @@ class VCDWaveformParser:
             else:
                 layer_name = f"SqueezeLayerFixed_{self.SQUEEZE_COUNTER}"
             self.SQUEEZE_COUNTER += 1
+        elif "Gemm" in layer_name:
+            layer_name = "InnerProductBlockFixed"
 
         in_valid_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_valid" in signal]
         in_ready_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_ready" in signal]
