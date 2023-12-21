@@ -60,13 +60,16 @@ class VCDWaveformParser:
 
         return in_fire_signal, out_fire_signal
 
-    def get_rate(self, fire_signal, start_cycle, end_cycle):
+    def get_start_depth(self, fire_signal, start_cycle, end_cycle):
         word_count = 0
         for (cycle, value) in fire_signal:
             if cycle >= start_cycle and cycle <= end_cycle:
                 if value == '1':
                     word_count += 1
-        word_count = word_count // 2
+        return word_count // 2
+
+    def get_rate(self, fire_signal, start_cycle, end_cycle):
+        word_count = self.get_start_depth(fire_signal, start_cycle, end_cycle)
         total_cycles = (end_cycle - start_cycle) // 2
 
         return word_count / total_cycles
@@ -120,6 +123,7 @@ class VCDWaveformParser:
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["partition_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - self.offset
+        layer_hw_stats["layer_start_depth"] = self.get_start_depth(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
         layer_hw_stats["initial_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
         layer_hw_stats["average_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["last_in_valid_cycles"]*2)
         layer_hw_stats["average_rate_out_per_stream"] = self.get_rate(fire_signal=out_fire_signal, start_cycle=layer_hw_stats["first_out_valid_cycles"]*2, end_cycle=layer_hw_stats["last_out_valid_cycles"]*2)

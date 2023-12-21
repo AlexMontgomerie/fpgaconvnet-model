@@ -8,6 +8,15 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.layers import MultiPortLayer
 
+def get_initial_input_rate(self, node):
+
+    # get the previous interval of the prior nodes
+    prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
+
+    # return the input rate based on this previous interval
+    # return self.graph.nodes[node]["hw"].size_in() / prev_interval
+    return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
+
 def get_node_delay(self, node):
     def get_total_size_in(n):
         if isinstance(n, MultiPortLayer):
@@ -22,12 +31,12 @@ def get_node_delay(self, node):
             self.graph, input_node, node), key=lambda x: len(x))
     else:
         path = [input_node]
+
     # get the hardware model for each node in the path
     node_hw = [ self.graph.nodes[n]["hw"] for n in path ]
 
-    # # initialise with the first node delay
+    # initialise with the first node delay
     delay = node_hw[0].pipeline_depth()
-    # delay = 0
 
     # iterate over the nodes in the path
     for i, node in enumerate(path):
@@ -40,18 +49,8 @@ def get_node_delay(self, node):
         # to fill the input buffer of the current node
         num_bursts = max(math.ceil(node_hw[i].start_depth()/node_hw[i].channels_in()) - 1, 0)
 
-        # get the interval of the node and all ancestors
-        prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
-        # prev_rate_out = min([ self.graph.nodes[pred]["hw"].size_out() / float(self.graph.nodes[pred]["hw"].latency()) for pred in nx.ancestors(self.graph, node) ])
-        # print(list(nx.ancestors(self.graph, node)))
-
         # get the cycles per word
-        # cycles_per_word = prev_interval/node_hw[i].workload_in()
-        cycles_per_word = prev_interval/node_hw[i].size_in()
-        # cycles_per_word = max([ self.graph.nodes[pred]["hw"].latency()/get_total_size_in(pred) for pred in nx.ancestors(self.graph, node) ])
-        # cycles_per_word = max(prev_interval/node_hw[i-1].workload_out(), 1/prev_rate_out)
-        # cycles_per_word = max(prev_interval/node_hw[i].size_in(), 1/prev_rate_out)
-        # cycles_per_word = 1/prev_rate_out
+        cycles_per_word = 1 / self.get_initial_input_rate(node)
 
         # get the delay per burst
         delay_per_burst = cycles_per_word * node_hw[i].channels_in() // node_hw[i].streams_in()
@@ -68,7 +67,6 @@ def get_node_delay(self, node):
         # print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", node_hw[i].start_depth(), "pipeline_depth: ", node_hw[i].pipeline_depth(), "workload_in: ", node_hw[i].workload_in(), "channels_in: ", node_hw[i].channels_in())
 
     # append to toal path delays
-    # print(delay)
     return delay
 
 
