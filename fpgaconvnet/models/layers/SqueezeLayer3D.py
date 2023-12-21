@@ -17,12 +17,16 @@ class SqueezeLayer3D(Layer3D):
             coarse_out: int,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, depth, channels,
-                coarse_in, coarse_out, data_t=data_t)
+                coarse_in, coarse_out, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"

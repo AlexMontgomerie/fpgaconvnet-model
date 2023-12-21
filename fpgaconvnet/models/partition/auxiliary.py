@@ -44,6 +44,8 @@ def add_squeeze(self):
                         self.graph.nodes[start_node]['hw'].streams_out(),
                         self.graph.nodes[end_node]['hw'].streams_in(),
                         data_t=self.graph.nodes[start_node]['hw'].output_t,
+                        input_compression_ratio=self.graph.nodes[start_node]['hw'].output_compression_ratio,
+                        output_compression_ratio=self.graph.nodes[end_node]['hw'].input_compression_ratio,
                     )
                 )
             elif self.dimensionality == 3:
@@ -60,6 +62,8 @@ def add_squeeze(self):
                         self.graph.nodes[start_node]['hw'].streams_out(),
                         self.graph.nodes[end_node]['hw'].streams_in(),
                         data_t=self.graph.nodes[start_node]['hw'].output_t,
+                        input_compression_ratio=self.graph.nodes[start_node]['hw'].output_compression_ratio,
+                        output_compression_ratio=self.graph.nodes[end_node]['hw'].input_compression_ratio,
                     )
                 )
 

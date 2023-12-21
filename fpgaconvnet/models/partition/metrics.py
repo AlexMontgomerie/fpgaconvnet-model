@@ -9,6 +9,11 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.models.layers import MultiPortLayer
 
 def get_node_delay(self, node):
+    def get_total_size_in(n):
+        if isinstance(n, MultiPortLayer):
+            return sum([ self.graph.nodes[n]["hw"].size_in(j) for j in range(self.graph.nodes[n]["hw"].ports_in) ])
+        else:
+            return self.graph.nodes[n]["hw"].size_in()
 
     # get the path to the node
     input_node = graphs.get_input_nodes(self.graph)[0]
@@ -37,14 +42,8 @@ def get_node_delay(self, node):
 
         # get the interval of the node and all ancestors
         prev_interval = max([ self.graph.nodes[pred]["hw"].latency() for pred in nx.ancestors(self.graph, node) ])
-        prev_rate_out = min([ self.graph.nodes[pred]["hw"].size_out() / float(self.graph.nodes[pred]["hw"].latency()) for pred in nx.ancestors(self.graph, node) ])
+        # prev_rate_out = min([ self.graph.nodes[pred]["hw"].size_out() / float(self.graph.nodes[pred]["hw"].latency()) for pred in nx.ancestors(self.graph, node) ])
         # print(list(nx.ancestors(self.graph, node)))
-
-        def get_total_size_in(n):
-            if isinstance(n, MultiPortLayer):
-                return sum([ self.graph.nodes[n]["hw"].size_in(j) for j in range(self.graph.nodes[n]["hw"].ports_in) ])
-            else:
-                return self.graph.nodes[n]["hw"].size_in()
 
         # get the cycles per word
         cycles_per_word = max(prev_interval/node_hw[i].size_in(), 1/node_hw[i].rate_in())
@@ -172,7 +171,7 @@ def get_bandwidth_in(self,freq):
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_inputs)):
             if hw.stream_inputs[i] or node in inputs:
-                workload = hw.workload_in()
+                workload = hw.workload_in() * hw.input_compression_ratio[i]
                 if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
                     # implement line or tensor buffer with off-chip memory
                     if self.dimensionality == 2:
@@ -198,7 +197,7 @@ def get_bandwidth_out(self,freq):
         hw = self.graph.nodes[node]["hw"]
         for i in range(len(hw.stream_outputs)):
             if hw.stream_outputs[i] or node in outputs:
-                workload = hw.workload_out()
+                workload = hw.workload_out() * hw.output_compression_ratio[i]
                 streams = hw.streams_out()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
@@ -215,7 +214,8 @@ def get_bandwidth_weight(self,freq):
     bw_weight = []
     for node in self.graph.nodes():
         if self.graph.nodes[node]['type'] in [LAYER_TYPE.Convolution, LAYER_TYPE.InnerProduct]:
-            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw()
+            bits_per_cycle = self.graph.nodes[node]['hw'].stream_bw() \
+                * self.graph.nodes[node]['hw'].weight_compression_ratio[0]
             latency = self.graph.nodes[node]['hw'].latency()
             # convert bits per cycle to Gbps, freq in MHz
             bw_weight.append((bits_per_cycle*latency*freq/max_latency)/1000)

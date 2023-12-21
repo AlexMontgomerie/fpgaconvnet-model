@@ -39,6 +39,10 @@ class Layer3D:
         number of parallel streams per port into the layer3d.
     coarse_out: int
         number of parallel streams per port out of the layer3d.
+    input_compression_ratio: list float
+        input compression ratio per port into the layer3d.
+    output_compression_ratio: list float
+        output compression ratio per port out of the layer3d.
     mem_bw_in: float
         maximum bandwidth for the input streams of the layer3d expressed
         as a fraction of the clock cycle.
@@ -60,6 +64,8 @@ class Layer3D:
     _channels: int
     _coarse_in: int
     _coarse_out: int
+    input_compression_ratio: List[float] = field(default_factory=list, init=True)
+    output_compression_ratio: List[float] = field(default_factory=list, init=True)
     mem_bw_in: float = field(default=100.0, init=True)
     mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
@@ -384,6 +390,8 @@ class Layer3D:
         self.data_t.to_protobuf(parameters.data_t)
         parameters.stream_inputs.extend(self.stream_inputs)
         parameters.stream_outputs.extend(self.stream_outputs)
+        parameters.input_compression_ratio.extend(self.input_compression_ratio)
+        parameters.output_compression_ratio.extend(self.output_compression_ratio)
 
     def get_operations(self):
         return 0

@@ -93,6 +93,9 @@ message parameter {
     repeated bool stream_inputs = 75;
     repeated bool stream_outputs = 76;
     optional int32 clusters = 77;
+    repeated float input_compression_ratio = 78;
+    repeated float output_compression_ratio = 79;
+    repeated float weight_compression_ratio = 80;
 }
 
 message layer {
