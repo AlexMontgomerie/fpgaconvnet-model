@@ -46,8 +46,11 @@ class VCDWaveformParser:
 
         return in_fire_signal, out_fire_signal
 
+    def get_start_depth(self, fire_signal, start_cycle, end_cycle):
+        return sum(1 for (cycle, value) in fire_signal if start_cycle <= cycle <= end_cycle and value == '1') // 2
+
     def get_rate(self, fire_signal, start_cycle, end_cycle):
-        word_count = sum(1 for (cycle, value) in fire_signal if start_cycle <= cycle <= end_cycle and value == '1') // 2
+        word_count = self.get_start_depth(fire_signal, start_cycle, end_cycle)
         total_cycles = (end_cycle - start_cycle) // 2
 
         return word_count / total_cycles
@@ -73,6 +76,8 @@ class VCDWaveformParser:
             else:
                 layer_name = f"SqueezeLayerFixed_{self.SQUEEZE_COUNTER}"
             self.SQUEEZE_COUNTER += 1
+        elif "Gemm" in layer_name:
+            layer_name = "InnerProductBlockFixed"
 
         in_valid_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_valid" in signal]
         in_ready_signals = [signal for signal in self.signals if f"{layer_name}.io_in_0_0_ready" in signal]
@@ -101,6 +106,7 @@ class VCDWaveformParser:
         layer_hw_stats["layer_total_cycles"] = layer_hw_stats["last_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["layer_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - layer_hw_stats["first_in_valid_cycles"]
         layer_hw_stats["partition_pipeline_depth_cycles"] = layer_hw_stats["first_out_valid_cycles"] - self.offset
+        layer_hw_stats["layer_start_depth"] = self.get_start_depth(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
         layer_hw_stats["initial_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["first_out_valid_cycles"]*2)
         layer_hw_stats["average_rate_in_per_stream"] = self.get_rate(fire_signal=in_fire_signal, start_cycle=layer_hw_stats["first_in_valid_cycles"]*2, end_cycle=layer_hw_stats["last_in_valid_cycles"]*2)
         layer_hw_stats["average_rate_out_per_stream"] = self.get_rate(fire_signal=out_fire_signal, start_cycle=layer_hw_stats["first_out_valid_cycles"]*2, end_cycle=layer_hw_stats["last_out_valid_cycles"]*2)

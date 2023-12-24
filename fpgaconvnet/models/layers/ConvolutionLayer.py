@@ -369,8 +369,8 @@ class ConvolutionLayer(Layer):
         return self.coarse_out*self.coarse_group
 
     def start_depth(self):
-        return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels + \
-                (self.kernel_cols-1-self.pad_left)*self.channels
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
+                (self.kernel_cols-self.pad_left)*self.channels//self.streams_in() + 8
 
     def update(self):
         if self.backend == "chisel":
