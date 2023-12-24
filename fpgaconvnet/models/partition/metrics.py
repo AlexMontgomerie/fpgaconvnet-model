@@ -1,12 +1,11 @@
 import math
-import numpy as np
-import networkx as nx
 
 import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE
-
+import networkx as nx
+import numpy as np
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 # def get_initial_output_rate(self, node):
 
@@ -32,23 +31,28 @@ def get_initial_input_rate(self, node):
     else:
 
         # get the previous interval of the prior nodes
-        prev_intervals = []
-        for prev_node in prev_nodes:
-            match self.graph.nodes[prev_node]["type"]:
-                # case LAYER_TYPE.Concat:
-                #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()*2)
-                # case LAYER_TYPE.Pooling:
-                #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()/2)
-                case _:
-                    prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency())
-
-
-        prev_interval = max(prev_intervals)
+        # prev_intervals = []
+        # for prev_node in prev_nodes:
+        #     match self.graph.nodes[prev_node]["type"]:
+        #         # case LAYER_TYPE.Concat:
+        #         #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()*2)
+        #         # case LAYER_TYPE.Pooling:
+        #         #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()/2)
+        #         case _:
+        #             prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency())
+        # prev_interval = max(prev_intervals)
+        prev_interval = max(self.graph.nodes[prev_node]["hw"].latency() for prev_node in prev_nodes)
 
         # return the input rate based on this previous interval
         return self.graph.nodes[node]["hw"].size_in() / prev_interval
         # return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
         # return self.graph.nodes[node]["hw"].rate_in()
+
+def find_attached_input_node(self, node):
+    graph_input_nodes = graphs.get_input_nodes(self.graph)
+    for input_node in graph_input_nodes:
+        if nx.has_path(self.graph, input_node, node):
+            return input_node
 
 def get_node_delay(self, node):
     def get_total_size_in(n):
@@ -58,12 +62,13 @@ def get_node_delay(self, node):
             return self.graph.nodes[n]["hw"].size_in()
 
     # get the path to the node
-    input_node = graphs.get_input_nodes(self.graph)[0]
-    if len(self.graph.nodes()) > 1 and input_node != node:
+    input_nodes = graphs.get_input_nodes(self.graph)
+    if len(self.graph.nodes()) > 1 and not (node in input_nodes):
+        input_node = self.find_attached_input_node(node)
         path = max(nx.all_simple_paths(
             self.graph, input_node, node), key=lambda x: len(x))
     else:
-        path = [input_node]
+        path = [input_nodes[0]]
 
     # get the hardware model for each node in the path
     node_hw = [ self.graph.nodes[n]["hw"] for n in path ]
@@ -180,13 +185,13 @@ def get_cycle(self):
     # pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # # return the latency (in seconds)
     # batch_size  = int(self.batch_size)
-    # wr_factor   = self.wr_factor
-    # size_wr     = self.size_wr
+    wr_factor   = self.wr_factor
+    size_wr     = self.size_wr
     # interval = math.ceil(interval * self.slow_down_factor)
     # batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
 
     # calculate the latency for each node, and choose the maximum
-    return max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])
+    return max([ self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])*wr_factor + (wr_factor-1)*size_wr
 
     # return batch_cycle
 
