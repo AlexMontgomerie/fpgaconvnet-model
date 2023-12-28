@@ -17,7 +17,7 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 #     else:
 
-
+@lru_cache(maxsize=None)
 def get_initial_input_rate(self, node):
 
     # get the previous nodes
@@ -41,20 +41,20 @@ def get_initial_input_rate(self, node):
         #         case _:
         #             prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency())
         # prev_interval = max(prev_intervals)
-        latencies = [ self.graph.nodes[prev_node]["hw"].latency() for prev_node in prev_nodes ]
-        prev_interval = max(latencies)
+        prev_interval = max(self.graph.nodes[prev_node]["hw"].latency() for prev_node in prev_nodes)
 
         # return the input rate based on this previous interval
         return self.graph.nodes[node]["hw"].size_in() / prev_interval
         # return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
         # return self.graph.nodes[node]["hw"].rate_in()
 
+@lru_cache(maxsize=None)
 def find_attached_input_node(self, node):
     graph_input_nodes = graphs.get_input_nodes(self.graph)
     for input_node in graph_input_nodes:
         if nx.has_path(self.graph, input_node, node):
             return input_node
-
+@lru_cache(maxsize=None)
 def get_node_delay(self, node):
     # def get_total_size_in(n):
     #     if isinstance(n, MultiPortLayer):
@@ -177,6 +177,7 @@ def get_interval(self):
     # return the overall interval
     return np.max(np.absolute(interval_matrix))
 
+@lru_cache(maxsize=None)
 def get_cycle(self):
     # # get the interval for the partition
     # interval = self.get_interval()
@@ -191,8 +192,7 @@ def get_cycle(self):
     # return batch_cycle
 
     # calculate the latency for each node, and choose the maximum
-    latencies = [ self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ]
-    return max(latencies)*wr_factor + (wr_factor-1)*size_wr
+    return max(self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes()) * wr_factor + (wr_factor -1 ) * size_wr
 
 def get_latency(self, frequency):
     """
