@@ -252,7 +252,7 @@ class Module:
             then the latency of the module is the largest of
             the two.
         """
-        latency_in  = int((self.rows_in() *self.cols_in() *self.channels_in() )/self.rate_in() )
+        latency_in  = int((self.rows_in() *self.cols_in() *self.channels_in() )/self.rate_in())
         latency_out = int((self.rows_out()*self.cols_out()*self.channels_out())/self.rate_out())
         return max(latency_in,latency_out)
 
