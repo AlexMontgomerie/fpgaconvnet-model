@@ -179,7 +179,6 @@ def get_interval(self):
     # return the overall interval
     return np.max(np.absolute(interval_matrix))
 
-@lru_cache(maxsize=None)
 def get_cycle(self):
     # # get the interval for the partition
     # interval = self.get_interval()
