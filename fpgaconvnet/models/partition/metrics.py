@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 from fpgaconvnet.models.layers import MultiPortLayer
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+from functools import lru_cache
 
 # def get_initial_output_rate(self, node):
 
@@ -54,6 +55,7 @@ def find_attached_input_node(self, node):
     for input_node in graph_input_nodes:
         if nx.has_path(self.graph, input_node, node):
             return input_node
+            
 @lru_cache(maxsize=None)
 def get_node_delay(self, node):
     # def get_total_size_in(n):
