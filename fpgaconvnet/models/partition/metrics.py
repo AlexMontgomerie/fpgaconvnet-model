@@ -182,57 +182,6 @@ def get_node_delay(self, node):
     # append to toal path delays
     return delay
 
-
-# def get_node_delay(self, node):
-
-#     # get the path to the node
-#     input_node = graphs.get_input_nodes(self.graph)[0]
-#     if len(self.graph.nodes()) > 1 and input_node != node:
-#         path = max(nx.all_simple_paths(
-#             self.graph, input_node, node), key=lambda x: len(x))
-#     else:
-#         path = [input_node]
-
-#     # get the hardware model for each node in the path
-#     node_hw = { n: self.graph.nodes[n]["hw"] for n in path }
-
-#     # initialise with the first node delay
-#     delay = node_hw[path[0]].pipeline_depth()
-#     # delay = 0
-
-#     # iterate over the nodes in the path
-#     for i, node in enumerate(path[1:]):
-
-#         # print("\n")
-
-#         # get the required words from previous nodes
-#         required_words = { path[i]: node_hw[node].start_depth() }
-#         for j in range(i):
-#             curr_node = path[i-j]
-#             prev_node = path[i-j-1]
-#             # print(curr_node, prev_node, required_words[curr_node])
-#             required_words[prev_node] = node_hw[curr_node].piecewise_input_words_relationship(required_words[curr_node])
-
-#         # calculate the output based on the required words
-#         output_rates = { path[0]: node_hw[path[0]].piecewise_rate_out(1.0, required_words[path[0]]) }
-#         for j in range(1, i+1):
-#             curr_node = path[j]
-#             match self.graph.nodes[curr_node]["type"]:
-#                 case LAYER_TYPE.Concat:
-#                     prev_node = path[j-1]
-#                     output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out([output_rates[prev_node], 1], required_words[curr_node])
-#                 case _:
-#                     prev_node = path[j-1]
-#                     output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out(output_rates[prev_node], required_words[curr_node])
-
-#         # using the previous output rate, add to the delay
-#         delay += node_hw[node].start_depth() / output_rates[path[i]]
-
-
-#     # append to toal path delays
-#     return delay
-
-
 def get_node_delay_fast(self, node):
 
     # get the path to the node
@@ -363,7 +312,8 @@ def get_cycle(self):
 
     # calculate the latency for each node, and choose the maximum
     # return max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])
-    return max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])
+    batch_cycles = max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])
+    return batch_cycles*self.wr_factor + (self.wr_factor-1)*self.size_wr
 
     # return batch_cycle
 
