@@ -65,6 +65,7 @@ class Partition():
     from fpgaconvnet.models.partition.metrics import get_node_delay
     from fpgaconvnet.models.partition.metrics import get_node_delay_fast
     from fpgaconvnet.models.partition.metrics import get_pipeline_depth
+    from fpgaconvnet.models.partition.metrics import get_pipeline_depth_fast
     from fpgaconvnet.models.partition.metrics import get_interval
     from fpgaconvnet.models.partition.metrics import get_cycle
     from fpgaconvnet.models.partition.metrics import get_latency

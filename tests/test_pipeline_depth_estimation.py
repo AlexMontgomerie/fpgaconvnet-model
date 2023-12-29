@@ -15,8 +15,8 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 10000
-REL_TOL = 0.75
+ABS_TOL = 1000
+REL_TOL = 0.25
 
 def filter_by_type(layer_type):
     return "squeeze" not in layer_type.lower() and "split" not in layer_type.lower() and "reshape" not in layer_type.lower()
@@ -96,8 +96,6 @@ class TestPipelineDepth(unittest.TestCase):
 
         # iterate over layers of the network
         for layer in partition_stats:
-
-            assert False
 
             # check pipeline depth is conservative
             # assert model_pipeline_depth[layer] >= partition_stats[layer]['partition_pipeline_depth_cycles']

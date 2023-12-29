@@ -94,11 +94,14 @@ class ConcatLayer(MultiPortLayer):
         assert port_index == 0, "ConcatLayer only has a single output port"
         return self.modules["concat"].rate_out()
 
-    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+    def piecewise_rate_out(self, prev_rate_out: list[float], output_words: int) -> float:
         """
         Method for estimating the average rate out after a given number of output words
         """
-        return self.rate_out() * min(((prev_rate_out+1)/2) / self.rate_in(), 1)
+        assert len(prev_rate_out) == self.ports_in, "ERROR: invalid number of previous rates"
+        avg_prev_rate_out = sum(prev_rate_out) / len(prev_rate_out)
+        return self.rate_out() * min(avg_prev_rate_out / self.rate_in(), 1)
+        # return self.rate_out() * min((prev_rate_out) / self.rate_in(), 1)
 
     def get_coarse_in_feasible(self, port_index=0):
         assert(port_index < self.ports_in)

@@ -107,13 +107,15 @@ def get_initial_input_rate(self, node):
 
 def get_node_delay(self, node):
 
-    # get the path to the node
-    input_node = graphs.get_input_nodes(self.graph)[0]
-    if len(self.graph.nodes()) > 1 and input_node != node:
-        path = max(nx.all_simple_paths(
-            self.graph, input_node, node), key=lambda x: len(x))
-    else:
-        path = [input_node]
+    # get all the predecessors of the node
+    prev_nodes = graphs.get_prev_nodes_all(self.graph, node)
+    prev_nodes.append(node)
+
+    # get the subgraph of the predecessors
+    path = self.graph.subgraph(prev_nodes)
+
+    # topological sort the subgraph
+    path = list(nx.topological_sort(path))
 
     # get the hardware model for each node in the path
     node_hw = { n: self.graph.nodes[n]["hw"] for n in path }
@@ -128,19 +130,50 @@ def get_node_delay(self, node):
         # print("\n")
 
         # get the required words from previous nodes
-        required_words = { path[i]: node_hw[node].start_depth() }
-        for j in range(i):
+        required_words = { n: 0 for n in path }
+        required_words[path[i]] = node_hw[node].start_depth()
+
+        for j in range(i): # iterate backwards from last node in the graph
+
+            # key for the current node
             curr_node = path[i-j]
-            prev_node = path[i-j-1]
-            # print(curr_node, prev_node, required_words[curr_node])
-            required_words[prev_node] = node_hw[curr_node].piecewise_input_words_relationship(required_words[curr_node])
+
+            # find all the previous nodes
+            prev_nodes = graphs.get_prev_nodes(self.graph, curr_node)
+
+            # get the required_words for each previous node
+            for prev_node in prev_nodes:
+                required_words[prev_node] += node_hw[curr_node].piecewise_input_words_relationship(required_words[curr_node])
+
+            # prev_node = path[i-j-1]
+            # # print(curr_node, prev_node, required_words[curr_node])
+            # required_words[prev_node] = node_hw[curr_node].piecewise_input_words_relationship(required_words[curr_node])
 
         # calculate the output based on the required words
         output_rates = { path[0]: node_hw[path[0]].piecewise_rate_out(1.0, required_words[path[0]]) }
-        for j in range(1, i+1):
+        for j in range(1, i+1): # iterate forwards from the first node in the path
+
+            # key for the current node
             curr_node = path[j]
-            prev_node = path[j-1]
-            output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out(output_rates[prev_node], required_words[curr_node])
+
+            # find all the prev nodes
+            prev_nodes = graphs.get_prev_nodes(self.graph, curr_node)
+
+            # get the output rate for each next node
+            match self.graph.nodes[curr_node]["type"]:
+                case LAYER_TYPE.Concat:
+                    output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out([output_rates[prev_node] for prev_node in prev_nodes], required_words[curr_node])
+                case _:
+                    output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out(output_rates[prev_nodes[0]], required_words[curr_node])
+
+
+            # match self.graph.nodes[curr_node]["type"]:
+            #     case LAYER_TYPE.Concat | LAYER_TYPE.EltWise:
+            #         prev_node = path[j-1]
+            #         output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out([output_rates[prev_node], 1], required_words[curr_node])
+            #     case _:
+            #         prev_node = path[j-1]
+            #         output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out(output_rates[prev_node], required_words[curr_node])
 
         # using the previous output rate, add to the delay
         delay += node_hw[node].start_depth() / output_rates[path[i]]
@@ -148,6 +181,56 @@ def get_node_delay(self, node):
 
     # append to toal path delays
     return delay
+
+
+# def get_node_delay(self, node):
+
+#     # get the path to the node
+#     input_node = graphs.get_input_nodes(self.graph)[0]
+#     if len(self.graph.nodes()) > 1 and input_node != node:
+#         path = max(nx.all_simple_paths(
+#             self.graph, input_node, node), key=lambda x: len(x))
+#     else:
+#         path = [input_node]
+
+#     # get the hardware model for each node in the path
+#     node_hw = { n: self.graph.nodes[n]["hw"] for n in path }
+
+#     # initialise with the first node delay
+#     delay = node_hw[path[0]].pipeline_depth()
+#     # delay = 0
+
+#     # iterate over the nodes in the path
+#     for i, node in enumerate(path[1:]):
+
+#         # print("\n")
+
+#         # get the required words from previous nodes
+#         required_words = { path[i]: node_hw[node].start_depth() }
+#         for j in range(i):
+#             curr_node = path[i-j]
+#             prev_node = path[i-j-1]
+#             # print(curr_node, prev_node, required_words[curr_node])
+#             required_words[prev_node] = node_hw[curr_node].piecewise_input_words_relationship(required_words[curr_node])
+
+#         # calculate the output based on the required words
+#         output_rates = { path[0]: node_hw[path[0]].piecewise_rate_out(1.0, required_words[path[0]]) }
+#         for j in range(1, i+1):
+#             curr_node = path[j]
+#             match self.graph.nodes[curr_node]["type"]:
+#                 case LAYER_TYPE.Concat:
+#                     prev_node = path[j-1]
+#                     output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out([output_rates[prev_node], 1], required_words[curr_node])
+#                 case _:
+#                     prev_node = path[j-1]
+#                     output_rates[curr_node] = node_hw[curr_node].piecewise_rate_out(output_rates[prev_node], required_words[curr_node])
+
+#         # using the previous output rate, add to the delay
+#         delay += node_hw[node].start_depth() / output_rates[path[i]]
+
+
+#     # append to toal path delays
+#     return delay
 
 
 def get_node_delay_fast(self, node):
@@ -269,13 +352,14 @@ def get_cycle(self):
     # # get the interval for the partition
     # interval = self.get_interval()
     # # get pipeline depth of partition
-    # pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
+    # pipeline_depth = self.get_pipeline_depth_fast() # TODO: find max of all input nodes
     # # return the latency (in seconds)
     # batch_size  = int(self.batch_size)
     # wr_factor   = self.wr_factor
     # size_wr     = self.size_wr
     # interval = math.ceil(interval * self.slow_down_factor)
     # batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
+    # return batch_cycle
 
     # calculate the latency for each node, and choose the maximum
     # return max([ self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() ])

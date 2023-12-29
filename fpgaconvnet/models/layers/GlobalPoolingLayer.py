@@ -105,6 +105,9 @@ class GlobalPoolingLayer(Layer):
         parameters.coarse = self.coarse
         self.acc_t.to_protobuf(parameters.acc_t)
 
+    def rate_out(self):
+        return 1.0
+
     def start_depth(self):
         return self.rows*self.cols*self.channels//self.streams_in()
 
