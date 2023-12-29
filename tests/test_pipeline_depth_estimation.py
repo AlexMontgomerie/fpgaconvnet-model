@@ -41,6 +41,9 @@ class TestPipelineDepth(unittest.TestCase):
         # vgg 11 toy
         ["tests/models/vgg11_toy.onnx", "tests/configs/network/vgg11_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_case_0/PartitionFixedDUT.vcd"],
+        # vgg 11 toy (large)
+        ["tests/models/vgg11_toy_large.onnx", "tests/configs/network/vgg11_toy_large.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_large_case_0/PartitionFixedDUT.vcd"],
         # vgg 19 toy
         ["tests/models/vgg19_toy.onnx", "tests/configs/network/vgg19_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg19_toy_case_0/PartitionFixedDUT.vcd"],
@@ -51,7 +54,7 @@ class TestPipelineDepth(unittest.TestCase):
         # ["tests/models/yolov5n-320.onnx", "tests/configs/network/yolov5n-320.json",
         #     f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_yolov5n320_case_0/PartitionFixedDUT.vcd"],
     )
-    def test_simple_gap_network(self, onnx_path, config_path, vcd_path):
+    def test_pipeline_depth(self, onnx_path, config_path, vcd_path):
 
         # initialise network
         parser = Parser(backend="chisel")
@@ -74,6 +77,9 @@ class TestPipelineDepth(unittest.TestCase):
             with open(f"{vcd_path}.cache.json", "w") as f:
                 json.dump(partition_stats, f)
 
+        # get the per layer estimates
+        model_pipeline_depth = { layer: net.partitions[0].get_pipeline_depth(layer) for layer in model_layers }
+
         # create a table
         print(tabulate({
             "Layer": [layer for layer in partition_stats],
@@ -81,7 +87,7 @@ class TestPipelineDepth(unittest.TestCase):
             "Actual Rate In": [partition_stats[layer]['initial_rate_in_per_stream'] for layer in partition_stats],
             "Model Start Depth (words)": [net.partitions[0].graph.nodes[layer]["hw"].start_depth() for layer in partition_stats],
             "Actual Start Depth (words)": [partition_stats[layer]['layer_start_depth'] for layer in partition_stats],
-            "Model Pipeline Depth (cycles)": [net.partitions[0].get_pipeline_depth(layer) for layer in partition_stats],
+            "Model Pipeline Depth (cycles)": [ model_pipeline_depth[layer] for layer in partition_stats],
             "Actual Pipeline Depth (cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
         }, headers="keys"))
 
@@ -94,9 +100,9 @@ class TestPipelineDepth(unittest.TestCase):
             assert False
 
             # check pipeline depth is conservative
-            # assert net.partitions[0].get_pipeline_depth(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
+            # assert model_pipeline_depth[layer] >= partition_stats[layer]['partition_pipeline_depth_cycles']
 
             # check that it is within a reasonable tolerance
-            assert net.partitions[0].get_pipeline_depth(layer) == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
+            assert model_pipeline_depth[layer] == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
 
 

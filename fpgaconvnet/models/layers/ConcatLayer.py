@@ -94,6 +94,12 @@ class ConcatLayer(MultiPortLayer):
         assert port_index == 0, "ConcatLayer only has a single output port"
         return self.modules["concat"].rate_out()
 
+    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+        """
+        Method for estimating the average rate out after a given number of output words
+        """
+        return self.rate_out() * min(((prev_rate_out+1)/2) / self.rate_in(), 1)
+
     def get_coarse_in_feasible(self, port_index=0):
         assert(port_index < self.ports_in)
         factors = set( get_factors(self.channels_in(0)) )

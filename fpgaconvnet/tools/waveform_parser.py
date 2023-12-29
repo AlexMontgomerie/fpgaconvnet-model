@@ -111,6 +111,14 @@ class VCDWaveformParser:
         }
         return layer_hw_stats
 
+    def get_avg_output_rate(self, layer, delay):
+
+        clock = [signal for signal in self.signals if "clock" in signal][0]
+
+        layer_hw_stats = self.get_signals_per_layer(layer)
+        in_fire_signal, out_fire_signal = self.calculate_fire_signals(layer_hw_stats, clock)
+        return self.get_rate(fire_signal=out_fire_signal, start_cycle=layer_hw_stats["first_out_valid_cycles"]*2, end_cycle=delay*2)
+
     def get_layer_stats(self, layer_type):
 
         clock = [signal for signal in self.signals if "clock" in signal][0]

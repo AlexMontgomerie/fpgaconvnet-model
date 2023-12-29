@@ -57,8 +57,9 @@ class Pad(Module):
 
 
     def rate_in(self):
-        return (self.rows_in()*self.cols_in())/float(
-                (self.rows_out()*self.cols_out()))
+        # return (self.rows_in()*self.cols_in())/float(
+        #         (self.rows_out()*self.cols_out()))
+        return 1.0
 
     def module_info(self):
         # get the base module fields

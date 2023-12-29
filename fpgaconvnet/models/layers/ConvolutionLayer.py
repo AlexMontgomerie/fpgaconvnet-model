@@ -372,6 +372,28 @@ class ConvolutionLayer(Layer):
         return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
                 (self.kernel_cols-self.pad_left)*self.channels//self.streams_in() + 8
 
+    # def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+    #     """
+    #     Method for estimating the average rate out after a given number of output words
+    #     """
+    #     return self.rate_out() * min(prev_rate_out / self.rate_in(), 1)
+
+    # def piecewise_input_words_relationship(self, output_words: int):
+    #     """
+
+    #     """
+
+    #     # ratio of channel words to filter words
+    #     channel_ratio = self.channels / self.filters
+
+    #     input_padding = self.pad_top*self.cols_in()*self.channels_in()//self.streams_in()
+
+    #     # if output_words < self.pad_top*self.cols_in()*self.channels_in()//self.streams_in():
+    #     #     return 0
+    #     return math.ceil(output_words * self.size_in() / self.size_out())
+
+
+
     def update(self):
         if self.backend == "chisel":
             # pad
