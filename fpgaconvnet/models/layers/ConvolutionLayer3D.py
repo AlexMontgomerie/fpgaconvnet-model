@@ -386,8 +386,8 @@ class ConvolutionLayer3D(Layer3D):
 
     def start_depth(self):
         return (self.kernel_rows-1-self.pad_top)*self.cols*self.depth*self.channels//self.streams_in() + \
-                (self.kernel_cols-1-self.pad_left)*self.depth*self.channels//self.streams_in() + \
-                (self.kernel_depth-1-self.pad_front)*self.channels//self.streams_in()
+            (self.kernel_cols-1-self.pad_left)*self.depth*self.channels//self.streams_in() + \
+            (self.kernel_depth-self.pad_front)*self.channels//self.streams_in()
 
     def rows_out(self) -> int:
         return self.modules["sliding_window3d"].rows_out()

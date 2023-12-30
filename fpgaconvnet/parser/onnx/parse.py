@@ -796,23 +796,24 @@ class ParseOnnxConcatNode(ParseOnnxNode):
                 output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
-            return EltWiseLayer3D(
-                self.input_shape[3],
-                self.input_shape[4],
-                self.input_shape[2],
-                self.input_shape[1],
-                ports_in=len(self.inputs),
-                op_type=op_type,
-                broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model,
-                input_compression_ratio = self.attr["input_compression_ratio"],
-                output_compression_ratio = self.attr["output_compression_ratio"]
-            )
+            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+            # return EltWiseLayer3D(
+            #     self.input_shape[3],
+            #     self.input_shape[4],
+            #     self.input_shape[2],
+            #     self.input_shape[1],
+            #     ports_in=len(self.inputs),
+            #     op_type=op_type,
+            #     broadcast=False, # TODO: parse from the onnx
+            #     data_t= FixedPoint(self.quant_format["data_t"]["width"],
+            #         self.quant_format["data_t"]["binary_point"]),
+            #     acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
+            #         self.quant_format["acc_t"]["binary_point"]),
+            #     backend=self.backend,
+            #     regression_model=self.regression_model,
+            #     input_compression_ratio = self.attr["input_compression_ratio"],
+            #     output_compression_ratio = self.attr["output_compression_ratio"]
+            # )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 

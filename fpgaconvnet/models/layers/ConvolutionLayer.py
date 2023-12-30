@@ -370,7 +370,7 @@ class ConvolutionLayer(Layer):
 
     def start_depth(self):
         return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
-                (self.kernel_cols-self.pad_left)*self.channels//self.streams_in() + 8
+                (self.kernel_cols-self.pad_left)*self.channels//self.streams_in()
 
     # def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
     #     """

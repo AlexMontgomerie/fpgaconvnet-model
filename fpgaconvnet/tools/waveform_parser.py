@@ -41,32 +41,13 @@ class VCDWaveformParser:
         out_valid_signal = self.data[self.reference_signals[layer_hw_stats["out_valid_signal"]]]
         out_ready_signal = self.data[self.reference_signals[layer_hw_stats["out_ready_signal"]]]
 
-        in_fire_signal = []
-        out_fire_signal = []
-        for (clock_time, _) in clock_signal.tv:
-            in_valid_value = in_valid_signal[clock_time]
-            in_ready_value = in_ready_signal[clock_time]
-            if in_valid_value == '1' and in_ready_value == '1':
-                in_fire_signal.append((clock_time, '1'))
-            else:
-                in_fire_signal.append((clock_time, '0'))
-
-            out_valid_value = out_valid_signal[clock_time]
-            out_ready_value = out_ready_signal[clock_time]
-            if out_valid_value == '1' and out_ready_value == '1':
-                out_fire_signal.append((clock_time, '1'))
-            else:
-                out_fire_signal.append((clock_time, '0'))
+        in_fire_signal = [(clock_time, '1') if in_valid_signal[clock_time] == '1' and in_ready_signal[clock_time] == '1' else (clock_time, '0') for (clock_time, _) in clock_signal.tv]
+        out_fire_signal = [(clock_time, '1') if out_valid_signal[clock_time] == '1' and out_ready_signal[clock_time] == '1' else (clock_time, '0') for (clock_time, _) in clock_signal.tv]
 
         return in_fire_signal, out_fire_signal
 
     def get_start_depth(self, fire_signal, start_cycle, end_cycle):
-        word_count = 0
-        for (cycle, value) in fire_signal:
-            if cycle >= start_cycle and cycle <= end_cycle:
-                if value == '1':
-                    word_count += 1
-        return word_count // 2
+        return sum(1 for (cycle, value) in fire_signal if start_cycle <= cycle <= end_cycle and value == '1') // 2
 
     def get_rate(self, fire_signal, start_cycle, end_cycle):
         word_count = self.get_start_depth(fire_signal, start_cycle, end_cycle)
