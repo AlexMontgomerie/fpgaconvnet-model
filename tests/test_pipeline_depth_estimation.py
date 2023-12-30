@@ -103,4 +103,8 @@ class TestPipelineDepth(unittest.TestCase):
             # check that it is within a reasonable tolerance
             assert model_pipeline_depth[layer] == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
 
+        # check the total latency
+        model_latency = net.partitions[0].get_cycle()
+        actual_latency = max([partition_stats[layer]['last_out_valid_cycles'] for layer in partition_stats])
+        assert model_latency == pytest.approx(actual_latency, abs=ABS_TOL, rel=REL_TOL)
 
