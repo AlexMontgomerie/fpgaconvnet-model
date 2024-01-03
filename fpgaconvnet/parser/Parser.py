@@ -1,18 +1,18 @@
-import copy
 import importlib
-import os
-import random
-import sys
+
+import networkx as nx
+import onnx
+import onnx.numpy_helper
+import onnx.utils
+import onnxoptimizer as optimizer
+import pydot
+from google.protobuf import json_format
+from onnxsim import simplify
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
-import fpgaconvnet.parser.onnx.parse as onnx_parse
 import fpgaconvnet.parser.onnx.passes as onnx_passes
 import fpgaconvnet.proto.fpgaconvnet_pb2
 import fpgaconvnet.tools.graphs as graphs
-import networkx as nx
-import numpy as np
-import onnxoptimizer as optimizer
-import pydot
 from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.models.partition import Partition
@@ -21,13 +21,6 @@ from fpgaconvnet.parser.prototxt.parse import *
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
 from fpgaconvnet.tools.layer_enum import (LAYER_TYPE, from_onnx_op_type,
                                           from_proto_layer_type)
-from google.protobuf import json_format
-from graphviz import Digraph
-from onnxsim import simplify
-
-import onnx
-import onnx.numpy_helper
-import onnx.utils
 
 
 class Parser:
@@ -86,7 +79,7 @@ class Parser:
             "rename_all_nodes",
             "move_relu_after_quant",
             "add_nop_to_split_output",
-            "remove_empty_inputs_outputs",
+            # "remove_empty_inputs_outputs",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
