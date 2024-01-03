@@ -22,12 +22,12 @@ class PoolingLayer3D(Layer3D):
             channels: int,
             coarse: int = 1,
             pool_type   ='max',
-            kernel_rows: int = 2,
-            kernel_cols: int = 2,
-            kernel_depth: int = 2,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
-            stride_depth: int = 2,
+            kernel_rows: int = 1,
+            kernel_cols: int = 1,
+            kernel_depth: int = 1,
+            stride_rows: int = 1,
+            stride_cols: int = 1,
+            stride_depth: int = 1,
             pad_top: int = 0,
             pad_right: int = 0,
             pad_front: int = 0,
@@ -133,7 +133,8 @@ class PoolingLayer3D(Layer3D):
     def start_depth(self):
         return (self.kernel_rows-1-self.pad_top)*self.cols*self.depth*self.channels//self.streams_in() + \
             (self.kernel_cols-1-self.pad_left)*self.depth*self.channels//self.streams_in() + \
-            (self.kernel_depth-self.pad_front)*self.channels//self.streams_in()
+            (self.kernel_depth-1-self.pad_front)*self.channels//self.streams_in() + \
+            self.channels//self.streams_in()
 
     @property
     def kernel_size(self) -> List[int]:

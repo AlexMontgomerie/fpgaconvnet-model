@@ -7,16 +7,8 @@ import numpy as np
 from fpgaconvnet.models.layers import MultiPortLayer
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from functools import lru_cache
+from tabulate import tabulate
 
-# def get_initial_output_rate(self, node):
-
-#     # get the previous nodes
-#     prev_nodes = nx.ancestors(self.graph, node)
-
-#     if len(prev_nodes) == 0:
-#         return self.graph.nodes[node]["hw"].rate_out()
-
-#     else:
 
 @lru_cache(maxsize=None)
 def get_initial_input_rate(self, node):
@@ -25,29 +17,17 @@ def get_initial_input_rate(self, node):
     prev_nodes = nx.ancestors(self.graph, node)
 
     if not prev_nodes:
-
         # return the input rate of the node
         return self.graph.nodes[node]["hw"].rate_in()
-
     else:
 
         # get the previous interval of the prior nodes
-        # prev_intervals = []
-        # for prev_node in prev_nodes:
-        #     match self.graph.nodes[prev_node]["type"]:
-        #         # case LAYER_TYPE.Concat:
-        #         #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()*2)
-        #         # case LAYER_TYPE.Pooling:
-        #         #     prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency()/2)
-        #         case _:
-        #             prev_intervals.append(self.graph.nodes[prev_node]["hw"].latency())
-        # prev_interval = max(prev_intervals)
-        prev_interval = max(self.graph.nodes[prev_node]["hw"].latency() for prev_node in prev_nodes)
+        prev_interval = max(
+            self.graph.nodes[prev_node]["hw"].latency() + self.graph.nodes[prev_node]["hw"].pipeline_depth() for prev_node in prev_nodes)
 
         # return the input rate based on this previous interval
         return self.graph.nodes[node]["hw"].size_in() / prev_interval
-        # return min(self.graph.nodes[node]["hw"].rate_in(), self.graph.nodes[node]["hw"].size_in() / prev_interval)
-        # return self.graph.nodes[node]["hw"].rate_in()
+
 
 @lru_cache(maxsize=None)
 def find_attached_input_node(self, node):
@@ -55,14 +35,10 @@ def find_attached_input_node(self, node):
     for input_node in graph_input_nodes:
         if nx.has_path(self.graph, input_node, node):
             return input_node
-            
+
+
 @lru_cache(maxsize=None)
 def get_node_delay(self, node):
-    # def get_total_size_in(n):
-    #     if isinstance(n, MultiPortLayer):
-    #         return sum([ self.graph.nodes[n]["hw"].size_in(j) for j in range(self.graph.nodes[n]["hw"].ports_in) ])
-    #     else:
-    #         return self.graph.nodes[n]["hw"].size_in()
 
     # get the path to the node
     input_nodes = graphs.get_input_nodes(self.graph)
@@ -74,7 +50,7 @@ def get_node_delay(self, node):
         path = [input_nodes[0]]
 
     # get the hardware model for each node in the path
-    node_hw = [ self.graph.nodes[n]["hw"] for n in path ]
+    node_hw = [self.graph.nodes[n]["hw"] for n in path]
 
     # initialise with the first node delay
     delay = node_hw[0].pipeline_depth()
@@ -88,9 +64,9 @@ def get_node_delay(self, node):
         # get the channels per stream
         channels_per_stream = current_node_hw.channels_in() // current_node_hw.streams_in()
 
-        # get how many bursts of the previous node are required
-        # to fill the input buffer of the current node
-        num_bursts = max(math.ceil(current_node_hw_start_depth/channels_per_stream) - 1, 0)
+        # get how many bursts of the previous node are required to fill the input buffer of the current node
+        num_bursts = max(
+            math.ceil(current_node_hw_start_depth/current_node_hw.channels_in()) - 1, 0)
 
         # get the cycles per word
         cycles_per_word = 1 / initial_input_rate
@@ -102,13 +78,11 @@ def get_node_delay(self, node):
         delay += num_bursts * delay_per_burst
 
         # add the remaining cycles from the current burst
-        delay += (current_node_hw_start_depth - num_bursts * channels_per_stream) * cycles_per_word
+        # delay += (current_node_hw_start_depth - num_bursts *
+        #           channels_per_stream) * cycles_per_word
 
         # add the delay from the pipeline minus the depth filled by the start_depth
-        delay += current_node_hw.pipeline_depth() - current_node_hw_start_depth
-        # delay += current_node_hw_start_depth
-
-        # print("delay: ", delay, "num_bursts: ", num_bursts, "delay_per_burst: ", delay_per_burst, "cycles_per_word: ", cycles_per_word, "start_depth: ", current_node_hw_start_depth, "pipeline_depth: ", current_node_hw.pipeline_depth(), "workload_in: ", current_node_hw.workload_in(), "channels_in: ", current_node_hw.channels_in())
+        # delay += current_node_hw.pipeline_depth() - current_node_hw_start_depth
 
     # append to toal path delays
     return delay
@@ -138,6 +112,7 @@ def get_pipeline_depth(self, node=None):
     # # find the slowest of all paths
     # return max([ self.get_path_delay(path) for path in all_paths ])
 
+
 def get_pipeline_depth_fast(self):
 
     # memoisation of pipeline depths
@@ -155,7 +130,7 @@ def get_pipeline_depth_fast(self):
             return node_pipeline_depth[node]
         else:
             node_pipeline_depth[node] = pipeline_depth + max([
-                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+                _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node)])
             return node_pipeline_depth[node]
 
     # get the first node of the graph
@@ -164,6 +139,7 @@ def get_pipeline_depth_fast(self):
 
     # return pipeline depth from start node
     return _pipeline_depth_node(start_node)
+
 
 def get_interval(self):
     """
@@ -179,6 +155,7 @@ def get_interval(self):
     # return the overall interval
     return np.max(np.absolute(interval_matrix))
 
+
 def get_cycle(self):
     # # get the interval for the partition
     # interval = self.get_interval()
@@ -186,14 +163,15 @@ def get_cycle(self):
     # pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # # return the latency (in seconds)
     # batch_size  = int(self.batch_size)
-    wr_factor   = self.wr_factor
-    size_wr     = self.size_wr
+    # wr_factor = self.wr_factor
+    # size_wr = self.size_wr
     # interval = math.ceil(interval * self.slow_down_factor)
     # batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
     # return batch_cycle
 
     # calculate the latency for each node, and choose the maximum
-    return max(self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes()) * wr_factor + (wr_factor -1 ) * size_wr
+    return max(self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() if not (node.startswith("squeeze_") or node.endswith("_squeeze"))) * self.wr_factor + (self.wr_factor - 1) * self.size_wr
+
 
 def get_latency(self, frequency):
     """
@@ -210,7 +188,7 @@ def get_latency(self, frequency):
     return self.get_cycle()/(frequency*1000000)
 
 
-def get_bandwidth_in(self,freq):
+def get_bandwidth_in(self, freq):
     # get the interval for the partition
     interval = self.get_interval()
     max_latency = interval * self.slow_down_factor
@@ -227,7 +205,8 @@ def get_bandwidth_in(self,freq):
                     if self.dimensionality == 2:
                         workload = workload * hw.kernel_size[0]
                     elif self.dimensionality == 3:
-                        workload = workload * hw.kernel_size[0] * hw.kernel_size[2]
+                        workload = workload * \
+                            hw.kernel_size[0] * hw.kernel_size[2]
                 streams = hw.streams_in()
                 # calculate rate from interval
                 rate = workload / (max_latency*streams)
@@ -236,7 +215,8 @@ def get_bandwidth_in(self,freq):
                 bw_in.append((rate*streams*bitwidth*freq)/1000)
     return bw_in
 
-def get_bandwidth_out(self,freq):
+
+def get_bandwidth_out(self, freq):
     # get the interval for the partition
     interval = self.get_interval()
     max_latency = interval * self.slow_down_factor
@@ -256,7 +236,8 @@ def get_bandwidth_out(self,freq):
                 bw_out.append((rate*streams*bitwidth*freq)/1000)
     return bw_out
 
-def get_bandwidth_weight(self,freq):
+
+def get_bandwidth_weight(self, freq):
     # get the interval for the partition
     interval = self.get_interval()
     max_latency = interval * self.slow_down_factor
@@ -271,51 +252,55 @@ def get_bandwidth_weight(self,freq):
             bw_weight.append((bits_per_cycle*latency*freq/max_latency)/1000)
     return bw_weight
 
-def get_total_bandwidth(self,freq):
+
+def get_total_bandwidth(self, freq):
     bw_in = self.get_bandwidth_in(freq)
     bw_out = self.get_bandwidth_out(freq)
     bw_weight = self.get_bandwidth_weight(freq)
     return sum(bw_in) + sum(bw_out) + sum(bw_weight)
 
+
 def get_total_operations(self):
     ops = 0
     for node in self.graph.nodes():
         if node == self.wr_layer:
-            ops += self.graph.nodes[node]['hw'].get_operations() * self.wr_factor
+            ops += self.graph.nodes[node]['hw'].get_operations() * \
+                self.wr_factor
         else:
             ops += self.graph.nodes[node]['hw'].get_operations()
     return ops
+
 
 def get_total_sparse_operations(self):
     sparse_ops = 0
     for node in self.graph.nodes():
         if node == self.wr_layer:
-            sparse_ops += self.graph.nodes[node]['hw'].get_sparse_operations() * self.wr_factor
+            sparse_ops += self.graph.nodes[node]['hw'].get_sparse_operations() * \
+                self.wr_factor
         else:
             sparse_ops += self.graph.nodes[node]['hw'].get_sparse_operations()
     return sparse_ops
 
+
 def get_resource_usage(self):
-        # initialise resource usage at 0
-        resource_usage = { # TODO: initialise with partition resource usage
-            'FF'    : 0,
-            'LUT'   : 0,
-            'DSP'   : 0,
-            'BRAM'  : 0,
-            'URAM'  : 0
-        }
-        # iterate over nodes in partition
-        for node in graphs.ordered_node_list(self.graph):
-            # get the resource usage of the node
-            resource_usage_node = self.graph.nodes[node]['hw'].resource()
-            # update total resource usage for partition
-            resource_usage['FF']    += resource_usage_node['FF']
-            resource_usage['LUT']   += resource_usage_node['LUT']
-            resource_usage['DSP']   += resource_usage_node['DSP']
-            resource_usage['BRAM']  += resource_usage_node['BRAM']
-            if 'URAM' in resource_usage_node:
-                resource_usage['URAM']  += resource_usage_node['URAM']
-        # return resource usage for partition
-        return resource_usage
-
-
+    # initialise resource usage at 0
+    resource_usage = {  # TODO: initialise with partition resource usage
+        'FF': 0,
+        'LUT': 0,
+        'DSP': 0,
+        'BRAM': 0,
+        'URAM': 0
+    }
+    # iterate over nodes in partition
+    for node in graphs.ordered_node_list(self.graph):
+        # get the resource usage of the node
+        resource_usage_node = self.graph.nodes[node]['hw'].resource()
+        # update total resource usage for partition
+        resource_usage['FF'] += resource_usage_node['FF']
+        resource_usage['LUT'] += resource_usage_node['LUT']
+        resource_usage['DSP'] += resource_usage_node['DSP']
+        resource_usage['BRAM'] += resource_usage_node['BRAM']
+        if 'URAM' in resource_usage_node:
+            resource_usage['URAM'] += resource_usage_node['URAM']
+    # return resource usage for partition
+    return resource_usage

@@ -22,8 +22,8 @@ class PoolingLayer(Layer):
             pool_type: str = 'max',
             kernel_rows: int = 1,
             kernel_cols: int = 1,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
+            stride_rows: int = 1,
+            stride_cols: int = 1,
             pad_top: int = 0,
             pad_right: int = 0,
             pad_bottom: int = 0,
@@ -106,7 +106,8 @@ class PoolingLayer(Layer):
         #         (self.pad_left+self.pad_right)*self.channels ) + \
         #         self.channels
         return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
-                (self.kernel_cols-self.pad_left)*self.channels//self.streams_in()
+               (self.kernel_cols-1-self.pad_left)*self.channels//self.streams_in() + \
+                self.channels//self.streams_in()
 
     def get_operations(self):
         return self.channels_in()*self.rows_out()*self.cols_out()\
