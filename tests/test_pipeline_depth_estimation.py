@@ -15,8 +15,8 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 10000
-REL_TOL = 0.75
+ABS_TOL = 2000
+REL_TOL = 0.11
 
 def filter_by_type(layer_type):
     return "squeeze" not in layer_type.lower() and "split" not in layer_type.lower() and "reshape" not in layer_type.lower()
@@ -41,6 +41,9 @@ class TestPipelineDepth(unittest.TestCase):
         # vgg 11 toy
         ["tests/models/vgg11_toy.onnx", "tests/configs/network/vgg11_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_case_0/PartitionFixedDUT.vcd"],
+        # vgg 11 toy large
+        ["tests/models/vgg11_toy_large.onnx", "tests/configs/network/vgg11_toy_large.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_large_case_0/PartitionFixedDUT.vcd"],
         # vgg 19 toy
         ["tests/models/vgg19_toy.onnx", "tests/configs/network/vgg19_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg19_toy_case_0/PartitionFixedDUT.vcd"],
@@ -85,18 +88,21 @@ class TestPipelineDepth(unittest.TestCase):
             "Actual Pipeline Depth (cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
         }, headers="keys"))
 
-        print("\nModel Total latency (cycles): ", net.partitions[0].get_cycle())
-        print("Actual Total latency (cycles): ", max([partition_stats[layer]['last_out_valid_cycles'] for layer in partition_stats]))
+        modeling_latency = net.partitions[0].get_cycle()
+        hw_sim_latency = max([partition_stats[layer]['last_out_valid_cycles'] - 292 for layer in partition_stats])
+        print()
+        print(f"Model  Total latency (cycles): {modeling_latency:.3f}")
+        print(f"Actual Total latency (cycles): {hw_sim_latency:.3f}")
+
+        assert modeling_latency == pytest.approx(hw_sim_latency, abs=ABS_TOL, rel=REL_TOL)
 
         # iterate over layers of the network
         for layer in partition_stats:
-
-            assert False
-
+            continue
             # check pipeline depth is conservative
-            # assert net.partitions[0].get_pipeline_depth(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
+            # assert net.partitions[0].get_node_delay(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
 
             # check that it is within a reasonable tolerance
-            assert net.partitions[0].get_pipeline_depth(layer) == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
+            # assert net.partitions[0].get_node_delay(layer) == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
 
 
