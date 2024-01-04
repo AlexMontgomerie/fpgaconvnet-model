@@ -161,7 +161,6 @@ class Parser:
             LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
-            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.Chop: ParseOnnxChopNode,

@@ -626,21 +626,32 @@ class ParseOnnxReSizeNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # # change the layer type
-        # self.layer_type = LAYER_TYPE.Squeeze
-
-        return ReSizeLayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-            scales=[1,1,2,2], # TODO: get from the model
-            data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                self.quant_format["data_t"]["binary_point"]),
-            backend=self.backend,
-            regression_model=self.regression_model,
-            input_compression_ratio = self.attr["input_compression_ratio"],
-            output_compression_ratio = self.attr["output_compression_ratio"]
-        )
+        if self.dimensionality == 2:
+            return ReSizeLayer(
+                self.input_shape[2] if len(self.input_shape) == 4 else 1,
+                self.input_shape[3] if len(self.input_shape) == 4 else 1,
+                self.input_shape[1],
+                scales=[1,1,2,2], # TODO: get from the model
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                backend=self.backend,
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
+            )
+        elif self.dimensionality == 3:
+            return ReSizeLayer3D(
+                self.input_shape[3] if len(self.input_shape) == 5 else 1,
+                self.input_shape[4] if len(self.input_shape) == 5 else 1,
+                self.input_shape[2] if len(self.input_shape) == 5 else 1,
+                self.input_shape[1],
+                scales=[1,1,2,2,2], # TODO: get from the model
+                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                backend=self.backend,
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"])
 
 class ParseOnnxNOPNode(ParseOnnxNode):
 
@@ -796,24 +807,19 @@ class ParseOnnxConcatNode(ParseOnnxNode):
                 output_compression_ratio = self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
-            # return EltWiseLayer3D(
-            #     self.input_shape[3],
-            #     self.input_shape[4],
-            #     self.input_shape[2],
-            #     self.input_shape[1],
-            #     ports_in=len(self.inputs),
-            #     op_type=op_type,
-            #     broadcast=False, # TODO: parse from the onnx
-            #     data_t= FixedPoint(self.quant_format["data_t"]["width"],
-            #         self.quant_format["data_t"]["binary_point"]),
-            #     acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-            #         self.quant_format["acc_t"]["binary_point"]),
-            #     backend=self.backend,
-            #     regression_model=self.regression_model,
-            #     input_compression_ratio = self.attr["input_compression_ratio"],
-            #     output_compression_ratio = self.attr["output_compression_ratio"]
-            # )
+            return ConcatLayer3D(
+                input_shape[0][3],
+                input_shape[0][4],
+                input_shape[0][2],
+                [ x[1] for x in input_shape ],
+                ports_in=len(self.inputs),
+                data_t= FixedPoint(self.quant_format["data_t"]["width"],
+                    self.quant_format["data_t"]["binary_point"]),
+                backend=self.backend,
+                regression_model=self.regression_model,
+                input_compression_ratio = self.attr["input_compression_ratio"],
+                output_compression_ratio = self.attr["output_compression_ratio"]
+            )
         else:
             raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
 
