@@ -170,7 +170,7 @@ def get_cycle(self):
     # return batch_cycle
 
     # calculate the latency for each node, and choose the maximum
-    return max(self.get_node_delay(node)*self.slow_down_factor + self.batch_size*self.graph.nodes[node]['hw'].latency() for node in self.graph.nodes() if not (node.startswith("squeeze_") or node.endswith("_squeeze"))) * self.wr_factor + (self.wr_factor - 1) * self.size_wr
+    return max(self.get_node_delay(node) + self.batch_size*self.graph.nodes[node]['hw'].latency()*self.slow_down_factor for node in self.graph.nodes() if not (node.startswith("squeeze_") or node.endswith("_squeeze"))) * self.wr_factor + (self.wr_factor - 1) * self.size_wr
 
 
 def get_latency(self, frequency):
