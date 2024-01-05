@@ -60,8 +60,7 @@ class SlidingWindowHLSBase(ModuleHLSBase):
 
     @property
     def rate_out(self) -> list[float]:
-        return [ (self.rows_out*self.cols_out)/float(self.rows*self.cols) ]
-
+        return [ math.prod(self.output_iter_space[0])/float(math.prod(self.input_iter_space[0])) ]
 
 @dataclass
 class SlidingWindowHLS(SlidingWindowHLSBase): #FIXME
