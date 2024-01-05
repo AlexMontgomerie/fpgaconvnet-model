@@ -23,6 +23,10 @@ class SqueezeHLSBase(ModuleHLSBase):
     register: ClassVar[bool] = False
 
     @property
+    def buffer_size(self) -> int:
+        return lcm(self.coarse_in, self.coarse_out)
+
+    @property
     def input_ports(self) -> list[Port]:
         return [ Port(
             simd_lanes=[self.coarse_in],
@@ -42,11 +46,11 @@ class SqueezeHLSBase(ModuleHLSBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ 1.0 ] # TODO
+        return [ self.coarse_in / max(self.coarse_in, self.coarse_out) ]
 
     @property
     def rate_out(self) -> list[float]:
-        return [ 1.0 ] # TODO
+        return [ self.coarse_out / max(self.coarse_in, self.coarse_out) ]
 
     def pipeline_depth(self) -> int:
         return lcm(self.coarse_in, self.coarse_out)
@@ -59,15 +63,15 @@ class SqueezeHLS(SqueezeHLSBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.channels//self.coarse_in] ]
+        return [ [self.rows, self.cols, self.channels] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.channels//self.coarse_out] ]
+        return [ [self.rows, self.cols, self.channels] ]
 
     def resource_parameters(self) -> list[int]:
         return [ self.rows, self.cols, self.channels, self.coarse_in,
-                self.coarse_out, lcm(self.coarse_in, self.coarse_out), self.data_t.width ]
+                self.coarse_out, self.buffer_size, self.data_t.width ]
 
 @dataclass
 class SqueezeHLS3D(ModuleHLS3DBase, SqueezeHLSBase):
@@ -76,15 +80,15 @@ class SqueezeHLS3D(ModuleHLS3DBase, SqueezeHLSBase):
 
     @property
     def input_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.depth, self.channels//self.coarse_in] ]
+        return [ [self.rows, self.cols, self.depth, self.channels] ]
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.rows, self.cols, self.depth, self.channels//self.coarse_out] ]
+        return [ [self.rows, self.cols, self.depth, self.channels] ]
 
     def resource_parameters(self) -> list[int]:
         return [ self.rows, self.cols, self.depth, self.channels, self.coarse_in,
-                self.coarse_out, lcm(self.coarse_in, self.coarse_out), self.data_t.width ]
+                self.coarse_out, self.buffer_size, self.data_t.width ]
 
 try:
     DEFAULT_SQUEEZE_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(SqueezeHLS,

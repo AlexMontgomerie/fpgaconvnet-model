@@ -1,6 +1,6 @@
 from typing import ClassVar, Optional
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from overrides import override
 import math
 
@@ -31,8 +31,18 @@ class ConvolutionLayerBase(LayerBase):
     output_t: FixedPoint = FixedPoint(16,8)
     weight_t: FixedPoint = FixedPoint(16,8)
     acc_t: FixedPoint = FixedPoint(32,16)
+    weight_compression_ratio: list = field(default_factory=lambda: [1.0], init=True)
 
     name: ClassVar[str] = "convolution"
+
+    def __post_init__(self):
+
+        # call the super init
+        super().__post_init__()
+
+        # off chip weight streaming attributes
+        self.weight_array_unit_depth = 0
+        self.weight_array_unit_width = 0
 
     def __setattr__(self, name, value):
 

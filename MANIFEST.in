@@ -3,3 +3,4 @@ include fpgaconvnet/coefficients/linear_regression/chisel/*.npy
 include fpgaconvnet/coefficients/xgboost/chisel/*.json
 include fpgaconvnet/tools/fpgaconvnet-mongodb.pem
 include fpgaconvnet/platform/configs/*.toml
+include fpgaconvnet/models/cache/modules/*.model

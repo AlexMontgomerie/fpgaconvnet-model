@@ -18,3 +18,10 @@ pymongo
 tqdm
 pyparsing<3
 dacite==1.8.1
+nvidia-pyindex
+onnx-graphsurgeon
+ddt
+pymongo
+scikit-learn
+pytest
+vcdvcd

@@ -18,10 +18,15 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False,
 
     assert array_type in ['fifo', 'memory']
 
-    # based on vivado behaviour, hls prediction may differ
+    # based on vivado synthesis behaviour 
+    # hls prediction might differ
     if (depth == 0) or (width == 0) or \
         (array_type == 'fifo' and not force_bram_pragma and width * depth <= 1024) or \
         (array_type == 'memory' and not force_bram_pragma and width * depth < 1024):
+        return 0
+
+    # todo: decide resource type in optimiser
+    if array_type == 'fifo' and depth <= 32:
         return 0
 
    # get the number of widths to repeat if greater than max width

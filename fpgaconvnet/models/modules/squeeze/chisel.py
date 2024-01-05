@@ -25,6 +25,10 @@ class SqueezeChisel(ModuleChiselBase):
     register: ClassVar[bool] = True
 
     @property
+    def buffer_size(self) -> int:
+        return self.buffer_size
+
+    @property
     def input_iter_space(self) -> list[list[int]]:
         return [ [1] ]
 
@@ -52,29 +56,27 @@ class SqueezeChisel(ModuleChiselBase):
 
     @property
     def rate_in(self) -> list[float]:
-        return [ 1.0 ] # TODO
+        return [ self.coarse_in / float(max(self.coarse_in, self.coarse_out)) ]
 
     @property
     def rate_out(self) -> list[float]:
-        return [ 1.0 ] # TODO
+        return [ self.coarse_out / float(max(self.coarse_in, self.coarse_out)) ]
 
     def pipeline_depth(self) -> int:
-        return lcm(self.coarse_in, self.coarse_out)
+        return self.buffer_size
 
     def resource_parameters(self) -> list[int]:
         return [ self.coarse_in, self.coarse_out,
-                lcm(self.coarse_in, self.coarse_out),
-                self.streams, self.data_t.width,
+                self.buffer_size, self.streams, self.data_t.width,
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        buffer_size = lcm(self.coarse_in, self.coarse_out)
         return {
             "Logic_LUT" : [
-                (buffer_size//self.coarse_in), # buffer ready
-                self.data_t.width*self.coarse_out*(buffer_size//self.coarse_out), # arbiter logic
-                (buffer_size//self.coarse_in),
-                (buffer_size//self.coarse_out),
+                (self.buffer_size//self.coarse_in), # buffer ready
+                self.data_t.width*self.coarse_out*(self.buffer_size//self.coarse_out), # arbiter logic
+                (self.buffer_size//self.coarse_in),
+                (self.buffer_size//self.coarse_out),
                 self.coarse_in,
                 self.coarse_out,
                 self.data_t.width*self.coarse_out, # DCFull on the output
@@ -86,11 +88,11 @@ class SqueezeChisel(ModuleChiselBase):
             ],
             "LUT_SR"    : [0],
             "FF"        : [
-                int2bits(buffer_size//self.coarse_in), # cntr_in
-                buffer_size, # buffer registers
+                int2bits(self.buffer_size//self.coarse_in), # cntr_in
+                self.buffer_size, # buffer registers
                 self.data_t.width*self.coarse_out, # DCFull on the output (data)
                 self.coarse_out, # DCFull on the output (ready and valid)
-                self.coarse_out*int2bits(buffer_size//self.coarse_out), # arbiter registers
+                self.coarse_out*int2bits(self.buffer_size//self.coarse_out), # arbiter registers
                 1,
 
             ],

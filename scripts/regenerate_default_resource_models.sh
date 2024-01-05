@@ -4,12 +4,12 @@ CHISEL_MODULES=( "accum" "relu" "squeeze" "sliding_window" "pad" "pool" "hardswi
 HLS_MODULES=( "accum" "relu" "squeeze" "sliding_window" "pool" "fork" "glue" "conv" "bias" )
 # MODULES=( "accum" )
 
-# for m in ${CHISEL_MODULES[@]}; do
+for m in ${CHISEL_MODULES[@]}; do
 
-#     # regenerate resource models
-#     python -m fpgaconvnet.models.modules -n default -m $m -b chisel -d 2 -c scripts/default_chisel_model.toml -p fpgaconvnet/platform/configs/zcu104.toml
+    # regenerate resource models
+    python -m fpgaconvnet.models.modules -n default -m $m -b chisel -d 2 -c scripts/default_chisel_model.toml -p fpgaconvnet/platform/configs/zcu104.toml
 
-# done
+done
 
 for m in ${HLS_MODULES[@]}; do
 

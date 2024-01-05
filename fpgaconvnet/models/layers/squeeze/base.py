@@ -21,7 +21,6 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 
 @dataclass(kw_only=True)
 class SqueezeLayerBase(LayerBase):
-
     coarse_in: int
     coarse_out: int
     data_t: FixedPoint = FixedPoint(16, 8)

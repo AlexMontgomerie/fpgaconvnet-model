@@ -6,14 +6,15 @@ import onnx
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import *
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type
 
+from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 
 class ParseOnnxNode:
 
-    def __init__(self, graph, n, quant_format, dimensionality=2, backend="hls",
-            regression_model="linear_regression", convert_gemm_to_conv=False):
+    def __init__(self, graph, n, quant_format, dimensionality=DIMENSIONALITY.TWO,
+                 backend=BACKEND.CHISEL, convert_gemm_to_conv=False):
 
         # refrence of the graph
         self.graph = graph
@@ -29,9 +30,6 @@ class ParseOnnxNode:
 
         # backend string
         self.backend = backend
-
-        # regression model
-        self.regression_model = regression_model
 
         # get name of node
         self.name = onnx_helper.format_onnx_name(n)
@@ -53,6 +51,11 @@ class ParseOnnxNode:
 
         # flag to convert gemm nodes to convolution
         self.convert_gemm_to_conv = convert_gemm_to_conv
+
+        # stats for encoding weights and activations
+        self.attr.setdefault("input_compression_ratio", [1.0]*len(self.inputs))
+        self.attr.setdefault("output_compression_ratio", [1.0]*len(self.outputs))
+        self.attr.setdefault("weight_compression_ratio", [1.0])
 
         # get hardware
         self.hw = self.get_hardware()
@@ -102,22 +105,66 @@ class ParseOnnxNode:
         except StopIteration:
             return []
 
+    def get_config(self):
+
+        # initialise dictionary for args
+        config = {}
+
+        # add the spatial dimensions
+        config["channels"] = self.input_shape[1]
+        if self.dimensionality == DIMENSIONALITY.TWO:
+            config["rows"] = self.input_shape[2]
+            config["cols"] = self.input_shape[3]
+        elif self.dimensionality == DIMENSIONALITY.THREE:
+            config["depth"] = self.input_shape[2]
+            config["rows"] = self.input_shape[3]
+            config["cols"] = self.input_shape[4]
+
+        # add quantisation information
+        config.update(self.quant_format)
+
+        # iterate over the attributes
+        for k,v in self.attr.items():
+            match k:
+                case "kernel_shape":
+                    config["kernel_rows"] = v[0]
+                    config["kernel_cols"] = v[1]
+                    if self.dimensionality == DIMENSIONALITY.THREE:
+                        config["kernel_depth"] = v[2]
+                case "strides":
+                    config["stride_rows"] = v[0]
+                    config["stride_cols"] = v[1]
+                    if self.dimensionality == DIMENSIONALITY.THREE:
+                        config["stride_depth"] = v[2]
+                case "pads":
+                    if self.dimensionality == DIMENSIONALITY.TWO:
+                        config["pad_top"] = v[0]
+                        config["pad_left"] = v[1]
+                        config["pad_bottom"] = v[2]
+                        config["pad_right"] = v[3]
+                    elif self.dimensionality == DIMENSIONALITY.THREE:
+                        config["pad_front"] = v[0]
+                        config["pad_top"] = v[1]
+                        config["pad_left"] = v[2]
+                        config["pad_back"] = v[3]
+                        config["pad_bottom"] = v[4]
+                        config["pad_right"] = v[5]
+                case _:
+                    config[k] = v
+
+        # return the config
+        return config
+
 class ParseOnnxConvNode(ParseOnnxNode):
 
     def get_hardware(self):
 
         # default attributes
-        if self.dimensionality == 2:
-            self.attr.setdefault("group", 1)
-            self.attr.setdefault("strides", [1,1])
-            self.attr.setdefault("pads", [0,0,0,0])
-            self.attr.setdefault("dilations", [1,1])
-            self.attr.setdefault("channel_sparsity_hist", [])
-        else:
-            self.attr.setdefault("group", 1)
-            self.attr.setdefault("strides", [1,1,1])
-            self.attr.setdefault("pads", [0,0,0,0,0,0])
-            self.attr.setdefault("dilations", [1,1,1])
+        self.attr.setdefault("group", 1)
+        self.attr.setdefault("strides", [1]*int(self.dimensionality))
+        self.attr.setdefault("pads", [0]*2*int(self.dimensionality))
+        self.attr.setdefault("dilations", [1]*int(self.dimensionality))
+        self.attr.setdefault("channel_sparsity_hist", [])
 
         # sparsity check
         if len(self.attr["channel_sparsity_hist"]) == 0:
@@ -135,128 +182,14 @@ class ParseOnnxConvNode(ParseOnnxNode):
             else:
                 type_flag = "sparse"
 
-        # return hardware
-        if self.dimensionality == 2:
-            if type_flag == "dense":
-                return ConvolutionLayer(
-                    self.output_shape[1],
-                    self.input_shape[2],
-                    self.input_shape[3],
-                    self.input_shape[1],
-                    kernel_rows=self.attr["kernel_shape"][0],
-                    kernel_cols=self.attr["kernel_shape"][1],
-                    stride_rows=self.attr["strides"][0],
-                    stride_cols=self.attr["strides"][1],
-                    pad_top     = self.attr["pads"][0],
-                    pad_left    = self.attr["pads"][1],
-                    pad_bottom  = self.attr["pads"][2],
-                    pad_right   = self.attr["pads"][3],
-                    groups = self.attr["group"],
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    block_floating_point = self.quant_format["block_floating_point"],
-                    backend=self.backend,
-                    regression_model=self.regression_model
-                )
-            elif type_flag == "sparse":
-                return ConvolutionSparseLayer(
-                    self.output_shape[1],
-                    self.input_shape[2],
-                    self.input_shape[3],
-                    self.input_shape[1],
-                    kernel_rows=self.attr["kernel_shape"][0],
-                    kernel_cols=self.attr["kernel_shape"][1],
-                    stride_rows=self.attr["strides"][0],
-                    stride_cols=self.attr["strides"][1],
-                    pad_top     = self.attr["pads"][0],
-                    pad_left    = self.attr["pads"][1],
-                    pad_bottom  = self.attr["pads"][2],
-                    pad_right   = self.attr["pads"][3],
-                    groups = self.attr["group"],
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    channel_sparsity_hist = channel_sparsity_hist.flatten(),
-                    skip_all_zero_window = True,
-                    block_floating_point = self.quant_format["block_floating_point"],
-                    backend=self.backend,
-                    regression_model=self.regression_model
-                )
-            elif type_flag == "pointwise_sparse":
-                return ConvolutionPointwiseSparseLayer(
-                    self.output_shape[1],
-                    self.input_shape[2],
-                    self.input_shape[3],
-                    self.input_shape[1],
-                    stride_rows=self.attr["strides"][0],
-                    stride_cols=self.attr["strides"][1],
-                    pad_top     = self.attr["pads"][0],
-                    pad_left    = self.attr["pads"][1],
-                    pad_bottom  = self.attr["pads"][2],
-                    pad_right   = self.attr["pads"][3],
-                    groups = self.attr["group"],
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    channel_sparsity_avg = channel_sparsity_avg,
-                    clusters = 1,
-                    block_floating_point = self.quant_format["block_floating_point"],
-                    backend=self.backend,
-                    regression_model=self.regression_model
-                )
-        elif self.dimensionality == 3:
-            return ConvolutionLayer3D(
-                filters=self.output_shape[1],
-                rows=self.input_shape[3],
-                cols=self.input_shape[4],
-                depth=self.input_shape[2],
-                channels=self.input_shape[1],
-                kernel_rows=self.attr["kernel_shape"][1],
-                kernel_cols=self.attr["kernel_shape"][2],
-                kernel_depth=self.attr["kernel_shape"][0],
-                stride_rows=self.attr["strides"][1],
-                stride_cols=self.attr["strides"][2],
-                stride_depth=self.attr["strides"][0],
-                pad_front   = self.attr["pads"][0],
-                pad_top     = self.attr["pads"][1],
-                pad_left    = self.attr["pads"][2],
-                pad_back    = self.attr["pads"][3],
-                pad_bottom  = self.attr["pads"][4],
-                pad_right   = self.attr["pads"][5],
-                groups = self.attr["group"],
-                input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                    self.quant_format["input_t"]["binary_point"]),
-                output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                    self.quant_format["output_t"]["binary_point"]),
-                weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                    self.quant_format["weight_t"]["binary_point"]),
-                acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                has_bias = len(self.inputs) == 3,
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ConvolutionLayer")
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # add the filters
+        config["filters"] = self.output_shape[1]
+
+        # initialise layer
+        return LayerBase.build("convolution", config, self.backend, self.dimensionality) # TODO: support the sparsity hardware
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -273,106 +206,23 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
     def get_hardware(self):
 
         # default attributes
-        if self.dimensionality == 2:
-            self.attr.setdefault("group", 1)
-            self.attr.setdefault("strides", [1,1])
-            self.attr.setdefault("pads", [0,0,0,0])
-            self.attr.setdefault("dilations", [1,1])
-        else:
-            self.attr.setdefault("group", 1)
-            self.attr.setdefault("strides", [1,1,1])
-            self.attr.setdefault("pads", [0,0,0,0,0,0])
-            self.attr.setdefault("dilations", [1,1,1])
+        self.attr.setdefault("group", 1)
+        self.attr.setdefault("strides", [1]*int(self.dimensionality))
+        self.attr.setdefault("pads", [0]*2*int(self.dimensionality))
+        self.attr.setdefault("dilations", [1]*int(self.dimensionality))
+        self.attr.setdefault("channel_sparsity_hist", [])
 
-        # return hardware
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # add the filters
+        config["filters"] = self.output_shape[1]
+
+        # initialise layer
         if not self.convert_gemm_to_conv:
-            if self.dimensionality == 2:
-                return InnerProductLayer(
-                    self.output_shape[1],
-                    1, 1,
-                    np.prod(self.input_shape[1:]),
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    block_floating_point = self.quant_format["block_floating_point"],
-                    backend=self.backend,
-                    regression_model=self.regression_model
-                )
-            elif self.dimensionality == 3:
-                return InnerProductLayer3D(
-                    self.output_shape[1],
-                    1, 1, 1,
-                    np.prod(self.input_shape[1:]),
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    backend=self.backend,
-                    regression_model=self.regression_model
-                )
-            else:
-                raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
+            return LayerBase.build("inner_product", config, self.backend, self.dimensionality) # TODO: support the sparsity hardware
         else:
-            # change the layer type
-            self.layer_type = LAYER_TYPE.Convolution
-            if self.dimensionality == 2:
-                return ConvolutionLayer(
-                    self.output_shape[1],
-                    1, 1,
-                    np.prod(self.input_shape[1:]),
-                    kernel_rows=1, kernel_cols=1,
-                    stride_rows=1, stride_cols=1,
-                    pad_top=0, pad_bottom=0,
-                    pad_left=0, pad_right=0,
-                    groups = 1,
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    backend=self.backend,
-                    regression_model=self.regression_model,
-                    )
-            elif self.dimensionality == 3:
-                return ConvolutionLayer3D(
-                    self.output_shape[1],
-                    1, 1, 1,
-                    np.prod(self.input_shape[1:]),
-                    kernel_rows=1, kernel_cols=1, kernel_depth=1,
-                    stride_rows=1, stride_cols=1, stride_depth=1,
-                    pad_top=0, pad_bottom=0,
-                    pad_left=0, pad_right=0,
-                    pad_front=0, pad_back=0,
-                    groups = 1,
-                    input_t  = FixedPoint(self.quant_format["input_t"]["width"],
-                        self.quant_format["input_t"]["binary_point"]),
-                    output_t = FixedPoint(self.quant_format["output_t"]["width"],
-                        self.quant_format["output_t"]["binary_point"]),
-                    weight_t = FixedPoint(self.quant_format["weight_t"]["width"],
-                        self.quant_format["weight_t"]["binary_point"]),
-                    acc_t    = FixedPoint(self.quant_format["acc_t"]["width"],
-                        self.quant_format["acc_t"]["binary_point"]),
-                    has_bias = len(self.inputs) == 3,
-                    backend=self.backend,
-                    regression_model=self.regression_model,
-                )
-            else:
-                raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for InnerProductLayer")
+            return LayerBase.build("convolution", config, self.backend, self.dimensionality) # TODO: support the sparsity hardware
 
     def get_node_info(self):
         node_info = ParseOnnxNode.get_node_info(self)
@@ -388,46 +238,21 @@ class ParseOnnxReLUNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # return hardware
-        if self.dimensionality == 2:
-            return ReLULayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
-            )
-        elif self.dimensionality == 3:
-            return ReLULayer3D(
-                self.input_shape[3] if len(self.input_shape) == 5 else 1,
-                self.input_shape[4] if len(self.input_shape) == 5 else 1,
-                self.input_shape[2] if len(self.input_shape) == 5 else 1,
-                self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+        # collect the config from the attributes
+        config = self.get_config()
 
-
+        # initialise layer
+        return LayerBase.build("relu", config, self.backend, self.dimensionality)
 
 class ParseOnnxHardSwishNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # return hardware
-        if self.dimensionality == 2:
-            return HardswishLayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                input_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                output_t = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # initialise layer
+        return LayerBase.build("hardswish", config, self.backend, self.dimensionality)
 
 class ParseOnnxChopNode(ParseOnnxNode):
 
@@ -441,33 +266,26 @@ class ParseOnnxChopNode(ParseOnnxNode):
         assert len(self.outputs) == len(split)
         assert sum(split) == self.input_shape[1]
 
-        # return hardware
-        if self.dimensionality == 2:
-            return ChopLayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                split,
-                ports_out=len(self.outputs),
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ReLULayer")
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # add split and ports out info
+        config["split"] = split
+        config["ports_out"] = len(self.outputs)
+
+        # initialise layer
+        return LayerBase.build("chop", config, self.backend, self.dimensionality)
 
 
 class ParseOnnxThresholdedReLUNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # return hardware
-        return ThresholdedReLULayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-            self.attr["alpha"],
-            data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
-        )
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # initialise layer
+        return LayerBase.build("hardswish", config, self.backend, self.dimensionality)
 
 class ParseOnnxActivationNode(ParseOnnxNode):
 
@@ -484,27 +302,11 @@ class ParseOnnxActivationNode(ParseOnnxNode):
         else:
             raise Exception("Unsupported activation function: {}".format(self.layer_type))
 
-        # return hardware
-        if self.dimensionality == 2:
-            # todo: Activation layer not implemented for 2D
-            return ReLULayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"], self.quant_format["data_t"]["binary_point"])
-            )
-        elif self.dimensionality == 3:
-            return ActivationLayer3D(
-                self.input_shape[3] if len(self.input_shape) == 5 else 1,
-                self.input_shape[4] if len(self.input_shape) == 5 else 1,
-                self.input_shape[2] if len(self.input_shape) == 5 else 1,
-                self.input_shape[1], activation_type=activation_type,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"])
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported for ActivationLayer")
+        # collect the config from the attributes
+        config = self.get_config()
 
+        # initialise layer
+        return LayerBase.build(activation_type, config, self.backend, self.dimensionality)
 
 class ParseOnnxPoolingNode(ParseOnnxNode):
 
@@ -515,71 +317,33 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
         self.attr.setdefault("pads", [0,0,0,0])
         self.attr.setdefault("dilations", [1,1])
 
-        # create pooling layer hardware
-        if self.dimensionality == 2:
-            return PoolingLayer(
-                self.input_shape[2],
-                self.input_shape[3],
-                self.input_shape[1],
-                pool_type = 'max',
-                kernel_rows = self.attr["kernel_shape"][0],
-                kernel_cols = self.attr["kernel_shape"][1],
-                stride_rows = self.attr["strides"][0],
-                stride_cols = self.attr["strides"][1],
-                pad_top     = self.attr["pads"][0],
-                pad_left    = self.attr["pads"][1],
-                pad_bottom  = self.attr["pads"][2],
-                pad_right   = self.attr["pads"][3],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return PoolingLayer3D(
-                self.input_shape[3],
-                self.input_shape[4],
-                self.input_shape[2],
-                self.input_shape[1],
-                pool_type = 'max', # TODO
-                kernel_rows = self.attr["kernel_shape"][1],
-                kernel_cols = self.attr["kernel_shape"][2],
-                kernel_depth = self.attr["kernel_shape"][0],
-                stride_rows = self.attr["strides"][1],
-                stride_cols = self.attr["strides"][2],
-                stride_depth = self.attr["strides"][0],
-                pad_front   = self.attr["pads"][0],
-                pad_top     = self.attr["pads"][1],
-                pad_left    = self.attr["pads"][2],
-                pad_back    = self.attr["pads"][3],
-                pad_bottom  = self.attr["pads"][4],
-                pad_right   = self.attr["pads"][5],
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+        # default attributes
+        self.attr.setdefault("strides", [1]*int(self.dimensionality))
+        self.attr.setdefault("pads", [0]*2*int(self.dimensionality))
+        self.attr.setdefault("dilations", [1]*int(self.dimensionality))
+
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # add the pool type
+        config["pool_type"] = "max"
+
+        # initialise layer
+        return LayerBase.build("pooling", config, self.backend, self.dimensionality) # TODO: support the sparsity hardware
 
 class ParseOnnxReSizeNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # # change the layer type
-        # self.layer_type = LAYER_TYPE.Squeeze
+        # collect the config from the attributes
+        config = self.get_config()
 
-        return ReSizeLayer(
-            self.input_shape[2] if len(self.input_shape) == 4 else 1,
-            self.input_shape[3] if len(self.input_shape) == 4 else 1,
-            self.input_shape[1],
-            scales=[1,1,2,2], # TODO: get from the model
-            mode=self.attr["mode"],
-            data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                self.quant_format["data_t"]["binary_point"]),
-            backend=self.backend,
-            regression_model=self.regression_model
-        )
+        # add the scales
+        # config["scales"] = self.attr["scales"]
+        config["scales"] = [1,1,2,2] # TODO: get from the model
+
+        # initialise layer
+        return LayerBase.build("resize", config, self.backend, self.dimensionality)
 
 class ParseOnnxNOPNode(ParseOnnxNode):
 
@@ -587,64 +351,25 @@ class ParseOnnxNOPNode(ParseOnnxNode):
 
         print(f"CRITICAL WARNING: node {self.name} is skipped in hardware")
 
-        # # change the layer type
-        # self.layer_type = LAYER_TYPE.Squeeze
+        # collect the config from the attributes
+        config = self.get_config()
 
-        # create pooling layer hardware
-        if self.dimensionality == 2:
-            return SqueezeLayer(
-                self.input_shape[2] if len(self.input_shape) == 4 else 1,
-                self.input_shape[3] if len(self.input_shape) == 4 else 1,
-                self.input_shape[1],
-                1, 1,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return SqueezeLayer3D(
-                self.input_shape[3] if len(self.input_shape) == 5 else 1,
-                self.input_shape[4] if len(self.input_shape) == 5 else 1,
-                self.input_shape[2] if len(self.input_shape) == 5 else 1,
-                self.input_shape[1],
-                1, 1,
-                data_t  = FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
+        # add the coarse factors
+        config["coarse_in"] = 1
+        config["coarse_out"] = 1
+
+        # initialise layer
+        return LayerBase.build("squeeze", config, self.backend, self.dimensionality)
 
 class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # create Average pooling layer hardware
-        if self.dimensionality == 2:
-            return GlobalPoolingLayer(
-                self.input_shape[2],
-                self.input_shape[3],
-                self.input_shape[1],
-                data_t=FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return GlobalPoolingLayer3D(
-                self.input_shape[3],
-                self.input_shape[4],
-                self.input_shape[2],
-                self.input_shape[1],
-                data_t=FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
+        # collect the config from the attributes
+        config = self.get_config()
+
+        # initialise layer
+        return LayerBase.build("global_pooling", config, self.backend, self.dimensionality)
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
 
@@ -654,41 +379,16 @@ class ParseOnnxEltWiseNode(ParseOnnxNode):
             raise TypeError(f"unsported eltwise type {self.node.op_type}")
         op_type = self.node.op_type.lower()
 
-        # create Average pooling layer hardware
-        if self.dimensionality == 2:
-            return EltWiseLayer(
-                self.input_shape[2],
-                self.input_shape[3],
-                self.input_shape[1],
-                ports_in=len(self.inputs),
-                op_type=op_type,
-                broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return EltWiseLayer3D(
-                self.input_shape[3],
-                self.input_shape[4],
-                self.input_shape[2],
-                self.input_shape[1],
-                ports_in=len(self.inputs),
-                op_type=op_type,
-                broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+        # collect the config from the attributes
+        config = self.get_config()
 
+        # add the additional parameters
+        config["op_type"] = op_type
+        config["ports"] = len(self.inputs)
+        config["broadcast"] = False # TODO: parse from the onnx
+
+        # initialise layer
+        return LayerBase.build("eltwise", config, self.backend, self.dimensionality)
 
     def get_edges_in(self, model):
         try:
@@ -704,41 +404,18 @@ class ParseOnnxConcatNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # get the shape per input
-        input_shape = [ [ x.dim_value for x in \
-                i.type.tensor_type.shape.dim ] for i in self.inputs ]
+        # # get the shape per input
+        # input_shape = [ [ x.dim_value for x in \
+        #         i.type.tensor_type.shape.dim ] for i in self.inputs ]
 
-        # create Average pooling layer hardware
-        if self.dimensionality == 2:
-            return ConcatLayer(
-                input_shape[0][2],
-                input_shape[0][3],
-                [ x[1] for x in input_shape ],
-                ports_in=len(self.inputs),
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                # backend=self.backend,
-                # regression_model=self.regression_model
-            )
-        elif self.dimensionality == 3:
-            return EltWiseLayer3D(
-                self.input_shape[3],
-                self.input_shape[4],
-                self.input_shape[2],
-                self.input_shape[1],
-                ports_in=len(self.inputs),
-                op_type=op_type,
-                broadcast=False, # TODO: parse from the onnx
-                data_t= FixedPoint(self.quant_format["data_t"]["width"],
-                    self.quant_format["data_t"]["binary_point"]),
-                acc_t = FixedPoint(self.quant_format["acc_t"]["width"],
-                    self.quant_format["acc_t"]["binary_point"]),
-                backend=self.backend,
-                regression_model=self.regression_model
-            )
-        else:
-            raise NotImplementedError(f"dimensionality {self.dimensionality} not supported")
+        # collect the config from the attributes
+        config = self.get_config()
 
+        # add the additional parameters
+        config["ports"] = len(self.inputs)
+
+        # initialise layer
+        return LayerBase.build("concat", config, self.backend, self.dimensionality)
 
     def get_edges_in(self, model):
         try:

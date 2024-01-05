@@ -180,6 +180,11 @@ message parameter {
     // split layer parameter
     repeated int32 split = 200;
 
+    // compression ratio parameters
+    repeated float input_compression_ratio  = 201;
+    repeated float output_compression_ratio = 202;
+    repeated float weight_compression_ratio = 203;
+
 }
     /* optional string weights_ram_style = 64; */
     /* repeated int32 split = 65; */

@@ -13,7 +13,6 @@ def int2bits(n):
     """
     return math.ceil(math.log(n, 2))
 
-
 CHISEL_RSC_TYPES: list[str] = [ "LUT", "FF", "BRAM" ]
 
 from .module import ModuleBaseMeta, ModuleBase, Port, ModuleHLSBase, ModuleHLS3DBase, ModuleChiselBase
@@ -40,5 +39,4 @@ from .squeeze import SqueezeChisel, SqueezeHLS, SqueezeHLS3D
 from .stride import StrideChisel
 from .threshold_relu import ThresholdedReLUChisel
 from .vector_dot import VectorDotChisel
-
 

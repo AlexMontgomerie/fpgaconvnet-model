@@ -14,8 +14,8 @@ import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
-from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
+# from fpgaconvnet.models.layers import Layer, Layer3D, MultiPortLayer, MultiPortLayer3D
+# from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
 
 def get_model_input_nodes(self, i):
     onnx_input_nodes = [ self.partitions[i].graph.nodes[n]["onnx_node"] \

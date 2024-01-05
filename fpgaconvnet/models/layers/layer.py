@@ -4,7 +4,7 @@
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, List
 import math
 
 import networkx as nx # type: ignore
@@ -91,6 +91,8 @@ class LayerBase(metaclass=LayerBaseMeta):
     mem_bw_in: float = 100.0
     mem_bw_out: float = 100.0
     data_t: FixedPoint = FixedPoint(16,8)
+    input_compression_ratio: List[float] = field(default_factory=lambda: [1.0], init=True)
+    output_compression_ratio: List[float] = field(default_factory=lambda: [1.0], init=True)
     modules: dict = field(default_factory=OrderedDict, init=True)
     graph: nx.DiGraph = field(default_factory=nx.DiGraph, init=True)
 
@@ -249,6 +251,10 @@ class LayerBase(metaclass=LayerBaseMeta):
             """
             return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
 
+    @abstractmethod
+    def start_depth(self) -> int:
+        pass
+
     # def wait_depth(self):
     #     return sum([ self.modules[module].wait_depth() for module in self.modules ])
 
@@ -256,7 +262,7 @@ class LayerBase(metaclass=LayerBaseMeta):
 
         # initialise resources
         resources = {
-            # "DSP": 0,
+            "DSP": 0,
             "LUT": 0,
             "FF": 0,
             "BRAM": 0,

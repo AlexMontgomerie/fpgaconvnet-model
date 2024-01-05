@@ -7,8 +7,6 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 import fpgaconvnet.parser.onnx.passes as onnx_passes
 
-from fpgaconvnet.models.layers import BatchNormLayer
-
 def get_quant_param(model):
 
     # dictionary of quantisation parameters
