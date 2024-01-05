@@ -116,3 +116,27 @@ def stream_rsc(self, weight_array_depth, weight_array_width, weight_array_num): 
             * weight_array_num
 
     return weights_bram_usage, weights_uram_usage
+
+def encode_rsc(node, encode_type):
+    if encode_type == "none":
+        return {}
+    elif encode_type == "huffman":
+        encode_rsc = {"LUT": 11, "FF": 7}
+        decode_rsc = {"LUT": 400, "FF": 81}
+    elif encode_type == "rle":
+        encode_rsc = {"LUT": 26, "FF": 10}
+        decode_rsc = {"LUT": 34, "FF": 11}
+
+    rsc = {"LUT": 0, "FF": 0}
+    for i, flag in enumerate(node.stream_inputs):
+        if flag and node.input_compression_ratio[i] < 1:
+            rsc["LUT"] += decode_rsc["LUT"] * node.streams_in(i)
+            rsc["FF"] += decode_rsc["FF"] * node.streams_in(i)
+    for i, flag in enumerate(node.stream_outputs):
+        if flag and node.output_compression_ratio[i] < 1:
+            rsc["LUT"] += encode_rsc["LUT"] * node.streams_out(i)
+            rsc["FF"] += encode_rsc["FF"] * node.streams_out(i)
+    if hasattr(node, "stream_weights") and node.stream_weights > 0 and node.weight_compression_ratio[0] < 1:
+        rsc["LUT"] += decode_rsc["LUT"] * (node.weight_array_width // node.weight_t.width)
+        rsc["FF"] += decode_rsc["FF"] * (node.weight_array_width // node.weight_t.width)
+    return rsc

@@ -53,6 +53,7 @@ class Partition():
         # flag reserved for solver
         self.need_optimise = True
         self.slow_down_factor = 1.0
+        self.encode_type = 'none'
 
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze

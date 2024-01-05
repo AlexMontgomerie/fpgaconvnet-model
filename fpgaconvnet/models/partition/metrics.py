@@ -5,6 +5,7 @@ import fpgaconvnet.tools.matrix as matrix
 import networkx as nx
 import numpy as np
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.models.layers.utils import encode_rsc
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from functools import lru_cache
 from tabulate import tabulate
@@ -302,5 +303,9 @@ def get_resource_usage(self):
         resource_usage['BRAM'] += resource_usage_node['BRAM']
         if 'URAM' in resource_usage_node:
             resource_usage['URAM'] += resource_usage_node['URAM']
+        # resource for encoded streams
+        encode_resource = encode_rsc(self.graph.nodes[node]['hw'], self.encode_type)
+        for rsc in encode_resource.keys():
+            resource_usage[rsc] += encode_resource[rsc]
     # return resource usage for partition
     return resource_usage
