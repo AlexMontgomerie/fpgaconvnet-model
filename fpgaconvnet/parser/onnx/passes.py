@@ -1,11 +1,9 @@
 import math
 
-import onnx
 import numpy as np
-
-from onnxsim import simplify
-
+import onnx
 import onnx_graphsurgeon as gs
+from onnxsim import simplify
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 
