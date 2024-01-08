@@ -3,16 +3,17 @@ The chop/fork/branch layer.
 Takes one stream input and outputs several streams using the fork module.
 """
 
-from typing import List
-import pydot
-import numpy as np
-import os
 import math
+import os
+from typing import List
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.models.modules import Fork
+
 
 class ChopLayer(MultiPortLayer):
     def __init__(
@@ -119,6 +120,9 @@ class ChopLayer(MultiPortLayer):
     def rate_out(self, port_index=0):
         assert(port_index < self.ports_out)
         return self.channels_out(port_index)/self.channels_in()
+
+    def latency(self):
+        return max(self.latency_in(), self.latency_out())
 
     def layer_info(self,parameters,batch_size=1):
         MultiPortLayer.layer_info(self, parameters, batch_size)
