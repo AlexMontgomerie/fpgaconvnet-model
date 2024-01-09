@@ -511,9 +511,9 @@ class ConvolutionLayer3D(Layer3D):
             self.modules['vector_dot3d'].rows     = self.rows_out()
             self.modules['vector_dot3d'].cols     = self.cols_out()
             self.modules['vector_dot3d'].depth    = self.depth_out()
-            # self.modules['vector_dot3d'].channels = (
-            #         self.channels*self.kernel_rows*self.kernel_cols*self.kernel_depth)//(
-            #         self.fine*self.coarse_in*self.groups)
+            self.modules['vector_dot3d'].channels = (
+                     self.channels*self.kernel_rows*self.kernel_cols*self.kernel_depth)//(
+                     self.fine*self.coarse_in*self.groups)
             self.modules['vector_dot3d'].filters  = self.filters//(self.coarse_out*self.coarse_group)
             self.modules['vector_dot3d'].fine     = self.fine
             self.modules['vector_dot3d'].data_width     = self.input_t.width
