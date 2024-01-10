@@ -51,7 +51,7 @@ class ChopLayer(MultiPortLayer):
         self.regression_model = regression_model
 
         # parameters
-        self._coarse = coarse
+        self.coarse = coarse
 
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
@@ -67,30 +67,42 @@ class ChopLayer(MultiPortLayer):
 
     @property
     def coarse_in(self) -> int:
-        return [self._coarse]
+        return self._coarse_in
 
     @property
     def coarse_out(self) -> int:
-        return [self._coarse]*self.ports_out
+        return self._coarse_out
 
     @coarse.setter
     def coarse(self, val: int) -> None:
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_in())
+        ratio = self.channels_in()/val
+        val_out = max(1, int(self.channels_out()/ratio))
         self._coarse = val
         self._coarse_in = [val]
-        self.coarse_out = [val]*self.ports_out
+        self._coarse_out = [val_out]*self.ports_out
         # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_in())
+        ratio = self.channels_in()/val
+        val_out = max(1, int(self.channels_out()/ratio))
         self._coarse = val
         self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
+        self._coarse_out = [val_out]*self.ports_out
         # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_out())
+        ratio = self.channels_out()/val
+        val_in = max(1, int(self.channels_in()/ratio))
+        self._coarse = val_in
+        self._coarse_in = [val_in]
         self._coarse_out = [val]*self.ports_out
         # self.update()
 
