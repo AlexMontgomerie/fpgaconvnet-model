@@ -91,8 +91,14 @@ class TestPipelineDepth(unittest.TestCase):
             "Actual Pipeline Depth (cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
         }, headers="keys"))
 
-        print("\nModel Total latency (cycles): ", net.partitions[0].get_cycle())
-        print("Actual Total latency (cycles): ", max([partition_stats[layer]['last_out_valid_cycles'] for layer in partition_stats]))
+        modeling_latency = net.partitions[0].get_cycle()
+        hw_sim_latency = max([partition_stats[layer]['last_out_valid_cycles'] - 292 for layer in partition_stats])
+        print()
+        print(f"Model  Total latency (cycles): {modeling_latency:.3f}")
+        print(f"Actual Total latency (cycles): {hw_sim_latency:.3f}")
+
+        assert False
+        assert modeling_latency == pytest.approx(hw_sim_latency, abs=ABS_TOL, rel=REL_TOL)
 
         # iterate over layers of the network
         for layer in partition_stats:

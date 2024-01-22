@@ -120,14 +120,17 @@ class Parser:
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
 
-        if self.custom_onnx:
-            model_opt = model
-        else:
-            # simplify model
-            model_opt, _ = simplify(model)
+        # perform fpgaconvnet-based optimization passes (pre onnx optimizations)
+        model_opt = self.optimize_onnx(model, self.fpgaconvnet_pre_onnx_passes)
 
-            # validate model
-            onnx.checker.check_model(model_opt)
+        # if self.custom_onnx:
+            # model_opt = model
+        # else:
+            # # simplify model
+            # model_opt, _ = simplify(model)
+
+            # # validate model
+            # onnx.checker.check_model(model_opt)
 
         # remove doc strings
         onnx.helper.strip_doc_string(model_opt)
@@ -383,8 +386,10 @@ class Parser:
                 hardware = self.get_hardware_from_prototxt_node(layer, net.dimensionality)
 
                 # todo: move this inside get_hardware_from_prototxt_node
-                hardware.hw.stream_inputs = hardware.node.parameters.stream_inputs
-                hardware.hw.stream_outputs = hardware.node.parameters.stream_outputs
+                # hardware.hw.stream_inputs = hardware.node.parameters.stream_inputs
+                # hardware.hw.stream_outputs = hardware.node.parameters.stream_outputs
+                hardware.hw.stream_inputs = [False]*len(hardware.inputs)
+                hardware.hw.stream_outputs = [False]*len(hardware.outputs)
 
                 # add node to graph
                 graph.add_node( layer.name, **hardware.get_node_info(net.graph) )

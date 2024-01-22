@@ -1004,7 +1004,7 @@ def fuse_relu_into_previous(model):
     return model
 
 def convert_to_version_15(model):
-    return onnx.version_converter.convert_version(model, 14)
+    return onnx.version_converter.convert_version(model, 12)
 
 
 def convert_gemm_to_conv(model):

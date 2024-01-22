@@ -110,6 +110,7 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
+        self.node.op_type = "dense"
         # return hardware
         if self.dimensionality == 2:
             if self.node.op_type == "dense":
