@@ -28,6 +28,19 @@ class ResizeChisel(ModuleChiselBase):
 
     def __post_init__(self):
         assert len(self.scales) == 3, "ResizeChisel only supports 3D scaling"
+        assert self.scales[2] == 1, "ResizeChisel currently does not support channel scaling"
+
+    @property
+    def rows_out(self) -> int:
+        return self.rows*self.scales[0]
+
+    @property
+    def cols_out(self) -> int:
+        return self.cols*self.scales[1]
+
+    @property
+    def channels_out(self) -> int:
+        return self.channels*self.scales[2]
 
     @property
     def input_iter_space(self) -> list[list[int]]:
@@ -35,7 +48,7 @@ class ResizeChisel(ModuleChiselBase):
 
     @property
     def output_iter_space(self) -> list[list[int]]:
-        return [ [self.rows*self.scales[0], self.cols*self.scales[1], self.channels*self.scales[2]] ]
+        return [ [self.rows_out, self.cols_out, self.channels_out] ]
 
     @property
     def input_ports(self) -> list[Port]:

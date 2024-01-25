@@ -30,10 +30,6 @@ class GlobalPoolingLayerBase(LayerMatchingCoarse, LayerBase):
 
     name: ClassVar[str] = "global_pool"
 
-    @abstractmethod
-    def channels_in(self) -> int: ...
-
-
     def get_operations(self):
         return math.prod(self.input_shape())
 

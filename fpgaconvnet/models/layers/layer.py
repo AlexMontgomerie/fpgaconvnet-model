@@ -163,24 +163,19 @@ class LayerBase(metaclass=LayerBaseMeta):
             self.modules[name].update(config_fn())
 
     @abstractmethod
-    def build_module_graph(self) -> nx.DiGraph:
-        pass
+    def build_module_graph(self) -> nx.DiGraph: ...
 
     @abstractmethod
-    def input_shape(self, port_idx: int = 0) -> list[int]:
-        pass
+    def input_shape(self, port_idx: int = 0) -> list[int]: ...
 
     @abstractmethod
-    def output_shape(self, port_idx: int = 0) -> list[int]:
-        pass
+    def output_shape(self, port_idx: int = 0) -> list[int]: ...
 
     @abstractmethod
-    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        pass
+    def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]: ...
 
     @abstractmethod
-    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        pass
+    def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]: ...
 
     def rate_in(self, port_idx: int = 0) -> float:
         return self.size_in(port_idx) / float(self.latency())
@@ -252,8 +247,7 @@ class LayerBase(metaclass=LayerBaseMeta):
             return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
 
     @abstractmethod
-    def start_depth(self) -> int:
-        pass
+    def start_depth(self) -> int: ...
 
     # def wait_depth(self):
     #     return sum([ self.modules[module].wait_depth() for module in self.modules ])
@@ -290,12 +284,10 @@ class LayerBase(metaclass=LayerBaseMeta):
         }
 
     @abstractmethod
-    def get_coarse_in_feasible(self):
-        pass
+    def get_coarse_in_feasible(self): ...
 
     @abstractmethod
-    def get_coarse_out_feasible(self):
-        pass
+    def get_coarse_out_feasible(self): ...
 
     def layer_info(self, parameters, batch_size=1):
             """
@@ -329,8 +321,7 @@ class LayerBase(metaclass=LayerBaseMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def functional_model(self, data, batch_size=1):
-        pass
+    def functional_model(self, data, batch_size=1): ...
         # raise NotImplementedError(f"Functional model not implemented for layer type: {self.__class__.__name__}")
 
 

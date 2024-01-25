@@ -9,6 +9,7 @@ from tabulate import tabulate
 
 from fpgaconvnet.parser.Parser import Parser
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
+from fpgaconvnet.architecture import BACKEND
 
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
@@ -57,7 +58,7 @@ class TestPipelineDepth(unittest.TestCase):
     def test_pipeline_depth(self, onnx_path, config_path, vcd_path):
 
         # initialise network
-        parser = Parser(backend="chisel")
+        parser = Parser(backend=BACKEND.CHISEL)
         net = parser.onnx_to_fpgaconvnet(onnx_path, save_opt_model=False)
         net = parser.prototxt_to_fpgaconvnet(net, config_path)
         net.update_partitions()

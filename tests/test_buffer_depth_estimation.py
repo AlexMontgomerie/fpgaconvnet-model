@@ -7,6 +7,7 @@ import pytest
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.parser.Parser import Parser
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+from fpgaconvnet.architecture import BACKEND
 
 from numpy.linalg import matrix_rank
 import scipy
@@ -21,7 +22,7 @@ ABS_TOL = 4000
 def test_unet_single_branch_network():
 
     # initialise network
-    parser = Parser(backend="chisel")
+    parser = Parser(backend=BACKEND.CHISEL)
     net = parser.onnx_to_fpgaconvnet("tests/models/unet_single_branch.onnx", save_opt_model=False)
 
     # set the hardware configuration
@@ -62,7 +63,7 @@ def test_unet_single_branch_network():
 def test_unet_two_branch_network():
 
     # initialise network
-    parser = Parser(backend="chisel")
+    parser = Parser(backend=BACKEND.CHISEL)
     net = parser.onnx_to_fpgaconvnet("tests/models/unet_two_branch.onnx", save_opt_model=False)
 
     # set the hardware configuration

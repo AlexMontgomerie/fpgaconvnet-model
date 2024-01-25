@@ -25,3 +25,6 @@ from .relu import ReLULayerChisel2D, ReLULayerChisel3D, ReLULayerHLS2D, ReLULaye
 from .squeeze import SqueezeLayerChisel2D, SqueezeLayerChisel3D, SqueezeLayerHLS2D, SqueezeLayerHLS3D
 from .threshold_relu import ThresholdReLULayerChisel2D, ThresholdReLULayerChisel3D, ThresholdReLULayerHLS2D, ThresholdReLULayerHLS3D
 from .split import SplitLayerChisel2D
+from .eltwise import EltwiseLayerChisel2D
+from .resize import ResizeLayerChisel2D
+from .global_pooling import GlobalPoolingLayerChisel2D

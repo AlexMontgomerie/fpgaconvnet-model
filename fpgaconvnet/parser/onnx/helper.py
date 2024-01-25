@@ -184,7 +184,7 @@ def format_attr(attribute):
             case 6:
                 attr_out[attr.name] = [ float(i) for i in attr.floats ]
             case 3:
-                attr_out[attr.name] = attr.s
+                attr_out[attr.name] = str(attr.s)
             case 2:
                 attr_out[attr.name] = attr.i
             case 1:

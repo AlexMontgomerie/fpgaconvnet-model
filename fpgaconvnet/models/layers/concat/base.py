@@ -28,6 +28,13 @@ class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
 
     name: ClassVar[str] = "concat"
 
+    def __post_init__(self):
+        assert self.ports == len(self.channels), "ERROR: number of ports must match number of channels"
+        assert self.ports > 1, "ERROR: number of ports must be greater than 1"
+
+        self.buffer_depth = [0]*self.ports
+        super().__post_init__()
+
     def __setattr__(self, name: str, value: Any) -> None:
 
         if not hasattr(self, "is_init"):

@@ -112,10 +112,12 @@ class ParseOnnxNode:
 
         # add the spatial dimensions
         config["channels"] = self.input_shape[1]
-        if self.dimensionality == DIMENSIONALITY.TWO:
+        if len(self.input_shape) == 4 and \
+                self.dimensionality == DIMENSIONALITY.TWO:
             config["rows"] = self.input_shape[2]
             config["cols"] = self.input_shape[3]
-        elif self.dimensionality == DIMENSIONALITY.THREE:
+        elif len(self.input_shape) == 5 and \
+                self.dimensionality == DIMENSIONALITY.THREE:
             config["depth"] = self.input_shape[2]
             config["rows"] = self.input_shape[3]
             config["cols"] = self.input_shape[4]
@@ -329,7 +331,7 @@ class ParseOnnxPoolingNode(ParseOnnxNode):
         config["pool_type"] = "max"
 
         # initialise layer
-        return LayerBase.build("pooling", config, self.backend, self.dimensionality) # TODO: support the sparsity hardware
+        return LayerBase.build("pooling", config, self.backend, self.dimensionality)
 
 class ParseOnnxReSizeNode(ParseOnnxNode):
 
@@ -340,7 +342,7 @@ class ParseOnnxReSizeNode(ParseOnnxNode):
 
         # add the scales
         # config["scales"] = self.attr["scales"]
-        config["scales"] = [1,1,2,2] # TODO: get from the model
+        config["scales"] = [2,2,1] # TODO: get from the model
 
         # initialise layer
         return LayerBase.build("resize", config, self.backend, self.dimensionality)
@@ -367,9 +369,10 @@ class ParseOnnxGlobalPoolingNode(ParseOnnxNode):
 
         # collect the config from the attributes
         config = self.get_config()
+        print(config)
 
         # initialise layer
-        return LayerBase.build("global_pooling", config, self.backend, self.dimensionality)
+        return LayerBase.build("global_pool", config, self.backend, self.dimensionality)
 
 class ParseOnnxEltWiseNode(ParseOnnxNode):
 
@@ -404,12 +407,11 @@ class ParseOnnxConcatNode(ParseOnnxNode):
 
     def get_hardware(self):
 
-        # # get the shape per input
-        # input_shape = [ [ x.dim_value for x in \
-        #         i.type.tensor_type.shape.dim ] for i in self.inputs ]
-
         # collect the config from the attributes
         config = self.get_config()
+
+        # change to list of channels (FIXME)
+        config["channels"] = [ x.type.tensor_type.shape.dim[1].dim_value for x in self.inputs ]
 
         # add the additional parameters
         config["ports"] = len(self.inputs)

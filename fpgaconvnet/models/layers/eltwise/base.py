@@ -31,6 +31,10 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
 
     name: ClassVar[str] = "eltwise"
 
+    def __post_init__(self):
+        self.buffer_depth = [0]*self.ports
+        super().__post_init__()
+
     def __setattr__(self, name: str, value: Any) -> None:
 
         if not hasattr(self, "is_init"):

@@ -35,16 +35,16 @@ from fpgaconvnet.parser.quant.int import get_scale_shift_node
 from fpgaconvnet.tools.layer_enum import (LAYER_TYPE, from_onnx_op_type,
                                           from_proto_layer_type)
 
+
+from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+
 class Parser:
 
-    def __init__(self, backend="chisel", regression_model="linear_regression",
-            quant_mode="auto", batch_size=1, convert_gemm_to_conv=False, custom_onnx=False):
+    def __init__(self, backend=BACKEND.CHISEL, quant_mode="auto",
+                 batch_size=1, convert_gemm_to_conv=False, custom_onnx=False):
 
         # set the backend string
         self.backend = backend
-
-        # set the regression model
-        self.regression_model = regression_model
 
         # quantisation mode [ auto, float, QDQ, BFP, config ]
         self.quant_mode = quant_mode
@@ -120,7 +120,7 @@ class Parser:
         # load onnx model
         model = onnx.load(onnx_filepath)
         input_shape = [d.dim_value for d in model.graph.input[0].type.tensor_type.shape.dim] # We assume the model has only one input
-        dimensionality = len(input_shape) - 2
+        dimensionality = DIMENSIONALITY(len(input_shape) - 2)
 
         # update model's batch size
         model = onnx_helper.update_batch_size(model, self.batch_size)
@@ -188,8 +188,7 @@ class Parser:
         # try converter
         try:
             return converter[node_type](graph, node, quant_format, dimensionality,
-                    backend=self.backend, regression_model=self.regression_model,
-                    convert_gemm_to_conv=self.convert_gemm_to_conv)
+                    backend=self.backend, convert_gemm_to_conv=self.convert_gemm_to_conv)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 
@@ -234,7 +233,7 @@ class Parser:
                     "output_compression_ratio": [graph.nodes[node]['hw'].output_compression_ratio[0]]*len(nodes_out),
                 }
 
-                if self.dimensionality == DIMENSIONALITY.THREE:
+                if dimensionality == DIMENSIONALITY.THREE:
                     config["depth"] = graph.nodes[node]['hw'].depth_out()
 
                 # create a split node
@@ -244,7 +243,7 @@ class Parser:
                     onnx_node=graph.nodes[node]["onnx_node"],
                     onnx_input=graph.nodes[node]["onnx_input"],
                     onnx_output=graph.nodes[node]["onnx_output"],
-                    hw=LayerBase.build("split", config, self.backend, self.dimensionality)
+                    hw=LayerBase.build("split", config, self.backend, dimensionality)
                 )
 
                 # iterate over nodes out
@@ -356,8 +355,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, dimensionality, backend=self.backend,
-                    regression_model=self.regression_model)
+            return converter[node_type](node, dimensionality, backend=self.backend)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
 

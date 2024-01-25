@@ -229,15 +229,12 @@ class MultiPortLayer2D(LayerBase):
         coarse_in_feasible = set(get_factors(self.channels_in(0)))
         for i in range(1, self.ports_in):
             coarse_in_feasible = coarse_in_feasible.intersection(set(get_factors(self.channels_in(i))))
-        print(list(coarse_in_feasible))
         return list(coarse_in_feasible)
 
     def get_coarse_out_feasible(self) -> list[int]:
         coarse_out_feasible = set(get_factors(self.channels_out(0)))
         for i in range(1, self.ports_in):
-            # coarse_out_feasible &= set(get_factors(self.channels_out(i)))
             coarse_out_feasible = coarse_out_feasible.intersection(set(get_factors(self.channels_out(i))))
-        print(list(coarse_out_feasible))
         return list(coarse_out_feasible)
 
     def layer_info(self, parameters, batch_size=1):

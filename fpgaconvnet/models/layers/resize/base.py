@@ -64,8 +64,8 @@ class ResizeLayerChiselMixin(ResizeLayerBase):
 class ResizeLayer2DMixin(ResizeLayerBase, Layer2D):
 
     def rows_out(self) -> int:
-        return self.modules['resize'].rows_out()
+        return self.modules['resize'].rows_out
 
     def cols_out(self) -> int:
-        return self.modules['resize'].cols_out()
+        return self.modules['resize'].cols_out
 
