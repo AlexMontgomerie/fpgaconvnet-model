@@ -69,6 +69,9 @@ def main():
     train_data = Record(module=module_class, docs=dataset[split_idx:])
     test_data = Record(module=module_class, docs=dataset[:split_idx])
 
+    # accuracy dictionary for logging
+    accuracy = {}
+
     for rsc_type in platform.resource_types:
 
         # get the model
@@ -88,14 +91,19 @@ def main():
         model.fit(train_data)
 
         # get the accuracy
-        accuracy = model.get_accuracy(test_data)
-        print(tabulate([accuracy], headers="keys"))
+        accuracy[rsc_type] = model.get_accuracy(test_data)
 
         # cache the model locally
         filename = f"{args.name}.{rsc_type}.{args.module}.{args.backend}.{args.dimensionality}.model"
         cache_path = os.path.join(os.path.dirname(__file__), "..", "cache", "modules", filename)
         model.save_model(cache_path)
-        print(f"Saved model to {cache_path}\n")
+        print(f"Saved model for {module_class}:{rsc_type} to {cache_path}\n")
+
+    # print a table with summary of the accuracy
+    table = [ [rsc_type, *list(acc.values())] for rsc_type, acc in accuracy.items() ]
+    header = [ "Resource", *list(list(accuracy.values())[0].keys()) ]
+    print(tabulate(table, headers=header) + "\n")
+
 
 if __name__ == "__main__":
     main()

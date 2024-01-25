@@ -26,7 +26,7 @@ class SqueezeChisel(ModuleChiselBase):
 
     @property
     def buffer_size(self) -> int:
-        return self.buffer_size
+        return lcm(self.coarse_in, self.coarse_out)
 
     @property
     def input_iter_space(self) -> list[list[int]]:

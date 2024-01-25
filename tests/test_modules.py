@@ -87,7 +87,6 @@ class TestModuleTemplate():
     def run_hw_simulation(self, layer, index):
         # run hardware simulation
         os.system(f"python {HW_BACKEND_PATH}/scripts/data/generate_module_block_data.py -l {layer} -n {index} -p {HW_BACKEND_PATH}")
-        # sbt "testOnly fpgaconvnet.layers.${name}_test.ConfigTest"
         os.system(f"cd {HW_BACKEND_PATH} && sbt -Dconfig_idx={index} 'testOnly fpgaconvnet.layers.{layer}_block_test.ConfigTest' && cd -")
 
 @ddt.ddt
@@ -117,10 +116,6 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_pipeline_depth(module)
         self.run_test_config_gen(module)
         self.run_test_resources(module)
-
-        # # additional checks
-        # self.assertGreater(module.filters, 0)
-        # self.assertGreater(module.channle, 0)
 
 @ddt.ddt
 class TestAccumModule(TestModuleTemplate,unittest.TestCase):
