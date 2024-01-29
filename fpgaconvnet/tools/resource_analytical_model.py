@@ -14,11 +14,11 @@ URAM_EXT_CONF_DEPTH={262144:1, 131072:2, 65536:4, 32768:9, 16384:18, 8192:36, 40
 
 def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False, detailed=False):
     # based on xilinx forum post: https://forums.xilinx.com/t5/High-Level-Synthesis-HLS/BRAM-usage-large-for-FIFO/m-p/1247118
-    # Warning: this estimation only works for ultrascale+ devices, for 7 series devices, the depth will be padded to the powers of 2, https://support.xilinx.com/s/article/61995?language=en_US 
+    # Warning: this estimation only works for ultrascale+ devices, for 7 series devices, the depth will be padded to the powers of 2, https://support.xilinx.com/s/article/61995?language=en_US
 
     assert array_type in ['fifo', 'memory']
 
-    # based on vivado synthesis behaviour 
+    # based on vivado synthesis behaviour
     # hls prediction might differ
     if (depth == 0) or (width == 0) or \
         (array_type == 'fifo' and not force_bram_pragma and width * depth <= 1024) or \
@@ -30,7 +30,7 @@ def bram_array_resource_model(depth, width, array_type, force_bram_pragma=False,
         return 0
 
    # get the number of widths to repeat if greater than max width
-    max_width = max(BRAM_CONF_WIDTH.keys()) 
+    max_width = max(BRAM_CONF_WIDTH.keys())
     bram_width = min(max_width, width)
 
     # find the closest width from the BRAM configuration
@@ -51,7 +51,7 @@ def uram_array_resource_model(depth, width, extension=True, detailed=False):
     if depth == 0 or width == 0:
         return 0
     if extension:
-        max_width = max(URAM_EXT_CONF_WIDTH.keys()) 
+        max_width = max(URAM_EXT_CONF_WIDTH.keys())
         uram_width = min(max_width, width)
         if uram_width not in list(URAM_EXT_CONF_WIDTH.keys()):
             uram_width = sorted(list(URAM_EXT_CONF_WIDTH.keys()))[
@@ -90,18 +90,4 @@ def dsp_multiplier_resource_model(multiplicand_width, multiplier_width, dsp_type
     # return math.ceil((multiplicand_width+multiplier_width)/48)
     return math.ceil(multiplicand_width/18)*math.ceil(multiplier_width/27)
 
-if __name__ == "__main__":
-    print(bram_stream_resource_model(512,4))
-    print(bram_stream_resource_model(1024,4))
-    print(bram_stream_resource_model(2048,4))
-    print(bram_stream_resource_model(4096,4))
 
-    print(bram_stream_resource_model(512,8))
-    print(bram_stream_resource_model(1024,8))
-    print(bram_stream_resource_model(2048,8))
-    print(bram_stream_resource_model(4096,8))
-
-    print(bram_stream_resource_model(512,16))
-    print(bram_stream_resource_model(1024,16))
-    print(bram_stream_resource_model(2048,16))
-    print(bram_stream_resource_model(4096,16))

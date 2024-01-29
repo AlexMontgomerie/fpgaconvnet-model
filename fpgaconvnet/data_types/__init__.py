@@ -1,1 +1,1 @@
-from .FixedPoint import FixedPoint
+from .fixed_point import FixedPoint

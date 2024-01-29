@@ -26,7 +26,7 @@ class Network():
             model: str,
             graph:nx.DiGraph,
             arch: Architecture = CHISEL_2D_ARCH,
-            batch_size: str = 1,
+            batch_size: int = 1,
         ):
 
         # network archictecture
