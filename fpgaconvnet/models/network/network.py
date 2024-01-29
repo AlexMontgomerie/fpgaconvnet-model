@@ -16,16 +16,21 @@ import fpgaconvnet.tools.layer_enum
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 from fpgaconvnet.models.partition import Partition
+from fpgaconvnet.architecture import Architecture, CHISEL_2D_ARCH
 
 class Network():
 
-    def __init__(self, name, model, graph, dimensionality=2, batch_size=1, backend="hls"):
+    def __init__(
+            self,
+            name: str,
+            model: str,
+            graph:nx.DiGraph,
+            arch: Architecture = CHISEL_2D_ARCH,
+            batch_size: str = 1,
+        ):
 
-        # backend
-        self.backend = backend
-
-        # network dimensionality
-        self.dimensionality = dimensionality
+        # network archictecture
+        self.arch = arch
 
         # network name
         self.name = name
@@ -46,7 +51,8 @@ class Network():
         self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
 
         # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph), self.dimensionality, data_width=self.data_width) ]
+        self.partitions = [ Partition(copy.deepcopy(self.graph),
+                                self.arch, data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)

@@ -9,15 +9,15 @@ import pytest
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import eval_resource_model
-from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.exceptions import ModuleNotImplementedError
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 
 ARCHS = [
-        ( BACKEND.CHISEL, DIMENSIONALITY.TWO ),
-        ( BACKEND.CHISEL, DIMENSIONALITY.THREE ),
-        ( BACKEND.HLS, DIMENSIONALITY.TWO ),
-        # ( BACKEND.HLS, DIMENSIONALITY.THREE ),
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.TWO),
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.THREE),
+        Architecture(BACKEND.HLS,    DIMENSIONALITY.TWO),
+        # Architecture(BACKEND.HLS, DIMENSIONALITY.THREE ),
     ]
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
@@ -81,7 +81,7 @@ class TestModuleTemplate():
         dimensionality = DIMENSIONALITY(config["dimensionality"][0])
 
         # build from the config
-        module = ModuleBase.build(name, params, backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build(name, params, backend, dimensionality)
         self.assertTrue(isinstance(module, type(module)))
 
     def run_hw_simulation(self, layer, index):
@@ -92,10 +92,9 @@ class TestModuleTemplate():
 @ddt.ddt
 class TestForkModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/fork/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
@@ -104,11 +103,10 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
         config["fine"] = int(np.prod(config["kernel_size"]))
 
         if isinstance(config["kernel_size"], int):
-            config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+            config["kernel_size"] = [config["kernel_size"]]*arch.dimensionality.value
 
         # initialise module
-        module = ModuleBase.build("fork", config,
-                backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build("fork", config, arch.backend, arch.dimensionality)
 
         # run tests
         self.run_test_rates(module)
@@ -120,18 +118,16 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/accum/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # initialise module
-        module = ModuleBase.build("accum", config,
-                backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build("accum", config, arch.backend, arch.dimensionality)
 
         # run tests
         self.run_test_rates(module)
@@ -143,23 +139,21 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestConvModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/conv/*.json")))
-    def test_module_configurations(self, args):
+    def test_module_configurations(self, arch, config_path):
 
-        (backend, dimensionality), config_path = args
-
-        if backend == BACKEND.HLS:
+        if arch.backend == BACKEND.HLS:
 
             # open configuration
             with open(config_path, "r") as f:
                 config = json.load(f)
 
             if isinstance(config["kernel_size"], int):
-                config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+                config["kernel_size"] = [config["kernel_size"]]*arch.dimensionality.value
 
             # initialise module
-            module = ModuleBase.build("conv", config,
-                    backend=backend, dimensionality=dimensionality)
+            module = ModuleBase.build("conv", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_rates(module)
@@ -171,10 +165,9 @@ class TestConvModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestGlueModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/glue/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
@@ -184,8 +177,7 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
         config["coarse"] = config["coarse_in"]
 
         # initialise module
-        module = ModuleBase.build("glue", config,
-                backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build("glue", config, arch.backend, arch.dimensionality)
 
         # run tests
         self.run_test_rates(module)
@@ -197,29 +189,27 @@ class TestGlueModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/sliding_window/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         if isinstance(config["kernel_size"], int):
-            config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+            config["kernel_size"] = [config["kernel_size"]]*arch.dimensionality.value
         if isinstance(config["stride"], int):
-            config["stride"] = [config["stride"]]*dimensionality.value
+            config["stride"] = [config["stride"]]*arch.dimensionality.value
         if "pad" in config:
             if isinstance(config["pad"], int):
-                config["pad"] = [config["pad"]]*dimensionality.value*2
+                config["pad"] = [config["pad"]]*arch.dimensionality.value*2
         else:
-            config["pad"] = [0]*dimensionality.value*2
+            config["pad"] = [0]*arch.dimensionality.value*2
 
         try:
             # initialise module
-            module = ModuleBase.build("sliding_window", config,
-                    backend=backend, dimensionality=dimensionality)
+            module = ModuleBase.build("sliding_window", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_rates(module)
@@ -234,10 +224,9 @@ class TestSlidingWindowModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestPoolModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/pool/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
@@ -246,12 +235,11 @@ class TestPoolModule(TestModuleTemplate,unittest.TestCase):
         # set the pool type
         config["pool_type"] = "max"
         if isinstance(config["kernel_size"], int):
-            config["kernel_size"] = [config["kernel_size"]]*dimensionality.value
+            config["kernel_size"] = [config["kernel_size"]]*arch.dimensionality.value
 
         try:
             # initialise module
-            module = ModuleBase.build("pool", config,
-                    backend=backend, dimensionality=dimensionality)
+            module = ModuleBase.build("pool", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_rates(module)
@@ -266,18 +254,16 @@ class TestPoolModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/squeeze/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # initialise module
-        module = ModuleBase.build("squeeze", config,
-                backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build("squeeze", config, arch.backend, arch.dimensionality)
 
         # run tests
         self.run_test_rates(module)
@@ -289,18 +275,16 @@ class TestSqueezeModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestReLUModule(TestModuleTemplate,unittest.TestCase):
 
+    @ddt.unpack
     @ddt.data(*itertools.product(ARCHS, glob.glob("tests/configs/modules/relu/*.json")))
-    def test_module_configurations(self, args):
-
-        (backend, dimensionality), config_path = args
+    def test_module_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # initialise module
-        module = ModuleBase.build("relu", config,
-                backend=backend, dimensionality=dimensionality)
+        module = ModuleBase.build("relu", config, arch.backend, arch.dimensionality)
 
         # run tests
         self.run_test_rates(module)

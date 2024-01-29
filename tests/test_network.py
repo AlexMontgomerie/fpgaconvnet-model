@@ -4,10 +4,10 @@ import ddt
 import copy
 
 from fpgaconvnet.models.network import Network
-from fpgaconvnet.parser.Parser import Parser
+from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.architecture import BACKEND
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 
 from numpy.linalg import matrix_rank
 import scipy
@@ -15,6 +15,15 @@ import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
 PLATFORM = "examples/platforms/zedboard.toml"
+
+ARCHS = [
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.TWO),
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.THREE),
+        Architecture(BACKEND.HLS,    DIMENSIONALITY.TWO),
+        # Architecture(BACKEND.HLS, DIMENSIONALITY.THREE ),
+    ]
+
+
 
 class TestNetworkTemplate():
 
@@ -33,7 +42,7 @@ class TestNetworkTemplate():
         # iterate over the partitions
         for partition in network.partitions:
             # check there's only one layer per partition
-            self.assertEqual(len(partition.graph.nodes),1)
+            self.assertEqual(len(partition.graph.nodes), 1)
 
     def run_test_partition_transform_merge(self, network):
         # start by splitting the network completely
@@ -41,7 +50,7 @@ class TestNetworkTemplate():
         # then merge it all together
         network.merge_complete()
         # check that there's only one partition
-        self.assertEqual(len(network.partitions),1)
+        self.assertEqual(len(network.partitions), 1)
 
 @ddt.ddt
 class TestNetwork(TestNetworkTemplate, unittest.TestCase):

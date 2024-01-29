@@ -16,7 +16,7 @@ from google.protobuf.json_format import MessageToDict
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
-from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
 from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError
@@ -62,11 +62,13 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
 
         # check there is at least 1 module
         if len(layers) == 0:
-            raise LayerNotImplementedError(f"No layers found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
+            raise LayerNotImplementedError(f"No layers found for name={name}, \
+                    backend={backend.name}, dimensionality={dimensionality.value}")
 
         # check there is only a single module left
         if len(layers) > 1:
-            raise AmbiguousLayerError(f"Too many layers found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
+            raise AmbiguousLayerError(f"Too many layers found for name={name}, \
+                    backend={backend.name}, dimensionality={dimensionality.value}")
 
         # get the module class
         layer= layers[0]

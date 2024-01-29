@@ -346,9 +346,9 @@ def get_bandwidth_in(self,freq):
                 workload = hw.workload_in() * hw.input_compression_ratio[i]
                 if self.graph.nodes[node]["type"] == LAYER_TYPE.Convolution and hw.stream_inputs[i]:
                     # implement line or tensor buffer with off-chip memory
-                    if self.dimensionality == 2:
+                    if self.arch.dimensionality == 2:
                         workload = workload * hw.kernel_size[0]
-                    elif self.dimensionality == 3:
+                    elif self.arch.dimensionality == 3:
                         workload = workload * hw.kernel_size[0] * hw.kernel_size[2]
                 streams = hw.streams_in()
                 # calculate rate from interval

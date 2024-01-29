@@ -18,6 +18,7 @@ from .layer import LayerBaseMeta, LayerBase
 
 from .concat import ConcatLayerChisel2D
 from .convolution import ConvolutionLayerChisel2D, ConvolutionLayerChisel3D, ConvolutionLayerHLS2D, ConvolutionLayerHLS3D
+from .inner_product import InnerProductLayerChisel2D, InnerProductLayerChisel3D, InnerProductLayerHLS2D, InnerProductLayerHLS3D
 from .global_pooling import GlobalPoolingLayerChisel2D, GlobalPoolingLayerChisel3D
 from .hardswish import HardswishLayerChisel2D, HardswishLayerChisel3D, HardswishLayerHLS2D, HardswishLayerHLS3D
 from .pooling import PoolingLayerChisel2D, PoolingLayerChisel3D, PoolingLayerHLS2D, PoolingLayerHLS3D

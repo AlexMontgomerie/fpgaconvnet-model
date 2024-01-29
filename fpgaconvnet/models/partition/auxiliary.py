@@ -28,9 +28,7 @@ def add_squeeze(self):
             if self.graph.nodes[end_node]['hw'].stream_inputs[i] and self.graph.nodes[start_node]['hw'].stream_outputs[j]:
                 # edge is already streaming off-chip
                 continue
-            # new_node   = "_".join([start_name,"squeeze",end_name])
             new_node   = "_".join([start_node,"squeeze",end_node])
-            # print("Start Node:", start_node)
 
             # create squeeze node hardware config
             config = {
@@ -44,7 +42,7 @@ def add_squeeze(self):
                 "output_compression_ratio": self.graph.nodes[end_node]['hw'].input_compression_ratio,
             }
 
-            if self.dimensionality == DIMENSIONALITY.THREE:
+            if self.arch.dimensionality == DIMENSIONALITY.THREE:
                 config["depth"] = self.graph.nodes[start_node]['hw'].depth_out()
 
             # add node to node info
@@ -53,7 +51,7 @@ def add_squeeze(self):
                 onnx_node=self.graph.nodes[start_node]["onnx_node"],
                 onnx_input=self.graph.nodes[start_node]["onnx_input"],
                 onnx_output=self.graph.nodes[start_node]["onnx_output"],
-                hw=LayerBase.build("squeeze", config, self.backend, self.dimensionality)
+                hw=LayerBase.build("squeeze", config, self.arch)
             )
 
             # add node to graph
@@ -78,7 +76,7 @@ def add_squeeze(self):
                 "data_t": self.graph.nodes[input_node]['hw'].input_t,
             }
 
-            if self.dimensionality == DIMENSIONALITY.THREE:
+            if self.arch.dimensionality == DIMENSIONALITY.THREE:
                 config["depth"] = self.graph.nodes[input_node]['hw'].depth_in()
 
             # add node to node info
@@ -87,7 +85,7 @@ def add_squeeze(self):
                 onnx_node=self.graph.nodes[input_node]["onnx_node"],
                 onnx_input=self.graph.nodes[input_node]["onnx_input"],
                 onnx_output=self.graph.nodes[input_node]["onnx_output"],
-                hw=LayerBase.build("squeeze", config, self.backend, self.dimensionality)
+                hw=LayerBase.build("squeeze", config, self.arch)
             )
 
             # add edge to graph
@@ -110,7 +108,7 @@ def add_squeeze(self):
                 "data_t": self.graph.nodes[output_node]['hw'].output_t,
             }
 
-            if self.dimensionality == DIMENSIONALITY.THREE:
+            if self.arch.dimensionality == DIMENSIONALITY.THREE:
                 config["depth"] = self.graph.nodes[output_node]['hw'].depth_out()
 
             # add node to node info
@@ -119,7 +117,7 @@ def add_squeeze(self):
                 onnx_node=self.graph.nodes[output_node]["onnx_node"],
                 onnx_input=self.graph.nodes[output_node]["onnx_input"],
                 onnx_output=self.graph.nodes[output_node]["onnx_output"],
-                hw=LayerBase.build("squeeze", config, self.backend, self.dimensionality)
+                hw=LayerBase.build("squeeze", config, self.arch)
             )
             self.graph.add_edge(output_node,new_node)
 

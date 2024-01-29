@@ -7,7 +7,7 @@ import json
 
 from tabulate import tabulate
 
-from fpgaconvnet.parser.Parser import Parser
+from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 from fpgaconvnet.architecture import BACKEND
 

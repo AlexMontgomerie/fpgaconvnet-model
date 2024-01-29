@@ -1,6 +1,6 @@
 import unittest
 import ddt
-from fpgaconvnet.models.partition.Partition import Partition
+from fpgaconvnet.models.partition.partition import Partition
 import fpgaconvnet.tools.graphs as graphs
 import networkx as nx
 

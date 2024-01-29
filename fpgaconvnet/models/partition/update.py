@@ -166,14 +166,14 @@ def reduce_squeeze_fanout(self):
                 "data_t": self.graph.nodes[input_node]['hw'].input_t,
             }
 
-            if self.dimensionality == DIMENSIONALITY.THREE:
+            if self.arch.dimensionality == DIMENSIONALITY.THREE:
                 config["depth"] = self.graph.nodes[input_node]['hw'].depth_in()
 
             # add node to node info
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[input_node]["onnx_node"],
-                hw=LayerBase.build("squeeze", config, self.backend, self.dimensionality)
+                hw=LayerBase.build("squeeze", config, self.arch)
             )
 
             # add edge to graph
@@ -195,14 +195,14 @@ def reduce_squeeze_fanout(self):
                 "data_t": self.graph.nodes[output_node]['hw'].output_t,
             }
 
-            if self.dimensionality == DIMENSIONALITY.THREE:
+            if self.arch.dimensionality == DIMENSIONALITY.THREE:
                 config["depth"] = self.graph.nodes[output_node]['hw'].depth_out()
 
             # add node to node info
             self.graph.add_node(new_node,
                 type=LAYER_TYPE.Squeeze,
                 onnx_node=self.graph.nodes[output_node]["onnx_node"],
-                hw=LayerBase.build("squeeze", config, self.backend, self.dimensionality)
+                hw=LayerBase.build("squeeze", config, self.arch)
             )
             self.graph.add_edge(output_node,new_node)
 

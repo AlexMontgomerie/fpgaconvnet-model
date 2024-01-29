@@ -7,7 +7,7 @@ import pytest
 import itertools
 
 from fpgaconvnet.models.layers import LayerBase
-from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.exceptions import LayerNotImplementedError, AmbiguousLayerError, ModuleNotImplementedError
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 
@@ -22,12 +22,12 @@ CONCAT_CONF_PATH=list(glob.glob("tests/configs/layers/concat/*"))
 SPLIT_CONF_PATH=list(glob.glob("tests/configs/layers/split/*"))
 
 # get all the architectures
-ARCHITECTURES = [
-    (BACKEND.CHISEL, DIMENSIONALITY.TWO),
-    (BACKEND.CHISEL, DIMENSIONALITY.THREE),
-    (BACKEND.HLS, DIMENSIONALITY.TWO),
-    # (BACKEND.HLS, DIMENSIONALITY.THREE),
-]
+ARCHS = [
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.TWO),
+        Architecture(BACKEND.CHISEL, DIMENSIONALITY.THREE),
+        Architecture(BACKEND.HLS,    DIMENSIONALITY.TWO),
+        # Architecture(BACKEND.HLS, DIMENSIONALITY.THREE ),
+    ]
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
@@ -122,11 +122,9 @@ class TestLayerTemplate():
 # @pytest.mark.skip(reason="Not implemented yet")
 class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(POOLING_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, POOLING_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
@@ -141,14 +139,14 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_cols"] = config["stride"][1]
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["kernel_depth"] = config["kernel_size"][1]
             config["stride_depth"] = config["stride"][1]
             config["depth"] = config["cols"]
 
         try:
             # initialise layer
-            layer = LayerBase.build("pooling", config, backend, dimensionality)
+            layer = LayerBase.build("pooling", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)
@@ -168,23 +166,21 @@ class TestPoolingLayer(TestLayerTemplate,unittest.TestCase):
 @ddt.ddt
 class TestConcatLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(CONCAT_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, CONCAT_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["depth"] = config["cols"]
 
         try:
             # initialise layer
-            layer = LayerBase.build("concat", config, backend, dimensionality)
+            layer = LayerBase.build("concat", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)
@@ -205,11 +201,9 @@ class TestConcatLayer(TestLayerTemplate,unittest.TestCase):
 @ddt.ddt
 class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(CONVOLUTION_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, CONVOLUTION_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
@@ -224,14 +218,14 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
         config["stride_cols"] = config["stride"][1]
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["kernel_depth"] = config["kernel_size"][1]
             config["stride_depth"] = config["stride"][1]
             config["depth"] = config["cols"]
 
         try:
             # initialise layer
-            layer = LayerBase.build("convolution", config, backend, dimensionality)
+            layer = LayerBase.build("convolution", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)
@@ -252,23 +246,21 @@ class TestConvolutionLayer(TestLayerTemplate,unittest.TestCase):
 @ddt.ddt
 class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(RELU_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, RELU_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["depth"] = config["cols"]
 
         try:
             # initialise layer
-            layer = LayerBase.build("relu", config, backend, dimensionality)
+            layer = LayerBase.build("relu", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)
@@ -322,23 +314,21 @@ class TestReLULayer(TestLayerTemplate,unittest.TestCase):
 @ddt.ddt
 class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(SQUEEZE_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, SQUEEZE_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["depth"] = config["cols"]
 
         try:
             # initialise layer
-            layer = LayerBase.build("squeeze", config, backend, dimensionality)
+            layer = LayerBase.build("squeeze", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)
@@ -360,7 +350,7 @@ class TestSqueezeLayer(TestLayerTemplate,unittest.TestCase):
 @pytest.mark.skip(reason="Not implemented yet")
 class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(HARDSWISH_CONF_PATH, ARCHITECTURES)))
+    @ddt.data(*list(itertools.product(HARDSWISH_CONF_PATH, ARCHS)))
     def test_layer_configurations(self, args):
 
         # extract the arguments
@@ -398,23 +388,21 @@ class TestHardswishLayer(TestLayerTemplate,unittest.TestCase):
 # @pytest.mark.skip(reason="Not implemented yet")
 class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
 
-    @ddt.data(*list(itertools.product(SPLIT_CONF_PATH, ARCHITECTURES)))
-    def test_layer_configurations(self, args):
-
-        # extract the arguments
-        config_path, (backend, dimensionality) = args
+    @ddt.unpack
+    @ddt.data(*list(itertools.product(ARCHS, SPLIT_CONF_PATH)))
+    def test_layer_configurations(self, arch, config_path):
 
         # open configuration
         with open(config_path, "r") as f:
             config = json.load(f)
 
         # add dimensionality information
-        if dimensionality == DIMENSIONALITY.THREE:
+        if arch.dimensionality == DIMENSIONALITY.THREE:
             config["depth"] = config["cols"]
 
         # initialise layer
         try:
-            layer = LayerBase.build("split", config, backend, dimensionality)
+            layer = LayerBase.build("split", config, arch.backend, arch.dimensionality)
 
             # run tests
             self.run_test_dimensions(layer)

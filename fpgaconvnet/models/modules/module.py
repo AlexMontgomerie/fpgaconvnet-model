@@ -10,7 +10,7 @@ from typing import ClassVar
 from dacite import from_dict
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.exceptions import ModuleNotImplementedError, AmbiguousModuleError
 
 @dataclass(kw_only=True)
@@ -75,11 +75,13 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
 
         # check there is at least 1 module
         if len(modules) == 0:
-            raise ModuleNotImplementedError(f"No modules found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
+            raise ModuleNotImplementedError(f"No modules found for name={name}, \
+                    backend={backend.name}, dimensionality={dimensionality.value}")
 
         # check there is only a single module left
         if len(modules) > 1:
-            raise AmbiguousModuleError(f"Too many modules found for name={name}, backend={backend.name}, dimensionality={dimensionality.value}")
+            raise AmbiguousModuleError(f"Too many modules found for name={name}, \
+                    backend={backend.name}, dimensionality={dimensionality.value}")
 
         # get the module class
         module = modules[0]

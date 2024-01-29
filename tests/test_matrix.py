@@ -4,7 +4,7 @@ import ddt
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.parser.Parser import Parser
+from fpgaconvnet.parser.parser import Parser
 
 from numpy.linalg import matrix_rank
 import scipy

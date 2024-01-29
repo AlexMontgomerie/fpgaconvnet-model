@@ -1,3 +1,4 @@
+import math
 import importlib
 from dataclasses import dataclass
 
@@ -121,6 +122,10 @@ class ParseOnnxNode:
             config["depth"] = self.input_shape[2]
             config["rows"] = self.input_shape[3]
             config["cols"] = self.input_shape[4]
+        else:
+            config["depth"] = 1
+            config["rows"]  = 1
+            config["cols"]  = 1
 
         # add quantisation information
         config.update(self.quant_format)
@@ -216,6 +221,11 @@ class ParseOnnxInnerProductNode(ParseOnnxNode):
 
         # collect the config from the attributes
         config = self.get_config()
+
+        # add the spatial dimensions
+        assert config["rows"] == 1
+        assert config["cols"] == 1
+        config["channels"] = math.prod(self.input_shape[1:])
 
         # add the filters
         config["filters"] = self.output_shape[1]

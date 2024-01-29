@@ -5,7 +5,7 @@ import copy
 import pytest
 
 from fpgaconvnet.models.network import Network
-from fpgaconvnet.parser.Parser import Parser
+from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.architecture import BACKEND
 

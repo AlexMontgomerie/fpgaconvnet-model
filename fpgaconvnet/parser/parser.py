@@ -25,7 +25,7 @@ import fpgaconvnet.parser.onnx.parse as onnx_parse
 import fpgaconvnet.parser.onnx.passes as onnx_passes
 
 from fpgaconvnet.models.layers import LayerBase
-from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
+from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.models.partition import Partition
@@ -326,7 +326,7 @@ class Parser:
         # graph = self.remove_node_by_type(graph, LAYER_TYPE.Reshape)
 
         # return the graph
-        return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
+        return Network("from_onnx", onnx_model, graph, arch=Architecture(self.backend, dimensionality))
 
     def get_hardware_from_prototxt_node(self, node, dimensionality):
 

@@ -4,24 +4,25 @@ import networkx as nx
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
+from fpgaconvnet.architecture import Architecture
 
 
 class Partition():
 
     def __init__(
         self,
-        graph,
-        dimensionality,
-        batch_size=1,
-        wr_factor=1,
-        data_width=16
+        graph: nx.DiGraph,
+        arch: Architecture,
+        batch_size: int = 1,
+        wr_factor: int = 1,
+        data_width: int = 16
     ):
 
         # graph for partition
         self.graph = graph
 
-        # dimensionality
-        self.dimensionality = dimensionality
+        # archictecture
+        self.arch = arch
 
         # batch size
         self.batch_size = batch_size
