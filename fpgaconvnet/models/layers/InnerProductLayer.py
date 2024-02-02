@@ -35,7 +35,7 @@ class InnerProductLayer(Layer):
             backend: str = "chisel",
             regression_model: str = "linear_regression",
             stream_weights: int = 0,
-            use_uram: bool = False,  
+            use_uram: bool = False,
             input_compression_ratio: list = [1.0],
             output_compression_ratio: list = [1.0],
             weight_compression_ratio: list = [1.0]
@@ -105,6 +105,9 @@ class InnerProductLayer(Layer):
         self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
         self.update()
+
+    def start_depth(self):
+        return self.rows*self.cols*self.channels//self.streams_in()
 
     def get_operations(self):
         # 1 MAC = 2 OPs
@@ -308,7 +311,7 @@ class InnerProductLayer(Layer):
             if self.coarse_in == 1:
                 glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
             if self.has_bias:
-                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}     
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
 
             rsc = { rsc_type: (
                 fork_rsc[rsc_type]*self.coarse_in +
