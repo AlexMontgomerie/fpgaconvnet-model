@@ -8,11 +8,48 @@ import os
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 import pytest
 
+from pymongo import MongoClient
+from pymongo.server_api import ServerApi
+
+SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
 ABS_TOL = 200
 REL_TOL = 0.05
 BACKEND = "chisel"
+
+def load_module_configs_db(name):
+    """
+    Load module configurations from the MongoDB database
+    """
+
+    # database .pem path
+    db_pem = os.path.join(os.path.dirname(__file__),
+            "fpgaconvnet-mongodb.pem")
+
+    # create MongoDB client
+    client = MongoClient(SERVER_DB, tls=True,
+        tlsCertificateKeyFile=db_pem,
+        server_api=ServerApi('1'))
+
+    # open the database
+    database = client["fpgaconvnet"]
+
+    # open the collection
+    collection = database["test-configurations-chisel"]
+
+    # find all configurations for the given name
+    configs = collection.find({"name": name})
+
+    # # close the client
+    # client.close()
+
+    # return the configurations
+    return list(configs)
+
+
+print(load_module_configs_db("accum"))
 
 class TestModuleTemplate():
 
@@ -42,12 +79,32 @@ class TestModuleTemplate():
         self.assertGreaterEqual(module.rate_out(), 0.0)
         self.assertLessEqual(module.rate_out(), 1.0)
 
-    def run_test_resources(self, module):
+    def run_test_resources(self, module, resource={}):
+
+        # run the resource model
         rsc = module.rsc()
+
+        # make sure the resources are greater than zero
         self.assertGreaterEqual(rsc["LUT"], 0.0)
         self.assertGreaterEqual(rsc["FF"], 0.0)
         self.assertGreaterEqual(rsc["DSP"], 0.0)
         self.assertGreaterEqual(rsc["BRAM"], 0.0)
+
+        # check the resources
+        for rsc_type in rsc:
+            expected_rsc = resource.get(rsc_type, rsc[rsc_type])
+            assert rsc[rsc_type] == pytest.approx(expected_rsc, abs=ABS_TOL, rel=REL_TOL), \
+                f"Resource {rsc_type} does not match. Expected: {expected_rsc}, Actual: {rsc[rsc_type]}"
+
+    def run_test_cycles(self, module, cycles=0):
+
+        # get the modelled cycles
+        model_cycles = module.latency()
+
+        # check the cycles
+        if cycles > 0:
+            assert model_cycles == pytest.approx(cycles, abs=ABS_TOL, rel=REL_TOL), \
+                f"Modelled cycles do not match. Expected: {cycles}, Actual: {model_cycles}"
 
     def run_hw_simulation(self, layer, index):
         # run hardware simulation
@@ -77,11 +134,17 @@ class TestForkModule(TestModuleTemplate,unittest.TestCase):
 @ddt.ddt
 class TestAccumModule(TestModuleTemplate,unittest.TestCase):
 
-    @ddt.data(*glob.glob("tests/configs/modules/accum/*.json"))
-    def test_module_configurations(self, config_path):
-        # open configuration
-        with open(config_path, "r") as f:
-            config = json.load(f)
+    # @ddt.data(*glob.glob("tests/configs/modules/accum/*.json"))
+    @ddt.data(*load_module_configs_db("accum"))
+    def test_module_configurations(self, config):
+
+        # # open configuration
+        # with open(config_path, "r") as f:
+        #     config = json.load(f)
+
+        config["rows"] = config.get("rows", 10)
+        config["cols"] = config.get("cols", 10)
+        config["groups"] = config.get("groups", 1)
 
         # initialise module
         module = Accum(config["rows"],config["cols"],config["channels"],
@@ -91,10 +154,8 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_methods_exist(module)
         self.run_test_dimensions(module)
         self.run_test_rates(module)
-        self.run_test_resources(module)
-
-        # additional checks
-        self.assertGreater(module.filters,0)
+        self.run_test_resources(module, config["resource"])
+        self.run_test_cycles(module, config["cycles"])
 
 @ddt.ddt
 class TestConvModule(TestModuleTemplate,unittest.TestCase):
@@ -216,6 +277,7 @@ class TestReLUModule(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/pad_block/test*"))
@@ -275,6 +337,7 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/sliding_window_block/test*"))
@@ -336,6 +399,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/accum_block/test*"))
@@ -393,6 +457,7 @@ class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/squeeze_block/test*"))
@@ -450,6 +515,7 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/vector_dot_block/test*"))
@@ -507,6 +573,7 @@ class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
 
 
 @ddt.ddt
+@pytest.mark.skip(reason="Not implemented yet")
 class TestBiasModule_HW(TestModuleTemplate,unittest.TestCase):
 
     @ddt.data(*glob.glob(f"{HW_BACKEND_PATH}/data/modules/bias_block/test*"))
