@@ -142,8 +142,8 @@ class TestAccumModule(TestModuleTemplate,unittest.TestCase):
         # with open(config_path, "r") as f:
         #     config = json.load(f)
 
-        config["rows"] = config.get("rows", 10)
-        config["cols"] = config.get("cols", 10)
+        config["rows"] = config.get("rows", 1)
+        config["cols"] = config.get("cols", 1)
         config["groups"] = config.get("groups", 1)
 
         # initialise module
