@@ -115,7 +115,7 @@ class AccumChisel(ModuleChiselBase):
         assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
         # accumulate across the channel dimension
-        return np.sum(data, axis=-3)
+        return np.sum(data, axis=-2)
 
 
 try:
