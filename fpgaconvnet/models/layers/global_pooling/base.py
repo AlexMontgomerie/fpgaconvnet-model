@@ -35,10 +35,14 @@ class GlobalPoolingLayerBase(LayerMatchingCoarse, LayerBase):
 
     def functional_model(self, data):
 
-        assert data.shape == self.inputs_shape(), "ERROR: invalid input shape dimension"
+        assert list(data.shape) == self.input_shape(), f"invalid input shape dimension ({data.shape}) != ({self.input_shape()})"
 
         # return output featuremap
-        return np.average(data, axis=list(range(len(data.shape)-1)))
+        return np.average(data, axis=tuple(range(len(data.shape)-1)))
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        self.acc_t.to_protobuf(parameters.acc_t)
 
 class GlobalPoolingLayerChiselMixin(GlobalPoolingLayerBase):
 

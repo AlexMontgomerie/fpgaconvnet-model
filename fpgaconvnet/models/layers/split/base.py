@@ -51,6 +51,18 @@ class SplitLayerBase(LayerMatchingCoarse, LayerBase):
             print(f"WARNING: unable to set attribute {name}, trying super method")
             super().__setattr__(name, value)
 
+    def functional_model(self,data,batch_size=1):
+        import torch
+
+        assert list(data.shape) == self.input_shape(), \
+                f"invalid input shape dimension ({data.shape} != {self.input_shape()})"
+
+        # duplicate the input data
+        return [data] * self.ports
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.ports = self.ports
 
 @dataclass(kw_only=True)
 class SplitLayerChiselMixin(SplitLayerBase):

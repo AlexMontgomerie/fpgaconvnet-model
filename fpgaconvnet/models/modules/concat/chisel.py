@@ -32,6 +32,7 @@ class ConcatChisel(ModuleChiselBase):
             self.input_buffer_depth = [0]*self.ports
 
         # call previous post init methods
+        super().__post_init__()
 
     @property
     def input_ports(self) -> list[Port]:
@@ -77,10 +78,10 @@ class ConcatChisel(ModuleChiselBase):
     def functional_model(self, *data: np.ndarray) -> np.ndarray:
 
         # check input dimensionality
-        assert len(data) == self.ports_in , "Not enough input ports"
+        assert len(data) == self.ports, f"Not enough input ports ({len(data)} != {self.ports})"
 
         # concatenate along the channel dimension
-        return np.concatenate(data, axis=-2)
+        return np.concatenate(data, axis=-1)
 
 try:
     DEFAULT_CONCAT_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(ConcatChisel,

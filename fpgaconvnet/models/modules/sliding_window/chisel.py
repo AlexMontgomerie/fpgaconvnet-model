@@ -150,7 +150,7 @@ class SlidingWindowChisel(ModuleChiselBase):
         assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
         # generate the windows
-        windows = sliding_window_view(data, self.kernel_size, axis=[-3, -2])
+        windows = sliding_window_view(data, self.kernel_size, axis=(-3, -2))
 
         # stride across the windows
         windows = windows[..., :: self.stride[0], :: self.stride[1], :]

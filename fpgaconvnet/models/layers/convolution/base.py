@@ -160,11 +160,11 @@ class ConvolutionLayerBase(LayerBase):
     def functional_model(self,data,weights,bias,batch_size=1):
         import torch
 
-        assert data.shape == self.input_shape, "ERROR (data): invalid row dimension"
+        assert list(data.shape) == list(self.input_shape(0)), "ERROR (data): invalid spatial dimensions"
 
         assert weights.shape[0] == self.filters, "ERROR (weights): invalid filter dimension"
         assert weights.shape[1] == self.channels//self.groups, "ERROR (weights): invalid channel dimension"
-        assert weights.shape[2:] == self.kernel_size, "ERROR (weights): invalid kernel dimension"
+        assert list(weights.shape[2:]) == list(self.kernel_size), "ERROR (weights): invalid kernel dimension"
 
         assert bias.shape[0] == self.filters, "ERROR (bias): invalid filter dimension"
 
@@ -192,11 +192,22 @@ class ConvolutionLayerBase(LayerBase):
         data = torch.nn.functional.pad(torch.from_numpy(data), self.pad, "constant", 0.0)
         return convolution_layer(data).detach().numpy()
 
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.coarse_group = self.coarse_group
+        parameters.filters = self.filters
+        parameters.groups = self.groups
+        parameters.fine = self.fine
+        self.input_t.to_protobuf(parameters.input_t)
+        self.weight_t.to_protobuf(parameters.weight_t)
+        self.acc_t.to_protobuf(parameters.acc_t)
+        self.output_t.to_protobuf(parameters.output_t)
+
 
 @dataclass(kw_only=True)
 class ConvolutionLayer2DMixin(ConvolutionLayerBase, Layer2D):
-    kernel_rows: int = 1
-    kernel_cols: int = 1
+    kernel_rows: int
+    kernel_cols: int
     stride_rows: int = 1
     stride_cols: int = 1
     pad_top: int = 0
@@ -268,9 +279,24 @@ class ConvolutionLayer2DMixin(ConvolutionLayerBase, Layer2D):
                 (self.kernel_cols-1)*self.channels//self.coarse_in + \
                 ((self.channels-1)//self.coarse_in)*(self.filters//(self.coarse_out*self.groups))
 
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.kernel_size.extend(self.kernel_size)
+        parameters.kernel_rows = self.kernel_rows
+        parameters.kernel_cols = self.kernel_cols
+        parameters.stride.extend(self.stride)
+        parameters.stride_rows = self.stride_rows
+        parameters.stride_cols = self.stride_cols
+        # parameters.pad.extend(self.pad)
+        parameters.pad_top = self.pad_top
+        parameters.pad_right = self.pad_right
+        parameters.pad_bottom = self.pad_bottom
+        parameters.pad_left = self.pad_left
+
+
 @dataclass(kw_only=True)
 class ConvolutionLayer3DMixin(Layer3D, ConvolutionLayer2DMixin):
-    kernel_depth: int = 1
+    kernel_depth: int
     stride_depth: int = 1
     pad_front: int = 0
     pad_back: int = 0
@@ -324,4 +350,11 @@ class ConvolutionLayer3DMixin(Layer3D, ConvolutionLayer2DMixin):
         self.pad_left   = val[1]
         self.pad_front  = val[2]
         self.pad_back   = val[5]
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.kernel_depth = self.kernel_depth
+        parameters.stride_depth = self.stride_depth
+        parameters.pad_front = self.pad_front
+        parameters.pad_back = self.pad_back
 

@@ -32,6 +32,8 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
     name: ClassVar[str] = "eltwise"
 
     def __post_init__(self):
+        self.ports_in = self.ports
+        self.ports_out = 1
         self.buffer_depth = [0]*self.ports
         super().__post_init__()
 
@@ -57,6 +59,31 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
         except AttributeError:
             print(f"WARNING: unable to set attribute {name}, trying super method")
             super().__setattr__(name, value)
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.ports = self.ports
+
+    def functional_model(self, *data: np.array) -> np.array:
+        import torch
+
+        assert len(data) == self.ports, f"invalid number of input ports ({len(data)} != {self.ports})"
+
+        for i, d in enumerate(data):
+            assert list(d.shape) == self.input_shape(i), \
+                    f"invalid spatial dimensions ({list(d.shape)} != {self.input_shape(i)})"
+
+        # return the functional model
+        return torch.add(torch.from_numpy(data[0]), torch.from_numpy(data[0])).detach().numpy()
+
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.ports = self.ports
+        # parameters.op_type = self.op_type
+        # parameters.broadcast = self.broadcast
+        # parameters.data_t = self.data_t
+        self.acc_t.to_protobuf(parameters.acc_t)
 
 
 @dataclass(kw_only=True)

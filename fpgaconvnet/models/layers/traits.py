@@ -44,6 +44,11 @@ class LayerMatchingCoarse(LayerBase):
     def streams(self) -> int:
         return self.coarse
 
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.coarse = self.coarse
+
+
 @dataclass(kw_only=True)
 class Layer2D(LayerBase):
     rows: int
@@ -101,7 +106,7 @@ class Layer2D(LayerBase):
         return get_factors(self.channels_out())
 
     def layer_info(self, parameters, batch_size=1):
-        super().layer_info(self, parameters, batch_size)
+        super().layer_info(parameters, batch_size)
         parameters.rows_in      = self.rows_in()
         parameters.cols_in      = self.cols_in()
         parameters.channels_in  = self.channels_in()
@@ -149,7 +154,7 @@ class Layer3D(Layer2D):
         }
 
     def layer_info(self, parameters, batch_size=1):
-        super().layer_info(self, parameters, batch_size)
+        super().layer_info(parameters, batch_size)
         parameters.depth_in     = self.depth_in()
         parameters.depth_out    = self.depth_out()
 
@@ -238,12 +243,14 @@ class MultiPortLayer2D(LayerBase):
         return list(coarse_out_feasible)
 
     def layer_info(self, parameters, batch_size=1):
-        super().layer_info(self, parameters, batch_size)
+        super().layer_info(parameters, batch_size)
         parameters.rows_in      = self.rows_in()
         parameters.cols_in      = self.cols_in()
         parameters.channels_in  = self.channels_in()
         parameters.rows_out     = self.rows_out()
         parameters.cols_out     = self.cols_out()
         parameters.channels_out = self.channels_out()
+        parameters.ports_in = self.ports_in
+        parameters.ports_out = self.ports_out
 
 

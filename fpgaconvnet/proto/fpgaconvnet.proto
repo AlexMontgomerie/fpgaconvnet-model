@@ -118,6 +118,9 @@ message parameter {
     repeated float mem_bw_in_array      = 60;
     repeated float mem_bw_out_array     = 61;
 
+    // general ports parameter
+    optional int32 ports = 62;
+
     /**
     *  Convolution & Pooling parameters [100, 149]
     */
@@ -184,6 +187,9 @@ message parameter {
     repeated float input_compression_ratio  = 201;
     repeated float output_compression_ratio = 202;
     repeated float weight_compression_ratio = 203;
+
+    // resize scaling
+    repeated int32 scales = 204;
 
 }
     /* optional string weights_ram_style = 64; */

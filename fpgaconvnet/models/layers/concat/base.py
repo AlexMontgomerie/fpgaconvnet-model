@@ -21,7 +21,6 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 
 @dataclass(kw_only=True)
 class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
-
     ports: int
     channels: list[int]
     data_t: FixedPoint = FixedPoint(16,8)
@@ -68,6 +67,23 @@ class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
 
     def get_coarse_out_feasible(self) -> list[int]:
         return self.get_coarse_feasible()
+
+    def functional_model(self, *data: np.array) -> np.array:
+        import torch
+
+        assert len(data) == self.ports, f"invalid number of input ports ({len(data)} != {self.ports})"
+
+        for i, d in enumerate(data):
+            assert list(d.shape) == self.input_shape(i), \
+                    f"invalid spatial dimensions for port={i} ({list(d.shape)} != {self.input_shape(i)})"
+
+        # return the functional model
+        return torch.cat([torch.from_numpy(d) for d in data], axis=-1)
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.ports = self.ports
+        parameters.channels_in_array.extend(self.channels)
 
 @dataclass(kw_only=True)
 class ConcatLayerChiselMixin(ConcatLayerBase):

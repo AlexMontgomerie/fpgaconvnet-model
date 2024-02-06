@@ -1,10 +1,16 @@
 import unittest
 import ddt
+
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+
 from fpgaconvnet.models.partition.partition import Partition
 import fpgaconvnet.tools.graphs as graphs
 import networkx as nx
 
-from fpgaconvnet.parser import Parser
+from fpgaconvnet.parser.parser import Parser
 
 #class TestPartition(unittest.TestCase):
 

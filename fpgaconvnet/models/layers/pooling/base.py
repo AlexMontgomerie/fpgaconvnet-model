@@ -48,7 +48,8 @@ class PoolingLayerBase(LayerMatchingCoarse, LayerBase):
     def functional_model(self,data,batch_size=1):
         import torch
 
-        assert data.shape == self.inputs_shape(), "ERROR: invalid input shape dimension"
+        assert list(data.shape) == self.input_shape(), \
+            f"invalid input shape dimension ({data.shape}) != ({self.input_shape()})"
 
         # instantiate pooling layer FIXME
         pooling_layer = torch.nn.MaxPool2d(self.kernel_size, stride=self.stride, padding=self.pad[0])
@@ -57,6 +58,11 @@ class PoolingLayerBase(LayerMatchingCoarse, LayerBase):
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
         return pooling_layer(torch.from_numpy(data)).detach().numpy()
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.coarse = self.coarse
+
 
 class PoolingLayerChiselMixin(PoolingLayerBase):
 
@@ -221,6 +227,20 @@ class PoolingLayer2DMixin(PoolingLayerBase, Layer2D):
         self.pad_bottom = val[2]
         self.pad_left   = val[1]
 
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.kernel_size.extend(self.kernel_size)
+        parameters.kernel_rows = self.kernel_rows
+        parameters.kernel_cols = self.kernel_cols
+        parameters.stride.extend(self.stride)
+        parameters.stride_rows = self.stride_rows
+        parameters.stride_cols = self.stride_cols
+        parameters.pad_top = self.pad_top
+        parameters.pad_right = self.pad_right
+        parameters.pad_bottom = self.pad_bottom
+        parameters.pad_left = self.pad_left
+
+
 class PoolingLayer3DMixin(PoolingLayer2DMixin, Layer3D):
     kernel_depth: int = 2
     stride_depth: int = 2
@@ -269,4 +289,11 @@ class PoolingLayer3DMixin(PoolingLayer2DMixin, Layer3D):
         self.pad_right  = val[3]
         self.pad_front  = val[4]
         self.pad_back   = val[5]
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.kernel_depth = self.kernel_depth
+        parameters.stride_depth = self.stride_depth
+        parameters.pad_front = self.pad_front
+        parameters.pad_back = self.pad_back
 

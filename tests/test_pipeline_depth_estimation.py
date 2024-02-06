@@ -7,6 +7,11 @@ import json
 
 from tabulate import tabulate
 
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+
 from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 from fpgaconvnet.architecture import BACKEND

@@ -107,7 +107,8 @@ class ResizeChisel(ModuleChiselBase):
         assert(len(data.shape) >= iter_space_len)
         assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
-        pass # TODO
+        # perform upsampling
+        return data.repeat(self.scales[0], axis=-3).repeat(self.scales[1], axis=-2).repeat(self.scales[2], axis=-1)
 
 
 try:

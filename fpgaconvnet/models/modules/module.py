@@ -116,6 +116,9 @@ class ModuleBase(metaclass=ModuleBaseMeta):
     register: ClassVar[bool] = False
     repetitions: int = 1
 
+    def __post_init__(self):
+        pass
+
     @property
     @abstractmethod
     def input_ports(self) -> list[Port]:

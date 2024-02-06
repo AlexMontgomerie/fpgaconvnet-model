@@ -88,36 +88,37 @@ class InnerProductLayerBase(LayerBase):
     def functional_model(self,data,weights,bias,batch_size=1):
         import torch
 
-        assert data.shape == self.input_shape, "ERROR (data): invalid row dimension"
+        assert list(data.shape) == self.input_shape(0), \
+                f"invalid spatial dimensions ({list(data.shape)} != {self.input_shape(0)})"
 
         assert weights.shape[0] == self.filters, "ERROR (weights): invalid filter dimension"
-        assert weights.shape[1] == self.channels, "ERROR (weights): invalid channel dimension"
+        assert weights.shape[1] == math.prod(self.input_shape(0)), \
+                "ERROR (weights): invalid channel dimension"
 
         assert bias.shape[0] == self.filters, "ERROR (bias): invalid filter dimension"
 
-        # instantiate convolution layer
-        convolution_layer = torch.nn.Conv2d(self.channels_in(), self.filters,
-                self.kernel_size, stride=self.stride, padding=0, groups=self.groups)
+        # instantiate inner product layer
+        inner_product_layer = torch.nn.Linear(
+                math.prod(self.input_shape(0)), self.filters)#, bias=False)
 
         # update weights
-        convolution_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
+        inner_product_layer.weight = torch.nn.Parameter(torch.from_numpy(weights))
 
         # update bias
-        convolution_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
-
-        # # get the padding
-        # padding = [
-        #     self.pad_left,
-        #     self.pad_right,
-        #     self.pad_top,
-        #     self.pad_bottom
-        # ]
+        inner_product_layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
         # return output featuremap
-        data = np.moveaxis(data, -1, 0)
+        data = np.moveaxis(data, -1, 0).flatten()
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
-        data = torch.nn.functional.pad(torch.from_numpy(data), self.pad, "constant", 0.0)
-        return convolution_layer(data).detach().numpy()
+        return inner_product_layer(torch.from_numpy(data)).detach().numpy()
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.filters = self.filters
+        self.input_t.to_protobuf(parameters.input_t)
+        self.weight_t.to_protobuf(parameters.weight_t)
+        self.acc_t.to_protobuf(parameters.acc_t)
+        self.output_t.to_protobuf(parameters.output_t)
 
 
 @dataclass(kw_only=True)

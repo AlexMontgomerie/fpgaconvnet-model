@@ -1,3 +1,4 @@
+import os
 import unittest
 import ddt
 import os
@@ -5,6 +6,9 @@ import json
 import glob
 import pytest
 import itertools
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from fpgaconvnet.models.layers import LayerBase
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY

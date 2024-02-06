@@ -6,8 +6,6 @@ import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.models.layers import MultiPortLayer
-
 def get_initial_output_rates(self, path):
 
     # dictionary for storing the output rates

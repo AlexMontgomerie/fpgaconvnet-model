@@ -1,8 +1,12 @@
+import os
 import glob
 import unittest
 import ddt
 import fpgaconvnet.tools.matrix as matrix
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from fpgaconvnet.parser.parser import Parser
 

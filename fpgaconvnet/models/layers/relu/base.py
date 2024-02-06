@@ -29,7 +29,8 @@ class ReLULayerBase(LayerMatchingCoarse, LayerBase):
     def functional_model(self,data,batch_size=1):
         import torch
 
-        assert data.shape == self.inputs_shape(), "ERROR: invalid input shape dimension"
+        assert list(data.shape) == self.input_shape(), \
+                f"invalid input shape dimension ({data.shape} != {self.input_shape()})"
 
         # instantiate relu layer
         relu_layer = torch.nn.ReLU()

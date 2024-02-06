@@ -1,8 +1,12 @@
+import os
 import glob
 import unittest
 import ddt
 import copy
 import pytest
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from fpgaconvnet.models.network import Network
 from fpgaconvnet.parser.parser import Parser

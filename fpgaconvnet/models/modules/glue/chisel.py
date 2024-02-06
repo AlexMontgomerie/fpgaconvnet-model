@@ -104,7 +104,7 @@ class GlueChisel(ModuleChiselBase):
         assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
 
         # accumulate the data in the coarse dimension
-        return np.sum(data, axis=-1)
+        return np.sum(data, axis=-2)
 
 try:
     DEFAULT_GLUE_RSC_MODELS: dict[str, ResourceModel] = { rsc_type: get_cached_resource_model(GlueChisel,

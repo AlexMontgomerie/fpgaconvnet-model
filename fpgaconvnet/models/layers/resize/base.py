@@ -33,6 +33,26 @@ class ResizeLayerBase(LayerMatchingCoarse, LayerBase):
         return math.prod(self.input_shape())
 
 
+    def functional_model(self, data, batch_size=1):
+        import torch
+
+        assert list(data.shape) == self.input_shape(), \
+            f"invalid input shape dimension ({data.shape} != {self.input_shape()})"
+
+        # instantiate resize layer
+        resize_layer = torch.nn.functional.interpolate
+
+        # return output featuremap
+        data = np.moveaxis(data, -1, 0)
+        data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
+        return resize_layer(torch.from_numpy(data),
+                            scale_factor=tuple(self.scales[:-1]),
+                            mode=self.mode).detach().numpy()
+
+    def layer_info(self, parameters, batch_size=1):
+        super().layer_info(parameters, batch_size)
+        parameters.scales.extend(self.scales)
+
 class ResizeLayerChiselMixin(ResizeLayerBase):
 
     backend: ClassVar[BACKEND] = BACKEND.CHISEL
