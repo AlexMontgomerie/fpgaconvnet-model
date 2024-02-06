@@ -48,6 +48,14 @@ class LayerMatchingCoarse(LayerBase):
         super().layer_info(parameters, batch_size)
         parameters.coarse = self.coarse
 
+    @classmethod
+    def sanitise_config(cls, config: dict) -> dict:
+
+        # assert "coarse" in config, f"coarse not in config {config}"
+        # if "coarse_in" in config: assert config["coarse_in"] == config["coarse"]
+        # if "coarse_out" in config: assert config["coarse_out"] == config["coarse"]
+
+        return super().sanitise_config(config)
 
 @dataclass(kw_only=True)
 class Layer2D(LayerBase):
@@ -56,6 +64,18 @@ class Layer2D(LayerBase):
     channels: int
 
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
+
+    @classmethod
+    def sanitise_config(cls, config: dict) -> dict:
+
+        if "rows_in" in config and "rows" not in config:
+            config["rows"] = config["rows_in"]
+        if "cols_in" in config and "cols" not in config:
+            config["cols"] = config["cols_in"]
+        if "channels_in" in config and "channels" not in config:
+            config["channels"] = config["channels_in"]
+
+        return super().sanitise_config(config)
 
     def rows_in(self) -> int:
         return self.rows
@@ -121,6 +141,14 @@ class Layer3D(Layer2D):
 
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.THREE
 
+    @classmethod
+    def sanitise_config(cls, config: dict) -> dict:
+
+        if "depth_in" in config and "depth" not in config:
+            config["depth"] = config["depth_in"]
+
+        return super().sanitise_config(config)
+
     def depth_in(self) -> int:
         return self.depth
 
@@ -169,6 +197,26 @@ class MultiPortLayer2D(LayerBase):
     ports_out: int = 1
 
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
+
+    @classmethod
+    def sanitise_config(cls, config: dict) -> dict:
+
+        if "rows_in_array" in config and "rows" not in config:
+            config["rows"] = config["rows_in_array"]
+        if "cols_in_array" in config and "cols" not in config:
+            config["cols"] = config["cols_in_array"]
+        if "channels_in_array" in config and "channels" not in config:
+            config["channels"] = config["channels_in_array"]
+
+        if "rows_in" in config and "rows" not in config:
+            config["rows"] = config["rows_in"]
+        if "cols_in" in config and "cols" not in config:
+            config["cols"] = config["cols_in"]
+        if "channels_in" in config and "channels" not in config:
+            config["channels"] = config["channels_in"]
+
+        return super().sanitise_config(config)
+
 
     @abstractmethod
     def rows_in(self, port_idx: int = 0) -> int:

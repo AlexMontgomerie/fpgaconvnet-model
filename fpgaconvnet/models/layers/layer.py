@@ -73,6 +73,9 @@ class LayerBaseMeta(type, metaclass=ABCMeta):
         # get the module class
         layer= layers[0]
 
+        # sanitise the config
+        config = layer.sanitise_config(config)
+
         # create a new instance of the module
         return from_dict(data_class=layer, data=config)
         # inst.__post_init__()
@@ -163,6 +166,9 @@ class LayerBase(metaclass=LayerBaseMeta):
     def update(self):
         for name, config_fn in self.module_lookup.items():
             self.modules[name].update(config_fn())
+
+    @classmethod
+    def sanitise_config(cls, config: dict) -> dict: return config
 
     @abstractmethod
     def build_module_graph(self) -> nx.DiGraph: ...

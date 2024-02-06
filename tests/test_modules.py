@@ -13,20 +13,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import eval_resource_model
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
-from fpgaconvnet.models.exceptions import ModuleNotImplementedError
-from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
 
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
-
-ARCHS = [
-        Architecture(BACKEND.CHISEL, DIMENSIONALITY.TWO),
-        # Architecture(BACKEND.CHISEL, DIMENSIONALITY.THREE),
-        # Architecture(BACKEND.HLS,    DIMENSIONALITY.TWO),
-        # Architecture(BACKEND.HLS, DIMENSIONALITY.THREE ),
-    ]
 
 # absolute and relative tolerance
 ABS_TOL = 200
