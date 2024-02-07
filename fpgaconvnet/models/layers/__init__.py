@@ -9,6 +9,8 @@ from .Layer import FixedPoint
 from .Layer import Layer
 from .MultiPortLayer import MultiPortLayer
 
+from .IOPortLayer import IOPortLayer
+
 from .BatchNormLayer import BatchNormLayer
 from .InnerProductLayer import InnerProductLayer
 from .InnerProductSparseLayer import InnerProductSparseLayer

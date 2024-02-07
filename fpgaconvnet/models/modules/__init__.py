@@ -14,6 +14,7 @@ def int2bits(n):
     return math.ceil(math.log(n, 2))
 
 from .Module import Module
+from .IOPort import IOPort
 from .Accum import Accum
 from .ShiftScale import ShiftScale
 from .Conv import Conv
