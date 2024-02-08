@@ -1,10 +1,11 @@
-import pydot
-import networkx as nx
-
-import fpgaconvnet.tools.graphs as graphs
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
-from fpgaconvnet.models.layers import InnerProductSparseLayer, ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
+import fpgaconvnet.tools.graphs as graphs
+import networkx as nx
+import pydot
+from fpgaconvnet.models.layers import (ConvolutionPointwiseSparseLayer,
+                                       ConvolutionSparseLayer,
+                                       InnerProductSparseLayer)
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 
 class Partition():
@@ -56,30 +57,20 @@ class Partition():
         self.encode_type = 'none'
 
     # auxiliary layer functions
-    from fpgaconvnet.models.partition.auxiliary import add_squeeze
-    from fpgaconvnet.models.partition.auxiliary import remove_node_by_type
-    from fpgaconvnet.models.partition.auxiliary import remove_squeeze
+    from fpgaconvnet.models.partition.auxiliary import (add_squeeze,
+                                                        remove_node_by_type,
+                                                        remove_squeeze)
 
     # metrics
-    from fpgaconvnet.models.partition.metrics import get_initial_input_rate
-    from fpgaconvnet.models.partition.metrics import find_attached_input_node
-    from fpgaconvnet.models.partition.metrics import get_node_delay
-    from fpgaconvnet.models.partition.metrics import get_pipeline_depth
-    from fpgaconvnet.models.partition.metrics import get_interval
-    from fpgaconvnet.models.partition.metrics import get_cycle
-    from fpgaconvnet.models.partition.metrics import get_latency
-    from fpgaconvnet.models.partition.metrics import get_total_operations
-    from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_in
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_out
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_weight
-    from fpgaconvnet.models.partition.metrics import get_total_bandwidth
-    from fpgaconvnet.models.partition.metrics import get_resource_usage
-
+    from fpgaconvnet.models.partition.metrics_v2 import (
+        find_attached_input_node, get_bandwidth_in, get_bandwidth_out,
+        get_bandwidth_weight, get_cycle, get_initial_input_rate, get_interval,
+        get_latency, get_node_delay, get_pipeline_depth, get_resource_usage,
+        get_total_bandwidth, get_total_operations, get_total_sparse_operations,
+        get_total_workload, get_workload_in, get_workload_out)
     # update
-    from fpgaconvnet.models.partition.update import update
-    from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
-    from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
+    from fpgaconvnet.models.partition.update import (
+        reduce_squeeze_fanout, update, update_multiport_buffer_depth)
 
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index), label=f"partition: {partition_index}",

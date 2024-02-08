@@ -3,10 +3,9 @@ import itertools
 import json
 import math
 
+import fpgaconvnet.tools.graphs as graphs
 import networkx as nx
 import numpy as np
-
-import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
