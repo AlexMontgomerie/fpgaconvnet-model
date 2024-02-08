@@ -62,12 +62,10 @@ class Partition():
                                                         remove_squeeze)
 
     # metrics
-    from fpgaconvnet.models.partition.metrics import (
-        find_attached_input_node, get_bandwidth_in, get_bandwidth_out,
-        get_bandwidth_weight, get_cycle, get_initial_input_rate, get_interval,
-        get_latency, get_node_delay, get_pipeline_depth, get_resource_usage,
-        get_total_bandwidth, get_total_operations, get_total_sparse_operations,
-        get_total_workload, get_workload_in, get_workload_out)
+    from fpgaconvnet.models.partition.metrics import (get_bandwidth_in, get_bandwidth_out,
+                                                      get_bandwidth_weight, get_cycle, get_interval,
+                                                      get_latency, get_pipeline_depth, get_resource_usage,
+                                                      get_total_bandwidth, get_total_operations, get_total_sparse_operations)
     # update
     from fpgaconvnet.models.partition.update import (
         reduce_squeeze_fanout, update, update_multiport_buffer_depth)
