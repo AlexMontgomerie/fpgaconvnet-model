@@ -17,6 +17,8 @@ from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 
+RESOURCES = ["LUT", "FF", "BRAM", "DSP"]
+
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
 # absolute and relative tolerance
@@ -116,24 +118,19 @@ class TestModule(unittest.TestCase):
 
 
     @ddt.unpack
-    @ddt.named_data(*MODULES)
-    def test_resources(self, module, config):
+    @ddt.named_data(*[  (f"{name} ({rsc_type})", rsc_type, module, config) \
+            for rsc_type, (name, module, config) in itertools.product(RESOURCES, MODULES) ])
+    def test_resources(self, rsc_type, module, config):
 
         # get the resource model
         resource = config["resource"]
 
         # check the resources
-        self.assertGreaterEqual(eval_resource_model(module, "LUT"), 0)
-        self.assertGreaterEqual(eval_resource_model(module, "FF"), 0)
-        self.assertGreaterEqual(eval_resource_model(module, "BRAM"), 0)
-        # self.assertGreaterEqual(eval_resource_model(module, "DSP"), 0)
-
-        # check the resources
-        for rsc_type in ["LUT", "FF", "BRAM"]:
-            modelled_rsc = eval_resource_model(module, rsc_type)
-            actual_rsc = resource.get(rsc_type, modelled_rsc)
-            assert modelled_rsc == pytest.approx(actual_rsc, abs=ABS_TOL, rel=REL_TOL), \
-                f"Resource {rsc_type} does not match. Modelled: {modelled_rsc}, Actual: {actual_rsc}"
+        modelled_rsc = eval_resource_model(module, rsc_type)
+        actual_rsc = resource.get(rsc_type, modelled_rsc)
+        assert modelled_rsc >= 0
+        assert modelled_rsc == pytest.approx(actual_rsc, abs=ABS_TOL, rel=REL_TOL), \
+            f"Resource {rsc_type} does not match. Modelled: {modelled_rsc}, Actual: {actual_rsc}"
 
 
     @ddt.unpack
