@@ -49,7 +49,6 @@ def load_module_configs_db(name):
     return list(configs)
 
 
-print(load_module_configs_db("accum"))
 
 class TestModuleTemplate():
 
@@ -276,6 +275,7 @@ class TestReLUModule(TestModuleTemplate,unittest.TestCase):
         self.run_test_resources(module)
 
 
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
@@ -335,7 +335,7 @@ class TestPadModule_HW(TestModuleTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
@@ -397,7 +397,7 @@ class TestSlidingWindowModule_HW(TestModuleTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
@@ -455,7 +455,7 @@ class TestAccumModule_HW(TestModuleTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
@@ -513,7 +513,7 @@ class TestSqueezeModule_HW(TestModuleTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
@@ -571,7 +571,7 @@ class TestVectorDotModule_HW(TestModuleTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 @pytest.mark.skip(reason="Not implemented yet")
 class TestBiasModule_HW(TestModuleTemplate,unittest.TestCase):

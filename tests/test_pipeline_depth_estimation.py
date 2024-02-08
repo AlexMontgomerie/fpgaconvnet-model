@@ -21,7 +21,7 @@ REL_TOL = 0.11
 def filter_by_type(layer_type):
     return "squeeze" not in layer_type.lower() and "split" not in layer_type.lower() and "reshape" not in layer_type.lower()
 
-@pytest.mark.skip(reason="Currently disabled.")
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 class TestPipelineDepth(unittest.TestCase):
 

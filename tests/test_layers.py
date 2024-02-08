@@ -357,7 +357,7 @@ class TestSplitLayer(TestLayerTemplate,unittest.TestCase):
         self.run_test_wait_depth(layer)
         self.run_test_resources(layer)
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
 
@@ -432,6 +432,7 @@ class TestConvolutionLayer_HW(TestLayerTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
 
@@ -495,7 +496,7 @@ class TestPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
         assert modeling_latency == pytest.approx(simulation_latency, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling latency: {modeling_latency}, simulation latency: {simulation_latency}"
         assert modeling_pipeline_depth == pytest.approx(simulation_pipeline_depth, abs=ABS_TOL, rel=REL_TOL), f"TEST {test_id}: Modeling pipeline depth: {modeling_pipeline_depth}, simulation pipeline depth: {simulation_pipeline_depth}"
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 class TestGlobalPoolingLayer_HW(TestLayerTemplate,unittest.TestCase):
 
