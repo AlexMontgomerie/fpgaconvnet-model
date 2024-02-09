@@ -1,27 +1,21 @@
-import json
-import math
 import copy
 import itertools
-
-import numpy as np
-import networkx as nx
+import json
+import math
 
 import fpgaconvnet.tools.graphs as graphs
+import networkx as nx
+import numpy as np
+from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
-from fpgaconvnet.models.layers import SqueezeLayer
 
 MULTIPORT_LAYERS_IN = [ LAYER_TYPE.EltWise, LAYER_TYPE.Concat ]
 MULTIPORT_LAYERS_OUT = [ LAYER_TYPE.Split, LAYER_TYPE.Chop ]
 
-def update(self):
-    ## update streams in and out
-    self.input_nodes = graphs.get_input_nodes(self.graph)
-    self.output_nodes = graphs.get_output_nodes(self.graph)
+def update(self, update_streams=True):
 
     ## update sizes
     self.wr_layer = self.wr_layer if self.wr_layer != "None" else None
-    self.size_in  = self.graph.nodes[self.input_nodes[0]]['hw'].size_in()
-    self.size_out = self.graph.nodes[self.input_nodes[0]]['hw'].size_out()
     if self.wr_layer != None:
         self.size_wr = self.graph.nodes[self.wr_layer]['hw'].get_parameters_size()['weights']
     else:
@@ -34,6 +28,17 @@ def update(self):
     ## add auxiliary layers
     self.remove_squeeze()
     self.add_squeeze()
+
+    ## update streams in and out
+    self.input_nodes = graphs.get_input_nodes(self.graph, allow_multiport=True)
+    self.ports_in = len(self.input_nodes)
+
+    self.output_nodes = graphs.get_output_nodes(self.graph, allow_multiport=True)
+    self.ports_out = len(self.output_nodes)
+
+    if update_streams:
+        self.streams_in = [self.graph.nodes[input_node]['hw'].streams_in() for input_node in self.input_nodes]
+        self.streams_out = [self.graph.nodes[output_node]['hw'].streams_out() for output_node in self.output_nodes]
 
     # ## update buffer depths
     for node in self.graph.nodes:
@@ -58,10 +63,19 @@ def update_multiport_buffer_depth(self, multiport_node):
 
     ## topological sort common ancestors and choose the oldest
     sorted_graph_nodes = list(nx.topological_sort(self.graph))
-    split_node = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))[0]
+    split_nodes = sorted(common_ancestors, key=lambda n: sorted_graph_nodes.index(n))
+
+    # there is no split node, probably the eltwise/concat node is the first node
+    if not split_nodes:
+        for idx in range(self.graph.nodes[multiport_node]["hw"].ports_in):
+            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = 2
+        return
+
+    split_node = split_nodes[0]
 
     # cannot find split layer, maybe it is vertical split
     if not self.graph.nodes[split_node]["type"] in MULTIPORT_LAYERS_OUT:
+        #TODO: Check if need to update the buffer depth in this case as well
         return
 
     # get all the paths split layer and eltwise layer
@@ -69,7 +83,7 @@ def update_multiport_buffer_depth(self, multiport_node):
         source=split_node, target=multiport_node))
 
     # initiation interval of the hardware
-    interval = self.get_interval()
+    # interval = self.get_interval()
 
     # calculate the depth for each path
     path_depths = [0]*len(all_paths)
@@ -86,10 +100,9 @@ def update_multiport_buffer_depth(self, multiport_node):
 
         # get the latency
         latency = [ n.latency() for n in node_hw ]
-        # latency = [ interval for n in node_hw ]
 
         # get the rate in
-        rate_in = [ n.rate_in() for n in node_hw ]
+        # rate_in = [ n.rate_in() for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
@@ -98,9 +111,6 @@ def update_multiport_buffer_depth(self, multiport_node):
         path_depths[i] = sum(node_depth) + sum([ (latency[j]/size_in[j]) * \
                 np.prod([ size_in[k]/size_out[k] for k in range(j+1)
                     ]) for j in range(len(node_hw)) ])
-        # path_depths[i] = sum([ node_depth[j]/rate_in[j] + (latency[j]/size_in[j]) * \
-        #         np.prod([ size_in[k]/size_out[k] for k in range(j+1)
-        #             ]) for j in range(len(node_hw)) ])
 
     # get the longest depths for each prev node
     path_depths_max = { n: [] for n in multiport_prev_nodes }
@@ -139,41 +149,69 @@ def reduce_squeeze_fanout(self):
     """
 
     def _add_dummy_squeeze():
-        inputs = graphs.get_input_nodes(self.graph)
-        for i, input_node in enumerate(inputs):
+        inputs = graphs.get_input_nodes(self.graph, allow_multiport=True)
+        for input_node in inputs:
             # add node to graph
             new_node  = "_".join([input_node,"squeeze"])
             # add node to node info
-            self.graph.add_node(new_node,
-                type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[input_node]["onnx_node"],
-                hw=SqueezeLayer(
-                    self.graph.nodes[input_node]['hw'].rows_in(),
-                    self.graph.nodes[input_node]['hw'].cols_in(),
-                    self.graph.nodes[input_node]['hw'].channels_in(),
-                    self.max_streams_in//len(inputs),
-                    self.max_streams_in//len(inputs)
+            if self.dimensionality == 2:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                    hw=SqueezeLayer(
+                        self.graph.nodes[input_node]['hw'].rows_in(),
+                        self.graph.nodes[input_node]['hw'].cols_in(),
+                        self.graph.nodes[input_node]['hw'].channels_in(),
+                        self.max_streams_in//len(inputs),
+                        self.max_streams_in//len(inputs)
+                    )
                 )
-            )
+            elif self.dimensionality == 3:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                    hw=SqueezeLayer3D(
+                        self.graph.nodes[input_node]['hw'].rows_in(),
+                        self.graph.nodes[input_node]['hw'].cols_in(),
+                        self.graph.nodes[input_node]['hw'].depth_in(),
+                        self.graph.nodes[input_node]['hw'].channels_in(),
+                        self.max_streams_in//len(inputs),
+                        self.max_streams_in//len(inputs)
+                    )
+                )
             # add edge to graph
             self.graph.add_edge(new_node,input_node)
         # check difference in output streams
-        outputs = graphs.get_output_nodes(self.graph)
-        for i, output_node in enumerate(outputs):
+        outputs = graphs.get_output_nodes(self.graph, allow_multiport=True)
+        for output_node in outputs:
             # add node to graph
             new_node  = "_".join(["squeeze",output_node])
             # add node to node info
-            self.graph.add_node(new_node,
-                type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[output_node]["onnx_node"],
-                hw=SqueezeLayer(
-                    self.graph.nodes[output_node]['hw'].rows_out(),
-                    self.graph.nodes[output_node]['hw'].cols_out(),
-                    self.graph.nodes[output_node]['hw'].channels_out(),
-                    self.max_streams_out//len(outputs),
-                    self.max_streams_out//len(outputs)
+            if self.dimensionality == 2:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                    hw=SqueezeLayer(
+                        self.graph.nodes[output_node]['hw'].rows_out(),
+                        self.graph.nodes[output_node]['hw'].cols_out(),
+                        self.graph.nodes[output_node]['hw'].channels_out(),
+                        self.max_streams_out//len(outputs),
+                        self.max_streams_out//len(outputs)
+                    )
                 )
-            )
+            elif self.dimensionality == 3:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                    hw=SqueezeLayer3D(
+                        self.graph.nodes[output_node]['hw'].rows_out(),
+                        self.graph.nodes[output_node]['hw'].cols_out(),
+                        self.graph.nodes[output_node]['hw'].depth_out(),
+                        self.graph.nodes[output_node]['hw'].channels_out(),
+                        self.max_streams_out//len(outputs),
+                        self.max_streams_out//len(outputs)
+                    )
+                )
             self.graph.add_edge(output_node,new_node)
 
     self.remove_squeeze()

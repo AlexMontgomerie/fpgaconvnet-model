@@ -25,7 +25,6 @@ from .ConcatLayer import ConcatLayer
 from .EltWiseLayer import EltWiseLayer
 from .GlobalPoolingLayer import GlobalPoolingLayer
 from .ReSizeLayer import ReSizeLayer
-from .HardswishLayer import HardswishLayer
 from .ChopLayer import ChopLayer
 
 # 3D layers
@@ -36,10 +35,14 @@ from .InnerProductLayer3D import InnerProductLayer3D
 from .PoolingLayer3D import PoolingLayer3D
 from .ActivationLayer3D import ActivationLayer3D
 from .ReLULayer3D import ReLULayer3D
+from .HardswishLayer3D import HardswishLayer3D
 from .ConvolutionLayer3D import ConvolutionLayer3D
 from .SqueezeLayer3D import SqueezeLayer3D
+from .SplitLayer3D import SplitLayer3D
+from .ConcatLayer3D import ConcatLayer3D
 from .EltWiseLayer3D import EltWiseLayer3D
 from .GlobalPoolingLayer3D import GlobalPoolingLayer3D
+from .ReSizeLayer3D import ReSizeLayer3D
 
 @dataclass
 class LayerFlag:

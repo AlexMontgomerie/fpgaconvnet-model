@@ -17,12 +17,16 @@ class SqueezeLayer3D(Layer3D):
             coarse_out: int,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, depth, channels,
-                coarse_in, coarse_out, data_t=data_t)
+                coarse_in, coarse_out, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
@@ -33,7 +37,10 @@ class SqueezeLayer3D(Layer3D):
         self.regression_model = regression_model
 
         # initialise modules
-        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, self.channels, self.coarse_in, self.coarse_out, backend=self.backend, regression_model=self.regression_model)
+        self.modules["squeeze3d"] = Squeeze3D(self.rows, self.cols, self.depth, 
+            self.channels//(min(self.coarse_in, self.coarse_out)), 
+            self.coarse_in, self.coarse_out, 
+            backend=self.backend, regression_model=self.regression_model)
 
     def layer_info(self,parameters,batch_size=1):
         Layer3D.layer_info(self, parameters, batch_size)
@@ -42,7 +49,7 @@ class SqueezeLayer3D(Layer3D):
         self.modules["squeeze3d"].rows = self.rows
         self.modules["squeeze3d"].cols = self.cols
         self.modules["squeeze3d"].depth = self.depth
-        self.modules["squeeze3d"].channels = self.channels
+        self.modules["squeeze3d"].channels = self.channels//(min(self.coarse_in, self.coarse_out))
         self.modules["squeeze3d"].coarse_in = self.coarse_in
         self.modules["squeeze3d"].coarse_out = self.coarse_out
         self.modules["squeeze3d"].data_width = self.data_t.width

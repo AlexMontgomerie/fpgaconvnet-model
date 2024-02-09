@@ -16,12 +16,16 @@ class SqueezeLayer(Layer):
             coarse_out: int,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, channels,
-                coarse_in, coarse_out,data_t=data_t)
+                coarse_in, coarse_out,data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
@@ -44,7 +48,7 @@ class SqueezeLayer(Layer):
     def update(self):
         self.modules["squeeze"].rows = self.rows
         self.modules["squeeze"].cols = self.cols
-        self.modules["squeeze"].channels = self.channels
+        self.modules["squeeze"].channels = self.channels//(min(self.coarse_in, self.coarse_out))
         self.modules["squeeze"].coarse_in = self.coarse_in
         self.modules["squeeze"].coarse_out = self.coarse_out
         self.modules["squeeze"].data_width = self.data_t.width

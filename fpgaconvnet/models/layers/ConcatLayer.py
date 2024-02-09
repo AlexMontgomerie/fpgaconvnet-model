@@ -21,12 +21,16 @@ class ConcatLayer(MultiPortLayer):
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
             regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__([rows]*ports_in, [cols]*ports_in, channels,
                 [coarse]*ports_in, [coarse]*ports_in, ports_in=ports_in,
-                data_t=data_t)
+                data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.mem_bw_in = [100.0] * self.ports_in
         # parameters
@@ -105,7 +109,7 @@ class ConcatLayer(MultiPortLayer):
         # concat
         self.modules["concat"].rows     = self.rows_in()
         self.modules["concat"].cols     = self.cols_in()
-        self.modules["concat"].channels = self.channels
+        self.modules["concat"].channels = [self.channels_in(i)//self.coarse for i in range(self.ports_in)]
         self.modules["concat"].ports_in = self.ports_in
 
     def layer_info(self,parameters,batch_size=1):

@@ -18,12 +18,16 @@ class ReLULayer3D(Layer3D):
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, depth, channels,
-                coarse, coarse, data_t=data_t)
+                coarse, coarse, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # save parameters
         self._coarse = coarse
@@ -40,6 +44,9 @@ class ReLULayer3D(Layer3D):
         self.modules["relu3d"] = ReLU3D(self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in()//self.coarse, backend=self.backend, regression_model=self.regression_model)
 
         self.update()
+
+    def get_operations(self):
+        return self.rows_in()*self.cols_in()*self.depth_in()*self.channels_in()
 
     @property
     def coarse(self) -> int:

@@ -22,12 +22,12 @@ class PoolingLayer3D(Layer3D):
             channels: int,
             coarse: int = 1,
             pool_type   ='max',
-            kernel_rows: int = 2,
-            kernel_cols: int = 2,
-            kernel_depth: int = 2,
-            stride_rows: int = 2,
-            stride_cols: int = 2,
-            stride_depth: int = 2,
+            kernel_rows: int = 1,
+            kernel_cols: int = 1,
+            kernel_depth: int = 1,
+            stride_rows: int = 1,
+            stride_cols: int = 1,
+            stride_depth: int = 1,
             pad_top: int = 0,
             pad_right: int = 0,
             pad_front: int = 0,
@@ -37,12 +37,16 @@ class PoolingLayer3D(Layer3D):
             fine: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, depth, channels,
-                coarse, coarse, data_t=data_t)
+                coarse, coarse, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # update parameters
         self._kernel_rows = kernel_rows
@@ -70,22 +74,34 @@ class PoolingLayer3D(Layer3D):
         self.regression_model = regression_model
 
         # init modules
-        self.modules["pad3d"] = Pad3D(
-                self.rows_in(), self.cols_in(), self.depth_in(),
-                self.channels_in()//self.coarse,
-                self.pad_top, self.pad_bottom, self.pad_left, self.pad_right,
-                self.pad_front, self.pad_back, backend=self.backend,
-                regression_model=self.regression_model)
+        if self.backend == "chisel":
+            self.modules["pad3d"] = Pad3D(
+                    self.rows_in(), self.cols_in(), self.depth_in(),
+                    self.channels_in()//self.coarse,
+                    self.pad_top, self.pad_bottom, self.pad_left, self.pad_right,
+                    self.pad_front, self.pad_back, backend=self.backend,
+                    regression_model=self.regression_model)
 
-        self.modules["sliding_window3d"] = SlidingWindow3D(
-                self.rows_in() +self.pad_top + self.pad_bottom,
-                self.cols_in() + self.pad_left + self.pad_right,
-                self.depth_in() + self.pad_front + self.pad_back,
-                self.channels_in()//self.coarse,
-                self.kernel_rows, self.kernel_cols, self.kernel_depth,
-                self.stride_rows, self.stride_cols, self.stride_depth,
-                0, 0, 0, 0, 0, 0, backend=self.backend,
-                regression_model=self.regression_model)
+            self.modules["sliding_window3d"] = SlidingWindow3D(
+                    self.rows_in() +self.pad_top + self.pad_bottom,
+                    self.cols_in() + self.pad_left + self.pad_right,
+                    self.depth_in() + self.pad_front + self.pad_back,
+                    self.channels_in()//self.coarse,
+                    self.kernel_rows, self.kernel_cols, self.kernel_depth,
+                    self.stride_rows, self.stride_cols, self.stride_depth,
+                    0, 0, 0, 0, 0, 0, backend=self.backend,
+                    regression_model=self.regression_model)
+        elif self.backend == "hls":
+            self.modules["sliding_window3d"] = SlidingWindow3D(
+                    self.rows_in(),
+                    self.cols_in(),
+                    self.depth_in(),
+                    self.channels_in()//self.coarse,
+                    self.kernel_rows, self.kernel_cols, self.kernel_depth,
+                    self.stride_rows, self.stride_cols, self.stride_depth,
+                    self.pad_top, self.pad_right, self.pad_front, self.pad_bottom,
+                    self.pad_left, self.pad_back, backend=self.backend,
+                    regression_model=self.regression_model)
 
         self.modules["pool3d"] = Pool3D(
                 self.rows_out(), self.cols_out(), self.depth_out(),
@@ -94,7 +110,16 @@ class PoolingLayer3D(Layer3D):
                 pool_type=self.pool_type, backend=self.backend,
                 regression_model=self.regression_model)
 
+        if self.backend == "chisel":
+            self.data_packing = True
+        elif self.backend == "hls":
+            self.data_packing = False
+
         self.update()
+
+    def get_operations(self):
+        return self.channels_in()*self.rows_out()*self.cols_out()*self.depth_out()\
+            *self.kernel_size[0]*self.kernel_size[1]*self.kernel_size[2]
 
     def rows_out(self) -> int:
         return self.modules["sliding_window3d"].rows_out()
@@ -104,6 +129,12 @@ class PoolingLayer3D(Layer3D):
 
     def depth_out(self) -> int:
         return self.modules["sliding_window3d"].depth_out()
+
+    def start_depth(self):
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.depth*self.channels//self.streams_in() + \
+            (self.kernel_cols-1-self.pad_left)*self.depth*self.channels//self.streams_in() + \
+            (self.kernel_depth-1-self.pad_front)*self.channels//self.streams_in() + \
+            self.channels//self.streams_in()
 
     @property
     def kernel_size(self) -> List[int]:
@@ -301,69 +332,124 @@ class PoolingLayer3D(Layer3D):
 
     def update(self):
 
-        # pad
-        self.modules['pad3d'].rows     = self.rows
-        self.modules['pad3d'].cols     = self.cols
-        self.modules['pad3d'].depth    = self.depth
-        self.modules['pad3d'].channels = self.channels//self.coarse
-        self.modules['pad3d'].data_width = self.data_t.width
-        self.modules['pad3d'].streams = self.coarse
-        self.modules['pad3d'].pad_top = self.pad_top
-        self.modules['pad3d'].pad_bottom = self.pad_bottom
-        self.modules['pad3d'].pad_left = self.pad_left
-        self.modules['pad3d'].pad_right = self.pad_right
-        self.modules['pad3d'].pad_front = self.pad_front
-        self.modules['pad3d'].pad_back = self.pad_back
+        if self.backend == "chisel":
+            # pad
+            self.modules['pad3d'].rows     = self.rows
+            self.modules['pad3d'].cols     = self.cols
+            self.modules['pad3d'].depth    = self.depth
+            self.modules['pad3d'].channels = self.channels//self.coarse
+            self.modules['pad3d'].data_width = self.data_t.width
+            if self.data_packing:
+                self.modules['pad3d'].streams = self.coarse
+            self.modules['pad3d'].pad_top = self.pad_top
+            self.modules['pad3d'].pad_bottom = self.pad_bottom
+            self.modules['pad3d'].pad_left = self.pad_left
+            self.modules['pad3d'].pad_right = self.pad_right
+            self.modules['pad3d'].pad_front = self.pad_front
+            self.modules['pad3d'].pad_back = self.pad_back
 
-        # sliding window
-        self.modules['sliding_window3d'].rows     = self.rows + self.pad_top + self.pad_bottom
-        self.modules['sliding_window3d'].cols     = self.cols + self.pad_left + self.pad_right
-        self.modules['sliding_window3d'].depth    = self.depth + self.pad_front + self.pad_back
-        self.modules['sliding_window3d'].channels = self.channels//self.coarse
-        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
-        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
-        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
-        self.modules['sliding_window3d'].stride_cols = self.stride_cols
-        self.modules['sliding_window3d'].stride_rows = self.stride_rows
-        self.modules['sliding_window3d'].stride_depth= self.stride_depth
-        self.modules['sliding_window3d'].data_width = self.data_t.width
-        self.modules['sliding_window3d'].streams = self.coarse
-        self.modules['sliding_window3d'].pad_top = 0
-        self.modules['sliding_window3d'].pad_bottom = 0
-        self.modules['sliding_window3d'].pad_left = 0
-        self.modules['sliding_window3d'].pad_right = 0
-        self.modules['sliding_window3d'].pad_front = 0
-        self.modules['sliding_window3d'].pad_back = 0
+            # sliding window
+            self.modules['sliding_window3d'].rows     = self.rows_in() + self.pad_top + self.pad_bottom
+            self.modules['sliding_window3d'].cols     = self.cols_in() + self.pad_left + self.pad_right
+            self.modules['sliding_window3d'].depth    = self.depth_in() + self.pad_front + self.pad_back
+            self.modules['sliding_window3d'].channels = int(self.channels_in()/self.coarse)
+            self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
+            self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
+            self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
+            self.modules['sliding_window3d'].stride_cols = self.stride_cols
+            self.modules['sliding_window3d'].stride_rows = self.stride_rows
+            self.modules['sliding_window3d'].stride_depth= self.stride_depth
+            self.modules['sliding_window3d'].data_width = self.data_t.width
+            if self.data_packing:
+                self.modules['sliding_window3d'].streams = self.coarse
+            self.modules['sliding_window3d'].pad_top = 0
+            self.modules['sliding_window3d'].pad_bottom = 0
+            self.modules['sliding_window3d'].pad_left = 0
+            self.modules['sliding_window3d'].pad_right = 0
+            self.modules['sliding_window3d'].pad_front = 0
+            self.modules['sliding_window3d'].pad_back = 0
+        elif self.backend == "hls":
+            self.modules['sliding_window3d'].rows     = self.rows_in()
+            self.modules['sliding_window3d'].cols     = self.cols_in()
+            self.modules['sliding_window3d'].depth    = self.depth_in()
+            self.modules['sliding_window3d'].channels = int(self.channels_in()/self.coarse)
+            self.modules['sliding_window3d'].data_width = self.data_t.width
+            if self.data_packing:
+                self.modules['sliding_window3d'].streams = self.coarse
 
         # pool 3d
         self.modules['pool3d'].rows     = self.rows_out()
         self.modules['pool3d'].cols     = self.cols_out()
         self.modules['pool3d'].depth    = self.depth_out()
         self.modules['pool3d'].channels = int(self.channels_in()/self.coarse)
-        self.modules['sliding_window3d'].kernel_cols = self.kernel_cols
-        self.modules['sliding_window3d'].kernel_rows = self.kernel_rows
-        self.modules['sliding_window3d'].kernel_depth= self.kernel_depth
         self.modules['pool3d'].data_width = self.data_t.width
+        if self.data_packing:
+            self.modules['pool3d'].streams = self.coarse
 
     def get_fine_feasible(self):
         return [1]
 
     def resource(self):
 
-        sw_rsc      = self.modules['sliding_window3d'].rsc()
-        pool_rsc    = self.modules['pool3d'].rsc()
+        if self.backend == "chisel":
+            pad_rsc     = self.modules['pad3d'].rsc()
+            sw_rsc      = self.modules['sliding_window3d'].rsc()
+            pool_rsc    = self.modules['pool3d'].rsc()
 
-        # Total
-        return {
-            "LUT"  :  sw_rsc['LUT'] +
-                      pool_rsc['LUT']*self.coarse,
-            "FF"   :  sw_rsc['FF'] +
-                      pool_rsc['FF']*self.coarse,
-            "BRAM" :  sw_rsc['BRAM'] +
-                      pool_rsc['BRAM']*self.coarse,
-            "DSP" :   sw_rsc['DSP'] +
-                      pool_rsc['DSP']*self.coarse
-        }
+            # Total
+            if self.data_packing:
+                return {
+                    "LUT"  :  pad_rsc['LUT'] + sw_rsc['LUT'] +
+                            pool_rsc['LUT'],
+                    "FF"   :  pad_rsc['FF'] + sw_rsc['FF'] +
+                            pool_rsc['FF'],
+                    "BRAM" :  pad_rsc['BRAM'] + sw_rsc['BRAM'] +
+                            pool_rsc['BRAM'],
+                    "DSP" :   pad_rsc['DSP'] + sw_rsc['DSP'] +
+                            pool_rsc['DSP']
+                }
+            else:
+                return {
+                    "LUT"  :  pad_rsc['LUT']*self.coarse +
+                            sw_rsc['LUT']*self.coarse +
+                            pool_rsc['LUT']*self.coarse,
+                    "FF"   :  pad_rsc['FF']*self.coarse +
+                            sw_rsc['FF']*self.coarse +
+                            pool_rsc['FF']*self.coarse,
+                    "BRAM" :  pad_rsc['BRAM']*self.coarse +
+                            sw_rsc['BRAM']*self.coarse +
+                            pool_rsc['BRAM']*self.coarse,
+                    "DSP" :   pad_rsc['DSP']*self.coarse +
+                            sw_rsc['DSP']*self.coarse +
+                            pool_rsc['DSP']*self.coarse
+                }
+        elif self.backend == "hls":
+            sw_rsc      = self.modules['sliding_window3d'].rsc()
+            pool_rsc    = self.modules['pool3d'].rsc()
+
+            # Total
+            if self.data_packing:
+                return {
+                    "LUT"  :  sw_rsc['LUT'] +
+                            pool_rsc['LUT'],
+                    "FF"   :  sw_rsc['FF'] +
+                            pool_rsc['FF'],
+                    "BRAM" :  sw_rsc['BRAM'] +
+                            pool_rsc['BRAM'],
+                    "DSP" :   sw_rsc['DSP'] +
+                            pool_rsc['DSP']
+                }
+            else:
+                return {
+                    "LUT"  :  sw_rsc['LUT']*self.coarse +
+                            pool_rsc['LUT']*self.coarse,
+                    "FF"   :  sw_rsc['FF']*self.coarse +
+                            pool_rsc['FF']*self.coarse,
+                    "BRAM" :  sw_rsc['BRAM']*self.coarse +
+                            pool_rsc['BRAM']*self.coarse,
+                    "DSP" :   sw_rsc['DSP']*self.coarse +
+                            pool_rsc['DSP']*self.coarse
+                }
 
     def visualise(self, name):
 

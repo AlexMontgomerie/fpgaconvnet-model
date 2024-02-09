@@ -18,21 +18,24 @@ class EltWiseLayer3D(MultiPortLayer3D):
             depth: int,
             channels: int,
             ports_in: int = 1,
-            ports_out: int = 1,
             coarse: int = 1,
             op_type: str = "add",
             broadcast: bool = False,
             data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
             backend: str = "chisel", # default to no bias for old configs
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__([rows]*ports_in, [cols]*ports_in,
                 [depth]*ports_in,
                 [channels]*ports_in, [coarse]*ports_in,
-                [coarse]*ports_out, ports_in=ports_in, ports_out=ports_out, data_t=data_t)
+                [coarse], ports_in=ports_in, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.mem_bw_in = [100.0/self.ports_in] * self.ports_in
 
@@ -58,6 +61,9 @@ class EltWiseLayer3D(MultiPortLayer3D):
 
         # update the layer
         self.update()
+
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.depth_in()
 
     @property
     def coarse(self) -> int:
@@ -136,14 +142,14 @@ class EltWiseLayer3D(MultiPortLayer3D):
         del parameters.channels_out_array[:]
 
     def resource(self):
-
+        fifo_rsc = super().resource()
         eltwise_rsc = self.modules['eltwise3d'].rsc()
 
         # Total
         return {
             "LUT"  :  eltwise_rsc['LUT']*self.coarse,
             "FF"   :  eltwise_rsc['FF']*self.coarse,
-            "BRAM" :  eltwise_rsc['BRAM']*self.coarse,
+            "BRAM" :  eltwise_rsc['BRAM']*self.coarse + fifo_rsc['BRAM'],
             "DSP" :   eltwise_rsc['DSP']*self.coarse,
         }
 

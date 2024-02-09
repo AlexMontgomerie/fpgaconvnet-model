@@ -20,6 +20,7 @@ from .Conv import Conv
 from .Fork import Fork
 from .Glue import Glue
 from .Pool import Pool
+from .Pad import Pad
 from .MaxPool import MaxPool
 # from .Pool import AvgPool
 from .ReLU import ReLU
@@ -45,10 +46,14 @@ from .Glue3D import Glue3D
 from .Pool3D import Pool3D
 from .Activation3D import Activation3D
 from .ReLU3D import ReLU3D
+from .Hardswish3D import Hardswish3D
+from .ReSize3D import ReSize3D
 from .SlidingWindow3D import SlidingWindow3D
 from .Squeeze3D import Squeeze3D
 from .Bias3D import Bias3D
 from .VectorDot3D import VectorDot3D
 from .GlobalPool3D import GlobalPool3D
 from .EltWise3D import EltWise3D
+from .Concat3D import Concat3D
 from .Pad3D import Pad3D
+from .ShiftScale3D import ShiftScale3D

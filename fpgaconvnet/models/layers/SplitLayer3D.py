@@ -25,7 +25,9 @@ class SplitLayer3D(MultiPortLayer3D):
             ports_out: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
         """
         Parameters
@@ -69,9 +71,11 @@ class SplitLayer3D(MultiPortLayer3D):
 
         # initialise parent class
         super().__init__([rows], [cols], [depth], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_t=data_t)
+                ports_out=ports_out, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
-        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out  
+        self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
 
         # backend flag
         assert backend in ["chisel"], f"{backend} is an invalid backend"
@@ -87,7 +91,7 @@ class SplitLayer3D(MultiPortLayer3D):
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
         self.modules["fork3d"] = Fork3D( self.rows_in(), self.cols_in(),
-                self.depth_in(), self.channels_in(), 1, self.ports_out,
+                self.depth_in(), self.channels_in(), 1, 1, 1, self.ports_out,
                 backend=self.backend, regression_model=self.regression_model)
 
         # update the modules

@@ -17,7 +17,7 @@ class VectorDot(Module):
     streams: int = 1
 
     def pipeline_depth(self):
-        return self.fine
+        return int(math.log(self.fine, 2)) + 1
 
     def channels_out(self):
         return self.filters

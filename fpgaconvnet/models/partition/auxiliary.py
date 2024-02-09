@@ -5,7 +5,7 @@ import fpgaconvnet.tools.graphs as graphs
 import fpgaconvnet.tools.matrix as matrix
 
 from fpgaconvnet.data_types import FixedPoint
-from fpgaconvnet.models.layers import SqueezeLayer
+from fpgaconvnet.models.layers import SqueezeLayer,SqueezeLayer3D
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
 def add_squeeze(self):
@@ -31,20 +31,41 @@ def add_squeeze(self):
             new_node   = "_".join([start_node,"squeeze",end_node])
             # add node to node info
             # print("Start Node:", start_node)
-            self.graph.add_node(new_node,
-                type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[start_node]["onnx_node"],
-                onnx_input=self.graph.nodes[start_node]["onnx_input"],
-                onnx_output=self.graph.nodes[start_node]["onnx_output"],
-                hw=SqueezeLayer(
-                    self.graph.nodes[start_node]['hw'].rows_out(),
-                    self.graph.nodes[start_node]['hw'].cols_out(),
-                    self.graph.nodes[start_node]['hw'].channels_out(),
-                    self.graph.nodes[start_node]['hw'].streams_out(),
-                    self.graph.nodes[end_node]['hw'].streams_in(),
-                    data_t=self.graph.nodes[start_node]['hw'].output_t,
+            if self.dimensionality == 2:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[start_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[start_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[start_node]["onnx_output"],
+                    hw=SqueezeLayer(
+                        self.graph.nodes[start_node]['hw'].rows_out(),
+                        self.graph.nodes[start_node]['hw'].cols_out(),
+                        self.graph.nodes[start_node]['hw'].channels_out(),
+                        self.graph.nodes[start_node]['hw'].streams_out(),
+                        self.graph.nodes[end_node]['hw'].streams_in(),
+                        data_t=self.graph.nodes[start_node]['hw'].output_t,
+                        input_compression_ratio=self.graph.nodes[start_node]['hw'].output_compression_ratio,
+                        output_compression_ratio=self.graph.nodes[end_node]['hw'].input_compression_ratio,
+                    )
                 )
-            )
+            elif self.dimensionality == 3:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[start_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[start_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[start_node]["onnx_output"],
+                    hw=SqueezeLayer3D(
+                        self.graph.nodes[start_node]['hw'].rows_out(),
+                        self.graph.nodes[start_node]['hw'].cols_out(),
+                        self.graph.nodes[start_node]['hw'].depth_out(),
+                        self.graph.nodes[start_node]['hw'].channels_out(),
+                        self.graph.nodes[start_node]['hw'].streams_out(),
+                        self.graph.nodes[end_node]['hw'].streams_in(),
+                        data_t=self.graph.nodes[start_node]['hw'].output_t,
+                        input_compression_ratio=self.graph.nodes[start_node]['hw'].output_compression_ratio,
+                        output_compression_ratio=self.graph.nodes[end_node]['hw'].input_compression_ratio,
+                    )
+                )
 
             # add node to graph
             self.graph.add_edge(start_node,new_node)
@@ -52,59 +73,93 @@ def add_squeeze(self):
             self.graph.remove_edge(start_node,end_node)
 
     # check difference in input streams
-    inputs = graphs.get_input_nodes(self.graph)
+    inputs = graphs.get_input_nodes(self.graph, allow_multiport=True)
     for i, input_node in enumerate(inputs):
         if self.streams_in[i] != self.graph.nodes[input_node]['hw'].streams_in():
             # add node to graph
             new_node  = "_".join([input_node,"squeeze"])
             # add node to node info
-            self.graph.add_node(new_node,
-                type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[input_node]["onnx_node"],
-                onnx_input=self.graph.nodes[input_node]["onnx_input"],
-                onnx_output=self.graph.nodes[input_node]["onnx_output"],
-                hw=SqueezeLayer(
-                    self.graph.nodes[input_node]['hw'].rows_in(),
-                    self.graph.nodes[input_node]['hw'].cols_in(),
-                    self.graph.nodes[input_node]['hw'].channels_in(),
-                    self.streams_in[i],
-                    self.graph.nodes[input_node]['hw'].streams_in(),
-                    data_t=self.graph.nodes[input_node]['hw'].input_t,
+            if self.dimensionality == 2:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[input_node]["onnx_output"],
+                    hw=SqueezeLayer(
+                        self.graph.nodes[input_node]['hw'].rows_in(),
+                        self.graph.nodes[input_node]['hw'].cols_in(),
+                        self.graph.nodes[input_node]['hw'].channels_in(),
+                        self.streams_in[i],
+                        self.graph.nodes[input_node]['hw'].streams_in(),
+                        data_t=self.graph.nodes[input_node]['hw'].input_t,
+                    )
                 )
-            )
+            elif self.dimensionality == 3:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[input_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[input_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[input_node]["onnx_output"],
+                    hw=SqueezeLayer3D(
+                        self.graph.nodes[input_node]['hw'].rows_in(),
+                        self.graph.nodes[input_node]['hw'].cols_in(),
+                        self.graph.nodes[input_node]['hw'].depth_in(),
+                        self.graph.nodes[input_node]['hw'].channels_in(),
+                        self.streams_in[i],
+                        self.graph.nodes[input_node]['hw'].streams_in(),
+                        data_t=self.graph.nodes[input_node]['hw'].input_t,
+                    )
+                )
             # add edge to graph
             self.graph.add_edge(new_node,input_node)
     # check difference in output streams
-    outputs = graphs.get_output_nodes(self.graph)
+    outputs = graphs.get_output_nodes(self.graph, allow_multiport=True)
     for i, output_node in enumerate(outputs):
         if self.streams_out[i] != self.graph.nodes[output_node]['hw'].streams_out():
             # add node to graph
             new_node  = "_".join(["squeeze",output_node])
             # add node to node info
-            self.graph.add_node(new_node,
-                type=LAYER_TYPE.Squeeze,
-                onnx_node=self.graph.nodes[output_node]["onnx_node"],
-                onnx_input=self.graph.nodes[output_node]["onnx_input"],
-                onnx_output=self.graph.nodes[output_node]["onnx_output"],
-                hw=SqueezeLayer(
-                    self.graph.nodes[output_node]['hw'].rows_out(),
-                    self.graph.nodes[output_node]['hw'].cols_out(),
-                    self.graph.nodes[output_node]['hw'].channels_out(),
-                    self.graph.nodes[output_node]['hw'].streams_out(),
-                    self.streams_out[i],
-                    data_t=self.graph.nodes[output_node]['hw'].output_t,
+            if self.dimensionality == 2:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[output_node]["onnx_output"],
+                    hw=SqueezeLayer(
+                        self.graph.nodes[output_node]['hw'].rows_out(),
+                        self.graph.nodes[output_node]['hw'].cols_out(),
+                        self.graph.nodes[output_node]['hw'].channels_out(),
+                        self.graph.nodes[output_node]['hw'].streams_out(),
+                        self.streams_out[i],
+                        data_t=self.graph.nodes[output_node]['hw'].output_t,
+                    )
                 )
-            )
+            elif self.dimensionality == 3:
+                self.graph.add_node(new_node,
+                    type=LAYER_TYPE.Squeeze,
+                    onnx_node=self.graph.nodes[output_node]["onnx_node"],
+                    onnx_input=self.graph.nodes[output_node]["onnx_input"],
+                    onnx_output=self.graph.nodes[output_node]["onnx_output"],
+                    hw=SqueezeLayer3D(
+                        self.graph.nodes[output_node]['hw'].rows_out(),
+                        self.graph.nodes[output_node]['hw'].cols_out(),
+                        self.graph.nodes[output_node]['hw'].depth_out(),
+                        self.graph.nodes[output_node]['hw'].channels_out(),
+                        self.graph.nodes[output_node]['hw'].streams_out(),
+                        self.streams_out[i],
+                        data_t=self.graph.nodes[output_node]['hw'].output_t,
+                    )
+                )
             self.graph.add_edge(output_node,new_node)
 
 def remove_node_by_type(self, layer_type):
     # remove input squeeze module
-    for input_node in graphs.get_input_nodes(self.graph):
+    for input_node in graphs.get_input_nodes(self.graph, allow_multiport=True):
         if input_node in self.graph.nodes:
             if self.graph.nodes[input_node]['type'] == layer_type:
                 self.graph.remove_node(input_node)
     # remove output squeeze module
-    for output_node in graphs.get_output_nodes(self.graph):
+    for output_node in graphs.get_output_nodes(self.graph, allow_multiport=True):
         if output_node in self.graph.nodes:
             if self.graph.nodes[output_node]['type'] == layer_type:
                 self.graph.remove_node(output_node)

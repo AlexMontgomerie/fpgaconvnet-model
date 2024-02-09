@@ -34,12 +34,18 @@ class InnerProductLayer(Layer):
             block_floating_point: bool = False,
             backend: str = "chisel",
             regression_model: str = "linear_regression",
-            stream_weights: int = 0
+            stream_weights: int = 0,
+            use_uram: bool = False,  
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0],
+            weight_compression_ratio: list = [1.0]
         ):
 
         # initialise parent class
         super().__init__(rows, cols, channels, coarse_in,
-                coarse_out, data_t=input_t)
+                coarse_out, data_t=input_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         # save data types
         self.input_t = input_t
@@ -50,10 +56,6 @@ class InnerProductLayer(Layer):
 
         # save bias flag
         self.has_bias = has_bias
-
-        # update flags
-        # self.flags['channel_dependant'] = True
-        # self.flags['transformable']     = True
 
         # save parameters
         self._filters = filters
@@ -73,6 +75,11 @@ class InnerProductLayer(Layer):
             self.stream_weights = False
             self.data_packing = True
             self.use_uram = False
+
+        # off chip weight streaming attributes
+        self.weight_array_unit_depth = 0
+        self.weight_array_unit_width = 0
+        self.weight_compression_ratio = weight_compression_ratio
 
         # regression model
         assert regression_model in ["linear_regression", "xgboost"], f"{regression_model} is an invalid regression model"
@@ -95,12 +102,16 @@ class InnerProductLayer(Layer):
                 self.filters, self.coarse_in, self.coarse_out, 1, backend=self.backend, regression_model=self.regression_model)
         self.modules["bias"] = Bias(1,1,self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
-        self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(), 
+        self.modules["shift_scale"] = ShiftScale(1, 1, self.channels_in()*self.rows_in()*self.cols_in(),
                 self.filters//self.coarse_out, backend=self.backend, regression_model=self.regression_model)
         self.update()
 
     def get_operations(self):
-        return self.channels_in()*self.rows_in()*self.cols_in()*self.filters
+        # 1 MAC = 2 OPs
+        ops = 2*self.channels_in()*self.filters
+        if self.has_bias:
+            ops += self.filters
+        return ops
 
     @property
     def filters(self) -> int:
@@ -131,14 +142,18 @@ class InnerProductLayer(Layer):
         self.acc_t.to_protobuf(parameters.acc_t)
         parameters.data_t.Clear()
         parameters.use_uram     = self.use_uram
-        parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        if self.weights_ram_usage + self.stream_weights > 0:
+            parameters.on_chip_addr_range = int(self.on_chip_addr_range())
+        else:
+            parameters.on_chip_addr_range = 0
         parameters.stream_weights = int(self.stream_weights)
-        if self.stream_weights > 0: 
+        if self.stream_weights > 0:
             parameters.off_chip_buffer_size = self.off_chip_buffer_size()
             parameters.off_chip_interval = math.ceil(self.on_chip_addr_range() / (self.stream_weights / self.stream_unit()))
         else:
             parameters.off_chip_buffer_size = 0
             parameters.off_chip_interval = -1
+        parameters.weight_compression_ratio.extend(self.weight_compression_ratio)
 
     def update(self): # TODO: update all parameters
         # fork
@@ -147,7 +162,8 @@ class InnerProductLayer(Layer):
         self.modules['fork'].channels = self.channels_in()//self.coarse_in
         self.modules['fork'].coarse   = self.coarse_out
         self.modules['fork'].data_width = self.input_t.width
-        self.modules['fork'].streams = self.coarse_in
+        if self.data_packing:
+            self.modules['fork'].streams = self.coarse_in
 
         if self.backend == "hls":
             # conv
@@ -191,6 +207,8 @@ class InnerProductLayer(Layer):
         self.modules['glue'].coarse_in  = self.coarse_in
         self.modules['glue'].coarse_out = self.coarse_out
         self.modules['glue'].data_width = self.acc_t.width
+        if self.data_packing:
+            self.modules['glue'].streams = self.coarse_out
 
         # bias
         self.modules['bias'].rows           = 1
@@ -215,7 +233,10 @@ class InnerProductLayer(Layer):
 
     def get_parameters_size(self):
         weights_size = self.channels * self.filters
-        bias_size = 0
+        if self.has_bias:
+            bias_size = self.filters
+        else:
+            bias_size = 0
         return {
             "weights"   : weights_size,
             "bias"      : bias_size
@@ -272,6 +293,30 @@ class InnerProductLayer(Layer):
                     bias_rsc[rsc_type]*self.coarse_out +
                     shift_scale_rsc[rsc_type]*self.coarse_out
                 ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+        else:
+            fork_rsc  = self.modules['fork'].rsc()
+            conv_rsc  = self.modules['conv'].rsc()
+            accum_rsc = self.modules['accum'].rsc()
+            glue_rsc  = self.modules['glue'].rsc()
+            bias_rsc  = self.modules['bias'].rsc()
+
+            # remove redundant modules
+            if self.coarse_out == 1:
+                fork_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.rows_in()*self.cols_in()*self.depth_in()*self.channels_in()//self.coarse_in == 1:
+                accum_rsc   = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.coarse_in == 1:
+                glue_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}
+            if self.has_bias:
+                bias_rsc    = {"LUT" : 0,"BRAM" : 0,"DSP" : 0,"FF" : 0}     
+
+            rsc = { rsc_type: (
+                fork_rsc[rsc_type]*self.coarse_in +
+                conv_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                accum_rsc[rsc_type]*self.coarse_in*self.coarse_out +
+                glue_rsc[rsc_type]*self.coarse_out +
+                bias_rsc[rsc_type]*self.coarse_out
+            ) for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
 
         # weight usage
         weight_memory_depth = float(self.filters*self.channels_in()*self.rows_in()*\
@@ -293,7 +338,7 @@ class InnerProductLayer(Layer):
         self.weight_array_width = weight_array_width * weight_array_num
         self.weight_array_num = weight_array_num
 
-        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num) 
+        weights_bram_usage, weights_uram_usage = self.stream_rsc(weight_array_depth, weight_array_width, weight_array_num)
 
         # bias usage
         if self.has_bias:

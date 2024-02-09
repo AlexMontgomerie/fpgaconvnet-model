@@ -95,3 +95,6 @@ class GlobalPool3D(Module3D):
 
         # return average
         return np.average(data, axis=(0,1,2))
+
+    def pipeline_depth(self):
+        return self.rows*self.cols*self.depth*self.channels

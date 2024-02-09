@@ -1,40 +1,27 @@
-import copy
-import sys
 import importlib
-import os
-import random
 
-from graphviz import Digraph
 import networkx as nx
 import onnx
-from onnxsim import simplify
 import onnx.numpy_helper
 import onnx.utils
 import onnxoptimizer as optimizer
 import pydot
-import numpy as np
-
-from fpgaconvnet.models.partition import Partition
-from fpgaconvnet.models.network import Network
-from fpgaconvnet.models.layers import SplitLayer
-
-import fpgaconvnet.tools.graphs as graphs
+from google.protobuf import json_format
+from onnxsim import simplify
 
 import fpgaconvnet.parser.onnx.helper as onnx_helper
-import fpgaconvnet.parser.onnx.parse as onnx_parse
 import fpgaconvnet.parser.onnx.passes as onnx_passes
-
-from fpgaconvnet.tools.layer_enum import LAYER_TYPE, from_onnx_op_type, from_proto_layer_type
-
+import fpgaconvnet.proto.fpgaconvnet_pb2
+import fpgaconvnet.tools.graphs as graphs
+from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
+from fpgaconvnet.models.network import Network
+from fpgaconvnet.models.partition import Partition
 from fpgaconvnet.parser.onnx.parse import *
 from fpgaconvnet.parser.prototxt.parse import *
-
-
 from fpgaconvnet.parser.quant.int import get_scale_shift_node
+from fpgaconvnet.tools.layer_enum import (LAYER_TYPE, from_onnx_op_type,
+                                          from_proto_layer_type)
 
-
-from google.protobuf import json_format
-import fpgaconvnet.proto.fpgaconvnet_pb2
 
 class Parser:
 
@@ -92,6 +79,7 @@ class Parser:
             "rename_all_nodes",
             "move_relu_after_quant",
             "add_nop_to_split_output",
+            # "remove_empty_inputs_outputs",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
@@ -157,8 +145,6 @@ class Parser:
             # check optimized model
             onnx.checker.check_model(model_opt)
 
-        onnx.save(model_opt, "model_opt.onnx")
-
         return model_opt, dimensionality
 
     def get_hardware_from_onnx_node(self, graph, node, quant_format, dimensionality):
@@ -175,7 +161,6 @@ class Parser:
             LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
-            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.Chop: ParseOnnxChopNode,
@@ -212,7 +197,7 @@ class Parser:
         # return model and quantisation
         return model_opt, quant_format
 
-    def add_split(self, graph):
+    def add_split(self, graph, dimensionality):
         # iterate over nodes in the graph
         nodes = list(graph.nodes())
         for node in nodes:
@@ -222,20 +207,41 @@ class Parser:
             if len(nodes_out) > 1 and not graph.nodes[node]['type'] == LAYER_TYPE.Chop:
                 # create a split node
                 split_node  = f"{node}_split"
-                graph.add_node(split_node,
-                    type=LAYER_TYPE.Split,
-                    onnx_node=graph.nodes[node]["onnx_node"],
-                    onnx_input=graph.nodes[node]["onnx_input"],
-                    onnx_output=graph.nodes[node]["onnx_output"],
-                    hw=SplitLayer(
-                        graph.nodes[node]['hw'].rows_out(),
-                        graph.nodes[node]['hw'].cols_out(),
-                        graph.nodes[node]['hw'].channels_out(),
-                        graph.nodes[node]['hw'].streams_out(),
-                        len(nodes_out),
-                        data_t=graph.nodes[node]['hw'].data_t,
+                if dimensionality == 2:
+                    graph.add_node(split_node,
+                        type=LAYER_TYPE.Split,
+                        onnx_node=graph.nodes[node]["onnx_node"],
+                        onnx_input=graph.nodes[node]["onnx_input"],
+                        onnx_output=graph.nodes[node]["onnx_output"],
+                        hw=SplitLayer(
+                            graph.nodes[node]['hw'].rows_out(),
+                            graph.nodes[node]['hw'].cols_out(),
+                            graph.nodes[node]['hw'].channels_out(),
+                            graph.nodes[node]['hw'].streams_out(),
+                            len(nodes_out),
+                            data_t=graph.nodes[node]['hw'].data_t,
+                            input_compression_ratio=graph.nodes[node]['hw'].output_compression_ratio,
+                            output_compression_ratio=[graph.nodes[node]['hw'].output_compression_ratio[0]]*len(nodes_out),
+                        )
                     )
-                )
+                elif dimensionality == 3:
+                    graph.add_node(split_node,
+                        type=LAYER_TYPE.Split,
+                        onnx_node=graph.nodes[node]["onnx_node"],
+                        onnx_input=graph.nodes[node]["onnx_input"],
+                        onnx_output=graph.nodes[node]["onnx_output"],
+                        hw=SplitLayer3D(
+                            graph.nodes[node]['hw'].rows_out(),
+                            graph.nodes[node]['hw'].cols_out(),
+                            graph.nodes[node]['hw'].depth_out(),
+                            graph.nodes[node]['hw'].channels_out(),
+                            graph.nodes[node]['hw'].streams_out(),
+                            len(nodes_out),
+                            data_t=graph.nodes[node]['hw'].data_t,
+                            input_compression_ratio=graph.nodes[node]['hw'].output_compression_ratio,
+                            output_compression_ratio=[graph.nodes[node]['hw'].output_compression_ratio[0]]*len(nodes_out),
+                        )
+                    )
                 # iterate over nodes out
                 for node_out in nodes_out:
                     # remove edge from original node
@@ -249,12 +255,13 @@ class Parser:
     def onnx_to_fpgaconvnet(self, onnx_filepath, save_opt_model=True):
         # load the onnx model
         onnx_model, dimensionality = self.load_onnx_model(onnx_filepath)
-        if save_opt_model:
-            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
-            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # get the quantisation parameters
         onnx_model, quant_format = self.get_quantisation(onnx_model)
+
+        if save_opt_model:
+            optimize_onnx_filepath = f"{onnx_filepath.split('.onnx')[0]}_optimized.onnx"
+            onnx.save(onnx_model, optimize_onnx_filepath)
 
         # create a networkx graph
         graph = nx.DiGraph()
@@ -264,7 +271,6 @@ class Parser:
 
         # add nodes from onnx to the graph
         for node in onnx_model.graph.node:
-
             # get the node name
             node_name = onnx_helper.format_onnx_name(node)
 
@@ -305,7 +311,7 @@ class Parser:
             graph.add_edge(node.name, f"{node.name}_scale_shift")
 
         # add split nodes to the graph
-        graph = self.add_split(graph)
+        graph = self.add_split(graph, dimensionality)
 
         # remove NOP nodes from the graph
         graph = self.remove_node_by_type(graph, LAYER_TYPE.NOP)
@@ -314,7 +320,7 @@ class Parser:
         # return the graph
         return Network("from_onnx", onnx_model, graph, dimensionality=dimensionality)
 
-    def get_hardware_from_prototxt_node(self, node):
+    def get_hardware_from_prototxt_node(self, node, dimensionality):
 
         # register converters
         converter = {
@@ -327,6 +333,12 @@ class Parser:
             LAYER_TYPE.ThresholdedReLU: ParsePrototxtThresholdedReLUNode,
             LAYER_TYPE.Squeeze: ParsePrototxtSqueezeNode,
             LAYER_TYPE.Split: ParsePrototxtSplitNode,
+            LAYER_TYPE.Concat: ParsePrototxtConcatNode,
+            LAYER_TYPE.Sigmoid: ParsePrototxtActivationNode,
+            LAYER_TYPE.ReSize: ParsePrototxtReSizeNode,
+            LAYER_TYPE.HardSigmoid: ParsePrototxtActivationNode,
+            LAYER_TYPE.HardSwish: ParsePrototxtHardSwishNode,
+            LAYER_TYPE.Chop: ParsePrototxtChopNode,
         }
 
         # get the node type
@@ -335,7 +347,7 @@ class Parser:
 
         # try converter
         try:
-            return converter[node_type](node, backend=self.backend,
+            return converter[node_type](node, dimensionality, backend=self.backend,
                     regression_model=self.regression_model)
         except KeyError:
             raise TypeError(f"{node_type} not supported, exiting now")
@@ -360,17 +372,21 @@ class Parser:
             for layer in partition.layers:
 
                 # get the hardware for the node
-                hardware = self.get_hardware_from_prototxt_node(layer)
+                hardware = self.get_hardware_from_prototxt_node(layer, net.dimensionality)
+
+                # todo: move this inside get_hardware_from_prototxt_node
+                hardware.hw.stream_inputs = hardware.node.parameters.stream_inputs
+                hardware.hw.stream_outputs = hardware.node.parameters.stream_outputs
 
                 # add node to graph
-                graph.add_node( layer.name, **hardware.get_node_info() )
+                graph.add_node( layer.name, **hardware.get_node_info(net.graph) )
 
                 # get edges from the hardware
                 for edge in hardware.get_edges_in():
                     graph.add_edge(*edge)
 
             # add partition
-            new_partition = Partition(graph, batch_size=partition.batch_size)
+            new_partition = Partition(graph, net.dimensionality, batch_size=partition.batch_size)
 
             # update partition attributes
             new_partition.wr_factor = int(partition.weights_reloading_factor)
@@ -382,16 +398,18 @@ class Parser:
 
     def remove_node_by_type(self, graph, layer_type):
         # get input and output graphs
-        input_node  = graphs.get_input_nodes(graph)[0]
-        output_node = graphs.get_output_nodes(graph)[0]
+        input_nodes  = graphs.get_input_nodes(graph, allow_multiport=True)
+        output_nodes = graphs.get_output_nodes(graph, allow_multiport=True)
         # remove input squeeze module
-        if input_node in graph.nodes:
-            if graph.nodes[input_node]['type'] == layer_type:
-                graph.remove_node(input_node)
+        for input_node in input_nodes:
+            if input_node in graph.nodes:
+                if graph.nodes[input_node]['type'] == layer_type:
+                    graph.remove_node(input_node)
         # remove output squeeze module
-        if output_node in graph.nodes:
-            if graph.nodes[output_node]['type'] == layer_type:
-                graph.remove_node(output_node)
+        for output_node in output_nodes:
+            if output_node in graph.nodes:
+                if graph.nodes[output_node]['type'] == layer_type:
+                    graph.remove_node(output_node)
         # remove intermediate squeeze modules
         remove_nodes = []
         for node in graph.nodes():

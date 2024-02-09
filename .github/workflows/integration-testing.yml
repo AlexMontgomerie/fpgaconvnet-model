@@ -48,6 +48,10 @@ jobs:
         python -m pip install .
         python -m pip install ./fpgaconvnet-optimiser
         
+    - name: Run Model Unit Tests
+      run: |
+        python -m unittest discover ./tests
+
     - name: Run Optimisation Tests
       run: |
         cd fpgaconvnet-optimiser

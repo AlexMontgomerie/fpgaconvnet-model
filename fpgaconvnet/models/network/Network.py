@@ -52,7 +52,7 @@ class Network():
         self.data_width = self.graph.nodes[input_node]['hw'].data_t.width
 
         # partitions
-        self.partitions = [ Partition(copy.deepcopy(self.graph), data_width=self.data_width) ]
+        self.partitions = [ Partition(copy.deepcopy(self.graph), self.dimensionality, data_width=self.data_width) ]
 
         # all types of layers
         self.conv_layers = helper.get_all_layers(self.graph, LAYER_TYPE.Convolution)
@@ -60,6 +60,9 @@ class Network():
 
         # update partitions
         self.update_partitions()
+
+        # all branch edges
+        self.network_branch_edges = graphs.get_branch_edges_all(self.partitions)
 
     from fpgaconvnet.models.network.scheduler import get_partition_order
     from fpgaconvnet.models.network.scheduler import get_input_base_addr
@@ -84,6 +87,7 @@ class Network():
 
     from fpgaconvnet.models.network.visualise import plot_latency_per_layer
     from fpgaconvnet.models.network.visualise import plot_percentage_resource_per_layer_type
+    from fpgaconvnet.models.network.visualise import visualise_partitions_nx
 
     def get_memory_usage_estimate(self):
 
@@ -109,7 +113,10 @@ class Network():
         # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        return (len(partition_list)-1)*delay
+        if len(partition_list) == 1:
+            return 0
+        else:
+            return len(partition_list)*delay
 
     def get_cycle(self, pipeline, partition_list=None):
         if partition_list == None:
@@ -139,7 +146,7 @@ class Network():
     def get_latency(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        
+
         batch_cycle = self.get_cycle(pipeline, partition_list)
         latency = batch_cycle/(freq*1000000)
         # return the total latency
@@ -200,3 +207,27 @@ class Network():
         # update partitions
         self.update_partitions()
 
+    def check_network_graph_completeness(self):
+        """
+        Ensure all layers of the original graph belong to exactly one partition
+
+        Returns:
+            bool: True if the network is valid, False otherwise
+        """
+        original_layers = self.graph.nodes()
+        for origin_layer in original_layers:
+            layer_found = False
+            for partition in self.partitions:
+                if origin_layer in partition.graph.nodes():
+                    layer_found = True
+                    break
+            if not layer_found:
+                raise AssertionError(f"Layer {origin_layer} not found in any partition")
+
+        # check the validity of each partition
+        for partition_index in range(len(self.partitions)):
+            is_valid, err_msg = self.partitions[partition_index].check_graph_completeness(self.network_branch_edges)
+            if not is_valid:
+                raise AssertionError(f"Partition {partition_index} is not valid: {err_msg}")
+
+        return True

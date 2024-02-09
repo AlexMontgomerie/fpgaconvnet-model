@@ -3,16 +3,17 @@ The chop/fork/branch layer.
 Takes one stream input and outputs several streams using the fork module.
 """
 
-from typing import List
-import pydot
-import numpy as np
-import os
 import math
+import os
+from typing import List
+
+import numpy as np
+import pydot
 
 from fpgaconvnet.data_types import FixedPoint
-
-from fpgaconvnet.models.modules import Fork
 from fpgaconvnet.models.layers import MultiPortLayer
+from fpgaconvnet.models.modules import Fork
+
 
 class ChopLayer(MultiPortLayer):
     def __init__(
@@ -25,7 +26,9 @@ class ChopLayer(MultiPortLayer):
             ports_out: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # save split parameters
@@ -33,7 +36,9 @@ class ChopLayer(MultiPortLayer):
 
         # initialise parent class
         super().__init__([rows], [cols], [channels], [coarse], [coarse],
-                ports_out=ports_out, data_t=data_t)
+                ports_out=ports_out, data_t=data_t,
+                input_compression_ratio=input_compression_ratio,
+                output_compression_ratio=output_compression_ratio)
 
         self.mem_bw_out = [100.0/self.ports_out] * self.ports_out
 
@@ -46,7 +51,7 @@ class ChopLayer(MultiPortLayer):
         self.regression_model = regression_model
 
         # parameters
-        self._coarse = coarse
+        self.coarse = coarse
 
         # init modules
         #One fork module, fork coarse_out corresponds to number of layer output ports
@@ -62,30 +67,42 @@ class ChopLayer(MultiPortLayer):
 
     @property
     def coarse_in(self) -> int:
-        return [self._coarse]
+        return self._coarse_in
 
     @property
     def coarse_out(self) -> int:
-        return [self._coarse]*self.ports_out
+        return self._coarse_out
 
     @coarse.setter
     def coarse(self, val: int) -> None:
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_in())
+        ratio = self.channels_in()/val
+        val_out = max(1, int(self.channels_out()/ratio))
         self._coarse = val
         self._coarse_in = [val]
-        self.coarse_out = [val]*self.ports_out
+        self._coarse_out = [val_out]*self.ports_out
         # self.update()
 
     @coarse_in.setter
     def coarse_in(self, val: int) -> None:
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_in())
+        ratio = self.channels_in()/val
+        val_out = max(1, int(self.channels_out()/ratio))
         self._coarse = val
         self._coarse_in = [val]
-        self._coarse_out = [val]*self.ports_out
+        self._coarse_out = [val_out]*self.ports_out
         # self.update()
 
     @coarse_out.setter
     def coarse_out(self, val: int) -> None:
-        self._coarse = val
-        self._coarse_in = [val]
+        assert all(self.split[0] == elem for elem in self.split), "Only equal splits are supported"
+        val = min(val, self.channels_out())
+        ratio = self.channels_out()/val
+        val_in = max(1, int(self.channels_in()/ratio))
+        self._coarse = val_in
+        self._coarse_in = [val_in]
         self._coarse_out = [val]*self.ports_out
         # self.update()
 
@@ -115,6 +132,9 @@ class ChopLayer(MultiPortLayer):
     def rate_out(self, port_index=0):
         assert(port_index < self.ports_out)
         return self.channels_out(port_index)/self.channels_in()
+
+    def latency(self):
+        return max(self.latency_in(), self.latency_out())
 
     def layer_info(self,parameters,batch_size=1):
         MultiPortLayer.layer_info(self, parameters, batch_size)

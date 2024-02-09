@@ -35,6 +35,10 @@ class Layer:
         number of parallel streams per port into the layer.
     coarse_out: int
         number of parallel streams per port out of the layer.
+    input_compression_ratio: list float
+        input compression ratio per port into the layer.
+    output_compression_ratio: list float
+        output compression ratio per port out of the layer.
     mem_bw_in: float
         maximum bandwidth for the input streams of the layer3d expressed
         as a fraction of the clock cycle.
@@ -55,6 +59,8 @@ class Layer:
     _channels: int
     _coarse_in: int
     _coarse_out: int
+    input_compression_ratio: List[float] = field(default_factory=list, init=True)
+    output_compression_ratio: List[float] = field(default_factory=list, init=True)
     mem_bw_in: float = field(default=100.0, init=True)
     mem_bw_out: float = field(default=100.0, init=True)
     data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
@@ -298,13 +304,14 @@ class Layer:
 
     def latency(self):
         # return max(self.latency_in(), self.latency_out())
-        return max([ self.modules[module].latency() for module in self.modules ])
+        return max(module.latency() for module in self.modules.values())
+
+    def start_depth(self):
+        return 2 # number of input samples required to create a complete output channel
 
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
-
-    def wait_depth(self):
-        return sum([ self.modules[module].wait_depth() for module in self.modules ])
+        # return [ self.modules[module].pipeline_depth() for module in self.modules ][0]
 
     def resource(self):
         return {
@@ -344,6 +351,8 @@ class Layer:
         self.data_t.to_protobuf(parameters.data_t)
         parameters.stream_inputs.extend(self.stream_inputs)
         parameters.stream_outputs.extend(self.stream_outputs)
+        parameters.input_compression_ratio.extend(self.input_compression_ratio)
+        parameters.output_compression_ratio.extend(self.output_compression_ratio)
 
     def get_operations(self):
         return 0

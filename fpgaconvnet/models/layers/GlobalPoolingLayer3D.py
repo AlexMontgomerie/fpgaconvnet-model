@@ -19,15 +19,21 @@ class GlobalPoolingLayer3D(Layer3D):
             coarse: int = 1,
             data_t: FixedPoint = FixedPoint(16,8),
             acc_t: FixedPoint = FixedPoint(32,16),
+            op_type: str = "avg", # TODO: support different op types
             backend: str = "chisel",
-            regression_model: str = "linear_regression"
+            regression_model: str = "linear_regression",
+            input_compression_ratio: list = [1.0],
+            output_compression_ratio: list = [1.0]
         ):
 
         # save acc_t
         self.acc_t = acc_t
 
         # initialise parent class
-        super().__init__(rows, cols, depth, channels, coarse, coarse, data_t=data_t)
+        super().__init__(rows, cols, depth, channels,
+        coarse, coarse, data_t=data_t,
+        input_compression_ratio=input_compression_ratio,
+        output_compression_ratio=output_compression_ratio)
 
         # backend flag
         assert backend in ["hls", "chisel"], f"{backend} is an invalid backend"
@@ -40,6 +46,8 @@ class GlobalPoolingLayer3D(Layer3D):
         # update parameters
         self._coarse = coarse
 
+        self.pool_type = op_type
+
         # init modules
         self.modules["global_pool3d"] = GlobalPool3D(
                 self.rows_in(), self.cols_in(), self.depth_in(),
@@ -47,6 +55,9 @@ class GlobalPoolingLayer3D(Layer3D):
                 backend=self.backend, regression_model=self.regression_model)
 
         self.update()
+
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.depth_in()
 
     def rows_out(self) -> int:
         return 1
@@ -56,6 +67,9 @@ class GlobalPoolingLayer3D(Layer3D):
 
     def depth_out(self) -> int:
         return 1
+
+    def start_depth(self):
+        return self.rows*self.cols*self.depth*self.channels//self.streams_in()
 
     @property
     def coarse(self) -> int:
