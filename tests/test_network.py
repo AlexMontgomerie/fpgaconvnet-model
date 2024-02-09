@@ -56,6 +56,10 @@ class TestNetworkTemplate():
         # check that there's only one partition
         self.assertEqual(len(network.partitions), 1)
 
+    def run_test_save_all_partitions(self, network):
+        # save all partitions
+        network.save_all_partitions("/tmp/fpgaconvnet-test-network-config.json")
+
 @ddt.ddt
 class TestNetwork(TestNetworkTemplate, unittest.TestCase):
 
@@ -67,6 +71,7 @@ class TestNetwork(TestNetworkTemplate, unittest.TestCase):
         # net.platform.update(PLATFORM)
         # run all tests
         self.run_test_validation(net)
+        self.run_test_save_all_partitions(net)
         # self.run_test_partition_transform_split(net)
         # self.run_test_partition_transform_merge(net)
 
