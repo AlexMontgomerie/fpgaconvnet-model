@@ -106,9 +106,8 @@ def initialise_modules(configs):
             case "global_pool":
                 module = GlobalPool(config["rows"], config["cols"], config["channels"],
                                     backend=BACKEND)
-
             case _:
-                pass
+                raise ValueError(f"Unknown module: {config['name']}")
 
         # create a name for the module
         name = f"module:{BACKEND}:2D:{config['name']} {config['_id']}"
