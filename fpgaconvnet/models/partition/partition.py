@@ -17,7 +17,6 @@ class Partition:
     wr_factor: int = 1
     data_width: int = 16
 
-
     def __post_init__(self):
 
         # ports
@@ -73,6 +72,14 @@ class Partition:
     from fpgaconvnet.models.partition.update import update
     from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
     from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
+
+    @property
+    def input_nodes(self):
+        return graphs.get_input_nodes(self.graph, allow_multiport=True)
+
+    @property
+    def output_nodes(self):
+        return graphs.get_output_nodes(self.graph, allow_multiport=True)
 
     def visualise(self, partition_index):
         cluster = pydot.Cluster(str(partition_index), label=f"partition: {partition_index}",

@@ -32,10 +32,10 @@ def update(self, update_streams=True):
     self.add_squeeze()
 
     ## update streams in and out
-    self.input_nodes = graphs.get_input_nodes(self.graph, allow_multiport=True)
+    # self.input_nodes = graphs.get_input_nodes(self.graph, allow_multiport=True)
     self.ports_in = len(self.input_nodes)
 
-    self.output_nodes = graphs.get_output_nodes(self.graph, allow_multiport=True)
+    # self.output_nodes = graphs.get_output_nodes(self.graph, allow_multiport=True)
     self.ports_out = len(self.output_nodes)
 
     if update_streams:
@@ -70,7 +70,7 @@ def update_multiport_buffer_depth(self, multiport_node):
     # there is no split node, probably the eltwise/concat node is the first node
     if not split_nodes:
         for idx in range(self.graph.nodes[multiport_node]["hw"].ports_in):
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = 2
+            self.graph.nodes[multiport_node]["hw"].set_buffer_depth(2, idx)
         return
 
     split_node = split_nodes[0]
@@ -134,14 +134,14 @@ def update_multiport_buffer_depth(self, multiport_node):
 
         # buffer depth is difference of max depth with the paths depth
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.EltWise:
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
-                    math.ceil(max_depth - depth) + 64
+            self.graph.nodes[multiport_node]["hw"].set_buffer_depth(
+                    math.ceil(max_depth - depth) + 64, idx)
         if self.graph.nodes[multiport_node]["type"] == LAYER_TYPE.Concat:
             n = self.graph.nodes[multiport_node]["hw"]
             extra_cycles = int(sum([ n.channels_in(i)/n.rate_in(i) \
                     for i in range(n.ports_in) ]))
-            self.graph.nodes[multiport_node]["hw"].buffer_depth[idx] = \
-                    math.ceil(max_depth - depth) + extra_cycles + 64
+            self.graph.nodes[multiport_node]["hw"].set_buffer_depth(
+                    math.ceil(max_depth - depth) + extra_cycles + 64, idx)
 
 def reduce_squeeze_fanout(self):
     """
