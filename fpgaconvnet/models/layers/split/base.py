@@ -28,6 +28,17 @@ class SplitLayerBase(LayerMatchingCoarse, LayerBase):
 
     name: ClassVar[str] = "split"
 
+    def __post_init__(self):
+        assert self.ports > 1, "ERROR: number of ports must be greater than 1"
+        self.ports_in = 1
+
+        self.buffer_depth = 2
+        super().__post_init__()
+
+    def get_buffer_depth(self, port_idx: int = 0) -> int:
+        return self.buffer_depth
+
+
     def __setattr__(self, name: str, value: Any) -> None:
 
         if not hasattr(self, "is_init"):

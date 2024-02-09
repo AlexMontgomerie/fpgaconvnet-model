@@ -34,7 +34,8 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
     def __post_init__(self):
         self.ports_in = self.ports
         self.ports_out = 1
-        self.buffer_depth = [0]*self.ports
+        # self.buffer_depth = [0]*self.ports
+        self.buffer_depth = [0]*self.ports * 100
         super().__post_init__()
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -59,6 +60,11 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
         except AttributeError:
             print(f"WARNING: unable to set attribute {name}, trying super method")
             super().__setattr__(name, value)
+
+    def get_buffer_depth(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports}"
+        return self.buffer_depth[port_idx]
 
     def layer_info(self, parameters, batch_size=1):
         super().layer_info(parameters, batch_size)

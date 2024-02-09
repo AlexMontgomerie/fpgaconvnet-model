@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import pydot
 import networkx as nx
 
@@ -7,25 +9,16 @@ import fpgaconvnet.parser.onnx.helper as onnx_helper
 from fpgaconvnet.architecture import Architecture
 
 
-class Partition():
+@dataclass
+class Partition:
+    graph: nx.DiGraph
+    arch: Architecture
+    batch_size: int = 1
+    wr_factor: int = 1
+    data_width: int = 16
 
-    def __init__(
-        self,
-        graph: nx.DiGraph,
-        arch: Architecture,
-        batch_size: int = 1,
-        wr_factor: int = 1,
-        data_width: int = 16
-    ):
 
-        # graph for partition
-        self.graph = graph
-
-        # archictecture
-        self.arch = arch
-
-        # batch size
-        self.batch_size = batch_size
+    def __post_init__(self):
 
         # ports
         self.ports_in = len(graphs.get_input_nodes(
@@ -40,19 +33,18 @@ class Partition():
         # weights reloading
         self.enable_wr = True
         self.wr_layer = self.get_wr_layer()
-        self.wr_factor = wr_factor
 
         # featuremap size
         self.size_in = 0
         self.size_out = 0
         self.size_wr = 0
 
-        # bitwidths
-        self.data_width = data_width
-
         # flag reserved for solver
         self.need_optimise = True
         self.slow_down_factor = 1.0
+
+    from fpgaconvnet.models.partition.represent import partition_info
+    from fpgaconvnet.models.partition.represent import partition_info_dict
 
     # auxiliary layer functions
     from fpgaconvnet.models.partition.auxiliary import add_squeeze
@@ -233,3 +225,5 @@ class Partition():
 
         self.add_squeeze()
         return True, ""
+
+

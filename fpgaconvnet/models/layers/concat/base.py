@@ -28,11 +28,14 @@ class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
     name: ClassVar[str] = "concat"
 
     def __post_init__(self):
+
+        super().__post_init__()
+
         assert self.ports == len(self.channels), "ERROR: number of ports must match number of channels"
         assert self.ports > 1, "ERROR: number of ports must be greater than 1"
 
-        self.buffer_depth = [0]*self.ports
-        super().__post_init__()
+        # self.buffer_depth = [0]*self.ports
+        self.buffer_depth = [0]*self.ports * 100
 
     def __setattr__(self, name: str, value: Any) -> None:
 
@@ -56,6 +59,12 @@ class ConcatLayerBase(LayerMatchingCoarse, LayerBase):
         except AttributeError:
             print(f"WARNING: unable to set attribute {name}, trying super method")
             super().__setattr__(name, value)
+
+    def get_buffer_depth(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports}"
+        return self.buffer_depth[port_idx]
+
 
     def get_coarse_feasible(self) -> list[int]:
         coarse_in_feasible = super().get_coarse_in_feasible()

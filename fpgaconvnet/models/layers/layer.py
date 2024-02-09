@@ -174,6 +174,9 @@ class LayerBase(metaclass=LayerBaseMeta):
     def build_module_graph(self) -> nx.DiGraph: ...
 
     @abstractmethod
+    def get_buffer_depth(self, port_idx: int = 0) -> int: ...
+
+    @abstractmethod
     def input_shape(self, port_idx: int = 0) -> list[int]: ...
 
     @abstractmethod

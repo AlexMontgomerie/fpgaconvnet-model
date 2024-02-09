@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11\x66pgaconvnet.proto\x12\x0b\x66pgaconvnet\"2\n\x0b\x66ixed_point\x12\r\n\x05width\x18\x01 \x02(\x05\x12\x14\n\x0c\x62inary_point\x18\x02 \x02(\x05\"\x82\x01\n\x0cquant_format\x12)\n\x07scale_t\x18\x01 \x02(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x07shift_t\x18\x02 \x02(\x0b\x32\x18.fpgaconvnet.fixed_point\x12\r\n\x05scale\x18\x03 \x03(\x02\x12\r\n\x05shift\x18\x04 \x03(\x05\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\x84\x0e\n\tparameter\x12\x12\n\nbatch_size\x18\x01 \x01(\x05\x12\x0f\n\x07rows_in\x18\x02 \x01(\x05\x12\x0f\n\x07\x63ols_in\x18\x03 \x01(\x05\x12\x10\n\x08\x64\x65pth_in\x18\x04 \x01(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x01(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x01(\x05\x12\x11\n\tdepth_out\x18\x08 \x01(\x05\x12\x14\n\x0c\x63hannels_out\x18\t \x01(\x05\x12\x0e\n\x06\x63oarse\x18\n \x01(\x05\x12\x11\n\tcoarse_in\x18\x0b \x01(\x05\x12\x12\n\ncoarse_out\x18\x0c \x01(\x05\x12\x11\n\tmem_bw_in\x18\r \x01(\x02\x12\x12\n\nmem_bw_out\x18\x0e \x01(\x02\x12(\n\x06\x64\x61ta_t\x18\x0f \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x07input_t\x18\x10 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12*\n\x08output_t\x18\x11 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12.\n\x0binput_quant\x18\x12 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12/\n\x0coutput_quant\x18\x13 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12\x15\n\rstream_inputs\x18\x14 \x03(\x08\x12\x16\n\x0estream_outputs\x18\x15 \x03(\x08\x12\x16\n\x08use_uram\x18\x16 \x01(\x08:\x04true\x12\x10\n\x08ports_in\x18\x32 \x01(\x05\x12\x11\n\tports_out\x18\x33 \x01(\x05\x12\x15\n\rrows_in_array\x18\x34 \x03(\x05\x12\x15\n\rcols_in_array\x18\x35 \x03(\x05\x12\x16\n\x0e\x64\x65pth_in_array\x18\x36 \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18\x37 \x03(\x05\x12\x16\n\x0erows_out_array\x18\x38 \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18\x39 \x03(\x05\x12\x17\n\x0f\x64\x65pth_out_array\x18: \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18; \x03(\x05\x12\x17\n\x0fmem_bw_in_array\x18< \x03(\x02\x12\x18\n\x10mem_bw_out_array\x18= \x03(\x02\x12\r\n\x05ports\x18> \x01(\x05\x12\x0f\n\x07pad_top\x18h \x01(\x05\x12\x11\n\tpad_right\x18i \x01(\x05\x12\x12\n\npad_bottom\x18j \x01(\x05\x12\x10\n\x08pad_left\x18k \x01(\x05\x12\x11\n\tpad_front\x18l \x01(\x05\x12\x10\n\x08pad_back\x18m \x01(\x05\x12\x13\n\x0bkernel_rows\x18n \x01(\x05\x12\x13\n\x0bkernel_cols\x18o \x01(\x05\x12\x14\n\x0ckernel_depth\x18p \x01(\x05\x12\x13\n\x0bkernel_size\x18q \x03(\x05\x12\x13\n\x0bstride_rows\x18r \x01(\x05\x12\x13\n\x0bstride_cols\x18s \x01(\x05\x12\x14\n\x0cstride_depth\x18t \x01(\x05\x12\x0e\n\x06stride\x18u \x03(\x05\x12\x10\n\x07\x66ilters\x18\x96\x01 \x01(\x05\x12\x0f\n\x06groups\x18\x97\x01 \x01(\x05\x12\r\n\x04\x66ine\x18\x98\x01 \x01(\x05\x12\x15\n\x0c\x63oarse_group\x18\x99\x01 \x01(\x05\x12+\n\x08weight_t\x18\x9a\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12(\n\x05\x61\x63\x63_t\x18\x9b\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x06\x62ias_t\x18\x9c\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12\x30\n\x0cweight_quant\x18\x9d\x01 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12.\n\nbias_quant\x18\x9e\x01 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12\x17\n\x0estream_weights\x18\x9f\x01 \x01(\x05\x12\x1b\n\x12on_chip_addr_range\x18\xa0\x01 \x01(\x05\x12\x1d\n\x14off_chip_buffer_size\x18\xa1\x01 \x01(\x05\x12\x1a\n\x11off_chip_interval\x18\xa2\x01 \x01(\x05\x12\x11\n\x08sparsity\x18\xa3\x01 \x01(\x02\x12\x19\n\x10skipping_windows\x18\xa4\x01 \x01(\x08\x12\x11\n\x08has_bias\x18\xa5\x01 \x01(\x08\x12\x1d\n\x14\x62lock_floating_point\x18\xa6\x01 \x01(\x08\x12\x0e\n\x05split\x18\xc8\x01 \x03(\x05\x12 \n\x17input_compression_ratio\x18\xc9\x01 \x03(\x02\x12!\n\x18output_compression_ratio\x18\xca\x01 \x03(\x02\x12!\n\x18weight_compression_ratio\x18\xcb\x01 \x03(\x02\x12\x0f\n\x06scales\x18\xcc\x01 \x03(\x05\"\x88\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x11\n\tonnx_node\x18\x02 \x02(\t\x12%\n\x04type\x18\x03 \x02(\x0e\x32\x17.fpgaconvnet.layer_type\x12\x0f\n\x07op_type\x18\x04 \x01(\t\x12\'\n\nstreams_in\x18\x05 \x03(\x0b\x32\x13.fpgaconvnet.stream\x12(\n\x0bstreams_out\x18\x06 \x03(\x0b\x32\x13.fpgaconvnet.stream\x12\x14\n\x0cweights_path\x18\x07 \x01(\t\x12\x11\n\tbias_path\x18\x08 \x01(\t\x12*\n\nparameters\x18\t \x02(\x0b\x32\x16.fpgaconvnet.parameter\"\xe4\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x13\n\x0binput_nodes\x18\x04 \x03(\t\x12\x14\n\x0coutput_nodes\x18\x05 \x03(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x0egen_last_width\x18\x08 \x01(\x05\x12\"\n\x06layers\x18\t \x03(\x0b\x32\x12.fpgaconvnet.layer\"7\n\npartitions\x12)\n\tpartition\x18\x01 \x03(\x0b\x32\x16.fpgaconvnet.partition*\xb9\x01\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x0b\n\x07POOLING\x10\x01\x12\x0e\n\nACTIVATION\x10\x02\x12\x0b\n\x07SQUEEZE\x10\x03\x12\x11\n\rINNER_PRODUCT\x10\x04\x12\n\n\x06\x43ONCAT\x10\x05\x12\x0e\n\nBATCH_NORM\x10\x06\x12\t\n\x05SPLIT\x10\x07\x12\x0b\n\x07\x45LTWISE\x10\x08\x12\x13\n\x0f\x41VERAGE_POOLING\x10\t\x12\n\n\x06RESIZE\x10\n\x12\x08\n\x04\x43HOP\x10\x0b'
+  serialized_pb=b'\n\x11\x66pgaconvnet.proto\x12\x0b\x66pgaconvnet\"2\n\x0b\x66ixed_point\x12\r\n\x05width\x18\x01 \x02(\x05\x12\x14\n\x0c\x62inary_point\x18\x02 \x02(\x05\"\x82\x01\n\x0cquant_format\x12)\n\x07scale_t\x18\x01 \x02(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x07shift_t\x18\x02 \x02(\x0b\x32\x18.fpgaconvnet.fixed_point\x12\r\n\x05scale\x18\x03 \x03(\x02\x12\r\n\x05shift\x18\x04 \x03(\x05\"M\n\x06stream\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0e\n\x06\x63oarse\x18\x02 \x02(\x05\x12\x17\n\x0c\x62uffer_depth\x18\x03 \x02(\x05:\x01\x32\x12\x0c\n\x04node\x18\x04 \x01(\t\"\x84\x0e\n\tparameter\x12\x12\n\nbatch_size\x18\x01 \x01(\x05\x12\x0f\n\x07rows_in\x18\x02 \x01(\x05\x12\x0f\n\x07\x63ols_in\x18\x03 \x01(\x05\x12\x10\n\x08\x64\x65pth_in\x18\x04 \x01(\x05\x12\x13\n\x0b\x63hannels_in\x18\x05 \x01(\x05\x12\x10\n\x08rows_out\x18\x06 \x01(\x05\x12\x10\n\x08\x63ols_out\x18\x07 \x01(\x05\x12\x11\n\tdepth_out\x18\x08 \x01(\x05\x12\x14\n\x0c\x63hannels_out\x18\t \x01(\x05\x12\x0e\n\x06\x63oarse\x18\n \x01(\x05\x12\x11\n\tcoarse_in\x18\x0b \x01(\x05\x12\x12\n\ncoarse_out\x18\x0c \x01(\x05\x12\x11\n\tmem_bw_in\x18\r \x01(\x02\x12\x12\n\nmem_bw_out\x18\x0e \x01(\x02\x12(\n\x06\x64\x61ta_t\x18\x0f \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x07input_t\x18\x10 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12*\n\x08output_t\x18\x11 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12.\n\x0binput_quant\x18\x12 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12/\n\x0coutput_quant\x18\x13 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12\x15\n\rstream_inputs\x18\x14 \x03(\x08\x12\x16\n\x0estream_outputs\x18\x15 \x03(\x08\x12\x16\n\x08use_uram\x18\x16 \x01(\x08:\x04true\x12\x10\n\x08ports_in\x18\x32 \x01(\x05\x12\x11\n\tports_out\x18\x33 \x01(\x05\x12\x15\n\rrows_in_array\x18\x34 \x03(\x05\x12\x15\n\rcols_in_array\x18\x35 \x03(\x05\x12\x16\n\x0e\x64\x65pth_in_array\x18\x36 \x03(\x05\x12\x19\n\x11\x63hannels_in_array\x18\x37 \x03(\x05\x12\x16\n\x0erows_out_array\x18\x38 \x03(\x05\x12\x16\n\x0e\x63ols_out_array\x18\x39 \x03(\x05\x12\x17\n\x0f\x64\x65pth_out_array\x18: \x03(\x05\x12\x1a\n\x12\x63hannels_out_array\x18; \x03(\x05\x12\x17\n\x0fmem_bw_in_array\x18< \x03(\x02\x12\x18\n\x10mem_bw_out_array\x18= \x03(\x02\x12\r\n\x05ports\x18> \x01(\x05\x12\x0f\n\x07pad_top\x18h \x01(\x05\x12\x11\n\tpad_right\x18i \x01(\x05\x12\x12\n\npad_bottom\x18j \x01(\x05\x12\x10\n\x08pad_left\x18k \x01(\x05\x12\x11\n\tpad_front\x18l \x01(\x05\x12\x10\n\x08pad_back\x18m \x01(\x05\x12\x13\n\x0bkernel_rows\x18n \x01(\x05\x12\x13\n\x0bkernel_cols\x18o \x01(\x05\x12\x14\n\x0ckernel_depth\x18p \x01(\x05\x12\x13\n\x0bkernel_size\x18q \x03(\x05\x12\x13\n\x0bstride_rows\x18r \x01(\x05\x12\x13\n\x0bstride_cols\x18s \x01(\x05\x12\x14\n\x0cstride_depth\x18t \x01(\x05\x12\x0e\n\x06stride\x18u \x03(\x05\x12\x10\n\x07\x66ilters\x18\x96\x01 \x01(\x05\x12\x0f\n\x06groups\x18\x97\x01 \x01(\x05\x12\r\n\x04\x66ine\x18\x98\x01 \x01(\x05\x12\x15\n\x0c\x63oarse_group\x18\x99\x01 \x01(\x05\x12+\n\x08weight_t\x18\x9a\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12(\n\x05\x61\x63\x63_t\x18\x9b\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12)\n\x06\x62ias_t\x18\x9c\x01 \x01(\x0b\x32\x18.fpgaconvnet.fixed_point\x12\x30\n\x0cweight_quant\x18\x9d\x01 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12.\n\nbias_quant\x18\x9e\x01 \x01(\x0b\x32\x19.fpgaconvnet.quant_format\x12\x17\n\x0estream_weights\x18\x9f\x01 \x01(\x05\x12\x1b\n\x12on_chip_addr_range\x18\xa0\x01 \x01(\x05\x12\x1d\n\x14off_chip_buffer_size\x18\xa1\x01 \x01(\x05\x12\x1a\n\x11off_chip_interval\x18\xa2\x01 \x01(\x05\x12\x11\n\x08sparsity\x18\xa3\x01 \x01(\x02\x12\x19\n\x10skipping_windows\x18\xa4\x01 \x01(\x08\x12\x11\n\x08has_bias\x18\xa5\x01 \x01(\x08\x12\x1d\n\x14\x62lock_floating_point\x18\xa6\x01 \x01(\x08\x12\x0e\n\x05split\x18\xc8\x01 \x03(\x05\x12 \n\x17input_compression_ratio\x18\xc9\x01 \x03(\x02\x12!\n\x18output_compression_ratio\x18\xca\x01 \x03(\x02\x12!\n\x18weight_compression_ratio\x18\xcb\x01 \x03(\x02\x12\x0f\n\x06scales\x18\xcc\x01 \x03(\x05\"\x88\x02\n\x05layer\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x11\n\tonnx_node\x18\x02 \x01(\t\x12%\n\x04type\x18\x03 \x02(\x0e\x32\x17.fpgaconvnet.layer_type\x12\x0f\n\x07op_type\x18\x04 \x01(\t\x12\'\n\nstreams_in\x18\x05 \x03(\x0b\x32\x13.fpgaconvnet.stream\x12(\n\x0bstreams_out\x18\x06 \x03(\x0b\x32\x13.fpgaconvnet.stream\x12\x14\n\x0cweights_path\x18\x07 \x01(\t\x12\x11\n\tbias_path\x18\x08 \x01(\t\x12*\n\nparameters\x18\t \x02(\x0b\x32\x16.fpgaconvnet.parameter\"\xe4\x01\n\tpartition\x12\n\n\x02id\x18\x01 \x02(\x05\x12\r\n\x05ports\x18\x02 \x02(\x05\x12\x12\n\nbatch_size\x18\x03 \x02(\x05\x12\x13\n\x0binput_nodes\x18\x04 \x03(\t\x12\x14\n\x0coutput_nodes\x18\x05 \x03(\t\x12 \n\x18weights_reloading_factor\x18\x06 \x02(\x05\x12\x1f\n\x17weights_reloading_layer\x18\x07 \x02(\t\x12\x16\n\x0egen_last_width\x18\x08 \x01(\x05\x12\"\n\x06layers\x18\t \x03(\x0b\x32\x12.fpgaconvnet.layer\"7\n\npartitions\x12)\n\tpartition\x18\x01 \x03(\x0b\x32\x16.fpgaconvnet.partition*\x81\x02\n\nlayer_type\x12\x0f\n\x0b\x43ONVOLUTION\x10\x00\x12\x11\n\rINNER_PRODUCT\x10\x01\x12\x0b\n\x07POOLING\x10\x02\x12\x13\n\x0f\x41VERAGE_POOLING\x10\x03\x12\x08\n\x04RELU\x10\x04\x12\x08\n\x04SILU\x10\x05\x12\x0b\n\x07SIGMOID\x10\x06\x12\x10\n\x0cHARD_SIGMOID\x10\x07\x12\x0e\n\nHARD_SWISH\x10\x08\x12\n\n\x06RESIZE\x10\t\x12\x08\n\x04\x43HOP\x10\n\x12\x13\n\x0fTHRESHOLDEDRELU\x10\x0b\x12\x0b\n\x07SQUEEZE\x10\x0c\x12\n\n\x06\x43ONCAT\x10\r\x12\x0e\n\nBATCH_NORM\x10\x0e\x12\t\n\x05SPLIT\x10\x0f\x12\x0b\n\x07\x45LTWISE\x10\x10*#\n\x0c\x62\x61\x63kend_type\x12\x07\n\x03HLS\x10\x00\x12\n\n\x06\x43HISEL\x10\x01*)\n\x13\x64imensionality_type\x12\x07\n\x03TWO\x10\x00\x12\t\n\x05THREE\x10\x01'
 )
 
 _LAYER_TYPE = _descriptor.EnumDescriptor(
@@ -36,57 +36,82 @@ _LAYER_TYPE = _descriptor.EnumDescriptor(
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='POOLING', index=1, number=1,
+      name='INNER_PRODUCT', index=1, number=1,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ACTIVATION', index=2, number=2,
+      name='POOLING', index=2, number=2,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='SQUEEZE', index=3, number=3,
+      name='AVERAGE_POOLING', index=3, number=3,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='INNER_PRODUCT', index=4, number=4,
+      name='RELU', index=4, number=4,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='CONCAT', index=5, number=5,
+      name='SILU', index=5, number=5,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='BATCH_NORM', index=6, number=6,
+      name='SIGMOID', index=6, number=6,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='SPLIT', index=7, number=7,
+      name='HARD_SIGMOID', index=7, number=7,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ELTWISE', index=8, number=8,
+      name='HARD_SWISH', index=8, number=8,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='AVERAGE_POOLING', index=9, number=9,
+      name='RESIZE', index=9, number=9,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RESIZE', index=10, number=10,
+      name='CHOP', index=10, number=10,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='CHOP', index=11, number=11,
+      name='THRESHOLDEDRELU', index=11, number=11,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='SQUEEZE', index=12, number=12,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='CONCAT', index=13, number=13,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='BATCH_NORM', index=14, number=14,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='SPLIT', index=15, number=15,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='ELTWISE', index=16, number=16,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
@@ -94,23 +119,84 @@ _LAYER_TYPE = _descriptor.EnumDescriptor(
   containing_type=None,
   serialized_options=None,
   serialized_start=2653,
-  serialized_end=2838,
+  serialized_end=2910,
 )
 _sym_db.RegisterEnumDescriptor(_LAYER_TYPE)
 
 layer_type = enum_type_wrapper.EnumTypeWrapper(_LAYER_TYPE)
+_BACKEND_TYPE = _descriptor.EnumDescriptor(
+  name='backend_type',
+  full_name='fpgaconvnet.backend_type',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='HLS', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='CHISEL', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=2912,
+  serialized_end=2947,
+)
+_sym_db.RegisterEnumDescriptor(_BACKEND_TYPE)
+
+backend_type = enum_type_wrapper.EnumTypeWrapper(_BACKEND_TYPE)
+_DIMENSIONALITY_TYPE = _descriptor.EnumDescriptor(
+  name='dimensionality_type',
+  full_name='fpgaconvnet.dimensionality_type',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='TWO', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='THREE', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=2949,
+  serialized_end=2990,
+)
+_sym_db.RegisterEnumDescriptor(_DIMENSIONALITY_TYPE)
+
+dimensionality_type = enum_type_wrapper.EnumTypeWrapper(_DIMENSIONALITY_TYPE)
 CONVOLUTION = 0
-POOLING = 1
-ACTIVATION = 2
-SQUEEZE = 3
-INNER_PRODUCT = 4
-CONCAT = 5
-BATCH_NORM = 6
-SPLIT = 7
-ELTWISE = 8
-AVERAGE_POOLING = 9
-RESIZE = 10
-CHOP = 11
+INNER_PRODUCT = 1
+POOLING = 2
+AVERAGE_POOLING = 3
+RELU = 4
+SILU = 5
+SIGMOID = 6
+HARD_SIGMOID = 7
+HARD_SWISH = 8
+RESIZE = 9
+CHOP = 10
+THRESHOLDEDRELU = 11
+SQUEEZE = 12
+CONCAT = 13
+BATCH_NORM = 14
+SPLIT = 15
+ELTWISE = 16
+HLS = 0
+CHISEL = 1
+TWO = 0
+THREE = 1
 
 
 
@@ -798,7 +884,7 @@ _LAYER = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='onnx_node', full_name='fpgaconvnet.layer.onnx_node', index=1,
-      number=2, type=9, cpp_type=9, label=2,
+      number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1014,6 +1100,8 @@ DESCRIPTOR.message_types_by_name['layer'] = _LAYER
 DESCRIPTOR.message_types_by_name['partition'] = _PARTITION
 DESCRIPTOR.message_types_by_name['partitions'] = _PARTITIONS
 DESCRIPTOR.enum_types_by_name['layer_type'] = _LAYER_TYPE
+DESCRIPTOR.enum_types_by_name['backend_type'] = _BACKEND_TYPE
+DESCRIPTOR.enum_types_by_name['dimensionality_type'] = _DIMENSIONALITY_TYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 fixed_point = _reflection.GeneratedProtocolMessageType('fixed_point', (_message.Message,), {

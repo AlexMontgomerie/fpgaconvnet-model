@@ -25,6 +25,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 class GlobalPoolingLayerBase(LayerMatchingCoarse, LayerBase):
 
     op_type: str = "avg"
+    pool_type: str = "avg" # FIXME: remove reference to pool type in rest of repo
     acc_t: FixedPoint = FixedPoint(32,16)
     data_t: FixedPoint = FixedPoint(16,8)
 

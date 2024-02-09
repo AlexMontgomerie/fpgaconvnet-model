@@ -212,17 +212,36 @@ message parameter {
 
 enum layer_type {
     CONVOLUTION     = 0;
-    POOLING         = 1;
-    ACTIVATION      = 2;
-    SQUEEZE         = 3;
-    INNER_PRODUCT   = 4;
-    CONCAT          = 5;
-    BATCH_NORM      = 6;
-    SPLIT           = 7;
-    ELTWISE         = 8;
-    AVERAGE_POOLING = 9;
-    RESIZE          = 10;
-    CHOP            = 11;
+    INNER_PRODUCT   = 1;
+    POOLING         = 2;
+    AVERAGE_POOLING = 3;
+    RELU            = 4;
+    SILU            = 5;
+    SIGMOID         = 6;
+    HARD_SIGMOID    = 7;
+    HARD_SWISH      = 8;
+    RESIZE          = 9;
+    CHOP            = 10;
+    THRESHOLDEDRELU = 11;
+    SQUEEZE         = 12;
+    CONCAT          = 13;
+    BATCH_NORM      = 14;
+    SPLIT           = 15;
+    ELTWISE         = 16;
+}
+
+/**
+ * Available backends for the accelerator
+ */
+
+enum backend_type {
+    HLS     = 0;
+    CHISEL  = 1;
+}
+
+enum dimensionality_type {
+    TWO     = 0;
+    THREE   = 1;
 }
 
 /**
@@ -242,7 +261,7 @@ enum layer_type {
 message layer {
 
     required string name = 1;
-    required string onnx_node = 2;
+    optional string onnx_node = 2;
 
     required layer_type type = 3;
     optional string op_type = 4;
@@ -254,6 +273,9 @@ message layer {
     optional string bias_path    = 8;
 
     required parameter parameters = 9;
+
+    // optional backend_type backend = 10 [ default = backend_type.CHISEL ];
+    // optional dimensionality_type dimensionality = 11 [ default = dimensionality_type.TWO ];
 
 }
 

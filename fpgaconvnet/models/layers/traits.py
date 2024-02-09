@@ -63,6 +63,8 @@ class Layer2D(LayerBase):
     cols: int
     channels: int
 
+    buffer_depth: int = 2
+
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
 
     @classmethod
@@ -76,6 +78,9 @@ class Layer2D(LayerBase):
             config["channels"] = config["channels_in"]
 
         return super().sanitise_config(config)
+
+    def get_buffer_depth(self, port_idx: int = 0) -> int:
+        return self.buffer_depth
 
     def rows_in(self) -> int:
         return self.rows
@@ -198,6 +203,13 @@ class MultiPortLayer2D(LayerBase):
 
     dimensionality: ClassVar[DIMENSIONALITY] = DIMENSIONALITY.TWO
 
+    def __post_init__(self):
+        super().__post_init__()
+
+        # # TODO: place in initialiser
+        # self.buffer_depth: list[int] = [2] * 100 # FIXME
+
+
     @classmethod
     def sanitise_config(cls, config: dict) -> dict:
 
@@ -217,6 +229,10 @@ class MultiPortLayer2D(LayerBase):
 
         return super().sanitise_config(config)
 
+    def get_buffer_depth(self, port_idx: int = 0) -> int:
+        assert port_idx < self.ports_in, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports_in}"
+        return self.buffer_depth[port_idx]
 
     @abstractmethod
     def rows_in(self, port_idx: int = 0) -> int:
