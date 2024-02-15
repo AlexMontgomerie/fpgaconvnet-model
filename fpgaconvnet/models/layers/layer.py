@@ -197,6 +197,12 @@ class LayerBase(metaclass=LayerBaseMeta):
     def rate_out(self, port_idx: int = 0) -> float:
         return self.size_out(port_idx) / float(self.latency())
 
+    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+        """
+        Method for estimating the average rate out after a given number of output words
+        """
+        return self.rate_out() * min(prev_rate_out / self.rate_in(), 1)
+
     def streams_in(self) -> int:
             """
             Returns the number of input streams for this layer.

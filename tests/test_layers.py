@@ -182,6 +182,15 @@ class TestModule(unittest.TestCase):
         #self.assertTrue(layer.wait_depth() >= 0.0)
         pass
 
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_piecewise_rate_out(self, layer: LayerBase, config: dict): # TODO
+        pass
+        # # check piecewise rate out
+        # for i in range(layer.ports_out):
+        #     self.assertTrue(layer.piecewise_rate_out(i) >= 0.0)
+        #     self.assertTrue(layer.piecewise_rate_out(i) <= 1.0)
+
 
     @ddt.unpack
     @ddt.named_data(*[  (f"{name} ({rsc_type})", rsc_type, layer, config) \
