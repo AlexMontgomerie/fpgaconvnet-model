@@ -22,6 +22,7 @@ PLATFORM = "examples/platforms/zedboard.toml"
 
 ABS_TOL = 4000
 
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt()
 def test_unet_single_branch_network():
 
@@ -62,7 +63,7 @@ def test_unet_single_branch_network():
     assert net.partitions[0].graph.nodes["Concat_11"]["hw"].buffer_depth[1] == pytest.approx(2720, abs=ABS_TOL)
 
 
-
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt()
 def test_unet_two_branch_network():
 

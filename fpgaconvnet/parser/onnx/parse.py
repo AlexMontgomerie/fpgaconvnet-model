@@ -40,8 +40,8 @@ class ParseOnnxNode:
 
         # get inputs and outputs
         all_tensors = [ *graph.input, *graph.output, *graph.value_info, *graph.initializer ]
-        self.inputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.input ]
-        self.outputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.output]
+        self.inputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.input if i != ""]
+        self.outputs = [ next(filter(lambda x: x.name == i, all_tensors)) for i in n.output if i != ""]
 
         # input and output shape
         self.input_shape = [ x.dim_value for x in self.inputs[0].type.tensor_type.shape.dim ]

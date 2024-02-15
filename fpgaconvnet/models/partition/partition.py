@@ -41,37 +41,24 @@ class Partition:
         # flag reserved for solver
         self.need_optimise = True
         self.slow_down_factor = 1.0
+        self.encode_type = 'none'
 
     from fpgaconvnet.models.partition.represent import partition_info
     from fpgaconvnet.models.partition.represent import partition_info_dict
 
     # auxiliary layer functions
-    from fpgaconvnet.models.partition.auxiliary import add_squeeze
-    from fpgaconvnet.models.partition.auxiliary import remove_node_by_type
-    from fpgaconvnet.models.partition.auxiliary import remove_squeeze
+    from fpgaconvnet.models.partition.auxiliary import (add_squeeze,
+                                                        remove_node_by_type,
+                                                        remove_squeeze)
 
     # metrics
-    from fpgaconvnet.models.partition.metrics import get_initial_input_rate
-    from fpgaconvnet.models.partition.metrics import get_initial_output_rates
-    from fpgaconvnet.models.partition.metrics import get_node_delay
-    from fpgaconvnet.models.partition.metrics import get_node_delay_fast
-    from fpgaconvnet.models.partition.metrics import get_pipeline_depth
-    from fpgaconvnet.models.partition.metrics import get_pipeline_depth_fast
-    from fpgaconvnet.models.partition.metrics import get_interval
-    from fpgaconvnet.models.partition.metrics import get_cycle
-    from fpgaconvnet.models.partition.metrics import get_latency
-    from fpgaconvnet.models.partition.metrics import get_total_operations
-    from fpgaconvnet.models.partition.metrics import get_total_sparse_operations
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_in
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_out
-    from fpgaconvnet.models.partition.metrics import get_bandwidth_weight
-    from fpgaconvnet.models.partition.metrics import get_total_bandwidth
-    from fpgaconvnet.models.partition.metrics import get_resource_usage
-
+    from fpgaconvnet.models.partition.metrics import (get_bandwidth_in, get_bandwidth_out,
+                                                      get_bandwidth_weight, get_cycle, get_interval,
+                                                      get_latency, get_pipeline_depth, get_resource_usage,
+                                                      get_total_bandwidth, get_total_operations, get_total_sparse_operations)
     # update
-    from fpgaconvnet.models.partition.update import update
-    from fpgaconvnet.models.partition.update import update_multiport_buffer_depth
-    from fpgaconvnet.models.partition.update import reduce_squeeze_fanout
+    from fpgaconvnet.models.partition.update import (
+        reduce_squeeze_fanout, update, update_multiport_buffer_depth)
 
     @property
     def input_nodes(self):

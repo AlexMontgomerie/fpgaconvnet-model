@@ -29,3 +29,4 @@ from .split import SplitLayerChisel2D
 from .eltwise import EltwiseLayerChisel2D
 from .resize import ResizeLayerChisel2D
 from .global_pooling import GlobalPoolingLayerChisel2D
+

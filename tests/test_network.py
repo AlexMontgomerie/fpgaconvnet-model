@@ -40,8 +40,8 @@ class TestNetwork(unittest.TestCase):
     def test_metrics_exist(self, net: Network, config: dict):
 
         # check the metrics
-        assert net.get_latency(0, False, 0) >= 0
-        assert net.get_throughput(0, False, 0) >= 0
+        assert net.get_latency(200, False, 0) >= 0
+        assert net.get_throughput(200, False, 0) >= 0
 
     @ddt.unpack
     @ddt.named_data(*NETWORKS)

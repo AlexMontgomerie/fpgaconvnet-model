@@ -113,7 +113,10 @@ class Network():
         # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
-        return (len(partition_list)-1)*delay
+        if len(partition_list) == 1:
+            return 0
+        else:
+            return len(partition_list)*delay
 
     def get_cycle(self, pipeline, partition_list=None):
         if partition_list == None:

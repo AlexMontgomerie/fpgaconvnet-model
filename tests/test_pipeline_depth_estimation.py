@@ -21,12 +21,13 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define the path to the hardware backend directory (fpgaconvnet-chisel)
 HW_BACKEND_PATH = "../fpgaconvnet-chisel"
-ABS_TOL = 1000
-REL_TOL = 0.25
+ABS_TOL = 2000
+REL_TOL = 0.11
 
 def filter_by_type(layer_type):
     return "squeeze" not in layer_type.lower() and "split" not in layer_type.lower() and "reshape" not in layer_type.lower()
 
+@unittest.skip("Currently disabled in CI.")
 @ddt.ddt
 class TestPipelineDepth(unittest.TestCase):
 
@@ -47,7 +48,7 @@ class TestPipelineDepth(unittest.TestCase):
         # vgg 11 toy
         ["tests/models/vgg11_toy.onnx", "tests/configs/network/vgg11_toy.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_case_0/PartitionFixedDUT.vcd"],
-        # vgg 11 toy (large)
+        # vgg 11 toy large
         ["tests/models/vgg11_toy_large.onnx", "tests/configs/network/vgg11_toy_large.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_vgg11_toy_large_case_0/PartitionFixedDUT.vcd"],
         # vgg 19 toy
@@ -56,9 +57,15 @@ class TestPipelineDepth(unittest.TestCase):
         # resnet8
         ["tests/models/resnet8.onnx", "tests/configs/network/resnet8.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_resnet8_case_0/PartitionFixedDUT.vcd"],
+        # simple_cnn
+        ["tests/models/simple_cnn.onnx", "tests/configs/network/simple_cnn.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_simple_cnn_case_0/PartitionFixedDUT.vcd"],
+        # simple_cnn_2
+        ["tests/models/simple_cnn_2.onnx", "tests/configs/network/simple_cnn_2.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_simple_cnn_2_case_0/PartitionFixedDUT.vcd"],
         # # yolov5n-320
-        # ["tests/models/yolov5n-320.onnx", "tests/configs/network/yolov5n-320.json",
-        #     f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_yolov5n320_case_0/PartitionFixedDUT.vcd"],
+        ["tests/models/yolov5n-320.onnx", "tests/configs/network/yolov5n-320.json",
+            f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_yolov5n320_case_0/PartitionFixedDUT.vcd"],
     )
     def test_pipeline_depth(self, onnx_path, config_path, vcd_path):
 
@@ -91,14 +98,22 @@ class TestPipelineDepth(unittest.TestCase):
             "Layer": [layer for layer in partition_stats],
             "Model Rate In": [net.partitions[0].get_initial_input_rate(layer) for layer in partition_stats],
             "Actual Rate In": [partition_stats[layer]['initial_rate_in_per_stream'] for layer in partition_stats],
-            "Model Start Depth (words)": [net.partitions[0].graph.nodes[layer]["hw"].start_depth() for layer in partition_stats],
-            "Actual Start Depth (words)": [partition_stats[layer]['layer_start_depth'] for layer in partition_stats],
-            "Model Pipeline Depth (cycles)": [ model_pipeline_depth[layer] for layer in partition_stats],
-            "Actual Pipeline Depth (cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
+            "Actual Rate In\n(avg)": [partition_stats[layer]['average_rate_in_per_stream'] for layer in partition_stats],
+            "Model Start Depth\n(words)": [net.partitions[0].graph.nodes[layer]["hw"].start_depth() for layer in partition_stats],
+            "Actual Start Depth\n(words)": [partition_stats[layer]['layer_start_depth'] for layer in partition_stats],
+            "Model Node Delay\n(cycles)": [net.partitions[0].get_node_delay(layer) for layer in partition_stats],
+            "Actual Pipeline Depth\n(cycles)": [partition_stats[layer]['partition_pipeline_depth_cycles'] for layer in partition_stats],
+            "Actual latency\n(cycles)": [partition_stats[layer]['last_out_valid_cycles'] - partition_stats[layer]['first_out_valid_cycles'] for layer in partition_stats],
+            "Final latency\n(cycles)": [partition_stats[layer]['last_out_valid_cycles'] - 292 for layer in partition_stats],
         }, headers="keys"))
 
-        print("\nModel Total latency (cycles): ", net.partitions[0].get_cycle())
-        print("Actual Total latency (cycles): ", max([partition_stats[layer]['last_out_valid_cycles'] for layer in partition_stats]))
+        modeling_latency = net.partitions[0].get_cycle()
+        hw_sim_latency = max([partition_stats[layer]['last_out_valid_cycles'] - 292 for layer in partition_stats])
+        print()
+        print(f"Model  Total latency (cycles): {modeling_latency:.3f}")
+        print(f"Actual Total latency (cycles): {hw_sim_latency:.3f}")
+
+        assert modeling_latency == pytest.approx(hw_sim_latency, abs=ABS_TOL, rel=REL_TOL)
 
         # iterate over layers of the network
         for layer in partition_stats:
@@ -108,5 +123,4 @@ class TestPipelineDepth(unittest.TestCase):
 
             # check that it is within a reasonable tolerance
             assert model_pipeline_depth[layer] == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
-
 

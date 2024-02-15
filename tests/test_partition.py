@@ -11,6 +11,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
+from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.partition.partition import Partition
 import fpgaconvnet.tools.graphs as graphs
@@ -144,6 +145,19 @@ class TestPartition(unittest.TestCase):
         if cycles > 0:
             assert model_cycles == pytest.approx(cycles, abs=ABS_TOL, rel=REL_TOL), \
                 f"Modelled cycles do not match. Expected: {cycles}, Actual: {model_cycles}"
+
+
+    @ddt.unpack
+    @ddt.named_data(*PARTITIONS)
+    def test_remove_squeeze(self, parition: Partition, config: dict):
+
+        # perform the remove squeeze operation
+        parition.remove_squeeze()
+
+        # check the graph
+        for node in parition.graph.nodes:
+            assert parition.graph.nodes[node]["type"] != LAYER_TYPE.Squeeze, \
+                "Squeeze node not removed"
 
 
 

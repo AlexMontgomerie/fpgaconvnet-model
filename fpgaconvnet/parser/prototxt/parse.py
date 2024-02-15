@@ -547,19 +547,35 @@ class ParsePrototxtConcatNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
-        # create eltwise layer hardware
-        return ConcatLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in_array,
-            ports_in=self.node.parameters.ports_in,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-            coarse=self.node.parameters.coarse,
-            backend =self.backend,
-            regression_model =self.regression_model,
-            input_compression_ratio=self.node.parameters.input_compression_ratio,
-            output_compression_ratio=self.node.parameters.output_compression_ratio
-        )
+        # create concat layer hardware
+        if self.dimensionality == 2:
+            return ConcatLayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in_array,
+                ports_in=self.node.parameters.ports_in,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                coarse=self.node.parameters.coarse,
+                backend =self.backend,
+                regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
+            )
+        elif self.dimensionality == 3:
+            return ConcatLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in_array,
+                ports_in=self.node.parameters.ports_in,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                coarse=self.node.parameters.coarse,
+                backend =self.backend,
+                regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio,
+                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+            )
 
 class ParsePrototxtActivationNode(ParsePrototxtNode):
 
@@ -598,18 +614,34 @@ class ParsePrototxtReSizeNode(ParsePrototxtNode):
 
     def get_hardware(self):
 
-        return ReSizeLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            self.node.parameters.scale,
-            coarse=self.node.parameters.coarse,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-            backend =self.backend,
-            regression_model =self.regression_model,
-            input_compression_ratio=self.node.parameters.input_compression_ratio,
-            output_compression_ratio=self.node.parameters.output_compression_ratio
-        )
+        if self.dimensionality == 2:
+            return ReSizeLayer(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.channels_in,
+                self.node.parameters.scale,
+                coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                backend =self.backend,
+                regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio
+            )
+        elif self.dimensionality == 3:
+            return ReSizeLayer3D(
+                self.node.parameters.rows_in,
+                self.node.parameters.cols_in,
+                self.node.parameters.depth_in,
+                self.node.parameters.channels_in,
+                self.node.parameters.scale,
+                coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                backend =self.backend,
+                regression_model =self.regression_model,
+                input_compression_ratio=self.node.parameters.input_compression_ratio,
+                output_compression_ratio=self.node.parameters.output_compression_ratio,
+                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+            )
 
 class ParsePrototxtHardSwishNode(ParsePrototxtNode):
 

@@ -1,5 +1,5 @@
 import math
-
+import inspect
 from functools import reduce
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 
@@ -112,3 +112,41 @@ def stream_buffer(self):
     #         * weight_array_num
 
     # return weights_bram_usage, weights_uram_usage
+
+def encode_rsc(node, encode_type):
+    node_base_type = inspect.getmro(type(node))[-2]
+
+    if encode_type == "none":
+        return {}
+    elif encode_type == "huffman":
+        encode_rsc = {"LUT": 11, "FF": 7}
+        decode_rsc = {"LUT": 400, "FF": 81}
+    elif encode_type == "rle":
+        encode_rsc = {"LUT": 26, "FF": 10}
+        decode_rsc = {"LUT": 34, "FF": 11}
+
+    rsc = {"LUT": 0, "FF": 0}
+    for i, flag in enumerate(node.stream_inputs):
+        if flag and node.input_compression_ratio[i] < 1:
+            if node_base_type.__name__ in [ "Layer", "Layer3D" ]:
+                rsc["LUT"] += decode_rsc["LUT"] * node.streams_in()
+                rsc["FF"] += decode_rsc["FF"] * node.streams_in()
+            elif node_base_type.__name__ in [ "MultiPortLayer", "MultiPortLayer3D" ]:
+                rsc["LUT"] += decode_rsc["LUT"] * node.streams_in(i)
+                rsc["FF"] += decode_rsc["FF"] * node.streams_in(i)
+            else:
+                raise NotImplementedError(f"base type {node_base_type}")
+    for i, flag in enumerate(node.stream_outputs):
+        if flag and node.output_compression_ratio[i] < 1:
+            if node_base_type.__name__ in [ "Layer", "Layer3D" ]:
+                rsc["LUT"] += encode_rsc["LUT"] * node.streams_out()
+                rsc["FF"] += encode_rsc["FF"] * node.streams_out()
+            elif node_base_type.__name__ in [ "MultiPortLayer", "MultiPortLayer3D" ]:
+                rsc["LUT"] += encode_rsc["LUT"] * node.streams_out(i)
+                rsc["FF"] += encode_rsc["FF"] * node.streams_out(i)
+            else:
+                raise NotImplementedError(f"base type {node_base_type}")
+    if hasattr(node, "stream_weights") and node.stream_weights > 0 and node.weight_compression_ratio[0] < 1:
+        rsc["LUT"] += decode_rsc["LUT"] * (node.weight_array_width // node.weight_t.width)
+        rsc["FF"] += decode_rsc["FF"] * (node.weight_array_width // node.weight_t.width)
+    return rsc

@@ -1,8 +1,13 @@
-import copy
 import importlib
-import os
-import random
-import sys
+
+import networkx as nx
+import onnx
+import onnx.numpy_helper
+import onnx.utils
+import onnxoptimizer as optimizer
+import pydot
+from google.protobuf import json_format
+from onnxsim import simplify
 
 import networkx as nx
 import numpy as np
@@ -91,7 +96,7 @@ class Parser:
             "rename_all_nodes",
             "move_relu_after_quant",
             "add_nop_to_split_output",
-            "remove_empty_inputs_outputs",
+            # "remove_empty_inputs_outputs",
         ]
 
         self.fpgaconvnet_post_quant_passes = [
@@ -173,7 +178,6 @@ class Parser:
             LAYER_TYPE.ThresholdedReLU: ParseOnnxThresholdedReLUNode,
             LAYER_TYPE.Sigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.ReSize: ParseOnnxReSizeNode,
-            LAYER_TYPE.Concat: ParseOnnxConcatNode,
             LAYER_TYPE.HardSigmoid: ParseOnnxActivationNode,
             LAYER_TYPE.HardSwish: ParseOnnxHardSwishNode,
             LAYER_TYPE.Chop: ParseOnnxChopNode,

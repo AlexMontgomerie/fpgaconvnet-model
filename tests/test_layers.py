@@ -1,8 +1,10 @@
 import glob
+import random
 import os
 import unittest
 import ddt
 import json
+import copy
 import itertools
 import numpy as np
 import pytest
@@ -224,16 +226,110 @@ class TestModule(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
-    def test_updating_properties(self, layer: LayerBase, config: dict):
+    def test_updating_coarse_in(self, layer: LayerBase, config: dict):
+
+        # copy the layer
+        new_layer = copy.deepcopy(layer)
 
         # updating coarse in
-        coarse_in = max(layer.get_coarse_in_feasible())
-        layer.coarse_in = coarse_in
-        assert layer.coarse_in == coarse_in, f"Coarse in does not match. Expected: {coarse_in}, Actual: {layer.coarse_in}"
+        coarse_in = max(new_layer.get_coarse_in_feasible())
+        new_layer.coarse_in = coarse_in
+        assert new_layer.coarse_in == coarse_in, f"Coarse in does not match. Expected: {coarse_in}, Actual: {new_layer.coarse_in}"
+
+        # check the latency either improves or stays the same
+        assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+
+        # check the resources either improve or stay the same
+        for rsc_type in RESOURCES:
+            assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
+                f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_updating_coarse_out(self, layer: LayerBase, config: dict):
+
+        # copy the layer
+        new_layer = copy.deepcopy(layer)
 
         # updating coarse out
-        coarse_out = max(layer.get_coarse_out_feasible())
-        layer.coarse_out = coarse_out
-        assert layer.coarse_out == coarse_out, f"Coarse out does not match. Expected: {coarse_out}, Actual: {layer.coarse_out}"
+        coarse_out = max(new_layer.get_coarse_out_feasible())
+        new_layer.coarse_out = coarse_out
+        assert new_layer.coarse_out == coarse_out, f"Coarse out does not match. Expected: {coarse_out}, Actual: {new_layer.coarse_out}"
 
+        # check the latency either improves or stays the same
+        assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+
+        # check the resources either improve or stay the same
+        for rsc_type in RESOURCES:
+            assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
+                f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+
+
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_updating_coarse_out(self, layer: LayerBase, config: dict):
+
+        if "convolution" in layer.name:
+
+            # copy the layer
+            new_layer = copy.deepcopy(layer)
+
+            # updating coarse group
+            coarse_group = max(new_layer.get_coarse_group_feasible())
+            new_layer.coarse_group = coarse_group
+            assert new_layer.coarse_group == coarse_group, f"Coarse group does not match. Expected: {coarse_group}, Actual: {new_layer.coarse_group}"
+
+            # check the latency either improves or stays the same
+            assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+
+            # check the resources either improve or stay the same
+            for rsc_type in RESOURCES:
+                assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
+                    f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+
+
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_updating_fine(self, layer: LayerBase, config: dict):
+
+        if "convolution" in layer.name:
+
+            # copy the layer
+            new_layer = copy.deepcopy(layer)
+
+            # updating fine
+            fine = max(new_layer.get_fine_feasible())
+            new_layer.fine = fine
+            assert new_layer.fine == fine, f"Fine does not match. Expected: {fine}, Actual: {new_layer.fine}"
+
+            # check the latency either improves or stays the same
+            assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+
+            # check the resources either improve or stay the same
+            for rsc_type in RESOURCES:
+                assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
+                    f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+
+
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_double_buffered_attribute_exists(self, layer: LayerBase, config: dict):
+
+        # check the double buffered attribute
+        assert hasattr(layer, "double_buffered")
+
+    @ddt.unpack
+    @ddt.named_data(*LAYERS)
+    def test_change_stream_weights(self, layer: LayerBase, config: dict):
+
+        if "convolution" in layer.name:
+
+            # copy the layer
+            new_layer = copy.deepcopy(layer)
+
+            # randomly choose a ratio
+            weight_step_size = random.choice([0.1, 0.2, 0.3, 0.4, 0.5,
+                                            0.6, 0.7, 0.8, 0.9, 1.0])
+            new_layer.stream_weights = new_layer.stream_unit() * \
+                new_layer.stream_step(weight_step_size)
 

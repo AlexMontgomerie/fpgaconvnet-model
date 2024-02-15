@@ -1,10 +1,9 @@
-import json
-import math
 import copy
 import itertools
-
-import numpy as np
+import json
+import math
 import networkx as nx
+import numpy as np
 
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
@@ -85,7 +84,7 @@ def update_multiport_buffer_depth(self, multiport_node):
         source=split_node, target=multiport_node))
 
     # initiation interval of the hardware
-    interval = self.get_interval()
+    # interval = self.get_interval()
 
     # calculate the depth for each path
     path_depths = [0]*len(all_paths)
@@ -104,7 +103,7 @@ def update_multiport_buffer_depth(self, multiport_node):
         latency = [ n.latency() for n in node_hw ]
 
         # get the rate in
-        rate_in = [ n.rate_in() for n in node_hw ]
+        # rate_in = [ n.rate_in() for n in node_hw ]
 
         # get the pipeline depth of each node
         node_depth = [ n.pipeline_depth() for n in node_hw ]
