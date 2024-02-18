@@ -7,8 +7,14 @@ import json
 
 from tabulate import tabulate
 
-from fpgaconvnet.parser.Parser import Parser
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+
+from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.waveform_parser import VCDWaveformParser
+from fpgaconvnet.architecture import BACKEND
 
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
@@ -61,10 +67,10 @@ class TestPipelineDepth(unittest.TestCase):
         ["tests/models/yolov5n-320.onnx", "tests/configs/network/yolov5n-320.json",
             f"{HW_BACKEND_PATH}/test_run_dir/PartitionFixed_Config_0_should_be_correct_for_yolov5n320_case_0/PartitionFixedDUT.vcd"],
     )
-    def test_simple_gap_network(self, onnx_path, config_path, vcd_path):
+    def test_pipeline_depth(self, onnx_path, config_path, vcd_path):
 
         # initialise network
-        parser = Parser(backend="chisel")
+        parser = Parser(backend=BACKEND.CHISEL)
         net = parser.onnx_to_fpgaconvnet(onnx_path, save_opt_model=False)
         net = parser.prototxt_to_fpgaconvnet(net, config_path)
         net.update_partitions()
@@ -83,6 +89,9 @@ class TestPipelineDepth(unittest.TestCase):
                 partition_stats[layer] = vcd_parser.get_layer_stats(layer)
             with open(f"{vcd_path}.cache.json", "w") as f:
                 json.dump(partition_stats, f)
+
+        # get the per layer estimates
+        model_pipeline_depth = { layer: net.partitions[0].get_pipeline_depth(layer) for layer in model_layers }
 
         # create a table
         print(tabulate({
@@ -107,11 +116,11 @@ class TestPipelineDepth(unittest.TestCase):
         assert modeling_latency == pytest.approx(hw_sim_latency, abs=ABS_TOL, rel=REL_TOL)
 
         # iterate over layers of the network
-        # for layer in partition_stats:
+        for layer in partition_stats:
+
             # check pipeline depth is conservative
-            # assert net.partitions[0].get_node_delay(layer) >= partition_stats[layer]['partition_pipeline_depth_cycles']
+            # assert model_pipeline_depth[layer] >= partition_stats[layer]['partition_pipeline_depth_cycles']
 
             # check that it is within a reasonable tolerance
-            # assert net.partitions[0].get_node_delay(layer) == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
-
+            assert model_pipeline_depth[layer] == pytest.approx(partition_stats[layer]['partition_pipeline_depth_cycles'], abs=ABS_TOL, rel=REL_TOL)
 

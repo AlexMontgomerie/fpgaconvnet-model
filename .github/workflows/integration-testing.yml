@@ -16,12 +16,12 @@ jobs:
 
     steps:
     - name: Checkout model repo
-      uses: actions/checkout@v4    
+      uses: actions/checkout@v4
 
     - name: Fetch optimiser repo
       run: |
         BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-        URL=https://github.com/AlexMontgomerie/fpgaconvnet-optimiser.git    
+        URL=https://github.com/AlexMontgomerie/fpgaconvnet-optimiser.git
         if [ -z $(git ls-remote --heads $URL $BRANCH) ]; then
           echo "Warning! branch $BRANCH does not exist. use dev instead"
           BRANCH="dev"
@@ -33,7 +33,7 @@ jobs:
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10' 
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
@@ -42,15 +42,19 @@ jobs:
 
         # for some unknown reason, these packages need special care
         python -m pip install wheel
-        python -m pip install nvidia-pyindex 
+        python -m pip install nvidia-pyindex
         python -m pip install onnx-graphsurgeon
 
         python -m pip install .
         python -m pip install ./fpgaconvnet-optimiser
-        
+
+    - name: Build default resource models
+      run: |
+        ./scripts/regenerate_default_resource_models.sh
+
     - name: Run Model Unit Tests
       run: |
-        python -m unittest discover ./tests
+        pytest tests -v
 
     - name: Run Optimisation Tests
       run: |

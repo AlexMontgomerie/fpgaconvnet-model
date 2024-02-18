@@ -1,8 +1,13 @@
 import unittest
 import ddt
+
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
-from fpgaconvnet.parser import Parser
+from fpgaconvnet.parser.parser import Parser
 
 # class TestParserLeNet(unittest.TestCase):
 

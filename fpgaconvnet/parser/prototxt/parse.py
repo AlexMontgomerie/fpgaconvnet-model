@@ -2,23 +2,6 @@ import onnx
 import numpy as np
 import importlib
 
-from fpgaconvnet.models.layers import BatchNormLayer
-from fpgaconvnet.models.layers import ConvolutionLayer, ConvolutionLayer3D
-from fpgaconvnet.models.layers import ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer
-from fpgaconvnet.models.layers import InnerProductLayer, InnerProductLayer3D
-from fpgaconvnet.models.layers import PoolingLayer, PoolingLayer3D
-from fpgaconvnet.models.layers import ReLULayer, ReLULayer3D
-from fpgaconvnet.models.layers import ThresholdedReLULayer
-from fpgaconvnet.models.layers import SqueezeLayer, SqueezeLayer3D
-from fpgaconvnet.models.layers import GlobalPoolingLayer, GlobalPoolingLayer3D
-from fpgaconvnet.models.layers import EltWiseLayer, EltWiseLayer3D
-from fpgaconvnet.models.layers import SplitLayer, SplitLayer3D
-from fpgaconvnet.models.layers import ConcatLayer, ConcatLayer3D
-from fpgaconvnet.models.layers import ActivationLayer3D
-from fpgaconvnet.models.layers import ReSizeLayer, ReSizeLayer3D
-from fpgaconvnet.models.layers import HardswishLayer, HardswishLayer3D
-from fpgaconvnet.models.layers import ChopLayer
-
 from fpgaconvnet.data_types import FixedPoint
 
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE

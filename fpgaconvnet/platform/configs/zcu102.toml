@@ -1,0 +1,17 @@
+[device]
+name = "zcu102"
+#family = ""
+part = "xczu9eg-ffvb1156-2-e"
+board = "" #TODO: add board file
+
+[resources]
+DSP   = 2520
+BRAM  = 1824
+FF    = 548160
+LUT   = 599550
+
+[system]
+board_frequency = 300 # in MHz
+memory_bandwidth = 135.83 # in Gbps
+reconfiguration_time = 0.08255 # in seconds
+port_width = 512

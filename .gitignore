@@ -31,3 +31,5 @@ examples/models
 **.dcp
 
 .vscode/
+
+fpgaconvnet/models/cache/
