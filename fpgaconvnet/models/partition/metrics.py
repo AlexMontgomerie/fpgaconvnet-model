@@ -90,10 +90,9 @@ def get_interval(self):
         the partition.
     """
     # get the interval matrix
-    interval_matrix = matrix.get_interval_matrix(self.graph)
-    # return the overall interval
-    return np.max(np.absolute(interval_matrix))
-
+    interval = max([self.graph.nodes[node]['hw'].latency() for node in self.graph])
+    return interval
+    
 def get_cycle(self):
     # get the interval for the partition
     interval = self.get_interval()
