@@ -386,6 +386,8 @@ class ConvolutionLayer(Layer):
             self.modules['pad'].pad_right = self.pad_right
             if self.data_packing:
                 self.modules['pad'].streams = self.coarse_in*self.coarse_group
+            else:
+                self.modules['pad'].streams = 1
 
             # sliding window
             self.modules['sliding_window'].rows     = self.rows_in() + self.pad_top + self.pad_bottom
@@ -402,6 +404,8 @@ class ConvolutionLayer(Layer):
             self.modules['sliding_window'].pad_right = 0
             if self.data_packing:
                 self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
+            else:
+                self.modules['sliding_window'].streams = 1
 
             # squeeze
             self.modules['squeeze'].rows     = self.rows_out()
@@ -411,6 +415,9 @@ class ConvolutionLayer(Layer):
             self.modules['squeeze'].data_width = self.input_t.width
             if self.data_packing:
                 self.modules['squeeze'].streams = self.coarse_in*self.coarse_group
+            else:
+                self.modules['squeeze'].streams = 1
+
         elif self.backend == "hls":
             # sliding window
             self.modules['sliding_window'].rows     = self.rows
@@ -419,6 +426,8 @@ class ConvolutionLayer(Layer):
             self.modules['sliding_window'].data_width   = self.input_t.width
             if self.data_packing:
                 self.modules['sliding_window'].streams = self.coarse_in*self.coarse_group
+            else:
+                self.modules['sliding_window'].streams = 1
 
         # fork
         self.modules['fork'].rows     = self.rows_out()
@@ -430,6 +439,8 @@ class ConvolutionLayer(Layer):
             self.modules['fork'].kernel_size = [self.fine, 1]
         if self.data_packing:
             self.modules['fork'].streams = self.coarse_in*self.coarse_group
+        else:
+            self.modules['fork'].streams = 1
 
         if self.backend == "hls":
             # TODO: check the group parameter
@@ -458,6 +469,8 @@ class ConvolutionLayer(Layer):
 
             if self.data_packing:
                 self.modules['vector_dot'].streams = self.coarse_in*self.coarse_out*self.coarse_group
+            else:
+                self.modules['vector_dot'].streams = 1
 
         # accum
         self.modules['accum'].rows     = self.rows_out()
@@ -475,6 +488,8 @@ class ConvolutionLayer(Layer):
                 self.fine*self.coarse_in*self.coarse_group)
         if self.data_packing:
             self.modules['accum'].streams = self.coarse_in*self.coarse_group*self.coarse_out
+        else:
+            self.modules['accum'].streams = 1
 
         # glue
         self.modules['glue'].rows       = self.rows_out()
@@ -486,6 +501,8 @@ class ConvolutionLayer(Layer):
         self.modules['glue'].data_width = self.acc_t.width
         if self.data_packing:
             self.modules['glue'].streams = self.coarse_group*self.coarse_out
+        else:
+            self.modules['glue'].streams = 1
 
         if self.has_bias:
             # bias
@@ -496,6 +513,8 @@ class ConvolutionLayer(Layer):
             self.modules['bias'].biases_width   = self.acc_t.width
             if self.data_packing:
                 self.modules['bias'].streams = self.coarse_out*self.coarse_group
+            else:
+                self.modules['bias'].streams = 1
 
         # shift scale
         self.modules['shift_scale'].rows           = self.rows_out()
@@ -505,6 +524,8 @@ class ConvolutionLayer(Layer):
         self.modules['shift_scale'].biases_width   = self.acc_t.width
         if self.data_packing:
             self.modules['shift_scale'].streams = self.coarse_out*self.coarse_group
+        else:
+            self.modules['shift_scale'].streams = 1
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
