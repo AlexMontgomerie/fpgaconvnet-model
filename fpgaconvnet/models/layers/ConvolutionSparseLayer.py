@@ -89,6 +89,9 @@ class ConvolutionSparseLayer(ConvolutionLayer):
             weight_compression_ratio=weight_compression_ratio
         )
 
+        # data packing not supported for sparse layers
+        self.data_packing = False
+
         # change modules to sparse equivalents
         self.modules["vector_dot"] = SparseVectorDot(self.rows_out(), self.cols_out(),
             self.channels_in()//(self.coarse_in*self.coarse_group),

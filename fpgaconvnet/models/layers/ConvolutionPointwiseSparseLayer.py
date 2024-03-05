@@ -87,6 +87,9 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             weight_compression_ratio=weight_compression_ratio
         )
 
+        # data packing not supported for sparse layers
+        self.data_packing = False
+
         # update modules
         self.update()
 
