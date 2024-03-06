@@ -42,7 +42,7 @@ class SqueezeLayer3D(Layer3D):
         self.modules["squeeze3d"].rows = self.rows
         self.modules["squeeze3d"].cols = self.cols
         self.modules["squeeze3d"].depth = self.depth
-        self.modules["squeeze3d"].channels = self.channels
+        self.modules["squeeze3d"].channels = self.channels//(min(self.coarse_in, self.coarse_out))
         self.modules["squeeze3d"].coarse_in = self.coarse_in
         self.modules["squeeze3d"].coarse_out = self.coarse_out
         self.modules["squeeze3d"].data_width = self.data_t.width

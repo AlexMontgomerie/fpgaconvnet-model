@@ -128,21 +128,17 @@ class Network():
 
         return math.ceil(((max_input_size + max_output_size)*2)) # TODO *self.data_width)/8)
 
-    def get_partition_delay(self, partition_list=None):
+    def get_inter_latency(self, delay, partition_list=None):
         # latency between partitions
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
+        return (len(partition_list)-1)*delay
 
-        if self.multi_fpga:
-            return (len(partition_list)-1)*self.platform.eth_delay
-        else:
-            return (len(partition_list)-1)*self.platform.reconf_time
-
-    def get_cycle(self, partition_list=None, fast=True):
+    def get_cycle(self, pipeline, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
-        if self.multi_fpga:
+        if pipeline:
             # partitions pipelined
             max_interval = 0
             pipeline_depth = 0
@@ -159,25 +155,25 @@ class Network():
                 if partition_index not in partition_list:
                     continue
                 # accumulate cycle for each partition
-                cycle += partition.get_cycle(fast=fast)
+                cycle += partition.get_cycle()
         # return the total cycle
         return cycle
 
-    def get_latency(self, partition_list=None, fast=True):
+    def get_latency(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
-        batch_cycle = self.get_cycle(partition_list, fast=fast)
-        latency = batch_cycle/(self.platform.board_freq*1000000)
-        # return the total latency as well as reconfiguration time
-        return latency + self.get_partition_delay(partition_list)
+        batch_cycle = self.get_cycle(pipeline, partition_list)
+        latency = batch_cycle/(freq*1000000)
+        # return the total latency
+        return latency + self.get_inter_latency(delay, partition_list)
 
-    def get_throughput(self, partition_list=None):
+    def get_throughput(self, freq, pipeline, delay, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
         # return the frames per second
-        return float(self.batch_size)/self.get_latency(partition_list)
+        return float(self.batch_size)/self.get_latency(freq, pipeline, delay, partition_list)
 
     def get_interval(self, partition_list=None):
         assert self.multi_fpga, "get_interval() only works for multi-fpga implementation"
@@ -227,3 +223,27 @@ class Network():
         # update partitions
         self.update_partitions()
 
+    def check_network_graph_completeness(self):
+        """
+        Ensure all layers of the original graph belong to exactly one partition
+
+        Returns:
+            bool: True if the network is valid, False otherwise
+        """
+        original_layers = self.graph.nodes()
+        for origin_layer in original_layers:
+            layer_found = False
+            for partition in self.partitions:
+                if origin_layer in partition.graph.nodes():
+                    layer_found = True
+                    break
+            if not layer_found:
+                raise AssertionError(f"Layer {origin_layer} not found in any partition")
+
+        # check the validity of each partition
+        for partition_index in range(len(self.partitions)):
+            is_valid, err_msg = self.partitions[partition_index].check_graph_completeness(self.network_branch_edges)
+            if not is_valid:
+                raise AssertionError(f"Partition {partition_index} is not valid: {err_msg}")
+
+        return True

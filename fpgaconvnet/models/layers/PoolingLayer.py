@@ -316,3 +316,43 @@ class PoolingLayer(Layer):
         data = np.moveaxis(data, -1, 0)
         data = np.repeat(data[np.newaxis,...], batch_size, axis=0)
         return pooling_layer(torch.from_numpy(data)).detach().numpy()
+
+    def start_depth(self):
+        # return (self.kernel_rows-1)*self.cols*self.channels//self.streams_in() + \
+        #     (self.kernel_cols-1)*self.channels//self.streams_in()
+        # return (self.kernel_rows-1)*self.cols*self.channels + \
+        #         (self.kernel_cols-1)*self.channels - \
+        #         ( self.pad_top * self.cols * self.channels + \
+        #         (self.pad_left+self.pad_right)*self.channels ) + \
+        #         self.channels
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
+                (self.kernel_cols-1-self.pad_left)*self.channels//self.streams_in()
+
+    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+        """
+        Method for estimating the average rate out after a given number of output words
+        """
+        # get the output row index
+        output_row_index = math.floor(output_words / (self.cols_out() * self.channels_out()//self.streams_out())) + 1
+
+        # calculate based on the stride pattern
+        output_rate = (self.cols_out()/self.modules["sliding_window"].cols) * \
+            ( output_row_index/(output_row_index * self.stride_rows - 1) )
+        # print(output_words, output_row_index)
+        # print(f"output_rate: {output_rate}")
+
+        return  output_rate * min(prev_rate_out / self.rate_in(), 1)
+
+    # sliding_window_rate_out = (self.rows_out()*self.cols_out())/float(self.rows*self.cols)
+    # def start_depth(self):
+    #     return (self.kernel_rows-1)*self.cols*self.channels + \
+    #             (self.kernel_cols-1)*self.channels - \
+    #             ( self.pad_top * self.cols * self.channels + \
+    #             (self.pad_left+self.pad_right)*self.channels ) + \
+    #             self.channels
+
+    def get_operations(self):
+        return self.channels_in()*self.rows_out()*self.cols_out()\
+            *self.kernel_size[0]*self.kernel_size[1]
+
+

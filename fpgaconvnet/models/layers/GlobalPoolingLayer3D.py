@@ -48,6 +48,9 @@ class GlobalPoolingLayer3D(Layer3D):
 
         self.update()
 
+    def get_operations(self):
+        return self.channels_in()*self.rows_in()*self.cols_in()*self.depth_in()
+
     def rows_out(self) -> int:
         return 1
 
@@ -56,6 +59,9 @@ class GlobalPoolingLayer3D(Layer3D):
 
     def depth_out(self) -> int:
         return 1
+
+    def start_depth(self):
+        return self.rows*self.cols*self.depth*self.channels//self.streams_in()
 
     @property
     def coarse(self) -> int:

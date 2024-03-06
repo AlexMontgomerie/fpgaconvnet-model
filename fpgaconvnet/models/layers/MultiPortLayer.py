@@ -110,8 +110,11 @@ class MultiPortLayer:
 
     @channels.setter
     def channels(self, val: List[int]) -> None:
-        assert(len(val) == self.ports_in)
-        self._channels = val
+        # assert(len(val) == self.ports_in)
+        if isinstance(val, list):
+            self._channels = val
+        else:
+            self._channels = [val]
         # self.update()
 
     @coarse_in.setter
@@ -274,6 +277,18 @@ class MultiPortLayer:
         return abs(balance_module_rates(
             self.rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
 
+    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+        """
+        Method for estimating the average rate out after a given number of output words
+        """
+        return self.rate_out() * min(prev_rate_out / self.rate_in(), 1)
+
+    def piecewise_input_words_relationship(self, output_words: int):
+        """
+
+        """
+        return self.start_depth() + math.ceil(output_words * self.size_in() / self.size_out())
+
     def streams_in(self, port_index=0):
         """
         Returns
@@ -383,7 +398,11 @@ class MultiPortLayer:
             for i in range(self.ports_out) ])
 
     def latency(self):
-        return max(self.latency_in(), self.latency_out())
+        # return max(self.latency_in(), self.latency_out())
+        return max(module.latency() for module in self.modules.values())
+
+    def start_depth(self):
+        return 2 # number of input samples required to create a complete output channel
 
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])

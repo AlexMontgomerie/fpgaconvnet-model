@@ -35,6 +35,8 @@ class SqueezeLayer(Layer):
         self.modules["squeeze"] = Squeeze(self.rows, self.cols,
                 self.channels, self.coarse_in, self.coarse_out,
                 backend=self.backend, regression_model=self.regression_model)
+        
+        self.update()
 
     def layer_info(self,parameters,batch_size=1):
         Layer.layer_info(self, parameters, batch_size)
@@ -42,7 +44,7 @@ class SqueezeLayer(Layer):
     def update(self):
         self.modules["squeeze"].rows = self.rows
         self.modules["squeeze"].cols = self.cols
-        self.modules["squeeze"].channels = self.channels
+        self.modules["squeeze"].channels = self.channels//(min(self.coarse_in, self.coarse_out))
         self.modules["squeeze"].coarse_in = self.coarse_in
         self.modules["squeeze"].coarse_out = self.coarse_out
         self.modules["squeeze"].data_width = self.data_t.width

@@ -767,3 +767,8 @@ class ConvolutionLayer(Layer):
         return data
         # return convolution_layer(data).detach().numpy()
 
+
+    def start_depth(self):
+        return (self.kernel_rows-1-self.pad_top)*self.cols*self.channels//self.streams_in() + \
+                (self.kernel_cols-self.pad_left)*self.channels//self.streams_in()
+

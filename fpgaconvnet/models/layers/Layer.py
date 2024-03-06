@@ -2,6 +2,7 @@
 
 """
 
+import math
 import pydot
 import collections
 from typing import Union, List
@@ -181,6 +182,19 @@ class Layer:
         # return rates_graph
         return rates_graph
 
+    def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
+        """
+        Method for estimating the average rate out after a given number of output words
+        """
+        return self.rate_out() * min(prev_rate_out / self.rate_in(), 1)
+
+    def piecewise_input_words_relationship(self, output_words: int):
+        """
+
+        """
+        return self.start_depth() + math.ceil(output_words * self.size_in() / self.size_out())
+
+
     def rate_in(self) -> float:
         """
         Returns
@@ -191,7 +205,8 @@ class Layer:
 
             default is 1.0
         """
-        return abs(balance_module_rates(self.build_rates_graph())[0,0])
+        # return abs(balance_module_rates(self.build_rates_graph())[0,0])
+        return self.size_in() / self.latency()
 
     def rate_out(self) -> float:
         """
@@ -203,8 +218,9 @@ class Layer:
 
             default is 1.0
         """
-        return abs(balance_module_rates(
-            self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
+        return self.size_out() / self.latency()
+        # return abs(balance_module_rates(
+        #     self.build_rates_graph())[len(self.modules.keys())-1,len(self.modules.keys())])
 
     def streams_in(self) -> int:
         """
@@ -253,7 +269,7 @@ class Layer:
         int
             workload in per stream.
         """
-        return self.rows_in() * self.cols_in() * int( self.channels_in() / self.streams_in() )
+        return self.rows_in() * self.cols_in() * ( self.channels_in() // self.streams_in() )
 
     def size_out(self) -> int:
         """
@@ -262,7 +278,7 @@ class Layer:
         int
             workload out per stream.
         """
-        return self.rows_out() * self.cols_out() * int( self.channels_out() / self.streams_out() )
+        return self.rows_out() * self.cols_out() * ( self.channels_out() // self.streams_out() )
 
     def shape_in(self) -> List[int]: # TODO: add documentation
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
@@ -295,13 +311,15 @@ class Layer:
         return int(abs(self.workload_out()/(min(self.mem_bw_out, self.rate_out()*self.streams_out()))))
 
     def latency(self):
-        return max(self.latency_in(), self.latency_out())
+        # return max(self.latency_in(), self.latency_out())
+        return max(module.latency() for module in self.modules.values())
+
+    def start_depth(self):
+        return 2 # number of input samples required to create a complete output channel
 
     def pipeline_depth(self):
         return sum([ self.modules[module].pipeline_depth() for module in self.modules ])
-
-    def wait_depth(self):
-        return sum([ self.modules[module].wait_depth() for module in self.modules ])
+        # return [ self.modules[module].pipeline_depth() for module in self.modules ][0]
 
     def resource(self):
         return {

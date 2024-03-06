@@ -1,6 +1,7 @@
 import os
 import json
 import inspect
+import onnx
 
 import numpy as np
 from google.protobuf.text_format import MessageToString
