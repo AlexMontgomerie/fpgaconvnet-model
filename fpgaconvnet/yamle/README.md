@@ -1,7 +1,7 @@
 
 
 ## Setup
-Clone and pip install the "fpgaconvnet-model" [dev-yamle](https://github.com/AlexMontgomerie/fpgaconvnet-model/tree/dev-yamle) branch and "fpgaconvnet-optimiser" at [this_commit](https://github.com/AlexMontgomerie/fpgaconvnet-optimiser/tree/65c6687b4ba6672235e32c7e2d7a148381732237).
+Clone and pip install the "fpgaconvnet-model" [dev-yamle](https://github.com/AlexMontgomerie/fpgaconvnet-model/tree/fix/dev-yamle-pipeline-delay) branch and "fpgaconvnet-optimiser" at [this_commit](https://github.com/zkr12123/fpgaconvnet-optimiser/tree/dev-yamle).
 
 
 ## Example
