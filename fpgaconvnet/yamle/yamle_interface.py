@@ -78,8 +78,16 @@ def get_yamle_model_cost(model_path: str, platform_path: str, rsc_allocation=0.8
             opt.net.partitions[0].update_multiport_buffer_depth(node)
 
     report = {
-        "latency" : opt.net.get_latency(fast=False),
-        "throughput" : opt.net.get_throughput(),
+        "latency" : opt.net.get_latency(
+            freq=opt.net.platform.board_freq,
+            pipeline=True,
+            delay=0
+        ),
+        "throughput" : opt.net.get_throughput(
+            freq=opt.net.platform.board_freq,
+            pipeline=True,
+            delay=0
+        ),
         # "performance" : total_operations/self.get_latency(),
         # "cycles" : self.get_cycle(),
         # "partition_delay" : self.get_partition_delay()
