@@ -226,6 +226,7 @@ class ConvolutionSparseLayer(ConvolutionLayer):
     def layer_info(self,parameters,batch_size=1):
         super().layer_info(parameters, batch_size)
         parameters.sparsity.extend(self.channel_sparsity_hist.flatten())
+        parameters.skip_all_zero_window = self.skip_all_zero_window
 
     def resource(self):
         # get module resource models
