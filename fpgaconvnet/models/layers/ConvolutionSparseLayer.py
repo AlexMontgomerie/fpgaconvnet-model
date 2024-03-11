@@ -169,15 +169,15 @@ class ConvolutionSparseLayer(ConvolutionLayer):
                 for i in range(ws.shape[0]):
 
                     # average cycles spent on complete zero windows
-                    zero_window_cycles = ws[i,0]
+                    zero_window_cycles = ws[i,-1]
                     if self.skip_all_zero_window:
                         zero_window_cycles = 0
 
                     # get the average number of cycles for the each vector dot product
                     vector_dot_cycles = \
                             zero_window_cycles + \
-                            sum([ math.ceil(j/self.fine)*ws[i,j]
-                                for j in range(1, np.prod(self.kernel_size)+1) ])
+                            sum([ math.ceil((np.prod(self.kernel_size)-j)/self.fine)*ws[i,j]
+                                for j in range(0, np.prod(self.kernel_size)) ])
 
                     # append the operation latency for the stream
                     operation_latency_per_stream.append(
