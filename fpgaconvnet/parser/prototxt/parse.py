@@ -24,6 +24,8 @@ from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.tools.layer_enum as layer_enum
 
+from google.protobuf.json_format import MessageToDict
+
 class ParsePrototxtNode:
 
     def __init__(self, n, dimensionality=2, backend="chisel", regression_model="linear_regression"):
@@ -58,7 +60,7 @@ class ParsePrototxtNode:
         self.output_shape = [ n.parameters.rows_out,
                 n.parameters.cols_out, n.parameters.channels_out ]
 
-        self.attr = self.node.parameters
+        self.attr = MessageToDict(self.node.parameters, preserving_proto_field_name=True)
         # get hardware
         self.hw = self.get_hardware()
 
@@ -114,141 +116,141 @@ class ParsePrototxtConvNode(ParsePrototxtNode):
         if self.dimensionality == 2:
             if self.node.op_type == "dense":
                 return ConvolutionLayer(
-                    self.node.parameters.channels_out,
-                    self.node.parameters.rows_in,
-                    self.node.parameters.cols_in,
-                    self.node.parameters.channels_in,
-                    kernel_rows =self.node.parameters.kernel_rows,
-                    kernel_cols =self.node.parameters.kernel_cols,
-                    stride_rows =self.node.parameters.stride_rows,
-                    stride_cols =self.node.parameters.stride_cols,
-                    pad_top     =self.node.parameters.pad_top,
-                    pad_bottom  =self.node.parameters.pad_bottom,
-                    pad_left    =self.node.parameters.pad_left,
-                    pad_right   =self.node.parameters.pad_right,
-                    groups      =self.node.parameters.groups,
-                    fine        =self.node.parameters.fine,
-                    coarse_in   =self.node.parameters.coarse_in,
-                    coarse_out  =self.node.parameters.coarse_out,
-                    coarse_group=self.node.parameters.coarse_group,
-                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                    has_bias    =self.node.parameters.has_bias,
-                    block_floating_point =self.node.parameters.block_floating_point,
+                    self.attr["channels_out"],
+                    self.attr["rows_in"],
+                    self.attr["cols_in"],
+                    self.attr["channels_in"],
+                    kernel_rows =self.attr["kernel_rows"],
+                    kernel_cols =self.attr["kernel_cols"],
+                    stride_rows =self.attr["stride_rows"],
+                    stride_cols =self.attr["stride_cols"],
+                    pad_top     =self.attr["pad_top"],
+                    pad_bottom  =self.attr["pad_bottom"],
+                    pad_left    =self.attr["pad_left"],
+                    pad_right   =self.attr["pad_right"],
+                    groups      =self.attr["groups"],
+                    fine        =self.attr["fine"],
+                    coarse_in   =self.attr["coarse_in"],
+                    coarse_out  =self.attr["coarse_out"],
+                    coarse_group=self.attr["coarse_group"],
+                    input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                    output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                    weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                    acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                    has_bias    =self.attr["has_bias"],
+                    block_floating_point =self.attr["block_floating_point"],
                     backend =self.backend,
                     regression_model =self.regression_model,
-                    stream_weights=self.node.parameters.stream_weights,
-                    use_uram = self.node.parameters.use_uram,
-                    input_compression_ratio=self.node.parameters.input_compression_ratio,
-                    output_compression_ratio=self.node.parameters.output_compression_ratio,
-                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                    stream_weights=self.attr["stream_weights"],
+                    use_uram = self.attr["use_uram"],
+                    input_compression_ratio=self.attr["input_compression_ratio"],
+                    output_compression_ratio=self.attr["output_compression_ratio"],
+                    weight_compression_ratio=self.attr["weight_compression_ratio"]
                 )
             elif self.node.op_type == "sparse":
                 return ConvolutionSparseLayer(
-                    self.node.parameters.channels_out,
-                    self.node.parameters.rows_in,
-                    self.node.parameters.cols_in,
-                    self.node.parameters.channels_in,
-                    kernel_rows =self.node.parameters.kernel_rows,
-                    kernel_cols =self.node.parameters.kernel_cols,
-                    stride_rows =self.node.parameters.stride_rows,
-                    stride_cols =self.node.parameters.stride_cols,
-                    pad_top     =self.node.parameters.pad_top,
-                    pad_bottom  =self.node.parameters.pad_bottom,
-                    pad_left    =self.node.parameters.pad_left,
-                    pad_right   =self.node.parameters.pad_right,
-                    groups      =self.node.parameters.groups,
-                    fine        =self.node.parameters.fine,
-                    coarse_in   =self.node.parameters.coarse_in,
-                    coarse_out  =self.node.parameters.coarse_out,
-                    coarse_group=self.node.parameters.coarse_group,
-                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                    block_floating_point =self.node.parameters.block_floating_point,
-                    has_bias    =self.node.parameters.has_bias,
-                    channel_sparsity_hist = self.node.parameters.sparsity,
-                    skip_all_zero_window =self.node.parameters.skip_all_zero_window,
+                    self.attr["channels_out"],
+                    self.attr["rows_in"],
+                    self.attr["cols_in"],
+                    self.attr["channels_in"],
+                    kernel_rows =self.attr["kernel_rows"],
+                    kernel_cols =self.attr["kernel_cols"],
+                    stride_rows =self.attr["stride_rows"],
+                    stride_cols =self.attr["stride_cols"],
+                    pad_top     =self.attr["pad_top"],
+                    pad_bottom  =self.attr["pad_bottom"],
+                    pad_left    =self.attr["pad_left"],
+                    pad_right   =self.attr["pad_right"],
+                    groups      =self.attr["groups"],
+                    fine        =self.attr["fine"],
+                    coarse_in   =self.attr["coarse_in"],
+                    coarse_out  =self.attr["coarse_out"],
+                    coarse_group=self.attr["coarse_group"],
+                    input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                    output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                    weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                    acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                    block_floating_point =self.attr["block_floating_point"],
+                    has_bias    =self.attr["has_bias"],
+                    channel_sparsity_hist = self.attr["sparsity"],
+                    skip_all_zero_window =self.attr["skip_all_zero_window"],
                     backend =self.backend,
                     regression_model =self.regression_model,
-                    stream_weights=self.node.parameters.stream_weights,
-                    use_uram = self.node.parameters.use_uram,
-                    input_compression_ratio=self.node.parameters.input_compression_ratio,
-                    output_compression_ratio=self.node.parameters.output_compression_ratio,
-                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                    stream_weights=self.attr["stream_weights"],
+                    use_uram = self.attr["use_uram"],
+                    input_compression_ratio=self.attr["input_compression_ratio"],
+                    output_compression_ratio=self.attr["output_compression_ratio"],
+                    weight_compression_ratio=self.attr["weight_compression_ratio"]
                 )
             elif self.node.op_type == "pointwise_sparse":
                 return ConvolutionPointwiseSparseLayer(
-                    self.node.parameters.channels_out,
-                    self.node.parameters.rows_in,
-                    self.node.parameters.cols_in,
-                    self.node.parameters.channels_in,
-                    stride_rows =self.node.parameters.stride_rows,
-                    stride_cols =self.node.parameters.stride_cols,
-                    pad_top     =self.node.parameters.pad_top,
-                    pad_bottom  =self.node.parameters.pad_bottom,
-                    pad_left    =self.node.parameters.pad_left,
-                    pad_right   =self.node.parameters.pad_right,
-                    groups      =self.node.parameters.groups,
-                    coarse_in   =self.node.parameters.coarse_in,
-                    coarse_out  =self.node.parameters.coarse_out,
-                    coarse_group=self.node.parameters.coarse_group,
-                    input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                    output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                    weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                    acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                    block_floating_point =self.node.parameters.block_floating_point,
-                    has_bias    =self.node.parameters.has_bias,
-                    channel_sparsity_avg = self.node.parameters.sparsity,
-                    clusters =self.node.parameters.clusters,
+                    self.attr["channels_out"],
+                    self.attr["rows_in"],
+                    self.attr["cols_in"],
+                    self.attr["channels_in"],
+                    stride_rows =self.attr["stride_rows"],
+                    stride_cols =self.attr["stride_cols"],
+                    pad_top     =self.attr["pad_top"],
+                    pad_bottom  =self.attr["pad_bottom"],
+                    pad_left    =self.attr["pad_left"],
+                    pad_right   =self.attr["pad_right"],
+                    groups      =self.attr["groups"],
+                    coarse_in   =self.attr["coarse_in"],
+                    coarse_out  =self.attr["coarse_out"],
+                    coarse_group=self.attr["coarse_group"],
+                    input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                    output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                    weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                    acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                    block_floating_point =self.attr["block_floating_point"],
+                    has_bias    =self.attr["has_bias"],
+                    channel_sparsity_avg = self.attr["sparsity"],
+                    clusters =self.attr["clusters"],
                     backend =self.backend,
                     regression_model =self.regression_model,
-                    stream_weights=self.node.parameters.stream_weights,
-                    use_uram =self.node.parameters.use_uram,
-                    input_compression_ratio=self.node.parameters.input_compression_ratio,
-                    output_compression_ratio=self.node.parameters.output_compression_ratio,
-                    weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                    stream_weights=self.attr["stream_weights"],
+                    use_uram =self.attr["use_uram"],
+                    input_compression_ratio=self.attr["input_compression_ratio"],
+                    output_compression_ratio=self.attr["output_compression_ratio"],
+                    weight_compression_ratio=self.attr["weight_compression_ratio"]
                 )
         elif self.dimensionality == 3:
             return ConvolutionLayer3D(
-                self.node.parameters.channels_out,
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                kernel_rows =self.node.parameters.kernel_rows,
-                kernel_cols =self.node.parameters.kernel_cols,
-                kernel_depth=self.node.parameters.kernel_depth,
-                stride_rows =self.node.parameters.stride_rows,
-                stride_cols =self.node.parameters.stride_cols,
-                stride_depth=self.node.parameters.stride_depth,
-                pad_top     =self.node.parameters.pad_top,
-                pad_bottom  =self.node.parameters.pad_bottom,
-                pad_left    =self.node.parameters.pad_left,
-                pad_right   =self.node.parameters.pad_right,
-                pad_front   =self.node.parameters.pad_front,
-                pad_back    =self.node.parameters.pad_back,
-                groups      =self.node.parameters.groups,
-                fine        =self.node.parameters.fine,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                coarse_group=self.node.parameters.coarse_group,
-                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                block_floating_point =self.node.parameters.block_floating_point,
-                has_bias    =self.node.parameters.has_bias,
+                self.attr["channels_out"],
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                kernel_rows =self.attr["kernel_rows"],
+                kernel_cols =self.attr["kernel_cols"],
+                kernel_depth=self.attr["kernel_depth"],
+                stride_rows =self.attr["stride_rows"],
+                stride_cols =self.attr["stride_cols"],
+                stride_depth=self.attr["stride_depth"],
+                pad_top     =self.attr["pad_top"],
+                pad_bottom  =self.attr["pad_bottom"],
+                pad_left    =self.attr["pad_left"],
+                pad_right   =self.attr["pad_right"],
+                pad_front   =self.attr["pad_front"],
+                pad_back    =self.attr["pad_back"],
+                groups      =self.attr["groups"],
+                fine        =self.attr["fine"],
+                coarse_in   =self.attr["coarse_in"],
+                coarse_out  =self.attr["coarse_out"],
+                coarse_group=self.attr["coarse_group"],
+                input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                block_floating_point =self.attr["block_floating_point"],
+                has_bias    =self.attr["has_bias"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio,
-                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                stream_weights=self.attr["stream_weights"],
+                use_uram =self.attr["use_uram"],
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"],
+                weight_compression_ratio=self.attr["weight_compression_ratio"]
             )
         else:
             raise NotImplementedError
@@ -268,48 +270,48 @@ class ParsePrototxtInnerProductNode(ParsePrototxtNode):
         # return hardware
         if self.dimensionality == 2:
             return InnerProductLayer(
-                self.node.parameters.channels_out,
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                block_floating_point =self.node.parameters.block_floating_point,
-                has_bias    =self.node.parameters.has_bias,
+                self.attr["channels_out"],
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                coarse_in   =self.attr["coarse_in"],
+                coarse_out  =self.attr["coarse_out"],
+                input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                block_floating_point =self.attr["block_floating_point"],
+                has_bias    =self.attr["has_bias"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio,
-                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                stream_weights=self.attr["stream_weights"],
+                use_uram =self.attr["use_uram"],
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"],
+                weight_compression_ratio=self.attr["weight_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return InnerProductLayer3D(
-                self.node.parameters.channels_out,
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                input_t     =FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t    =FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
-                weight_t    =FixedPoint(self.node.parameters.weight_t.width, self.node.parameters.weight_t.binary_point),
-                acc_t       =FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
-                block_floating_point =self.node.parameters.block_floating_point,
-                has_bias    =self.node.parameters.has_bias,
+                self.attr["channels_out"],
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                coarse_in   =self.attr["coarse_in"],
+                coarse_out  =self.attr["coarse_out"],
+                input_t     =FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                output_t    =FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
+                weight_t    =FixedPoint(self.attr["weight_t"]["width"], self.attr["weight_t"]["binary_point"]),
+                acc_t       =FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
+                block_floating_point =self.attr["block_floating_point"],
+                has_bias    =self.attr["has_bias"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                stream_weights=self.node.parameters.stream_weights,
-                use_uram =self.node.parameters.use_uram,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio,
-                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                stream_weights=self.attr["stream_weights"],
+                use_uram =self.attr["use_uram"],
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"],
+                weight_compression_ratio=self.attr["weight_compression_ratio"]
             )
         else:
             raise NotImplementedError
@@ -329,24 +331,24 @@ class ParsePrototxtReLUNode(ParsePrototxtNode):
         # return hardware
         if self.dimensionality == 2:
             return ReLULayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                coarse=self.node.parameters.coarse,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                coarse=self.attr["coarse"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ReLULayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                coarse=self.node.parameters.coarse,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                coarse=self.attr["coarse"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError
@@ -357,14 +359,14 @@ class ParsePrototxtThresholdedReLUNode(ParsePrototxtNode):
 
         # return hardware
         return ThresholdedReLULayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            threshold = self.node.parameters.threshold,
-            coarse=self.node.parameters.coarse,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-            input_compression_ratio=self.node.parameters.input_compression_ratio,
-            output_compression_ratio=self.node.parameters.output_compression_ratio
+            self.attr["rows_in"],
+            self.attr["cols_in"],
+            self.attr["channels_in"],
+            threshold = self.attr["threshold"],
+            coarse=self.attr["coarse"],
+            data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+            input_compression_ratio=self.attr["input_compression_ratio"],
+            output_compression_ratio=self.attr["output_compression_ratio"]
         )
 
 class ParsePrototxtPoolingNode(ParsePrototxtNode):
@@ -374,50 +376,50 @@ class ParsePrototxtPoolingNode(ParsePrototxtNode):
         # create pooling layer hardware
         if self.dimensionality == 2:
             return PoolingLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
                 pool_type   = self.op_type,
-                kernel_rows =self.node.parameters.kernel_rows,
-                kernel_cols =self.node.parameters.kernel_cols,
-                stride_rows =self.node.parameters.stride_rows,
-                stride_cols =self.node.parameters.stride_cols,
-                pad_top     =self.node.parameters.pad_top,
-                pad_bottom  =self.node.parameters.pad_bottom,
-                pad_left    =self.node.parameters.pad_left,
-                pad_right   =self.node.parameters.pad_right,
-                coarse  =self.node.parameters.coarse,
-                data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                kernel_rows =self.attr["kernel_rows"],
+                kernel_cols =self.attr["kernel_cols"],
+                stride_rows =self.attr["stride_rows"],
+                stride_cols =self.attr["stride_cols"],
+                pad_top     =self.attr["pad_top"],
+                pad_bottom  =self.attr["pad_bottom"],
+                pad_left    =self.attr["pad_left"],
+                pad_right   =self.attr["pad_right"],
+                coarse  =self.attr["coarse"],
+                data_t  =FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return PoolingLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
                 pool_type   = self.op_type,
-                kernel_rows =self.node.parameters.kernel_rows,
-                kernel_cols =self.node.parameters.kernel_cols,
-                kernel_depth=self.node.parameters.kernel_depth,
-                stride_rows =self.node.parameters.stride_rows,
-                stride_cols =self.node.parameters.stride_cols,
-                stride_depth=self.node.parameters.stride_depth,
-                pad_top     =self.node.parameters.pad_top,
-                pad_bottom  =self.node.parameters.pad_bottom,
-                pad_left    =self.node.parameters.pad_left,
-                pad_right   =self.node.parameters.pad_right,
-                pad_front   =self.node.parameters.pad_front,
-                pad_back    =self.node.parameters.pad_back,
-                coarse  =self.node.parameters.coarse,
-                data_t  =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                kernel_rows =self.attr["kernel_rows"],
+                kernel_cols =self.attr["kernel_cols"],
+                kernel_depth=self.attr["kernel_depth"],
+                stride_rows =self.attr["stride_rows"],
+                stride_cols =self.attr["stride_cols"],
+                stride_depth=self.attr["stride_depth"],
+                pad_top     =self.attr["pad_top"],
+                pad_bottom  =self.attr["pad_bottom"],
+                pad_left    =self.attr["pad_left"],
+                pad_right   =self.attr["pad_right"],
+                pad_front   =self.attr["pad_front"],
+                pad_back    =self.attr["pad_back"],
+                coarse  =self.attr["coarse"],
+                data_t  =FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError
@@ -429,30 +431,30 @@ class ParsePrototxtSqueezeNode(ParsePrototxtNode):
         # create pooling layer hardware
         if self.dimensionality == 2:
             return SqueezeLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                coarse_in   =self.attr["coarse_in"],
+                coarse_out  =self.attr["coarse_out"],
+                data_t      =FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return SqueezeLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                coarse_in   =self.node.parameters.coarse_in,
-                coarse_out  =self.node.parameters.coarse_out,
-                data_t      =FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                coarse_in   =self.attr["coarse_in"],
+                coarse_out  =self.attr["coarse_out"],
+                data_t      =FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
 
 class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
@@ -462,32 +464,32 @@ class ParsePrototxtGlobalPoolingNode(ParsePrototxtNode):
         # create Average pooling layer hardware
         if self.dimensionality == 2:
             return GlobalPoolingLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                acc_t=FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
                 op_type=self.op_type,
                 backend =self.backend,
-                coarse=self.node.parameters.coarse,
+                coarse=self.attr["coarse"],
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return GlobalPoolingLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                acc_t=FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
                 op_type=self.op_type,
                 backend =self.backend,
-                coarse=self.node.parameters.coarse,
+                coarse=self.attr["coarse"],
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
 
 class ParsePrototxtEltWiseNode(ParsePrototxtNode):
@@ -497,34 +499,34 @@ class ParsePrototxtEltWiseNode(ParsePrototxtNode):
         # create eltwise layer hardware
         if self.dimensionality == 2:
             return EltWiseLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                ports_in=self.node.parameters.ports_in,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                ports_in=self.attr["ports_in"],
                 op_type=self.op_type,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                acc_t=FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
                 backend =self.backend,
-                coarse=self.node.parameters.coarse,
+                coarse=self.attr["coarse"],
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return EltWiseLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                ports_in=self.node.parameters.ports_in,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                ports_in=self.attr["ports_in"],
                 op_type=self.op_type,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                acc_t=FixedPoint(self.node.parameters.acc_t.width, self.node.parameters.acc_t.binary_point),
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                acc_t=FixedPoint(self.attr["acc_t"]["width"], self.attr["acc_t"]["binary_point"]),
                 backend =self.backend,
-                coarse=self.node.parameters.coarse,
+                coarse=self.attr["coarse"],
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
 
 class ParsePrototxtSplitNode(ParsePrototxtNode):
@@ -534,30 +536,30 @@ class ParsePrototxtSplitNode(ParsePrototxtNode):
         # create eltwise layer hardware
         if self.dimensionality == 2:
             return SplitLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                ports_out=self.node.parameters.ports_out,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                coarse=self.node.parameters.coarse,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                ports_out=self.attr["ports_out"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                coarse=self.attr["coarse"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return SplitLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                ports_out=self.node.parameters.ports_out,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                coarse=self.node.parameters.coarse,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                ports_out=self.attr["ports_out"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                coarse=self.attr["coarse"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
 
 class ParsePrototxtConcatNode(ParsePrototxtNode):
@@ -567,31 +569,31 @@ class ParsePrototxtConcatNode(ParsePrototxtNode):
         # create concat layer hardware
         if self.dimensionality == 2:
             return ConcatLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in_array,
-                ports_in=self.node.parameters.ports_in,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                coarse=self.node.parameters.coarse,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in_array"],
+                ports_in=self.attr["ports_in"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                coarse=self.attr["coarse"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ConcatLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in_array,
-                ports_in=self.node.parameters.ports_in,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                coarse=self.node.parameters.coarse,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in_array"],
+                ports_in=self.attr["ports_in"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                coarse=self.attr["coarse"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio,
-                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"],
+                weight_compression_ratio=self.attr["weight_compression_ratio"]
             )
 
 class ParsePrototxtActivationNode(ParsePrototxtNode):
@@ -600,29 +602,29 @@ class ParsePrototxtActivationNode(ParsePrototxtNode):
 
         if self.dimensionality == 2:
             return ReLULayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                coarse=self.node.parameters.coarse,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                coarse=self.attr["coarse"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ActivationLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
                 self.node.op_type.lower(),
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
-                coarse=self.node.parameters.coarse,
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
+                coarse=self.attr["coarse"],
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         else:
             raise NotImplementedError
@@ -633,31 +635,31 @@ class ParsePrototxtReSizeNode(ParsePrototxtNode):
 
         if self.dimensionality == 2:
             return ReSizeLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                self.node.parameters.scale,
-                coarse=self.node.parameters.coarse,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                self.attr["scale"],
+                coarse=self.attr["coarse"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return ReSizeLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                self.node.parameters.scale,
-                coarse=self.node.parameters.coarse,
-                data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                self.attr["scale"],
+                coarse=self.attr["coarse"],
+                data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio,
-                weight_compression_ratio=self.node.parameters.weight_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"],
+                weight_compression_ratio=self.attr["weight_compression_ratio"]
             )
 
 class ParsePrototxtHardSwishNode(ParsePrototxtNode):
@@ -666,30 +668,30 @@ class ParsePrototxtHardSwishNode(ParsePrototxtNode):
 
         if self.dimensionality == 2:
             return HardswishLayer(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.channels_in,
-                coarse=self.node.parameters.coarse,
-                input_t=FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t=FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["channels_in"],
+                coarse=self.attr["coarse"],
+                input_t=FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                output_t=FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
         elif self.dimensionality == 3:
             return HardswishLayer3D(
-                self.node.parameters.rows_in,
-                self.node.parameters.cols_in,
-                self.node.parameters.depth_in,
-                self.node.parameters.channels_in,
-                coarse=self.node.parameters.coarse,
-                input_t=FixedPoint(self.node.parameters.input_t.width, self.node.parameters.input_t.binary_point),
-                output_t=FixedPoint(self.node.parameters.output_t.width, self.node.parameters.output_t.binary_point),
+                self.attr["rows_in"],
+                self.attr["cols_in"],
+                self.attr["depth_in"],
+                self.attr["channels_in"],
+                coarse=self.attr["coarse"],
+                input_t=FixedPoint(self.attr["input_t"]["width"], self.attr["input_t"]["binary_point"]),
+                output_t=FixedPoint(self.attr["output_t"]["width"], self.attr["output_t"]["binary_point"]),
                 backend =self.backend,
                 regression_model =self.regression_model,
-                input_compression_ratio=self.node.parameters.input_compression_ratio,
-                output_compression_ratio=self.node.parameters.output_compression_ratio
+                input_compression_ratio=self.attr["input_compression_ratio"],
+                output_compression_ratio=self.attr["output_compression_ratio"]
             )
 
 class ParsePrototxtChopNode(ParsePrototxtNode):
@@ -697,15 +699,15 @@ class ParsePrototxtChopNode(ParsePrototxtNode):
     def get_hardware(self):
 
         return ChopLayer(
-            self.node.parameters.rows_in,
-            self.node.parameters.cols_in,
-            self.node.parameters.channels_in,
-            self.node.parameters.split,
-            coarse=self.node.parameters.coarse,
-            ports_out=self.node.parameters.ports_out,
-            data_t=FixedPoint(self.node.parameters.data_t.width, self.node.parameters.data_t.binary_point),
+            self.attr["rows_in"],
+            self.attr["cols_in"],
+            self.attr["channels_in"],
+            self.attr["split"],
+            coarse=self.attr["coarse"],
+            ports_out=self.attr["ports_out"],
+            data_t=FixedPoint(self.attr["data_t"]["width"], self.attr["data_t"]["binary_point"]),
             backend =self.backend,
             regression_model =self.regression_model,
-            input_compression_ratio=self.node.parameters.input_compression_ratio,
-            output_compression_ratio=self.node.parameters.output_compression_ratio
+            input_compression_ratio=self.attr["input_compression_ratio"],
+            output_compression_ratio=self.attr["output_compression_ratio"]
         )
