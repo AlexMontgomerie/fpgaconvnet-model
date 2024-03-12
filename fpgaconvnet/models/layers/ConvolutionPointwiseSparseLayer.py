@@ -179,8 +179,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
                 cluster_sparsity = np.minimum(cluster_sparsity, 1-(1/cluster_streams))
 
                 # calculate average cycles per cluster
-                cycles = np.multiply(np.subtract(1, cluster_sparsity),
-                        float(cluster_streams/self.fine))
+                cycles = np.subtract(1, cluster_sparsity)
 
                 # get the max latency for each stream
                 operation_latency = workload * max(cycles)
