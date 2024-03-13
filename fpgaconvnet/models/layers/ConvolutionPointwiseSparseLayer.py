@@ -179,7 +179,9 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
                 cluster_sparsity = np.minimum(cluster_sparsity, 1-(1/cluster_streams))
 
                 # calculate average cycles per cluster
-                cycles = np.subtract(1, cluster_sparsity)
+                # FIXME: this is a workaround
+                # todo: make dsp usage a separate variable <= coarse_in*coarse_group*courses_out
+                cycles = np.subtract(1, cluster_sparsity) 
 
                 # get the max latency for each stream
                 operation_latency = workload * max(cycles)
