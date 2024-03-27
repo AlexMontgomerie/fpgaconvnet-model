@@ -226,9 +226,15 @@ def add_dimensions(model, graph):
             # get previous node output dimensions
             dim = onnx_helper._out_dim(model, prev_node)
             # update input dimensions
-            graph.nodes[node]['hw'].channels = dim[0]
-            graph.nodes[node]['hw'].rows     = dim[1]
-            graph.nodes[node]['hw'].cols     = dim[2]
+            if graph.nodes[node]['type'] == LAYER_TYPE.InnerProduct and (dim[1] != 1 or dim[2] != 1):
+                print(f"WARNING: Flattening InnerProduct layer called '{node}' from {dim} to {[dim[0]*dim[1]*dim[2], 1, 1]}")
+                graph.nodes[node]['hw'].channels = dim[0]*dim[1]*dim[2]
+                graph.nodes[node]['hw'].rows     = 1
+                graph.nodes[node]['hw'].cols     = 1
+            else:
+                graph.nodes[node]['hw'].channels = dim[0]
+                graph.nodes[node]['hw'].rows     = dim[1]
+                graph.nodes[node]['hw'].cols     = dim[2]
 
 def parse_net(filepath, view=True, data_width=16, weight_width=8,
         biases_width=16, acc_width=30, fuse_bn=True, backend="hls"):
