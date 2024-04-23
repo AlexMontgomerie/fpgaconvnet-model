@@ -56,4 +56,7 @@ class TestNetwork(unittest.TestCase):
         # network.check_partitions()
         # network.check_memory_bandwidth()
 
+    @ddt.unpack
+    @ddt.named_data(*NETWORKS)
+    def test_update_batch_size(self, net: Network, config: dict): pass
 

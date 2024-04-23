@@ -206,7 +206,7 @@ class ConvolutionLayerSparseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer
             self.graph.add_edge(f"glue_{i}", f"bias_{i}")
 
 @dataclass(kw_only=True)
-class ConvolutionLayerSparseSkippingChisel(ConvolutionLayerSparseSkippingChisel):
+class ConvolutionLayerSparseSkippingChisel(ConvolutionLayerSparseChisel):
 
     sparsity: list[float]
 
