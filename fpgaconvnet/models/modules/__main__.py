@@ -24,14 +24,22 @@ def main():
     module_names = set([ m.name for m in ModuleBase.MODULE_REGISTRY.values() ])
 
     parser = argparse.ArgumentParser(description="Command line interface for generating hardware resource models")
-    parser.add_argument("-n", "--name", type=str, required=True, help=f"name of the resource modelling run")
-    parser.add_argument('-m','--module', type=str, required=True, choices=list(module_names), help=f"target module")
-    parser.add_argument('-b','--backend', type=str, required=True, choices=["chisel", "hls"], help="target backend for resource modelling")
-    parser.add_argument('-d','--dimensionality', metavar="INT", type=int, required=True, choices=[2,3], help="dimensionality of the target module")
-    parser.add_argument('-c','--config-path', metavar='PATH', required=True, help="path for the resource modelling configuration file (.toml)")
-    parser.add_argument('-p','--platform-path', metavar='PATH', required=True, help="path to the platform description file (.toml)")
-    parser.add_argument('-l','--db-limit', metavar='INT', type=int, default=10000, help="limit the number of records to use from the database")
-    parser.add_argument("-s", "--test-split", type=float, default=0.2, help="fraction of the dataset to use for testing")
+    parser.add_argument("-n", "--name", type=str, required=True,
+                        help=f"name of the resource modelling run")
+    parser.add_argument('-m','--module', type=str, required=True, choices=list(module_names),
+                        help=f"target module")
+    parser.add_argument('-b','--backend', type=str, required=True, choices=["chisel", "hls"],
+                        help="target backend for resource modelling")
+    parser.add_argument('-d','--dimensionality', metavar="INT", type=int, required=True,
+                        choices=[2,3], help="dimensionality of the target module")
+    parser.add_argument('-c','--config-path', metavar='PATH', required=True,
+                        help="path for the resource modelling configuration file (.toml)")
+    parser.add_argument('-p','--platform-path', metavar='PATH', required=True,
+                        help="path to the platform description file (.toml)")
+    parser.add_argument('-l','--db-limit', metavar='INT', type=int, default=10000,
+                        help="limit the number of records to use from the database")
+    parser.add_argument("-s", "--test-split", type=float, default=0.2,
+                        help="fraction of the dataset to use for testing")
 
     # parse the arguments
     args = parser.parse_args()

@@ -17,17 +17,15 @@ from fpgaconvnet.models.exceptions import ModuleNotImplementedError, AmbiguousMo
 class Port:
     """
     A port object which describes the interface of a module.
-
-    Attributes:
-        simd_lanes: The number of synchronised parallel words in the port.
-        data_type: The data type of singular words in the SIMD lane.
-        buffer_depth: The depth of the elastic buffer
-        name: The name of the port, typically either "in" or "out.
     """
     simd_lanes: list[int]
+    """The number of synchronised parallel words in the port."""
     data_type: FixedPoint
+    """The data type of singular words in the SIMD lane."""
     buffer_depth: int = 0
+    """The depth of the elastic buffer."""
     name: str = "port"
+    """The name of the port, typically either "in" or "out"."""
 
     @property
     def port_width(self) -> int:
@@ -405,18 +403,18 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         assert idx < self.ports_out, "Invalid output port index"
         return self.output_ports[idx].simd_lanes
 
-    def latency(self) -> int:
+    def cycles(self) -> int:
         """
         The latency of the module, in terms of cycles.
 
         Returns:
-            The latency of the module, as an integer.
+            The cycles of the module, as an integer.
         """
-        latency_in = max([self.repetitions*int(np.prod(self.input_iter_space[i]) \
+        cycles_in = max([self.repetitions*int(np.prod(self.input_iter_space[i]) \
                 / self.rate_in[i]) for i in range(self.ports_in)])
-        latency_out = max([self.repetitions*int(np.prod(self.output_iter_space[i]) \
+        cycles_out = max([self.repetitions*int(np.prod(self.output_iter_space[i]) \
                 / self.rate_out[i]) for i in range(self.ports_out)])
-        return max(latency_in, latency_out)
+        return max(cycles_in, cycles_out)
 
     def module_info(self) -> dict:
         """
