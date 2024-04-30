@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from fpgaconvnet.platform import DEFAULT_HLS_PLATFORM
 class ReLUHLSBase(ModuleHLSBase):
 
     # hardware parameters
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     # class variables
     name: ClassVar[str] = "relu"

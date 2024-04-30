@@ -141,7 +141,7 @@ class TestModule(unittest.TestCase):
         cycles = config["cycles"]
 
         # get the modelled cycles
-        model_cycles = module.latency()
+        model_cycles = module.cycles()
 
         # check the cycles
         if cycles > 0:

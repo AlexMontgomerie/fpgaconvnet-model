@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 from overrides import override
 
@@ -26,8 +26,8 @@ class EltwiseLayerBase(LayerMatchingCoarse, LayerBase):
     ports: int
     op_type: str = "add"
     broadcast: bool = False
-    data_t: FixedPoint = FixedPoint(16,8)
-    acc_t: FixedPoint = FixedPoint(32,16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16))
 
     name: ClassVar[str] = "eltwise"
 
@@ -114,10 +114,10 @@ class EltwiseLayerChiselMixin(EltwiseLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the eltwise module
-        self.graph.add_node("eltwise", module=self.modules["eltwise"])
+        self.module_graph.add_node("eltwise", module=self.modules["eltwise"])
 
 
 @dataclass(kw_only=True)

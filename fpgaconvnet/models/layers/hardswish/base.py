@@ -24,8 +24,8 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 @dataclass(kw_only=True)
 class HardswishLayerBase(LayerMatchingCoarse, LayerBase):
 
-    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
-    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8), init=True)
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
 
     name: ClassVar[str] = "hardswish"
 
@@ -63,10 +63,10 @@ class HardswishLayerChiselMixin(HardswishLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the hardswish module
-        self.graph.add_node("hardswish", module=self.modules["hardswish"])
+        self.module_graph.add_node("hardswish", module=self.modules["hardswish"])
 
 
 class HardswishLayerHLSMixin(HardswishLayerBase):
@@ -90,9 +90,9 @@ class HardswishLayerHLSMixin(HardswishLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the hardswish module
         for i in range(self.coarse):
-            self.graph.add_node(f"hardswish_{i}", module=self.modules["hardswish"])
+            self.module_graph.add_node(f"hardswish_{i}", module=self.modules["hardswish"])
 

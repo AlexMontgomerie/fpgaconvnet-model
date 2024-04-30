@@ -82,20 +82,20 @@ class InnerProductLayerChiselMixin(InnerProductLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
-        self.graph.add_node("fork", module=self.modules["fork"])
-        self.graph.add_node("vector_dot", module=self.modules["vector_dot"])
-        self.graph.add_node("accum", module=self.modules["accum"])
-        self.graph.add_node("glue", module=self.modules["glue"])
-        self.graph.add_node("bias", module=self.modules["bias"])
+        self.module_graph.add_node("fork", module=self.modules["fork"])
+        self.module_graph.add_node("vector_dot", module=self.modules["vector_dot"])
+        self.module_graph.add_node("accum", module=self.modules["accum"])
+        self.module_graph.add_node("glue", module=self.modules["glue"])
+        self.module_graph.add_node("bias", module=self.modules["bias"])
 
         # connect the modules
-        self.graph.add_edge("fork", "vector_dot")
-        self.graph.add_edge("vector_dot", "accum")
-        self.graph.add_edge("accum", "glue")
-        self.graph.add_edge("glue", "bias")
+        self.module_graph.add_edge("fork", "vector_dot")
+        self.module_graph.add_edge("vector_dot", "accum")
+        self.module_graph.add_edge("accum", "glue")
+        self.module_graph.add_edge("glue", "bias")
 
 @dataclass(kw_only=True)
 class InnerProductLayerHLSMixin(InnerProductLayerBase):
@@ -172,25 +172,25 @@ class InnerProductLayerHLSMixin(InnerProductLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
         for i in range(self.streams_in()):
-            self.graph.add_node("fork_{i}", module=self.modules["fork"])
+            self.module_graph.add_node("fork_{i}", module=self.modules["fork"])
             for j in range(self.coarse_out):
-                self.graph.add_node("conv_{i}_{j}", module=self.modules["conv"])
-                self.graph.add_node("accum_{i}_{j}", module=self.modules["accum"])
-        self.graph.add_node("glue", module=self.modules["glue"])
+                self.module_graph.add_node("conv_{i}_{j}", module=self.modules["conv"])
+                self.module_graph.add_node("accum_{i}_{j}", module=self.modules["accum"])
+        self.module_graph.add_node("glue", module=self.modules["glue"])
         for j in range(self.streams_out()):
-            self.graph.add_node("bias_{j}", module=self.modules["bias"])
+            self.module_graph.add_node("bias_{j}", module=self.modules["bias"])
 
         # connect the modules
         for i in range(self.streams_in()):
             for j in range(self.coarse_out):
-                self.graph.add_edge("fork_{i}", "conv_{i}_{j}")
-                self.graph.add_edge("conv_{i}_{j}", "accum_{i}_{j}")
-                self.graph.add_edge("accum_{i}_{j}", "glue")
+                self.module_graph.add_edge("fork_{i}", "conv_{i}_{j}")
+                self.module_graph.add_edge("conv_{i}_{j}", "accum_{i}_{j}")
+                self.module_graph.add_edge("accum_{i}_{j}", "glue")
         for j in range(self.streams_out()):
-            self.graph.add_edge("glue", "bias_{j}")
+            self.module_graph.add_edge("glue", "bias_{j}")
 
 

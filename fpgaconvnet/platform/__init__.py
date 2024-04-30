@@ -4,16 +4,10 @@ from typing import ClassVar
 from dataclasses import dataclass
 
 from .platform import PlatformBase
+from .amd import ZynqPlatform, ZynqUltrascalePlatform
 
-@dataclass
-class ZynqPlatform(PlatformBase):
-    family: ClassVar[str] = "xc7z"
-    resource_types: ClassVar[list[str]] = ["BRAM", "DSP", "FF", "LUT"]
 
-@dataclass
-class ZynqUltrascalePlatform(PlatformBase):
-    family: ClassVar[str] = "xczu"
-    resource_types: ClassVar[list[str]] = ["BRAM", "DSP", "FF", "LUT", "URAM"]
+def get_fpga_part_family(part: str) -> str: return part[:4]
 
 def build_platform_from_toml(platform_path: str):
 
@@ -25,7 +19,7 @@ def build_platform_from_toml(platform_path: str):
         conf = toml.load(f)
 
     # find and initialise the platform
-    family = conf["device"]["part"][:4]
+    family = get_fpga_part_family(conf["device"]["part"])
     match family:
         case ZynqPlatform.family:
             return ZynqPlatform.from_toml(platform_path)
@@ -33,6 +27,7 @@ def build_platform_from_toml(platform_path: str):
             return ZynqUltrascalePlatform.from_toml(platform_path)
         case _:
             raise NotImplementedError(f"platform {family} not supported")
+
 
 # # initialise some platforms
 # DEFAULT_PLATFORMS = {

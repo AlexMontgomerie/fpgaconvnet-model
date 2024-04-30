@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -13,8 +13,8 @@ from fpgaconvnet.platform import DEFAULT_CHISEL_PLATFORM
 class HardswishChisel(ModuleChiselBase):
 
     # hardware parameters
-    input_t: FixedPoint = FixedPoint(16, 8)
-    output_t: FixedPoint = FixedPoint(16, 8)
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_buffer_depth: int = 0
     output_buffer_depth: int = 0
 

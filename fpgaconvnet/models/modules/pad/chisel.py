@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -20,7 +20,7 @@ class PadChisel(ModuleChiselBase):
     pad_bottom: int
     pad_left: int
     pad_value: float = 0.0
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_buffer_depth: int = 2
     output_buffer_depth: int = 2
 

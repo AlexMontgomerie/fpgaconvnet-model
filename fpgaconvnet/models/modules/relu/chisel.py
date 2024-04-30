@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from fpgaconvnet.platform import DEFAULT_CHISEL_PLATFORM
 class ReLUChisel(ModuleChiselBase):
 
     # hardware parameters
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_buffer_depth: int = 2
     output_buffer_depth: int = 2
 

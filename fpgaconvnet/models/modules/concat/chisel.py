@@ -17,7 +17,7 @@ class ConcatChisel(ModuleChiselBase):
     # hardware parameters
     ports: int
     channels: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_buffer_depth: list[int] = field(default_factory=list) # type: ignore
     output_buffer_depth: int = 2
 

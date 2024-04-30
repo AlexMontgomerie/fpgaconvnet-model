@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 
 import numpy as np
@@ -22,7 +22,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 @dataclass(kw_only=True)
 class ReLULayerBase(LayerMatchingCoarse, LayerBase):
 
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "relu"
 
@@ -60,10 +60,10 @@ class ReLULayerChiselMixin(ReLULayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the relu module
-        self.graph.add_node("relu", module=self.modules["relu"])
+        self.module_graph.add_node("relu", module=self.modules["relu"])
 
 
 class ReLULayerHLSMixin(ReLULayerBase):
@@ -86,9 +86,9 @@ class ReLULayerHLSMixin(ReLULayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the relu module
         for i in range(self.coarse):
-            self.graph.add_node(f"relu_{i}", module=self.modules["relu"])
+            self.module_graph.add_node(f"relu_{i}", module=self.modules["relu"])
 

@@ -24,10 +24,10 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 @dataclass(kw_only=True)
 class InnerProductLayerBase(LayerBase):
     filters: int
-    input_t: FixedPoint = FixedPoint(16,8)
-    output_t: FixedPoint = FixedPoint(16,8)
-    weight_t: FixedPoint = FixedPoint(16,8)
-    acc_t: FixedPoint = FixedPoint(32,16)
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16))
     weight_compression_ratio: list = field(default_factory=lambda: [1.0], init=True)
 
     name: ClassVar[str] = "inner_product"

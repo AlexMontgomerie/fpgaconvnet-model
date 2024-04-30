@@ -11,14 +11,19 @@ from fpgaconvnet.models.network import Network
 from fpgaconvnet.parser.parser import Parser
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 
+from fpgaconvnet.models.network.metrics import get_network_latency, get_network_throughput
+
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
+
+from fpgaconvnet.platform import ZynqPlatform, ZynqUltrascalePlatform
 
 from numpy.linalg import matrix_rank
 import scipy
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
 
-PLATFORM = "examples/platforms/zedboard.toml"
+# PLATFORM = ZynqPlatform.from_toml("examples/platforms/zedboard.toml")
+PLATFORM = ZynqPlatform.from_toml("fpgaconvnet/platform/configs/zedboard.toml")
 
 ARCHS = [
         Architecture(BACKEND.CHISEL, DIMENSIONALITY.TWO),
@@ -40,8 +45,11 @@ class TestNetwork(unittest.TestCase):
     def test_metrics_exist(self, net: Network, config: dict):
 
         # check the metrics
-        assert net.get_latency(200, False, 0) >= 0
-        assert net.get_throughput(200, False, 0) >= 0
+        # assert net.get_latency(200, False, 0) >= 0
+        # assert net.get_throughput(200, False, 0) >= 0
+        assert get_network_latency(net, PLATFORM) >= 0
+        assert get_network_throughput(net, PLATFORM) >= 0
+
 
     @ddt.unpack
     @ddt.named_data(*NETWORKS)

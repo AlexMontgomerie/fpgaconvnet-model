@@ -1,7 +1,7 @@
 import math
 from typing import ClassVar
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 
 import pydot
@@ -26,7 +26,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 class PoolingLayerBase(LayerMatchingCoarse, LayerBase):
 
     pool_type: str = 'max'
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "pooling"
 
@@ -120,16 +120,16 @@ class PoolingLayerChiselMixin(PoolingLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
-        self.graph.add_node("pad", module=self.modules["pad"])
-        self.graph.add_node("sliding_window", module=self.modules["sliding_window"])
-        self.graph.add_node("pool", module=self.modules["pool"])
+        self.module_graph.add_node("pad", module=self.modules["pad"])
+        self.module_graph.add_node("sliding_window", module=self.modules["sliding_window"])
+        self.module_graph.add_node("pool", module=self.modules["pool"])
 
         # create the connections
-        self.graph.add_edge("pad", "sliding_window")
-        self.graph.add_edge("sliding_window", "pool")
+        self.module_graph.add_edge("pad", "sliding_window")
+        self.module_graph.add_edge("sliding_window", "pool")
 
 class PoolingLayerHLSMixin(PoolingLayerBase):
 
@@ -166,16 +166,16 @@ class PoolingLayerHLSMixin(PoolingLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         for i in range(self.coarse):
 
             # add the modules
-            self.graph.add_node(f"sliding_window_{i}", module=self.modules["sliding_window"])
-            self.graph.add_node(f"pool_{i}", module=self.modules["pool"])
+            self.module_graph.add_node(f"sliding_window_{i}", module=self.modules["sliding_window"])
+            self.module_graph.add_node(f"pool_{i}", module=self.modules["pool"])
 
             # create the connections
-            self.graph.add_edge(f"sliding_window_{i}", f"pool_{i}")
+            self.module_graph.add_edge(f"sliding_window_{i}", f"pool_{i}")
 
 class PoolingLayer2DMixin(PoolingLayerBase, Layer2D):
     kernel_rows: int = 2

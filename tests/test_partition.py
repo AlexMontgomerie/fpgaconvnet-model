@@ -5,6 +5,7 @@ import itertools
 import pytest
 
 import onnx
+import networkx as nx
 
 import os
 import sys
@@ -15,14 +16,18 @@ from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.partition.partition import Partition
 import fpgaconvnet.tools.graphs as graphs
-import networkx as nx
 
+from fpgaconvnet.platform import ZynqPlatform, ZynqUltrascalePlatform
 from fpgaconvnet.parser.parser import Parser
+
+from fpgaconvnet.models.partition.metrics import get_partition_resources
 
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 
-RESOURCES = ["LUT", "FF", "BRAM", "DSP"]
+# PLATFORM = ZynqPlatform.from_toml("fpgaconvnet/platform/configs/zedboard.toml")
+PLATFORM = ZynqUltrascalePlatform.from_toml("fpgaconvnet/platform/configs/zcu104.toml")
+RESOURCE_TYPES = ["DSP", "BRAM", "FF", "LUT"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
 
@@ -101,7 +106,7 @@ class TestPartition(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*PARTITIONS)
-    def test_validation(self, parition: Partition, config: dict): pass
+    def test_validation(self, partition: Partition, config: dict): pass
         # run all validation checks
         # network.check_ports()
         # network.check_workload()
@@ -112,19 +117,20 @@ class TestPartition(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*PARTITIONS)
-    def test_save_all_partitions(self, parition: Partition, config: dict):
+    def test_save_all_partitions(self, partition: Partition, config: dict):
         # network.save_all_partitions("/tmp/fpgaconvnet-test-network-config.json")
-        assert isinstance(parition.partition_info_dict(), dict)
+        assert isinstance(partition.partition_info_dict(), dict)
 
 
     @ddt.unpack
     @ddt.named_data(*[  (f"{name} ({rsc_type})", rsc_type, layer, config) \
-            for rsc_type, (name, layer, config) in itertools.product(RESOURCES, PARTITIONS) ])
-    def test_resources(self, rsc_type, parition, config):
+            for rsc_type, (name, layer, config) in itertools.product(RESOURCE_TYPES, PARTITIONS) ])
+            # for rsc_type, (name, layer, config) in itertools.product(PLATFORM.resource_types, PARTITIONS) ])
+    def test_resources(self, rsc_type, partition, config):
 
         # check the resources
         actual_rsc= config["resource"][rsc_type]
-        modelled_rsc= parition.get_resource_usage()[rsc_type]
+        modelled_rsc= get_partition_resources(partition, rsc_type, PLATFORM)
 
         assert modelled_rsc >= 0
         assert modelled_rsc == pytest.approx(actual_rsc, abs=ABS_TOL, rel=REL_TOL), \
@@ -133,13 +139,13 @@ class TestPartition(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*PARTITIONS)
-    def test_cycles(self, parition, config):
+    def test_cycles(self, partition, config):
 
         # get the cycles
         cycles = config["cycles"]
 
         # get the modelled cycles
-        model_cycles = parition.get_cycle()
+        model_cycles = partition.get_cycles()
 
         # check the cycles
         if cycles > 0:
@@ -149,14 +155,14 @@ class TestPartition(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*PARTITIONS)
-    def test_remove_squeeze(self, parition: Partition, config: dict):
+    def test_remove_squeeze(self, partition: Partition, config: dict):
 
         # perform the remove squeeze operation
-        parition.remove_squeeze()
+        partition.remove_squeeze()
 
         # check the graph
-        for node in parition.graph.nodes:
-            assert parition.graph.nodes[node]["type"] != LAYER_TYPE.Squeeze, \
+        for node in partition.graph.nodes:
+            assert partition.graph.nodes[node]["type"] != LAYER_TYPE.Squeeze, \
                 "Squeeze node not removed"
 
 

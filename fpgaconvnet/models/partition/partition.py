@@ -1,12 +1,15 @@
 from dataclasses import dataclass
+import math
 
 import pydot
 import networkx as nx
+import numpy as np
 
 import fpgaconvnet.tools.graphs as graphs
 from fpgaconvnet.tools.layer_enum import LAYER_TYPE
 import fpgaconvnet.parser.onnx.helper as onnx_helper
 from fpgaconvnet.architecture import Architecture
+import fpgaconvnet.tools.matrix as matrix
 
 
 @dataclass
@@ -52,10 +55,10 @@ class Partition:
                                                         remove_squeeze)
 
     # metrics
-    from fpgaconvnet.models.partition.metrics import (get_bandwidth_in, get_bandwidth_out,
-                                                      get_bandwidth_weight, get_cycle, get_interval,
-                                                      get_latency, get_pipeline_depth, get_resource_usage,
-                                                      get_total_bandwidth, get_total_operations, get_total_sparse_operations)
+    # from fpgaconvnet.models.partition.metrics import (get_bandwidth_in, get_bandwidth_out,
+    #                                                   get_bandwidth_weight, get_cycle, get_interval,
+    #                                                   get_latency, get_pipeline_depth, get_resource_usage,
+    #                                                   get_total_bandwidth, get_total_operations, get_total_sparse_operations)
     # update
     from fpgaconvnet.models.partition.update import (
         reduce_squeeze_fanout, update, update_multiport_buffer_depth)
@@ -219,5 +222,113 @@ class Partition:
 
         self.add_squeeze()
         return True, ""
+
+    def get_pipeline_depth(self, node=None):
+        """
+        Parameters
+        ----------
+        node: str
+            node to calculate the pipeline depth until
+
+        Returns
+        -------
+        int
+            pipeline depth (in cycles) from the first node
+            in the partition to `node`
+        """
+
+        path_delays = []
+
+        # get the longest path
+        all_paths = [nx.dag_longest_path(self.graph)]
+
+        # initiation interval of the hardware
+        interval = self.get_interval()
+
+        for path in all_paths:
+
+            # get the hardware model for each node in the path
+            node_hw = [ self.graph.nodes[node]["hw"] for node in path ]
+
+            # get the size in
+            size_in = [ n.size_in() for n in node_hw ]
+
+            # get the size out
+            size_out = [ n.size_out() for n in node_hw ]
+
+            rate_in = [ n.rate_in() for n in node_hw ]
+
+            # get the pipeline depth of each node
+            node_depth = [ n.pipeline_depth() for n in node_hw ]
+
+            # get the path depth
+            delay = sum([ node_depth[j]/rate_in[j] + (interval/size_in[j]) * \
+                    np.prod([ size_in[k]/size_out[k] for k in range(j+1)
+                        ]) for j in range(len(node_hw)) ])
+
+            # append to toal path delays
+            path_delays.append(delay)
+
+        return max(path_delays)
+
+    def get_pipeline_depth_fast(self):
+
+        # memoisation of pipeline depths
+        node_pipeline_depth = {}
+
+        def _pipeline_depth_node(node):
+
+            # find the pipeline depth of the current node
+            pipeline_depth = self.graph.nodes[node]['hw'].pipeline_depth()
+
+            # find the longest path to end from this node
+            if self.graph.out_degree(node) == 0:
+                return pipeline_depth
+            elif node in node_pipeline_depth:
+                return node_pipeline_depth[node]
+            else:
+                node_pipeline_depth[node] = pipeline_depth + max([
+                    _pipeline_depth_node(edge) for edge in graphs.get_next_nodes(self.graph, node) ])
+                return node_pipeline_depth[node]
+
+        # get the first node of the graph
+        start_node = graphs.get_input_nodes(self.graph)[0]
+
+        # return pipeline depth from start node
+        return _pipeline_depth_node(start_node)
+
+    def get_interval(self):
+        """
+        Returns
+        -------
+        int
+            gives the interval (in cycles) of the slowest node.
+            This is the cycles to process a single featuremap for
+            the partition.
+        """
+        # get the interval matrix
+        interval_matrix = matrix.get_interval_matrix(self.graph)
+        # return the overall interval
+        return np.max(np.absolute(interval_matrix))
+
+    def get_cycles(self):
+        # get the interval for the partition
+        interval = self.get_interval()
+        # get pipeline depth of partition
+        input_node = graphs.get_input_nodes(self.graph)[0]
+        pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
+        # return the latency (in seconds)
+        batch_size  = int(self.batch_size)
+        wr_factor   = self.wr_factor
+        size_wr     = self.size_wr
+        interval = math.ceil(interval * self.slow_down_factor)
+        batch_cycle = int((interval*batch_size+pipeline_depth)*wr_factor + (wr_factor-1)*size_wr)
+        return batch_cycle
+
+    def get_total_operations(self):
+        return sum([self.graph.nodes[node]['hw'].get_operations() for node in self.graph.nodes])
+
+    def get_total_sparse_operations(self):
+        return sum([self.graph.nodes[node]['hw'].get_sparse_operations() for node in self.graph.nodes])
 
 

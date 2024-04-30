@@ -132,26 +132,26 @@ class ConvolutionLayerChiselMixin(ConvolutionLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
-        self.graph.add_node("pad", module=self.modules["pad"])
-        self.graph.add_node("sliding_window", module=self.modules["sliding_window"])
-        self.graph.add_node("squeeze", module=self.modules["squeeze"])
-        self.graph.add_node("fork", module=self.modules["fork"])
-        self.graph.add_node("vector_dot", module=self.modules["vector_dot"])
-        self.graph.add_node("accum", module=self.modules["accum"])
-        self.graph.add_node("glue", module=self.modules["glue"])
-        self.graph.add_node("bias", module=self.modules["bias"])
+        self.module_graph.add_node("pad", module=self.modules["pad"])
+        self.module_graph.add_node("sliding_window", module=self.modules["sliding_window"])
+        self.module_graph.add_node("squeeze", module=self.modules["squeeze"])
+        self.module_graph.add_node("fork", module=self.modules["fork"])
+        self.module_graph.add_node("vector_dot", module=self.modules["vector_dot"])
+        self.module_graph.add_node("accum", module=self.modules["accum"])
+        self.module_graph.add_node("glue", module=self.modules["glue"])
+        self.module_graph.add_node("bias", module=self.modules["bias"])
 
         # connect the modules
-        self.graph.add_edge("pad", "sliding_window")
-        self.graph.add_edge("sliding_window", "squeeze")
-        self.graph.add_edge("squeeze", "fork")
-        self.graph.add_edge("fork", "vector_dot")
-        self.graph.add_edge("vector_dot", "accum")
-        self.graph.add_edge("accum", "glue")
-        self.graph.add_edge("glue", "bias")
+        self.module_graph.add_edge("pad", "sliding_window")
+        self.module_graph.add_edge("sliding_window", "squeeze")
+        self.module_graph.add_edge("squeeze", "fork")
+        self.module_graph.add_edge("fork", "vector_dot")
+        self.module_graph.add_edge("vector_dot", "accum")
+        self.module_graph.add_edge("accum", "glue")
+        self.module_graph.add_edge("glue", "bias")
 
     def get_fine_feasible(self):
         return get_factors(np.prod(self.kernel_size))
@@ -243,28 +243,28 @@ class ConvolutionLayerHLSMixin(ConvolutionLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
         for i in range(self.streams_in()):
-            self.graph.add_node("sliding_window_{i}", module=self.modules["sliding_window"])
-            self.graph.add_node("fork_{i}", module=self.modules["fork"])
+            self.module_graph.add_node("sliding_window_{i}", module=self.modules["sliding_window"])
+            self.module_graph.add_node("fork_{i}", module=self.modules["fork"])
             for j in range(self.coarse_out):
-                self.graph.add_node("conv_{i}_{j}", module=self.modules["conv"])
-                self.graph.add_node("accum_{i}_{j}", module=self.modules["accum"])
-        self.graph.add_node("glue", module=self.modules["glue"])
+                self.module_graph.add_node("conv_{i}_{j}", module=self.modules["conv"])
+                self.module_graph.add_node("accum_{i}_{j}", module=self.modules["accum"])
+        self.module_graph.add_node("glue", module=self.modules["glue"])
         for j in range(self.streams_out()):
-            self.graph.add_node("bias_{j}", module=self.modules["bias"])
+            self.module_graph.add_node("bias_{j}", module=self.modules["bias"])
 
         # connect the modules
         for i in range(self.streams_in()):
-            self.graph.add_edge("sliding_window_{i}", "fork_{i}")
+            self.module_graph.add_edge("sliding_window_{i}", "fork_{i}")
             for j in range(self.coarse_out):
-                self.graph.add_edge("fork_{i}", "conv_{i}_{j}")
-                self.graph.add_edge("conv_{i}_{j}", "accum_{i}_{j}")
-                self.graph.add_edge("accum_{i}_{j}", "glue")
+                self.module_graph.add_edge("fork_{i}", "conv_{i}_{j}")
+                self.module_graph.add_edge("conv_{i}_{j}", "accum_{i}_{j}")
+                self.module_graph.add_edge("accum_{i}_{j}", "glue")
         for j in range(self.streams_out()):
-            self.graph.add_edge("glue", "bias_{j}")
+            self.module_graph.add_edge("glue", "bias_{j}")
 
     def get_fine_feasible(self):
         return [ 1, self.kernel_size[0], self.kernel_size[0]*self.kernel_size[1] ] # TODO: extend to 3D case

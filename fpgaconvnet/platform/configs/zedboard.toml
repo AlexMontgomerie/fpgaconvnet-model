@@ -14,3 +14,15 @@ board_frequency = 200 # in MHz
 memory_bandwidth = 100.0 # in Gbps
 reconfiguration_time = 0.08255 # in seconds
 port_width = 128
+
+[database]
+collection = "chisel-latest"
+db_limit = 10000
+filters = {}
+
+[model]
+type = "NNLS"
+# type = "SVR"
+# kernel = "poly"
+# degree = 3
+

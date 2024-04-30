@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 from overrides import override
 import pydot # type: ignore
@@ -26,8 +26,8 @@ class GlobalPoolingLayerBase(LayerMatchingCoarse, LayerBase):
 
     op_type: str = "avg"
     pool_type: str = "avg" # FIXME: remove reference to pool type in rest of repo
-    acc_t: FixedPoint = FixedPoint(32,16)
-    data_t: FixedPoint = FixedPoint(16,8)
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16))
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
 
     name: ClassVar[str] = "global_pool"
 
@@ -68,10 +68,10 @@ class GlobalPoolingLayerChiselMixin(GlobalPoolingLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the global_pool module
-        self.graph.add_node("global_pool", module=self.modules["global_pool"])
+        self.module_graph.add_node("global_pool", module=self.modules["global_pool"])
 
 class GlobalPoolingLayer2DMixin(GlobalPoolingLayerBase, Layer2D):
 

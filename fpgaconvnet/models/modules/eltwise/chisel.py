@@ -15,8 +15,8 @@ class EltwiseChisel(ModuleChiselBase):
 
     # hardware parameters
     ports: int
-    data_t: FixedPoint = FixedPoint(16, 8)
-    acc_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
     eltwise_type: str = "add"
     broadcast: bool = False
     input_buffer_depth: list[int] = field(default_factory=list) # type: ignore

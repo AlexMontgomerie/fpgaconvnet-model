@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -14,7 +14,7 @@ class PoolChisel(ModuleChiselBase):
 
     # hardware parameters
     kernel_size: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     pool_type: str = "max"
     input_buffer_depth: int = 0
     output_buffer_depth: int = 0

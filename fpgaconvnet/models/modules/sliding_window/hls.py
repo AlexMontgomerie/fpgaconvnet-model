@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -17,7 +17,7 @@ class SlidingWindowHLSBase(ModuleHLSBase):
     pad: list[int]
     stride: list[int]
     kernel_size: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     # class variables
     name: ClassVar[str] = "sliding_window"

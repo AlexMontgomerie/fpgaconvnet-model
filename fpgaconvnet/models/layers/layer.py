@@ -95,11 +95,11 @@ class LayerBase(metaclass=LayerBaseMeta):
     coarse_out: int = 1
     mem_bw_in: float = 100.0
     mem_bw_out: float = 100.0
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_compression_ratio: List[float] = field(default_factory=lambda: [1.0], init=True)
     output_compression_ratio: List[float] = field(default_factory=lambda: [1.0], init=True)
     modules: dict = field(default_factory=OrderedDict, init=True)
-    graph: nx.DiGraph = field(default_factory=nx.DiGraph, init=True)
+    module_graph: nx.DiGraph = field(default_factory=nx.DiGraph, init=True)
 
     name: ClassVar[str]
     backend: ClassVar[BACKEND]
@@ -129,14 +129,11 @@ class LayerBase(metaclass=LayerBaseMeta):
         Set the value of an attribute and update the layer.
 
         Args:
-            name (str): The name of the attribute to set.
-            value (Any): The value to set the attribute to.
+            name: The name of the attribute to set.
+            value: The value to set the attribute to.
 
         Raises:
             AssertionError: If the value is not feasible for the attribute.
-
-        Returns:
-            None
         """
 
         if not hasattr(self, "is_init"):
@@ -192,10 +189,10 @@ class LayerBase(metaclass=LayerBaseMeta):
     def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]: ...
 
     def rate_in(self, port_idx: int = 0) -> float:
-        return self.size_in(port_idx) / float(self.latency())
+        return self.size_in(port_idx) / float(self.cycles())
 
     def rate_out(self, port_idx: int = 0) -> float:
-        return self.size_out(port_idx) / float(self.latency())
+        return self.size_out(port_idx) / float(self.cycles())
 
     def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
         """
@@ -208,7 +205,7 @@ class LayerBase(metaclass=LayerBaseMeta):
             Returns the number of input streams for this layer.
 
             Returns:
-                int: The number of input streams for this layer.
+                The number of input streams for this layer.
             """
             return self.coarse_in
 
@@ -217,7 +214,7 @@ class LayerBase(metaclass=LayerBaseMeta):
             Returns the number of output streams for this layer.
 
             Returns:
-                int: The number of output streams for this layer.
+                The number of output streams for this layer.
             """
             return self.coarse_out
 
@@ -234,7 +231,7 @@ class LayerBase(metaclass=LayerBaseMeta):
         Returns the total number of elements in the input tensor of this layer.
 
         Returns:
-            int: The total number of elements in the input tensor of this layer.
+            The total number of elements in the input tensor of this layer.
         """
         return math.prod(self.input_shape(port_idx))
 
@@ -253,9 +250,8 @@ class LayerBase(metaclass=LayerBaseMeta):
     def size_out(self, port_idx: int = 0) -> int:
         return self.workload_out(port_idx) // self.streams_out()
 
-    def latency(self) -> int:
-        # return max(self.latency_in(), self.latency_out())
-        return max([ module.latency() for module in self.modules.values() ])
+    def cycles(self) -> int:
+        return max([ module.cycles() for module in self.modules.values() ])
 
     def pipeline_depth(self) -> int:
             """
@@ -283,10 +279,10 @@ class LayerBase(metaclass=LayerBaseMeta):
         }
 
         # iterate over the nodes of the graph
-        for node in self.graph.nodes:
+        for node in self.module_graph.nodes:
 
             # get the module
-            module = self.graph.nodes[node]["module"]
+            module = self.module_graph.nodes[node]["module"]
 
             # iter over resource types
             for rsc_type in resources.keys():

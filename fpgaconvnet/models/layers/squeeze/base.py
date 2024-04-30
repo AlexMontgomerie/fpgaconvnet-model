@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 
 import pydot
@@ -23,7 +23,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 class SqueezeLayerBase(LayerBase):
     coarse_in: int
     coarse_out: int
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "squeeze"
 
@@ -58,10 +58,10 @@ class SqueezeLayerChiselMixin(SqueezeLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the squeeze module
-        self.graph.add_node("squeeze", module=self.modules["squeeze"])
+        self.module_graph.add_node("squeeze", module=self.modules["squeeze"])
 
     # def rate_in(self, port_idx: int = 0) -> list[float]:
     #     assert port_idx == 0, "ERROR: invalid port index"
@@ -93,8 +93,8 @@ class SqueezeLayerHLSMixin(SqueezeLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the squeeze module
-        self.graph.add_node(f"squeeze", module=self.modules["squeeze"])
+        self.module_graph.add_node(f"squeeze", module=self.modules["squeeze"])
 

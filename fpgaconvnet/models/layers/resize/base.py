@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 
 import pydot
@@ -25,7 +25,7 @@ class ResizeLayerBase(LayerMatchingCoarse, LayerBase):
 
     scales: list[int]
     mode: str = "nearest"
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "resize"
 
@@ -76,10 +76,10 @@ class ResizeLayerChiselMixin(ResizeLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the resize module
-        self.graph.add_node("resize", module=self.modules["resize"])
+        self.module_graph.add_node("resize", module=self.modules["resize"])
 
 class ResizeLayer2DMixin(ResizeLayerBase, Layer2D):
 

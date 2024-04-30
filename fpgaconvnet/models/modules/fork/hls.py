@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import numpy as np
 
@@ -14,7 +14,7 @@ class ForkHLSBase(ModuleHLSBase):
     # hardware parameters
     coarse: int
     kernel_size: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     # class variables
     name: ClassVar[str] = "fork"

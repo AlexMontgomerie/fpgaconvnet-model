@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -14,7 +14,7 @@ class PoolHLSBase(ModuleHLSBase):
 
     # hardware parameters
     kernel_size: list[int]
-    pool_t: FixedPoint = FixedPoint(16, 8)
+    pool_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     # class variables
     name: ClassVar[str] = "pool"

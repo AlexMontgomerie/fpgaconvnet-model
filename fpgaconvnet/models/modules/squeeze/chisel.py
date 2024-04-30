@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -16,7 +16,7 @@ class SqueezeChisel(ModuleChiselBase):
     # hardware parameters
     coarse_in: int
     coarse_out: int
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     input_buffer_depth: int = 0
     output_buffer_depth: int = 0
 

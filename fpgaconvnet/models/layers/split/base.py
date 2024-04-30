@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 from overrides import override
 
@@ -24,7 +24,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 class SplitLayerBase(LayerMatchingCoarse, LayerBase):
 
     ports: int
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "split"
 
@@ -99,10 +99,10 @@ class SplitLayerChiselMixin(SplitLayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the split module
-        self.graph.add_node("fork", module=self.modules["fork"])
+        self.module_graph.add_node("fork", module=self.modules["fork"])
 
 
 @dataclass(kw_only=True)

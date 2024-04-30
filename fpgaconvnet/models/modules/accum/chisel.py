@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 import numpy as np
@@ -16,7 +16,7 @@ class AccumChisel(ModuleChiselBase):
     # hardware parameters
     channels: int
     filters: int
-    data_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
     ram_style: str = "distributed"
     input_buffer_depth: int = 0
     acc_buffer_depth: int = 3
@@ -128,7 +128,6 @@ class AccumChisel(ModuleChiselBase):
 def _(m: AccumChisel, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
 
     # get the resource model
-    # model: ResourceModel = _model if _model is not None else DEFAULT_ACCUM_RSC_MODELS[rsc_type]
     model: ResourceModel = _model
 
     # check the correct resource type

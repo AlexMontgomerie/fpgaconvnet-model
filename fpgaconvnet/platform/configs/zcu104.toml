@@ -1,6 +1,5 @@
 [device]
 name = "zcu104"
-# part = "xczu7ev-ffvb1156-2-e"
 part = "xczu7ev-ffvc1156-2-e"
 board = "" #TODO: add board file
 
@@ -9,6 +8,7 @@ DSP   = 1728
 BRAM  = 624
 FF    = 504000
 LUT   = 461000
+URAM  = 96
 
 [system]
 board_frequency = 160 # in MHz

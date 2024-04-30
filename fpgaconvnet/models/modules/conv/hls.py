@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import numpy as np
 
@@ -17,9 +17,9 @@ class ConvHLSBase(ModuleHLSBase):
     filters: int
     kernel_size: list[int]
     groups: int = 1
-    data_t: FixedPoint = FixedPoint(16, 8)
-    weight_t: FixedPoint = FixedPoint(16, 8)
-    acc_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
 
     # class variables
     name: ClassVar[str] = "conv"

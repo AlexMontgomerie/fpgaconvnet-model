@@ -27,10 +27,10 @@ class ConvolutionLayerBase(LayerBase):
     groups: int = 1
     coarse_group: int = 1
     fine: int  = 1
-    input_t: FixedPoint = FixedPoint(16,8)
-    output_t: FixedPoint = FixedPoint(16,8)
-    weight_t: FixedPoint = FixedPoint(16,8)
-    acc_t: FixedPoint = FixedPoint(32,16)
+    input_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    output_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16,8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32,16))
     weight_compression_ratio: list = field(default_factory=lambda: [1.0], init=True)
 
     name: ClassVar[str] = "convolution"

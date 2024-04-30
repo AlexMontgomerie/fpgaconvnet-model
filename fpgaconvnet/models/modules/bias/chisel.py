@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -13,7 +13,7 @@ class BiasChisel(ModuleChiselBase):
 
     # hardware parameters
     channels: int
-    data_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
     ram_style: str = "distributed"
     input_buffer_depth: int = 2
     output_buffer_depth: int = 2

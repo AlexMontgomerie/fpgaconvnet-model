@@ -174,6 +174,16 @@ class ModuleBase(metaclass=ModuleBaseMeta):
         pass
 
     @property
+    def class_name(self) -> str:
+        """
+        The class name of the module.
+
+        Returns:
+            The class name of the module.
+        """
+        return self.__class__.__name__
+
+    @property
     @abstractmethod
     def input_ports(self) -> list[Port]:
         """

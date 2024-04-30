@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import OrderedDict
 
 import numpy as np
@@ -23,7 +23,7 @@ from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_mode
 class ThresholdReLULayerBase(LayerMatchingCoarse, LayerBase):
 
     threshold: float = 0.0,
-    data_t: FixedPoint = FixedPoint(16,8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
 
     name: ClassVar[str] = "threshold_relu"
 
@@ -61,10 +61,10 @@ class ThresholdReLULayerChiselMixin(ThresholdReLULayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the threshold_relu module
-        self.graph.add_node("threshold_relu", module=self.modules["threshold_relu"])
+        self.module_graph.add_node("threshold_relu", module=self.modules["threshold_relu"])
 
 
 class ThresholdReLULayerHLSMixin(ThresholdReLULayerBase):
@@ -88,9 +88,9 @@ class ThresholdReLULayerHLSMixin(ThresholdReLULayerBase):
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the threshold_relu module
         for i in range(self.coarse):
-            self.graph.add_node(f"threshold_relu_{i}", module=self.modules["threshold_relu"])
+            self.module_graph.add_node(f"threshold_relu_{i}", module=self.modules["threshold_relu"])
 

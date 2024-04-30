@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -15,7 +15,7 @@ class ForkChisel(ModuleChiselBase):
     # hardware parameters
     fine: int
     coarse: int
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     is_sync: bool = False
     input_buffer_depth: int = 2
     output_buffer_depth: int = 2

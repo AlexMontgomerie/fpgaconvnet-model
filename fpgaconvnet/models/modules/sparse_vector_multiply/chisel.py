@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -18,9 +18,9 @@ class SparseVectorMultiplyChisel(ModuleChiselBase):
     filters: int
     multipliers: int
     sparsity: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
-    weight_t: FixedPoint = FixedPoint(16, 8)
-    acc_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    weight_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    acc_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
     use_dsp: bool = True
     input_buffer_depth: int = 2
     weight_buffer_depth: int = 2

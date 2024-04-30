@@ -7,6 +7,8 @@ from dacite import from_dict
 from typing import ClassVar, Union
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from platformdirs import user_cache_dir
+from pathvalidate import sanitize_filename
 
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
 from fpgaconvnet.models.modules.resources import SVRResourceModel, NNLSHeuristicResourceModel, NNLSResourceModel
@@ -20,9 +22,12 @@ class PlatformBase:
 
     # platform specific fields
     part: str
+    """part identifier for the synthesis tool"""
     resources: dict[str,int]
     reconf_time: float
-    board_freq: float = 100.0
+    """reconfiguration time in seconds"""
+    freq: float = 100.0
+    """board frequency in MHz"""
     mem_bw: float = 10.0
     port_width: int = 512
 
@@ -31,13 +36,15 @@ class PlatformBase:
     resource_types: ClassVar[list[str]]
 
     # database specific fields
-    db_collection: str = "chisel-latest"
+    db_collection: str = "test"
     db_limit: int = 10000
 
     # resource model specific fields
-    model_cache_dir: str = "cache/models"
     model_type: str = "NNLS"
     model_test_split: float = 0.2
+
+    # flag to build resource models if not already built
+    build_models_if_doesnt_exist: bool = False
 
 
     def __post_init__(self):
@@ -45,16 +52,18 @@ class PlatformBase:
         Perform post initialisation checks.
         """
         # check resource types
-        assert all([rsc in self.resource_types for rsc in self.resources.keys()]), f"resource types must be one of {self.resource_types}"
+        assert all([rsc in self.resource_types for rsc in self.resources.keys()]), \
+                f"resource types must be one of {self.resource_types}"
 
         # check resource values
-        assert all([rsc_val >= 0 for rsc_val in self.resources.values()]), "resource values must be positive"
+        assert all([rsc_val >= 0 for rsc_val in self.resources.values()]), \
+                "resource values must be positive"
 
         # check reconfiguration time
         assert self.reconf_time >= 0, "reconfiguration time must be positive"
 
         # check board frequency
-        assert self.board_freq > 0, "board frequency must be positive"
+        assert self.freq > 0, "board frequency must be positive"
 
         # check memory bandwidth
         assert self.mem_bw > 0, "memory bandwidth must be positive"
@@ -67,6 +76,10 @@ class PlatformBase:
                 { m: {rsc_type: None for rsc_type in self.resource_types} \
                 for m in ModuleBase.MODULE_REGISTRY.keys() }
 
+        # create a cache directory for the models
+        self.model_cache_dir = os.path.join(user_cache_dir("fpgaconvnet", "models"),
+                                            sanitize_filename(self.part))
+        os.makedirs(self.model_cache_dir, exist_ok=True)
 
     @classmethod
     def from_toml(cls, platform_path: str):
@@ -111,7 +124,7 @@ class PlatformBase:
             part=conf["device"]["part"],
             resources=conf["resources"],
             reconf_time=conf["system"]["reconfiguration_time"],
-            board_freq=conf["system"]["board_frequency"],
+            freq=conf["system"]["board_frequency"],
             mem_bw=conf["system"]["memory_bandwidth"],
             port_width=conf["system"]["port_width"]
         )
@@ -130,23 +143,6 @@ class PlatformBase:
         if rsc_type not in self.resource_types:
             raise ValueError(f"resource type {rsc_type} not supported by family {self.family} (should be one of {self.resource_types})")
         return self.resources[rsc_type]
-
-
-    def get_resource_database_filters(self, scale: float = 0.8) -> dict[str,Union[str,dict[str,int]]]:
-        """
-        Gets the filters needed to query the database for resource runs
-        relevant to the platform.
-
-        Args:
-            scale: scale factor to apply to the resources
-
-        Returns:
-            dictionary of filters
-        """
-        filters = { "fpga": self.part }
-        for rsc_type, rsc_max in self.resources.items():
-            filters[f"resource.{rsc_type}"] = { "$exists": True, "$lt": int(scale*self.get_resource(rsc_type)) }
-        return filters
 
 
     def update_from_toml(self, platform_path: str):
@@ -171,7 +167,7 @@ class PlatformBase:
             self.resources[resource] = val
 
         ## system
-        self.board_freq  = conf["system"].get("board_frequency", 100.0) # in MHz
+        self.freq  = conf["system"].get("board_frequency", 100.0) # in MHz
         self.mem_bw      = conf["system"].get("memory_bandwidth", 5.0) # in Gbps
         self.reconf_time = conf["system"].get("reconfiguration_time", 0.0) # in seconds
         self.port_width  = conf["system"].get("port_width", 512) # in bits
@@ -198,7 +194,7 @@ class PlatformBase:
 
         # todo: apply the constraint as bandwidth instead of port width
         eff_bw = self.eth_bw * (max_packet_size - mac_head - ip_head - udp_head) / max_packet_size
-        eth_port_width = eff_bw / (self.board_freq / 1000)  # in bits
+        eth_port_width = eff_bw / (self.freq / 1000)  # in bits
         return int(eth_port_width)
 
 
@@ -213,6 +209,23 @@ class PlatformBase:
         backend = module.backend.name.lower()
         dimensionality = min(module.dimensionality).value
         return f"{self.family}.{module.name}.{backend}.{dimensionality}.{rsc_type}"
+
+
+    def get_resource_database_filters(self, scale: float = 0.8) -> dict[str,Union[str,dict[str,int]]]:
+        """
+        Gets the filters needed to query the database for resource runs
+        relevant to the platform.
+
+        Args:
+            scale: scale factor to apply to the resources
+
+        Returns:
+            dictionary of filters
+        """
+        filters = { "fpga": { "$regex": f"{self.part}.*" } }
+        for rsc_type, rsc_max in self.resources.items():
+            filters[f"resource.{rsc_type}"] = { "$exists": True, "$lt": int(scale*self.get_resource(rsc_type)) }
+        return filters
 
 
     def build_resource_models(self, module: ModuleBase):
@@ -248,7 +261,11 @@ class PlatformBase:
         collection = collection.find(filters).limit(self.db_limit)
 
         # get the training and testing data
-        dataset = list(tqdm(collection, desc="loading points from database"))
+        dataset = list(tqdm(collection, desc=f"loading points from database for {module_class.__name__}"))
+
+        # check if the collection is empty
+        if len(dataset) == 0:
+            raise ValueError(f"no records found in the database for {module_class.__name__}")
 
         # split the dataset
         random.shuffle(dataset)
@@ -286,14 +303,13 @@ class PlatformBase:
             accuracy[rsc_type] = model.get_accuracy(test_data)
 
             # save the model to the cache directory
-            filename = f"{self.get_model_cache_string(module, rsc_type)}.model"
-            cache_path = os.path.join(os.path.dirname(__file__), "..", "cache", "modules", filename)
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            cache_path = os.path.join(self.model_cache_dir,
+                    f"{self.get_model_cache_string(module, rsc_type)}.model")
             model.save_model(cache_path)
-            print(f"Saved model for {module_class}:{rsc_type} to {cache_path}\n")
+            print(f"Saved model for {module_class.__name__}:{rsc_type} to {cache_path}")
 
             # add the model to the resource_models dictionary
-            self.resource_models[module.__class__.__name__][rsc_type] = model
+            self.resource_models[module_class.__name__][rsc_type] = model
 
         # return the accuracy
         return accuracy
@@ -302,6 +318,16 @@ class PlatformBase:
         # table = [ [rsc_type, *list(acc.values())] for rsc_type, acc in accuracy.items() ]
         # header = [ "Resource", *list(list(accuracy.values())[0].keys()) ]
         # print(tabulate(table, headers=header) + "\n")
+
+
+    def build_all_resource_models(self):
+        """
+        Build all resource models for the platform.
+        """
+        for module in ModuleBase.MODULE_REGISTRY.values():
+            try: self.build_resource_models(module)
+            # except ValueError as e: pass
+            except: pass
 
 
     def load_resource_models(self, module: ModuleBase, rsc_type: str):
@@ -314,15 +340,15 @@ class PlatformBase:
         """
 
         # get the cache path
-        cache_path = os.path.join(os.path.dirname(__file__), "..", "cache", "modules",
+        cache_path = os.path.join(self.model_cache_dir,
                 f"{self.get_model_cache_string(module, rsc_type)}.model")
 
         # check if the model exists
         if not os.path.exists(cache_path):
-            raise FileNotFoundError(f"resource model for {module.__name__}:{rsc_type} not found at {cache_path}")
+            raise FileNotFoundError(f"resource model for {module.class_name}:{rsc_type} not found at {cache_path}")
 
         # update the resource models
-        self.resource_models[module.__class__.__name__][rsc_type] = ResourceModel.load_model(cache_path)
+        self.resource_models[module.class_name][rsc_type] = ResourceModel.load_model(cache_path)
 
 
     def load_all_resource_models(self):
@@ -349,10 +375,10 @@ class PlatformBase:
             resource model object
         """
         # load the resource model if it is not already loaded
-        if self.resource_models[module.__class__.__name__][rsc_type] is None:
+        if self.resource_models[module.class_name][rsc_type] is None:
             self.load_resource_models(module, rsc_type)
 
         # return the resource model
-        return self.resource_models[module.__class__.__name__][rsc_type]
+        return self.resource_models[module.class_name][rsc_type]
 
 

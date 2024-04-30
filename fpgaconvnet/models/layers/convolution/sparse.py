@@ -10,7 +10,6 @@ import networkx as nx
 
 import fpgaconvnet.proto.fpgaconvnet_pb2 as fpgaconvnet_pb2
 from fpgaconvnet.models.layers.utils import get_factors
-from fpgaconvnet.data_types import FixedPoint
 from fpgaconvnet.tools.resource_analytical_model import bram_array_resource_model, uram_array_resource_model
 from fpgaconvnet.models.layers.convolution.base import ConvolutionLayer2DMixin
 from fpgaconvnet.models.layers.convolution.backend import ConvolutionLayerChiselMixin
@@ -182,28 +181,28 @@ class ConvolutionLayerSparseChisel(ConvolutionLayerChiselMixin, ConvolutionLayer
     def build_module_graph(self) -> nx.DiGraph:
 
         # get the module graph
-        self.graph = nx.DiGraph()
+        self.module_graph = nx.DiGraph()
 
         # add the modules
         for i in range(self.streams_in()):
-            self.graph.add_node("pad_{i}", module=self.modules["pad"])
-            self.graph.add_node("sliding_window_{i}", module=self.modules["sliding_window"])
-            self.graph.add_node("fork_{i}", module=self.modules["fork"])
-            self.graph.add_node("sparse_vector_dot_{i}", module=self.modules["sparse_vector_dot"])
-            self.graph.add_node("accum_{i}", module=self.modules["accum"])
+            self.module_graph.add_node("pad_{i}", module=self.modules["pad"])
+            self.module_graph.add_node("sliding_window_{i}", module=self.modules["sliding_window"])
+            self.module_graph.add_node("fork_{i}", module=self.modules["fork"])
+            self.module_graph.add_node("sparse_vector_dot_{i}", module=self.modules["sparse_vector_dot"])
+            self.module_graph.add_node("accum_{i}", module=self.modules["accum"])
         for i in range(self.streams_out()):
-            self.graph.add_node("glue_{i}", module=self.modules["glue"])
-            self.graph.add_node("bias_{i}", module=self.modules["bias"])
+            self.module_graph.add_node("glue_{i}", module=self.modules["glue"])
+            self.module_graph.add_node("bias_{i}", module=self.modules["bias"])
 
         # connect the modules
         for i in range(self.streams_in()):
-            self.graph.add_edge(f"pad_{i}", f"sliding_window_{i}")
-            self.graph.add_edge(f"sliding_window_{i}", f"fork_{i}")
-            self.graph.add_edge(f"fork_{i}", f"sparse_vector_dot_{i}")
-            self.graph.add_edge(f"sparse_vector_dot_{i}", f"accum_{i}")
+            self.module_graph.add_edge(f"pad_{i}", f"sliding_window_{i}")
+            self.module_graph.add_edge(f"sliding_window_{i}", f"fork_{i}")
+            self.module_graph.add_edge(f"fork_{i}", f"sparse_vector_dot_{i}")
+            self.module_graph.add_edge(f"sparse_vector_dot_{i}", f"accum_{i}")
         # TODO: accum to glue connection
         for i in range(self.streams_out()):
-            self.graph.add_edge(f"glue_{i}", f"bias_{i}")
+            self.module_graph.add_edge(f"glue_{i}", f"bias_{i}")
 
 @dataclass(kw_only=True)
 class ConvolutionLayerSparseSkippingChisel(ConvolutionLayerSparseChisel):

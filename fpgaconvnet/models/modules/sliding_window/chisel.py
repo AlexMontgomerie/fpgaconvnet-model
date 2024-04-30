@@ -1,6 +1,6 @@
 import math
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
@@ -20,7 +20,7 @@ class SlidingWindowChisel(ModuleChiselBase):
     channels: int
     kernel_size: list[int]
     stride: list[int]
-    data_t: FixedPoint = FixedPoint(16, 8)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
     window_buffer_ram_style: str = "distributed"
     line_buffer_ram_style: str = "block"
     input_buffer_depth: int = 0

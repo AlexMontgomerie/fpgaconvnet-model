@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 import numpy as np
 
@@ -14,7 +14,7 @@ class AccumHLSBase(ModuleHLSBase):
     # hardware parameters
     filters: int
     groups: int
-    accum_t: FixedPoint = FixedPoint(32, 16)
+    accum_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
 
     # class variables
     name: ClassVar[str] = "accum"

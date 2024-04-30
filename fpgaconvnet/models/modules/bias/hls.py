@@ -1,5 +1,5 @@
 from typing import ClassVar, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -13,8 +13,8 @@ class BiasHLSBase(ModuleHLSBase):
 
     # hardware parameters
     filters: int
-    data_t: FixedPoint = FixedPoint(16, 8)
-    bias_t: FixedPoint = FixedPoint(32, 16)
+    data_t: FixedPoint = field(default_factory=lambda: FixedPoint(16, 8))
+    bias_t: FixedPoint = field(default_factory=lambda: FixedPoint(32, 16))
 
     # class variables
     name: ClassVar[str] = "bias"
