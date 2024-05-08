@@ -189,10 +189,10 @@ class LayerBase(metaclass=LayerBaseMeta):
     def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]: ...
 
     def rate_in(self, port_idx: int = 0) -> float:
-        return self.size_in(port_idx) / float(self.cycles())
+        return min(1.0, self.size_in(port_idx) / float(self.cycles())) # FIXME: it feels like there's a better way to describe instead of min(1.0, ...)
 
     def rate_out(self, port_idx: int = 0) -> float:
-        return self.size_out(port_idx) / float(self.cycles())
+        return min(1.0, self.size_out(port_idx) / float(self.cycles())) # FIXME: same as above
 
     def piecewise_rate_out(self, prev_rate_out: float, output_words: int) -> float:
         """

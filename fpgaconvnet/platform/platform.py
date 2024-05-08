@@ -40,7 +40,7 @@ class PlatformBase:
     db_limit: int = 10000
 
     # resource model specific fields
-    model_type: str = "NNLS"
+    model_type: str = "NNLSHeuristic"
     model_test_split: float = 0.2
 
     # flag to build resource models if not already built
