@@ -156,10 +156,12 @@ class Partition:
                     self.graph.nodes[output_node]["hw"].latency() > max_compute_latency for output_node in output_nodes])
 
     def is_sparse(self):
-        for node in self.graph.nodes():
-            if isinstance(self.graph.nodes[node]['hw'], InnerProductSparseLayer) or isinstance(self.graph.nodes[node]['hw'], ConvolutionSparseLayer) or isinstance(self.graph.nodes[node]['hw'], ConvolutionPointwiseSparseLayer):
-                return True
         return False
+        # TODO: implement this function
+        # for node in self.graph.nodes():
+        #     if isinstance(self.graph.nodes[node]['hw'], InnerProductSparseLayer) or isinstance(self.graph.nodes[node]['hw'], ConvolutionSparseLayer) or isinstance(self.graph.nodes[node]['hw'], ConvolutionPointwiseSparseLayer):
+        #         return True
+        # return False
 
     def get_wr_layer(self):
         if not self.enable_wr:

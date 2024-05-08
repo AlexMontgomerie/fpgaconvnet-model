@@ -250,8 +250,8 @@ def write_channel_indices_to_onnx(self, onnx_path):
                 onnx_node = next(filter(lambda x: x.name == node, onnx_model.graph.node))
 
                 hw = partition.graph.nodes[node]['hw']
-                if type(hw) in [ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer]:
-                    channel_indices = hw.get_stream_sparsity()[1]
-                    new_attr = onnx.helper.make_attribute("channel indices", channel_indices)
-                    onnx_node.attribute.append(new_attr)
+                # if type(hw) in [ConvolutionSparseLayer, ConvolutionPointwiseSparseLayer]:
+                #     channel_indices = hw.get_stream_sparsity()[1]
+                #     new_attr = onnx.helper.make_attribute("channel indices", channel_indices)
+                #     onnx_node.attribute.append(new_attr)
     onnx.save(onnx_model, onnx_path)

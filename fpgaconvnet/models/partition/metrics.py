@@ -82,7 +82,7 @@ def get_partition_bandwidth_weight(partition: Partition, platform: PlatformBase)
             bw_weight.append((bits_per_cycle*latency*platform.freq/max_latency)/1000)
     return bw_weight
 
-def get_platform_total_bandwidth(partition: Partition, platform: PlatformBase) -> float:
+def get_partition_total_bandwidth(partition: Partition, platform: PlatformBase) -> float:
     bw_in = get_partition_bandwidth_in(partition, platform)
     bw_out = get_partition_bandwidth_out(partition, platform)
     bw_weight = get_partition_bandwidth_weight(partition, platform)

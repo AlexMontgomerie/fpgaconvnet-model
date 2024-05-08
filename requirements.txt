@@ -27,3 +27,4 @@ pytest
 vcdvcd
 overrides
 tabulate
+pathvalidate

@@ -53,9 +53,9 @@ class InnerProductLayerBase(LayerBase):
         }
 
     def get_operations(self) -> int:
-        ops = self.channels_in()*math.prod(self.shape_out)
+        ops = self.channels_in()*math.prod(self.output_shape())
         if self.has_bias:
-            ops += math.prod(self.shape_out)
+            ops += math.prod(self.output_shape())
         return ops
 
     def get_weight_memory_depth(self) -> int:

@@ -118,7 +118,7 @@ class Network():
         else:
             return len(partition_list)*delay
 
-    def get_cycle(self, pipeline, partition_list=None):
+    def get_cycles(self, pipeline, partition_list=None):
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
@@ -139,7 +139,7 @@ class Network():
                 if partition_index not in partition_list:
                     continue
                 # accumulate cycle for each partition
-                cycle += partition.get_cycle()
+                cycle += partition.get_cycles()
         # return the total cycle
         return cycle
 
@@ -147,7 +147,7 @@ class Network():
         if partition_list == None:
             partition_list = list(range(len(self.partitions)))
 
-        batch_cycle = self.get_cycle(pipeline, partition_list)
+        batch_cycle = self.get_cycles(pipeline, partition_list)
         latency = batch_cycle/(freq*1000000)
         # return the total latency
         return latency + self.get_inter_latency(delay, partition_list)
