@@ -14,8 +14,8 @@ def partition_info(self, partition, id: int = 0):
     # add partition info
     partition.id = id
     partition.ports = 1 # TODO
-    partition.input_nodes.extend(self.model_input_nodes)
-    partition.output_nodes.extend(self.model_output_nodes)
+    partition.input_nodes.extend(self.input_nodes)
+    partition.output_nodes.extend(self.output_nodes)
 
     partition.batch_size  = self.batch_size
     partition.weights_reloading_factor = self.wr_factor

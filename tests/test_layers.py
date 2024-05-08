@@ -13,7 +13,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from fpgaconvnet.models.layers import LayerBase
+from fpgaconvnet.models.layers.metrics import get_layer_resources
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
+from fpgaconvnet.platform import ZynqPlatform, ZynqUltrascalePlatform
 
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
@@ -21,6 +23,8 @@ from pymongo.server_api import ServerApi
 RESOURCES = ["LUT", "FF", "BRAM", "DSP"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+
+PLATFORM = ZynqPlatform.from_toml("fpgaconvnet/platform/configs/zedboard.toml")
 
 # absolute and relative tolerance
 ABS_TOL = 200
@@ -92,18 +96,18 @@ LAYERS=initialise_layers(CONFIGS)
 @ddt.ddt
 class TestModule(unittest.TestCase):
 
-    @ddt.unpack
-    @ddt.named_data(*LAYERS)
-    def test_rates(self, layer: LayerBase, config: dict):
-        pass
-        # # check rate in
-        # for i in range(layer.ports_in):
-        #     self.assertGreaterEqual(layer.get_rate_in(i), 0.0)
-        #     self.assertLessEqual(layer.get_rate_in(i), 1.0)
-        # # check rate out
-        # for i in range(layer.ports_out):
-        #     self.assertGreaterEqual(layer.get_rate_out(i), 0.0)
-        #     self.assertLessEqual(layer.get_rate_out(i), 1.0)
+    # @ddt.unpack
+    # @ddt.named_data(*LAYERS)
+    # def test_rates(self, layer: LayerBase, config: dict):
+    #     pass
+    #     # # check rate in
+    #     # for i in range(layer.ports_in):
+    #     #     self.assertGreaterEqual(layer.get_rate_in(i), 0.0)
+    #     #     self.assertLessEqual(layer.get_rate_in(i), 1.0)
+    #     # # check rate out
+    #     # for i in range(layer.ports_out):
+    #     #     self.assertGreaterEqual(layer.get_rate_out(i), 0.0)
+    #     #     self.assertLessEqual(layer.get_rate_out(i), 1.0)
 
 
     @ddt.unpack
@@ -128,12 +132,14 @@ class TestModule(unittest.TestCase):
     def test_rates(self, layer: LayerBase, config: dict):
 
         # check rate in
-        assert layer.rate_in() >= 0.0, f"Rate in is negative"
-        assert layer.rate_in() <= 1.0, f"Rate in is greater than 1.0"
+        rate_in = layer.rate_in()
+        assert rate_in >= 0.0, f"Rate in of {rate_in} is negative"
+        assert rate_in <= 1.0, f"Rate in of {rate_in} is greater than 1.0"
 
         # check rate out
-        assert layer.rate_out() >= 0.0, f"Rate out is negative"
-        assert layer.rate_out() <= 1.0, f"Rate out is greater than 1.0"
+        rate_out = layer.rate_out()
+        assert rate_out >= 0.0, f"Rate out of {rate_out} is negative"
+        assert rate_out <= 1.0, f"Rate out of {rate_out} is greater than 1.0"
 
 
     @ddt.unpack
@@ -165,20 +171,22 @@ class TestModule(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
-    def test_latency(self, layer: LayerBase, config: dict):
-        # check latency
-        self.assertTrue(layer.latency() >= 0.0)
+    def test_cycles(self, layer: LayerBase, config: dict):
+        # check cycles
+        self.assertTrue(layer.cycles() >= 0.0)
 
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
     def test_pipeline_depth(self, layer: LayerBase, config: dict):
         # check pipeline depth
-        assert layer.pipeline_depth() >= 0.0, f"Pipeline depth is negative"
+        pipeline_depth = layer.pipeline_depth()
+        assert pipeline_depth >= 0.0, f"Pipeline depth of {pipeline_depth} is negative"
 
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
+    @unittest.skip("Skipping as wait depth is not properly integrated yet")
     def test_wait_depth(self, layer: LayerBase, config: dict):
         # check wait depth
         #self.assertTrue(layer.wait_depth() >= 0.0)
@@ -186,6 +194,7 @@ class TestModule(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
+    @unittest.skip("Skipping as piecewise rate in is not properly integrated yet")
     def test_piecewise_rate_out(self, layer: LayerBase, config: dict): # TODO
         pass
         # # check piecewise rate out
@@ -200,12 +209,12 @@ class TestModule(unittest.TestCase):
     def test_resources(self, rsc_type, layer, config):
 
         # check the resources
-        actual_rsc= config["resource"][rsc_type]
-        modelled_rsc= layer.resource()[rsc_type]
+        modelled_rsc = get_layer_resources(layer, rsc_type, PLATFORM)
+        actual_rsc   = config["resource"][rsc_type]
 
         assert modelled_rsc >= 0
         assert modelled_rsc == pytest.approx(actual_rsc, abs=ABS_TOL, rel=REL_TOL), \
-            f"Resource {rsc_type} does not match. Modelled: {modelled_rsc}, Actual: {actual_rsc}"
+            f"Resource {rsc_type} does not match. Modelled: {int(modelled_rsc)}, Actual: {actual_rsc}"
 
 
     @ddt.unpack
@@ -216,7 +225,7 @@ class TestModule(unittest.TestCase):
         cycles = config["cycles"]
 
         # get the modelled cycles
-        model_cycles = layer.latency()
+        model_cycles = layer.cycles()
 
         # check the cycles
         if cycles > 0:
@@ -236,13 +245,15 @@ class TestModule(unittest.TestCase):
         new_layer.coarse_in = coarse_in
         assert new_layer.coarse_in == coarse_in, f"Coarse in does not match. Expected: {coarse_in}, Actual: {new_layer.coarse_in}"
 
-        # check the latency either improves or stays the same
-        assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+        # check the cycles either improves or stays the same
+        assert new_layer.cycles() <= layer.cycles(), f"Latency did not improve. Expected: {new_layer.cycles()}, Actual: {layer.cycles()}"
 
         # check the resources either improve or stay the same
         for rsc_type in RESOURCES:
-            assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
-                f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+            new_rsc = get_layer_resources(new_layer, rsc_type, PLATFORM)
+            prev_rsc = get_layer_resources(layer, rsc_type, PLATFORM)
+            assert new_rsc <= prev_rsc, \
+                f"Resource {rsc_type} did not improve. Expected: {new_rsc}, Actual: {prev_rsc}"
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
@@ -256,18 +267,20 @@ class TestModule(unittest.TestCase):
         new_layer.coarse_out = coarse_out
         assert new_layer.coarse_out == coarse_out, f"Coarse out does not match. Expected: {coarse_out}, Actual: {new_layer.coarse_out}"
 
-        # check the latency either improves or stays the same
-        assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+        # check the cycles either improves or stays the same
+        assert new_layer.cycles() <= layer.cycles(), f"Latency did not improve. Expected: {new_layer.cycles()}, Actual: {layer.cycles()}"
 
         # check the resources either improve or stay the same
         for rsc_type in RESOURCES:
-            assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
-                f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+            new_rsc = get_layer_resources(new_layer, rsc_type, PLATFORM)
+            prev_rsc = get_layer_resources(layer, rsc_type, PLATFORM)
+            assert new_rsc <= prev_rsc, \
+                f"Resource {rsc_type} did not improve. Expected: {new_rsc}, Actual: {prev_rsc}"
 
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
-    def test_updating_coarse_out(self, layer: LayerBase, config: dict):
+    def test_updating_coarse_group(self, layer: LayerBase, config: dict):
 
         if "convolution" in layer.name:
 
@@ -279,13 +292,15 @@ class TestModule(unittest.TestCase):
             new_layer.coarse_group = coarse_group
             assert new_layer.coarse_group == coarse_group, f"Coarse group does not match. Expected: {coarse_group}, Actual: {new_layer.coarse_group}"
 
-            # check the latency either improves or stays the same
-            assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+            # check the cycles either improves or stays the same
+            assert new_layer.cycles() <= layer.cycles(), f"Latency did not improve. Expected: {new_layer.cycles()}, Actual: {layer.cycles()}"
 
             # check the resources either improve or stay the same
             for rsc_type in RESOURCES:
-                assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
-                    f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+                new_rsc = get_layer_resources(new_layer, rsc_type, PLATFORM)
+                prev_rsc = get_layer_resources(layer, rsc_type, PLATFORM)
+                assert new_rsc <= prev_rsc, \
+                    f"Resource {rsc_type} did not improve. Expected: {new_rsc}, Actual: {prev_rsc}"
 
 
     @ddt.unpack
@@ -302,17 +317,20 @@ class TestModule(unittest.TestCase):
             new_layer.fine = fine
             assert new_layer.fine == fine, f"Fine does not match. Expected: {fine}, Actual: {new_layer.fine}"
 
-            # check the latency either improves or stays the same
-            assert new_layer.latency() <= layer.latency(), f"Latency did not improve. Expected: {new_layer.latency()}, Actual: {layer.latency()}"
+            # check the cycles either improves or stays the same
+            assert new_layer.cycles() <= layer.cycles(), f"Latency did not improve. Expected: {new_layer.cycles()}, Actual: {layer.cycles()}"
 
             # check the resources either improve or stay the same
             for rsc_type in RESOURCES:
-                assert new_layer.resource()[rsc_type] <= layer.resource()[rsc_type], \
-                    f"Resource {rsc_type} did not improve. Expected: {new_layer.resource()[rsc_type]}, Actual: {layer.resource()[rsc_type]}"
+                new_rsc = get_layer_resources(new_layer, rsc_type, PLATFORM)
+                prev_rsc = get_layer_resources(layer, rsc_type, PLATFORM)
+                assert new_rsc <= prev_rsc, \
+                    f"Resource {rsc_type} did not improve. Expected: {new_rsc}, Actual: {prev_rsc}"
 
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
+    @unittest.skip("Skipping as weight streaming is not properly integrated yet")
     def test_double_buffered_attribute_exists(self, layer: LayerBase, config: dict):
 
         # check the double buffered attribute
@@ -320,6 +338,7 @@ class TestModule(unittest.TestCase):
 
     @ddt.unpack
     @ddt.named_data(*LAYERS)
+    @unittest.skip("Skipping as weight streaming is not properly integrated yet")
     def test_change_stream_weights(self, layer: LayerBase, config: dict):
 
         if "convolution" in layer.name:

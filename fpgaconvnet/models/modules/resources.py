@@ -152,17 +152,16 @@ class SVRResourceModel(ResourceModel):
 
 
 @singledispatch
-def eval_resource_model(m: ModuleBase, rsc_type: str, _model: Optional[ResourceModel] = None) -> int:
+def eval_resource_model(m: ModuleBase, rsc_type: str, model: ResourceModel) -> int:
 
     # get the backend and dimensionality
     backend = m.backend.name
     dimensionality = min(m.dimensionality).value
 
-    if _model is None:
-        raise NotImplementedError(f"ERROR: No resource model given for module: {m.name} ({backend}, {dimensionality}) and resource type: {rsc_type}")
-
-    model: ResourceModel = _model
+    # check the resources for the module
     assert rsc_type == model.rsc_type, f"Incompatible resource type with model: {rsc_type}"
+
+    # return the model evaluation
     return model(m)
 
 def get_cached_resource_model(m: ModuleBaseMeta, rsc_type: str, name: str) -> ResourceModel:
@@ -178,43 +177,5 @@ def get_cached_resource_model(m: ModuleBaseMeta, rsc_type: str, name: str) -> Re
 
     # return the models
     return model
-
-
-# ResourceEvaluate: Callable[[ModuleBase], dict]
-# Fit: Callable[[Record], ResourceEvaluate]
-
-
-# def fit_resource_model(
-
-# class MyModel:
-#     def __init__():...
-#     def _some_internal_calc: ...
-#     def __call__(self) -> ResourceEvaluator:
-
-# mymodel = MyModel()
-
-# @singledispatch
-# def eval_resources(m: ModuleBase, model: ResourceModel) -> dict:
-#     ...
-
-# def imp_a(m) -> dict:
-#     ....
-
-
-# @eval_resources.register
-# def _(m: AccumChisel | ForkChisel, ) -> dict:
-#     # Your implementation here
-#     # Implementation A
-#     # impa_a(m)
-
-# @eval_resources.register
-# def _(m: ForkChisel) -> dict:
-#     # Your implementation here
-#     # Implementation A
-#     # impa_a(m)
-
-
-# eval_resources(module)
-
 
 

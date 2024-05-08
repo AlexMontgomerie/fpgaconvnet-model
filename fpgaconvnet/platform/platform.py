@@ -36,7 +36,7 @@ class PlatformBase:
     resource_types: ClassVar[list[str]]
 
     # database specific fields
-    db_collection: str = "test"
+    db_collection: str = "latest"
     db_limit: int = 10000
 
     # resource model specific fields
@@ -52,8 +52,9 @@ class PlatformBase:
         Perform post initialisation checks.
         """
         # check resource types
-        assert all([rsc in self.resource_types for rsc in self.resources.keys()]), \
-                f"resource types must be one of {self.resource_types}"
+        for rsc in self.resources.keys():
+            assert rsc in self.resource_types, \
+                    f"resource type {rsc} must be one of {self.resource_types}"
 
         # check resource values
         assert all([rsc_val >= 0 for rsc_val in self.resources.values()]), \
@@ -222,7 +223,7 @@ class PlatformBase:
         Returns:
             dictionary of filters
         """
-        filters = { "fpga": { "$regex": f"{self.part}.*" } }
+        filters = { "fpga": { "$regex": f"{self.family}.*" } }
         for rsc_type, rsc_max in self.resources.items():
             filters[f"resource.{rsc_type}"] = { "$exists": True, "$lt": int(scale*self.get_resource(rsc_type)) }
         return filters
@@ -327,7 +328,7 @@ class PlatformBase:
         for module in ModuleBase.MODULE_REGISTRY.values():
             try: self.build_resource_models(module)
             # except ValueError as e: pass
-            except: pass
+            except Exception as e: print(f"Error building resource models for {module.__name__}: {e}")
 
 
     def load_resource_models(self, module: ModuleBase, rsc_type: str):

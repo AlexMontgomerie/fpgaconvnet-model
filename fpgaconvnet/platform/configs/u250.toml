@@ -1,6 +1,6 @@
 [device]
 name = "u250"
-part = "xc7z020clg484-1"
+part = "xcu250-figd2104-2L-e"
 board = "xilinx.com:zc702:part0:1.4"
 
 [resources]

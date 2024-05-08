@@ -30,7 +30,7 @@ def balance_module_rates(rate_graph):
 
 def get_factors(n):
     return sorted(list(set(reduce(list.__add__,
-                ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))))
+                ([int(i), int(n//i)] for i in range(1, int(n**0.5) + 1) if n % i == 0)))))
 
 def stream_unit(self):
     '''

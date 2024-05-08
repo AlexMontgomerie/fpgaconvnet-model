@@ -13,6 +13,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.models.modules.resources import eval_resource_model
 from fpgaconvnet.architecture import Architecture, BACKEND, DIMENSIONALITY
+from fpgaconvnet.models.modules.metrics import get_module_resources
+from fpgaconvnet.platform import ZynqPlatform, ZynqUltrascalePlatform
 
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
@@ -20,6 +22,8 @@ from pymongo.server_api import ServerApi
 RESOURCES = ["LUT", "FF", "BRAM", "DSP"]
 
 SERVER_DB="mongodb+srv://fpgaconvnet.hwnxpyo.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+
+PLATFORM = ZynqPlatform.from_toml("fpgaconvnet/platform/configs/zedboard.toml")
 
 # absolute and relative tolerance
 ABS_TOL = 200
@@ -126,11 +130,11 @@ class TestModule(unittest.TestCase):
         resource = config["resource"]
 
         # check the resources
-        modelled_rsc = eval_resource_model(module, rsc_type)
+        modelled_rsc = get_module_resources(module, rsc_type, PLATFORM)
         actual_rsc = resource.get(rsc_type, modelled_rsc)
         assert modelled_rsc >= 0
         assert modelled_rsc == pytest.approx(actual_rsc, abs=ABS_TOL, rel=REL_TOL), \
-            f"Resource {rsc_type} does not match. Modelled: {modelled_rsc}, Actual: {actual_rsc}"
+            f"Resource {rsc_type} does not match. Modelled: {int(modelled_rsc)}, Actual: {actual_rsc}"
 
 
     @ddt.unpack

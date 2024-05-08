@@ -113,15 +113,15 @@ class Layer2D(LayerBase):
        return self.channels
 
     def input_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return [ self.rows_in(), self.cols_in(), self.channels_in() ]
 
     def output_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return [ self.rows_out(), self.cols_out(), self.channels_out() ]
 
     def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return {
             "rows": self.rows_in(),
             "cols": self.cols_in(),
@@ -129,7 +129,7 @@ class Layer2D(LayerBase):
         }
 
     def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return {
             "rows": self.rows_out(),
             "cols": self.cols_out(),
@@ -173,15 +173,15 @@ class Layer3D(Layer2D):
        return self.depth
 
     def input_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return [ self.rows_in(), self.cols_in(), self.depth_in(), self.channels_in() ]
 
     def output_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return [ self.rows_out(), self.cols_out(), self.depth_out(), self.channels_out() ]
 
     def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return {
             "rows": self.rows_in(),
             "cols": self.cols_in(),
@@ -190,7 +190,7 @@ class Layer3D(Layer2D):
         }
 
     def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx == 0
+        assert port_idx == 0, f"port_idx {port_idx} != 0"
         return {
             "rows": self.rows_out(),
             "cols": self.cols_out(),
@@ -244,14 +244,14 @@ class MultiPortLayer2D(LayerBase):
         return super().sanitise_config(config)
 
     def set_buffer_depth(self, depth: int, port_idx: int = 0) -> None:
-        assert port_idx < self.ports, \
-                f"port_idx {port_idx} >= self.ports_in {self.ports}"
+        assert port_idx < self.ports_in, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports_in}"
         self.buffer_depth[port_idx] = depth
 
 
     def get_buffer_depth(self, port_idx: int = 0) -> int:
-        assert port_idx < self.ports, \
-                f"port_idx {port_idx} >= self.ports_in {self.ports}"
+        assert port_idx < self.ports_in, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports_in}"
         return self.buffer_depth[port_idx]
 
 
@@ -292,15 +292,18 @@ class MultiPortLayer2D(LayerBase):
         # return self.channels[port_idx]
 
     def input_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx < self.ports_in
+        assert port_idx < self.ports_in, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports_in}"
         return [ self.rows_in(port_idx), self.cols_in(port_idx), self.channels_in(port_idx) ]
 
     def output_shape(self, port_idx: int = 0) -> list[int]:
-        assert port_idx < self.ports_out
+        assert port_idx < self.ports_out, \
+                f"port_idx {port_idx} >= self.ports_out {self.ports_out}"
         return [ self.rows_out(port_idx), self.cols_out(port_idx), self.channels_out(port_idx) ]
 
     def input_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx < self.ports_in
+        assert port_idx < self.ports_in, \
+                f"port_idx {port_idx} >= self.ports_in {self.ports_in}"
         return {
             "rows": self.rows_in(port_idx),
             "cols": self.cols_in(port_idx),
@@ -308,7 +311,8 @@ class MultiPortLayer2D(LayerBase):
         }
 
     def output_shape_dict(self, port_idx: int = 0) -> dict[str,int]:
-        assert port_idx < self.ports_out
+        assert port_idx < self.ports_out, \
+                f"port_idx {port_idx} >= self.ports_out {self.ports_out}"
         return {
             "rows": self.rows_out(port_idx),
             "cols": self.cols_out(port_idx),
@@ -323,7 +327,7 @@ class MultiPortLayer2D(LayerBase):
 
     def get_coarse_out_feasible(self) -> list[int]:
         coarse_out_feasible = set(get_factors(self.channels_out(0)))
-        for i in range(1, self.ports_in):
+        for i in range(1, self.ports_out):
             coarse_out_feasible = coarse_out_feasible.intersection(set(get_factors(self.channels_out(i))))
         return list(coarse_out_feasible)
 

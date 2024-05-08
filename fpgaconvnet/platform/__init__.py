@@ -12,7 +12,8 @@ def get_fpga_part_family(part: str) -> str: return part[:4]
 def build_platform_from_toml(platform_path: str):
 
     # make sure toml configuration
-    assert os.path.splitext(platform_path)[1] == ".toml", "must be a TOML configuration file"
+    assert os.path.splitext(platform_path)[1] == ".toml", \
+                "must be a TOML configuration file"
 
     # parse platform configuration toml file
     with open(platform_path, "r") as f:
@@ -36,5 +37,5 @@ def build_platform_from_toml(platform_path: str):
 #     "zcu104": build_platform_from_toml(f"{os.path.dirname(__file__)}/configs/zcu104.toml"),
 # }
 
-DEFAULT_HLS_PLATFORM = build_platform_from_toml(f"{os.path.dirname(__file__)}/configs/zc706.toml")
-DEFAULT_CHISEL_PLATFORM = build_platform_from_toml(f"{os.path.dirname(__file__)}/configs/zcu104.toml")
+# DEFAULT_HLS_PLATFORM = build_platform_from_toml(f"{os.path.dirname(__file__)}/configs/zc706.toml")
+# DEFAULT_CHISEL_PLATFORM = build_platform_from_toml(f"{os.path.dirname(__file__)}/configs/zcu104.toml")

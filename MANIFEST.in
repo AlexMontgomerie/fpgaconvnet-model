@@ -4,3 +4,4 @@ include fpgaconvnet/coefficients/xgboost/chisel/*.json
 include fpgaconvnet/tools/fpgaconvnet-mongodb.pem
 include fpgaconvnet/platform/configs/*.toml
 include fpgaconvnet/models/cache/modules/*.model
+include fpgaconvnet/models/modules/fpgaconvnet-mongodb.pem
