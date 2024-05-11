@@ -216,5 +216,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
         rsc = super().resource()
         # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
         squeeze_rsc = self.modules['squeeze'].rsc()
-        rsc = { rsc_type: rsc[rsc_type] - squeeze_rsc[rsc_type] for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+        for rsc_type in squeeze_rsc.keys():
+            if rsc_type in rsc.keys():
+                rsc[rsc_type] -= squeeze_rsc[rsc_type]
         return rsc
