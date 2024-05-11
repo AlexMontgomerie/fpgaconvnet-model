@@ -98,7 +98,7 @@ def get_cycle(self):
     interval = self.get_interval()
     # get pipeline depth of partition
     input_node = graphs.get_input_nodes(self.graph)[0]
-    pipeline_depth = 0#self.get_pipeline_depth() # TODO: find max of all input nodes
+    pipeline_depth = self.get_pipeline_depth() # TODO: find max of all input nodes
     # return the latency (in seconds)
     batch_size  = int(self.batch_size)
     wr_factor   = self.wr_factor
