@@ -89,6 +89,9 @@ class ConvolutionSparseLayer(ConvolutionLayer):
             weight_compression_ratio=weight_compression_ratio
         )
 
+        # data packing not supported for sparse layers
+        self.data_packing = False
+
         # change modules to sparse equivalents
         self.modules["vector_dot"] = SparseVectorDot(self.rows_out(), self.cols_out(),
             self.channels_in()//(self.coarse_in*self.coarse_group),
@@ -166,15 +169,15 @@ class ConvolutionSparseLayer(ConvolutionLayer):
                 for i in range(ws.shape[0]):
 
                     # average cycles spent on complete zero windows
-                    zero_window_cycles = ws[i,0]
+                    zero_window_cycles = ws[i,-1]
                     if self.skip_all_zero_window:
                         zero_window_cycles = 0
 
                     # get the average number of cycles for the each vector dot product
                     vector_dot_cycles = \
                             zero_window_cycles + \
-                            sum([ math.ceil(j/self.fine)*ws[i,j]
-                                for j in range(1, np.prod(self.kernel_size)+1) ])
+                            sum([ math.ceil((np.prod(self.kernel_size)-j)/self.fine)*ws[i,j]
+                                for j in range(0, np.prod(self.kernel_size)) ])
 
                     # append the operation latency for the stream
                     operation_latency_per_stream.append(
@@ -223,12 +226,15 @@ class ConvolutionSparseLayer(ConvolutionLayer):
     def layer_info(self,parameters,batch_size=1):
         super().layer_info(parameters, batch_size)
         parameters.sparsity.extend(self.channel_sparsity_hist.flatten())
+        parameters.skip_all_zero_window = self.skip_all_zero_window
 
     def resource(self):
         # get module resource models
         rsc = super().resource()
         # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
         squeeze_rsc = self.modules['squeeze'].rsc()
-        rsc = { rsc_type: rsc[rsc_type] - squeeze_rsc[rsc_type] for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+        for rsc_type in squeeze_rsc.keys():
+            if rsc_type in rsc.keys():
+                rsc[rsc_type] -= squeeze_rsc[rsc_type]
         return rsc
 

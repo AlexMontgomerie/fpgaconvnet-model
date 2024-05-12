@@ -87,6 +87,9 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
             weight_compression_ratio=weight_compression_ratio
         )
 
+        # data packing not supported for sparse layers
+        self.data_packing = False
+
         # update modules
         self.update()
 
@@ -176,8 +179,9 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
                 cluster_sparsity = np.minimum(cluster_sparsity, 1-(1/cluster_streams))
 
                 # calculate average cycles per cluster
-                cycles = np.multiply(np.subtract(1, cluster_sparsity),
-                        float(cluster_streams/self.fine))
+                # FIXME: this is a workaround
+                # todo: make dsp usage a separate variable <= coarse_in*coarse_group*courses_out
+                cycles = np.subtract(1, cluster_sparsity) 
 
                 # get the max latency for each stream
                 operation_latency = workload * max(cycles)
@@ -212,5 +216,7 @@ class ConvolutionPointwiseSparseLayer(ConvolutionLayer):
         rsc = super().resource()
         # when sparsity occurs, the crossbar in sparse_vector_dot already acts as a squeeze
         squeeze_rsc = self.modules['squeeze'].rsc()
-        rsc = { rsc_type: rsc[rsc_type] - squeeze_rsc[rsc_type] for rsc_type in ["LUT", "FF", "DSP", "BRAM"] }
+        for rsc_type in squeeze_rsc.keys():
+            if rsc_type in rsc.keys():
+                rsc[rsc_type] -= squeeze_rsc[rsc_type]
         return rsc

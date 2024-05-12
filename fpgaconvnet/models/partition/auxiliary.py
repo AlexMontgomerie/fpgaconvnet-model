@@ -21,8 +21,21 @@ def add_squeeze(self):
             # add node to graph
             start_node = edge_list[edge][0]
             end_node   = edge_list[edge][1]
-            i = graphs.get_prev_nodes(self.graph,end_node).index(start_node)
-            j = graphs.get_next_nodes(self.graph,start_node).index(end_node)
+
+            prev_nodes = graphs.get_prev_nodes(self.graph,end_node)
+            for m, n in enumerate(prev_nodes):
+                if self.graph.nodes[n]['type'] == LAYER_TYPE.Squeeze:
+                    prev_nodes[m] = graphs.get_prev_nodes(self.graph,n)[0]
+            prev_nodes = sorted(prev_nodes)
+            i = prev_nodes.index(start_node)
+
+            next_nodes = graphs.get_next_nodes(self.graph,start_node)
+            for m, n in enumerate(next_nodes):
+                if self.graph.nodes[n]['type'] == LAYER_TYPE.Squeeze:
+                    next_nodes[m] = graphs.get_next_nodes(self.graph,n)[0]
+            next_nodes = sorted(next_nodes)
+            j = next_nodes.index(end_node)
+
             assert self.graph.nodes[end_node]['hw'].stream_inputs[i] == self.graph.nodes[start_node]['hw'].stream_outputs[j]
             if self.graph.nodes[end_node]['hw'].stream_inputs[i] and self.graph.nodes[start_node]['hw'].stream_outputs[j]:
                 # edge is already streaming off-chip
