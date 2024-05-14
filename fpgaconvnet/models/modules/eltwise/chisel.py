@@ -70,24 +70,6 @@ class EltwiseChisel(ModuleChiselBase):
         return [ self.streams, self.data_t.width,
                 sum(self.input_buffer_depth), self.output_buffer_depth ]
 
-    # def rsc(self, coef=None, model=None):
-    #     """
-    #     Returns
-    #     -------
-    #     dict
-    #         estimated resource usage of the module. Uses the
-    #         resource coefficients for the estimate.
-    #     """
-    #     # get the channel buffer BRAM estimate
-    #     channel_buffer_bram = bram_array_resource_model(int(self.channels), self.data_width, "fifo")
-
-    #     return {
-    #         "LUT"   : 49,
-    #         "FF"    : 23,
-    #         "BRAM"  : channel_buffer_bram if self.broadcast else 0,
-    #         "DSP"   : 0 if self.eltwise_type == "add" else 1
-    #     }
-
     def functional_model(self, *data: np.ndarray) -> np.ndarray:
 
         # check input dimensionality
@@ -102,6 +84,16 @@ class EltwiseChisel(ModuleChiselBase):
             case _:
                 raise ValueError(f"Element-wise type {self.eltwise_type} not supported")
 
+    def resource_parameters_heuristics(self) -> dict[str, list[int]]:
+        return super().resource_parameters_heuristics({
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
+        })
 
 @eval_resource_model.register
 def _(m: EltwiseChisel, rsc_type: str, model: ResourceModel) -> int:

@@ -476,6 +476,15 @@ class ModuleChiselBase(ModuleBase):
     dimensionality: ClassVar[set[DIMENSIONALITY]] = { DIMENSIONALITY.TWO, DIMENSIONALITY.THREE }
     register: ClassVar[bool] = False
 
+
+    def resource_parameters_heuristics(self, parameters: dict[str, list[int]]) -> dict[str, list[int]]:
+        parameters["BRAM"] = [ *parameters["BRAM18"], *parameters["BRAM36"] ]
+        parameters["LUT"] = [ *parameters["Logic_LUT"], *parameters["LUT_RAM"],
+                        *parameters["LUT_SR"] ]
+        assert "URAM" not in parameters, "URAM is maneged by optimiser"
+        parameters["URAM"] = [ 0 ]
+        return parameters
+
 @dataclass(kw_only=True)
 class ModuleHLSBase(ModuleBase):
     """

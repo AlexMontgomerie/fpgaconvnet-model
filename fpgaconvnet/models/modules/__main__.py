@@ -10,6 +10,7 @@ import random
 from tabulate import tabulate
 from tqdm import tqdm
 from dacite import from_dict
+from platformdirs import user_cache_dir
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
@@ -102,8 +103,8 @@ def main():
         accuracy[rsc_type] = model.get_accuracy(test_data)
 
         # cache the model locally
-        filename = f"{args.name}.{rsc_type}.{args.module}.{args.backend}.{args.dimensionality}.model"
-        cache_path = os.path.join(os.path.dirname(__file__), "..", "cache", "modules", filename)
+        filename = f"{args.name}.{args.module}.{args.backend}.{args.dimensionality}.{rsc_type}.model"
+        cache_path = os.path.join(user_cache_dir("fpgaconvnet", "models"), filename)
         model.save_model(cache_path)
         print(f"Saved model for {module_class}:{rsc_type} to {cache_path}\n")
 

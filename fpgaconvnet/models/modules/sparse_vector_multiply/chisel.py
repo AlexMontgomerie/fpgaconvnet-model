@@ -67,17 +67,6 @@ class SparseVectorMultiplyChisel(ModuleChiselBase):
     def output_iter_space(self) -> list[list[int]]:
         return [ [self.filters] ]
 
-    # @property
-    # def rate_in(self) -> list[float]:
-    #     return [ (1.0/float(self.filters))*self.rate_kernel_sparsity(), self.rate_kernel_sparsity() ]
-
-    # @property
-    # def rate_out(self) -> list[float]:
-    #     return [ self.rate_kernel_sparsity() ]
-
-    # def pipeline_depth(self) -> int:
-    #     return self.filters*(self.channels-1)
-
     def resource_parameters(self) -> list[int]:
         return [ self.filters, self.streams, self.multipliers, self.coarse,
                 self.input_buffer_depth, self.weight_buffer_depth, self.output_buffer_depth,
@@ -104,6 +93,16 @@ class SparseVectorMultiplyChisel(ModuleChiselBase):
         tmp = np.repeat(np.expand_dims(data, axis=-3), self.filters, axis=-3)
         return np.multiply(tmp, weights)
 
+    def resource_parameters_heuristics(self) -> dict[str, list[int]]:
+        return super().resource_parameters_heuristics({
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
+        })
 
 @eval_resource_model.register
 def _(m: SparseVectorMultiplyChisel, rsc_type: str, model: ResourceModel) -> int:

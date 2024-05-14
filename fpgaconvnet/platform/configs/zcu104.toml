@@ -6,12 +6,12 @@ board = "" #TODO: add board file
 [resources]
 DSP   = 1728
 BRAM  = 624
-FF    = 504000
-LUT   = 461000
+FF    = 460800
+LUT   = 230400
 URAM  = 96
 
 [system]
-board_frequency = 160 # in MHz
-memory_bandwidth = 135.83 # in Gbps
+board_frequency = 200 # in MHz
+memory_bandwidth = 153.6 # in Gbps
 reconfiguration_time = 0.08255 # in seconds
 port_width = 512

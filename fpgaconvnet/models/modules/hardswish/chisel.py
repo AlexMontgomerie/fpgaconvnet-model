@@ -79,6 +79,17 @@ class HardswishChisel(ModuleChiselBase):
         # apply hardswish to all elements
         return np.vectorize(self.hardswish)(data)
 
+    def resource_parameters_heuristics(self) -> dict[str, list[int]]:
+        return super().resource_parameters_heuristics({
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
+        })
+
 
 @eval_resource_model.register
 def _(m: HardswishChisel, rsc_type: str, model: ResourceModel) -> int:

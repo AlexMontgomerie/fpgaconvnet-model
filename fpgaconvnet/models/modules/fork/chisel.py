@@ -65,7 +65,7 @@ class ForkChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        return {
+        return super().resource_parameters_heuristics({
             "Logic_LUT" : [
                 self.streams*self.fine, # input buffer
                 self.streams*self.data_t.width*self.fine, # input buffer
@@ -83,7 +83,7 @@ class ForkChisel(ModuleChiselBase):
             "DSP"       : [0],
             "BRAM36"    : [0],
             "BRAM18"    : [0],
-        }
+        })
 
 
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
