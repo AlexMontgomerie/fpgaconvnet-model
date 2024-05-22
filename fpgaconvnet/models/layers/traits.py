@@ -13,6 +13,7 @@ from fpgaconvnet.models.layers.utils import balance_module_rates, get_factors
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
 from fpgaconvnet.models.layers import LayerBase
 
+
 @dataclass(kw_only=True)
 class LayerMatchingCoarse(LayerBase):
     coarse: int = 1

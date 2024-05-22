@@ -4,7 +4,9 @@ from typing import ClassVar
 from dataclasses import dataclass
 
 from .platform import PlatformBase
-from .amd import ZynqPlatform, ZynqUltrascalePlatform
+from .amd import (ZynqPlatform, ZynqUltrascalePlatform, ZynqUltrascalePlusPlatform,
+                  UltrascalePlatform, UltrascalePlusPlatform, Series7Platform,
+                  Spartan6Platform, Virtex6Platform)
 
 
 def get_fpga_part_family(part: str) -> str: return part[:4]

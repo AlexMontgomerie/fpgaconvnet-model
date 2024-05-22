@@ -2,6 +2,8 @@
 Base class for all hardware module models.
 '''
 
+from __future__ import annotations
+
 import numpy as np
 from dataclasses import dataclass, asdict
 from xgboost import XGBRegressor
@@ -43,7 +45,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
     register: ClassVar[bool] = False
 
     # dictionary lookup for modules
-    MODULE_REGISTRY: dict[str, object] = {}
+    MODULE_REGISTRY: dict[str, ModuleBase] = {}
 
     def __new__(cls, *args, **kwargs):
         # instantiate a new type corresponding to the type of class being defined
@@ -54,7 +56,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         return new_cls
 
     @classmethod
-    def get_registry(cls) -> dict[str, object]:
+    def get_registry(cls) -> dict[str, ModuleBase]:
         """
         A registry containing a lookup of all the modules
         by their class name, and a reference to the class object.
@@ -66,7 +68,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
 
     @classmethod
     def get_all_modules(cls, name: str, backend: BACKEND,
-                        dimensionality: DIMENSIONALITY) -> list[object]:
+                        dimensionality: DIMENSIONALITY) -> list[ModuleBase]:
         """
         Get all the modules in the registry with the given name,
         backend and dimensionality. Typically there is only a
@@ -99,7 +101,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
 
     @classmethod
     def build(cls, name: str, config: dict, backend: BACKEND,
-              dimensionality: DIMENSIONALITY) -> object:
+              dimensionality: DIMENSIONALITY) -> ModuleBase:
         """
         Build a module from a given name, configuration, backend and dimensionality.
 
@@ -132,7 +134,7 @@ class ModuleBaseMeta(type, metaclass=ABCMeta):
         return from_dict(data_class=module, data=config)
 
     @classmethod
-    def build_from_dict(cls, config: dict):
+    def build_from_dict(cls, config: dict) -> ModuleBaseMeta:
         """
         Build a module from a given configuration dictionary.
 

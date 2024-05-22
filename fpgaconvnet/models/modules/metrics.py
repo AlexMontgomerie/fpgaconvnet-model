@@ -34,7 +34,7 @@ def get_module_throughput(module: ModuleBase, platform: PlatformBase):
 
 def get_module_max_frequency(module: ModuleBase, platform: PlatformBase):
     # TODO: get an estimate of the module max frequency
-    return platform.board_freq
+    return platform.freq
 
 def get_module_power(module: ModuleBase, platform: PlatformBase):
     pass

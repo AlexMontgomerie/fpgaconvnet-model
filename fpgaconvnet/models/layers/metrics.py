@@ -13,7 +13,7 @@ def get_layer_resources(layer: LayerBase, rsc_type: str, platform: PlatformBase)
         platform: the platform to evaluate the layer on
 
     Returns:
-        dict[str,int]: the amount of resources
+        the amount of resources
     """
 
     # initialise the resources as zero
@@ -32,6 +32,19 @@ def get_layer_resources(layer: LayerBase, rsc_type: str, platform: PlatformBase)
     return resources
 
 def get_layer_resources_all(layer: LayerBase, platform: PlatformBase) -> dict[str,float]:
+    """
+    Get the resource usage of a given layer instance, for the particular
+    platform architecture. All resource types for the platform are returned,
+    as a dictionary.
+
+    Args:
+        layer: the layer to evaluate
+        platform: the platform to evaluate the layer on
+
+    Returns:
+        the amount of resources for each resource type
+    """
+
     # iterate over the resource types of the platform, and get the resources
     return { rsc_type: get_layer_resources(layer, rsc_type, platform) for rsc_type in platform.resource_types }
 

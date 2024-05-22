@@ -23,3 +23,10 @@ for platform_path in platform_configs:
         platform.build_all_resource_models()
     except Exception as e:
         print(f"Error building resource models for platform {platform.part}: {e}")
+
+    # upload the resource models to the database
+    try:
+        print(f"Uploading resource models for platform {platform.part}")
+        platform.upload_all_resource_models()
+    except Exception as e:
+        print(f"Error uploading resource models for platform {platform.part}: {e}")

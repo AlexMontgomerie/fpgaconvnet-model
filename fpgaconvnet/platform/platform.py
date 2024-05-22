@@ -1,10 +1,12 @@
 import os
 import random
 import toml
+import pickle
+import pymongo
 from tqdm import tqdm
 from tabulate import tabulate
 from dacite import from_dict
-from typing import ClassVar, Union
+from typing import ClassVar, Union, Any
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from platformdirs import user_cache_dir
@@ -12,7 +14,7 @@ from pathvalidate import sanitize_filename
 
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
 from fpgaconvnet.models.modules.resources import SVRResourceModel, NNLSHeuristicResourceModel, NNLSResourceModel
-from fpgaconvnet.models.modules.database import get_database, Record
+from fpgaconvnet.models.modules.database import get_database, get_collection, Record
 
 from fpgaconvnet.models.modules import ModuleBase
 from fpgaconvnet.architecture import BACKEND, DIMENSIONALITY
@@ -37,10 +39,11 @@ class PlatformBase:
 
     # database specific fields
     db_collection: str = "latest"
+    db_cache_collection: str = "latest-cache"
     db_limit: int = 10000
 
     # resource model specific fields
-    model_type: str = "NNLSHeuristic"
+    model_type: str = "NNLS"
     model_test_split: float = 0.2
 
     # flag to build resource models if not already built
@@ -212,7 +215,7 @@ class PlatformBase:
         return f"{self.family}.{module.name}.{backend}.{dimensionality}.{rsc_type}"
 
 
-    def get_resource_database_filters(self, scale: float = 0.8) -> dict[str,Union[str,dict[str,int]]]:
+    def get_resource_database_filters(self, scale: float = 0.8) -> dict[str,Union[str,dict[str,Any]]]:
         """
         Gets the filters needed to query the database for resource runs
         relevant to the platform.
@@ -225,7 +228,10 @@ class PlatformBase:
         """
         filters = { "fpga": { "$regex": f"{self.family}.*" } }
         for rsc_type, rsc_max in self.resources.items():
-            filters[f"resource.{rsc_type}"] = { "$exists": True, "$lt": int(scale*self.get_resource(rsc_type)) }
+            filters[f"resource.{rsc_type}"] = {
+                "$exists": True,
+                "$lt": int(scale*self.get_resource(rsc_type))
+            }
         return filters
 
 
@@ -250,8 +256,7 @@ class PlatformBase:
         module_class = ModuleBase.get_all_modules(module.name, backend, dimensionality)[0]
 
         # get the database information
-        db = get_database()
-        collection = db[self.db_collection]
+        collection = get_collection(self.db_collection)
 
         # filter for the relevant records
         filters = {
@@ -289,11 +294,14 @@ class PlatformBase:
             # get the model
             match self.model_type:
                 case "SVR":
-                    model = from_dict(data_class=SVRResourceModel, data=model_config)
+                    model: ResourceModel = from_dict(
+                            data_class=SVRResourceModel, data=model_config)
                 case "NNLS":
-                    model = from_dict(data_class=NNLSResourceModel, data=model_config)
+                    model: ResourceModel = from_dict(
+                            data_class=NNLSResourceModel, data=model_config)
                 case "NNLSHeuristic":
-                    model = from_dict(data_class=NNLSHeuristicResourceModel, data=model_config)
+                    model: ResourceModel = from_dict(
+                            data_class=NNLSHeuristicResourceModel, data=model_config)
                 case _:
                     raise NotImplementedError(f"Unsupported model type: {self.model_type}")
 
@@ -312,13 +320,91 @@ class PlatformBase:
             # add the model to the resource_models dictionary
             self.resource_models[module_class.__name__][rsc_type] = model
 
-        # return the accuracy
-        return accuracy
-
         # # print a table with summary of the accuracy
         # table = [ [rsc_type, *list(acc.values())] for rsc_type, acc in accuracy.items() ]
         # header = [ "Resource", *list(list(accuracy.values())[0].keys()) ]
         # print(tabulate(table, headers=header) + "\n")
+
+
+    def upload_resource_model(self, module: ModuleBase):
+        """
+        Method to upload cached resource models to the database.
+        """
+
+        # get the backend and dimensionality
+        backend = module.backend
+        dimensionality = min(module.dimensionality)
+
+        # get the module class
+        module_class = ModuleBase.get_all_modules(module.name, backend, dimensionality)[0]
+
+        # iterate over the resource types
+        for rsc_type in self.resource_types:
+
+            # create a record for the module resource model
+            record = {
+                "family": self.family,
+                "rsc_type": rsc_type,
+                "name": module_class.name,
+                "backend": module.backend.name.upper(),
+                "model": pickle.dumps(self.resource_models[module_class.__name__][rsc_type])
+            }
+
+            # save this to the cache collection
+            cache_collection = get_collection(self.db_cache_collection)
+            cache_collection.insert_one(record)
+
+
+    def upload_all_resource_models(self):
+        """
+        Upload all cached resource models to the database.
+        """
+        for module in ModuleBase.MODULE_REGISTRY.values():
+            self.upload_resource_model(module)
+
+
+    def download_resource_model(self, module: ModuleBase):
+        """
+        Method to download cached resource models from the database.
+        """
+
+        # get the backend and dimensionality
+        backend = module.backend
+        dimensionality = min(module.dimensionality)
+
+        # get the module class
+        module_class = ModuleBase.get_all_modules(module.name, backend, dimensionality)[0]
+
+        # iterate over the resource types
+        for rsc_type in self.resource_types:
+
+            # create the database filter
+            db_filter = {
+                "family": self.family,
+                "rsc_type": rsc_type,
+                "name": module_class.name,
+                "backend": module.backend.name.upper(),
+            }
+
+            # get the cache collection
+            cache_collection = get_collection(self.db_cache_collection)
+
+            # get the latest record
+            record = cache_collection.find_one(db_filter, sort=[("_id", pymongo.DESCENDING)])
+
+            # check if the record exists
+            if record is None: raise FileNotFoundError(f"resource model for {module_class.__name__}:{rsc_type} not found in the database")
+
+            # load the model
+            self.resource_models[module_class.__name__][rsc_type] = pickle.loads(record["model"])
+
+
+    def download_all_resource_models(self):
+        """
+        Download all cached resource models from the database.
+        """
+        for module in ModuleBase.MODULE_REGISTRY.values():
+            self.download_resource_model(module)
 
 
     def build_all_resource_models(self):
@@ -326,6 +412,7 @@ class PlatformBase:
         Build all resource models for the platform.
         """
         for module in ModuleBase.MODULE_REGISTRY.values():
+            # self.build_resource_models(module)
             try: self.build_resource_models(module)
             # except ValueError as e: pass
             except Exception as e: print(f"Error building resource models for {module.__name__}: {e}")

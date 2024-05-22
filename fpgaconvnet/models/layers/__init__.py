@@ -30,3 +30,10 @@ from .eltwise import EltwiseLayerChisel2D
 from .resize import ResizeLayerChisel2D
 from .global_pooling import GlobalPoolingLayerChisel2D
 
+
+def layer_has_trait(layer: LayerBase, trait: type) -> bool:
+    """
+    Check if a layer has a particular trait.
+    """
+    return trait in layer.__class__.__bases__
+

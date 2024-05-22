@@ -27,7 +27,7 @@ class SlidingWindowChisel(ModuleChiselBase):
 
     # class variables
     name: ClassVar[str] = "sliding_window"
-    dimensionality: ClassVar[DIMENSIONALITY] = { DIMENSIONALITY.TWO }
+    dimensionality: ClassVar[set[DIMENSIONALITY]] = { DIMENSIONALITY.TWO }
     register: ClassVar[bool] = True
 
     def __post_init__(self):
