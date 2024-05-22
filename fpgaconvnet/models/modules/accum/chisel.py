@@ -68,7 +68,7 @@ class AccumChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.acc_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        base_parameters = {
+        return super().resource_parameters_heuristics({
                 "Logic_LUT" : [
                     self.filters, self.channels, # parameter logic
                     self.streams*self.data_t.width, # input word logic
@@ -78,8 +78,6 @@ class AccumChisel(ModuleChiselBase):
                     1, # extra
                 ],
                 "LUT_RAM" : [
-                    # queue_lutram_resource_model(
-                    #     2, self.streams*self.data_width), # output buffer
                     self.streams*self.data_t.width*self.filters, # filter memory memory (size)
                     self.streams*self.data_t.width, # filter memory memory (word width)
                     self.filters, # filter memory memory (depth)
@@ -97,11 +95,7 @@ class AccumChisel(ModuleChiselBase):
                 "DSP" : [0],
                 "BRAM36" : [0],
                 "BRAM18" : [0],
-            }
-        base_parameters["LUT"] = [ *base_parameters["Logic_LUT"], *base_parameters["LUT_RAM"],
-                                    *base_parameters["LUT_SR"] ]
-        base_parameters["BRAM"] = [ *base_parameters["BRAM18"], *base_parameters["BRAM36"] ]
-        return base_parameters
+            })
 
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 

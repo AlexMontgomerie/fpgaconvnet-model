@@ -63,10 +63,19 @@ class ThresholdedReLUChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     def functional_model(self, data):
-
         # maximum of 0 and the data
         return np.maximum(data, self.threshold)
 
+    def resource_parameters_heuristics(self) -> dict[str, list[int]]:
+        return super().resource_parameters_heuristics({
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
+        })
 
 @eval_resource_model.register
 def _(m: ThresholdedReLUChisel, rsc_type: str, model: ResourceModel) -> int:

@@ -60,21 +60,6 @@ class ReLUChisel(ModuleChiselBase):
         return [ self.streams, self.data_t.width,
                 self.input_buffer_depth, self.output_buffer_depth ]
 
-    # def rsc(self, coef=None, model=None):
-    #     """
-    #     Returns
-    #     -------
-    #     dict
-    #         estimated resource usage of the module. Uses the
-    #         resource coefficients for the estimate.
-    #     """
-    #     return {
-    #         "LUT"   : 16,
-    #         "FF"    : 35,
-    #         "BRAM"  : 0,
-    #         "DSP"   : 0
-    #     }
-
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 
         # get the input data
@@ -87,6 +72,17 @@ class ReLUChisel(ModuleChiselBase):
 
         # maximum of 0 and the data
         return np.maximum(data, 0.0)
+
+    def resource_parameters_heuristics(self) -> dict[str, list[int]]:
+        return super().resource_parameters_heuristics({
+            "Logic_LUT" : [1],
+            "LUT_RAM"   : [1],
+            "LUT_SR"    : [0],
+            "FF"        : [1],
+            "DSP"       : [0],
+            "BRAM36"    : [0],
+            "BRAM18"    : [0],
+        })
 
 
 @eval_resource_model.register

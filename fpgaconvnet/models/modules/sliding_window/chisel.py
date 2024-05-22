@@ -89,7 +89,7 @@ class SlidingWindowChisel(ModuleChiselBase):
                 *self.kernel_size, *self.stride ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-            return {
+            return super().resource_parameters_heuristics({
                 "Logic_LUT" : [
                     self.data_t.width,
                     (self.kernel_size[0]-1),
@@ -118,7 +118,7 @@ class SlidingWindowChisel(ModuleChiselBase):
                 "DSP"       : [0],
                 "BRAM36"    : [0],
                 "BRAM18"    : [0],
-            }
+            })
 
     # def rsc(self,coef=None, model=None):
 

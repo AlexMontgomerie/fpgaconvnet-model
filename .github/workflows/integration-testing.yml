@@ -50,7 +50,7 @@ jobs:
 
     - name: Build default resource models
       run: |
-        ./scripts/regenerate_default_resource_models.sh
+        python ./scripts/regenerate_platform_resource_models.py
 
     - name: Run Model Unit Tests
       run: |

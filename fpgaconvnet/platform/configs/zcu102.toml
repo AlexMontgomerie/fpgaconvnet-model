@@ -11,7 +11,7 @@ FF    = 548160
 LUT   = 599550
 
 [system]
-board_frequency = 300 # in MHz
-memory_bandwidth = 135.83 # in Gbps
+board_frequency = 200 # in MHz
+memory_bandwidth = 153.6 # in Gbps
 reconfiguration_time = 0.08255 # in seconds
 port_width = 512

@@ -64,7 +64,7 @@ class BiasChisel(ModuleChiselBase):
                 self.input_buffer_depth, self.output_buffer_depth ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        return {
+        return super().resource_parameters_heuristics({
             "Logic_LUT" : [
                     self.data_t.width,
                 ],
@@ -80,8 +80,7 @@ class BiasChisel(ModuleChiselBase):
             "DSP"       : [0],
             "BRAM36"    : [0],
             "BRAM18"    : [0],
-        }
-
+        })
 
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 

@@ -78,7 +78,7 @@ class VectorDotChisel(ModuleChiselBase):
                 self.data_t.width, self.weight_t.width, self.acc_t.width ]
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
-        return {
+        return super().resource_parameters_heuristics({
             "Logic_LUT" : [
                 self.fine, self.data_t.width, self.weight_t.width,
                 self.streams*self.data_t.width*self.fine,
@@ -108,7 +108,7 @@ class VectorDotChisel(ModuleChiselBase):
             "DSP"       : [self.streams*self.fine],
             "BRAM36"    : [0],
             "BRAM18"    : [0],
-        }
+        })
 
     def functional_model(self, *inputs: np.ndarray) -> np.ndarray:
 
