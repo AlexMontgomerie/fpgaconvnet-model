@@ -16,12 +16,18 @@ reconfiguration_time = 0.08255 # in seconds
 port_width = 128
 
 [database]
-collection = "chisel-latest"
+collection = "latest"
+cache_collection = "latest-cache"
 db_limit = 10000
 filters = {}
 
+# support module specific filters, such as [database.filters.accum]
+
 [model]
 type = "NNLS"
+build = false
+from_db_cache = true
+
 # type = "SVR"
 # kernel = "poly"
 # degree = 3

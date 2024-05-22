@@ -8,9 +8,11 @@ from tabulate import tabulate
 from dacite import from_dict
 from typing import ClassVar, Union, Any
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from platformdirs import user_cache_dir
 from pathvalidate import sanitize_filename
+import multiprocessing
+from multiprocess import Pool
 
 from fpgaconvnet.models.modules.resources import ResourceModel, eval_resource_model
 from fpgaconvnet.models.modules.resources import SVRResourceModel, NNLSHeuristicResourceModel, NNLSResourceModel
@@ -45,10 +47,13 @@ class PlatformBase:
     # resource model specific fields
     model_type: str = "NNLS"
     model_test_split: float = 0.2
+    model_filters: dict[str,Union[str,dict[str,Any]]] = field(default_factory=dict)
 
-    # flag to build resource models if not already built
-    build_models_if_doesnt_exist: bool = False
-
+    # additional flags
+    build_on_init: bool = False
+    """flag to build resource models during initialisation"""
+    load_from_db_cache_on_init: bool = True
+    """flag to load resource models from the database cache"""
 
     def __post_init__(self):
         """
@@ -84,6 +89,11 @@ class PlatformBase:
         self.model_cache_dir = os.path.join(user_cache_dir("fpgaconvnet", "models"),
                                             sanitize_filename(self.part))
         os.makedirs(self.model_cache_dir, exist_ok=True)
+
+        # initialise the resource models from the database cache
+        if self.load_from_db_cache_on_init:
+            self.download_all_resource_models()
+
 
     @classmethod
     def from_toml(cls, platform_path: str):
@@ -145,7 +155,9 @@ class PlatformBase:
             number of resources, as an integer
         """
         if rsc_type not in self.resource_types:
-            raise ValueError(f"resource type {rsc_type} not supported by family {self.family} (should be one of {self.resource_types})")
+            raise ValueError(
+                    f"resource type {rsc_type} not supported by family {self.family} \
+                    (should be one of {self.resource_types})")
         return self.resources[rsc_type]
 
 
@@ -393,19 +405,27 @@ class PlatformBase:
             record = cache_collection.find_one(db_filter, sort=[("_id", pymongo.DESCENDING)])
 
             # check if the record exists
-            if record is None: raise FileNotFoundError(f"resource model for {module_class.__name__}:{rsc_type} not found in the database")
+            if record is None: raise FileNotFoundError(
+                    f"resource model for {module_class.__name__}:{rsc_type} not found in the database")
 
             # load the model
             self.resource_models[module_class.__name__][rsc_type] = pickle.loads(record["model"])
+            # print(self.resource_models[module_class.__name__][rsc_type])
+
+            # # also save the model to the cache directory
+            # cache_path = os.path.join(self.model_cache_dir,
+            #         f"{self.get_model_cache_string(module, rsc_type)}.model")
+            # self.resource_models[module_class.__name__][rsc_type].save_model(cache_path)
+            # print(f"Saved model for {module_class.__name__}:{rsc_type} to {cache_path}")
 
 
     def download_all_resource_models(self):
         """
         Download all cached resource models from the database.
         """
-        for module in ModuleBase.MODULE_REGISTRY.values():
-            self.download_resource_model(module)
-
+        with Pool(multiprocessing.cpu_count()) as p:
+            p.imap_unordered(self.download_resource_model,
+                             ModuleBase.MODULE_REGISTRY.values())
 
     def build_all_resource_models(self):
         """
