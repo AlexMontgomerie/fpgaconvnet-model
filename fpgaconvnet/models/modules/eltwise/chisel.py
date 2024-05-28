@@ -75,6 +75,15 @@ class EltwiseChisel(ModuleChiselBase):
         # check input dimensionality
         assert len(data) == self.ports , "ERROR: invalid number of ports"
 
+        # check input data shape
+        for i in range(self.ports):
+            data_iter_space_len = len(self.input_iter_space[i]) + len(self.input_simd_lanes[i])
+            data_iter_space = [*self.input_iter_space[i], *self.input_simd_lanes[i]]
+            assert(len(data[i].shape) >= data_iter_space_len), \
+                    f"{len(data[i].shape)} is not greater than or equal to {data_iter_space_len}"
+            assert(list(data[i].shape[-data_iter_space_len:]) == data_iter_space), \
+                    f"{list(data[i].shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
+
         # perform elment wise operation
         match self.eltwise_type:
             case "add":

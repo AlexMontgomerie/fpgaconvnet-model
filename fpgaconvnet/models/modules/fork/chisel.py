@@ -91,8 +91,16 @@ class ForkChisel(ModuleChiselBase):
         # get the input data
         data = inputs[0]
 
+        # check input dimensions
+        data_iter_space_len = len(self.input_iter_space[0]) + len(self.input_simd_lanes[0])
+        data_iter_space = [*self.input_iter_space[0], *self.input_simd_lanes[0]]
+        assert(len(data.shape) >= data_iter_space_len), \
+                f"{len(data.shape)} is not greater than or equal to {data_iter_space_len}"
+        assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
+                f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
+
         # replicate for coarse streams
-        return np.repeat(np.expand_dims(data, axis=-2), self.coarse, axis=-2)
+        return np.repeat(np.expand_dims(data, axis=-1), self.coarse, axis=-1)
 
 
 @eval_resource_model.register

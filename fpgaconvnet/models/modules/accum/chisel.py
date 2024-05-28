@@ -103,12 +103,15 @@ class AccumChisel(ModuleChiselBase):
         data = inputs[0]
 
         # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
+        data_iter_space_len = len(self.input_iter_space[0]) + len(self.input_simd_lanes[0])
+        data_iter_space = [*self.input_iter_space[0], *self.input_simd_lanes[0]]
+        assert(len(data.shape) >= data_iter_space_len), \
+                f"{len(data.shape)} is not greater than or equal to {data_iter_space_len}"
+        assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
+                f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
 
         # accumulate across the channel dimension
-        return np.sum(data, axis=-2)
+        return np.sum(data, axis=-3)
 
 
 @eval_resource_model.register

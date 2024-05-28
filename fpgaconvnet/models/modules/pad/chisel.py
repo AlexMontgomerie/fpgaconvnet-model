@@ -106,13 +106,16 @@ class PadChisel(ModuleChiselBase):
         data = inputs[0]
 
         # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
+        data_iter_space_len = len(self.input_iter_space[0]) + len(self.input_simd_lanes[0])
+        data_iter_space = [*self.input_iter_space[0], *self.input_simd_lanes[0]]
+        assert(len(data.shape) >= data_iter_space_len), \
+                f"{len(data.shape)} is not greater than or equal to {data_iter_space_len}"
+        assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
+                f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
 
         # get the output data from the functional model
         return np.pad(data, ((self.pad_top, self.pad_bottom),
-            (self.pad_left, self.pad_right), (0,0)), 'constant')
+            (self.pad_left, self.pad_right), (0,0), (0,0)), 'constant')
 
 
 @eval_resource_model.register

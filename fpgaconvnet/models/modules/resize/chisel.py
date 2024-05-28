@@ -102,12 +102,15 @@ class ResizeChisel(ModuleChiselBase):
         data = inputs[0]
 
         # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
+        data_iter_space_len = len(self.input_iter_space[0]) + len(self.input_simd_lanes[0])
+        data_iter_space = [*self.input_iter_space[0], *self.input_simd_lanes[0]]
+        assert(len(data.shape) >= data_iter_space_len), \
+                f"{len(data.shape)} is not greater than or equal to {data_iter_space_len}"
+        assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
+                f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
 
         # perform upsampling
-        return data.repeat(self.scales[0], axis=-3).repeat(self.scales[1], axis=-2).repeat(self.scales[2], axis=-1)
+        return data.repeat(self.scales[0], axis=-4).repeat(self.scales[1], axis=-3).repeat(self.scales[2], axis=-2)
 
 
 @eval_resource_model.register

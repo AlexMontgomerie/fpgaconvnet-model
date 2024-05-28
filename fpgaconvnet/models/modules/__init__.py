@@ -39,4 +39,5 @@ from .squeeze import SqueezeChisel, SqueezeHLS, SqueezeHLS3D
 from .stride import StrideChisel
 from .threshold_relu import ThresholdedReLUChisel
 from .vector_dot import VectorDotChisel
+from .matrix_vector import MatrixVectorChisel
 

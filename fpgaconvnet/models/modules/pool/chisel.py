@@ -43,7 +43,7 @@ class PoolChisel(ModuleChiselBase):
     @property
     def input_ports(self) -> list[Port]:
         return [ Port(
-            simd_lanes=[self.streams,*self.kernel_size],
+            simd_lanes=[self.streams, *self.kernel_size],
             data_type=self.data_t,
             buffer_depth=self.input_buffer_depth,
             name="io_in"
@@ -106,16 +106,20 @@ class PoolChisel(ModuleChiselBase):
         data = inputs[0]
 
         # check input dimensions
-        iter_space_len = len(self.input_iter_space[0])
-        assert(len(data.shape) >= iter_space_len)
-        assert(list(data.shape[-iter_space_len:]) == self.input_iter_space[0])
+        data_iter_space_len = len(self.input_iter_space[0]) + len(self.input_simd_lanes[0])
+        data_iter_space = [*self.input_iter_space[0], *self.input_simd_lanes[0]]
+        assert(len(data.shape) >= data_iter_space_len), \
+                f"{len(data.shape)} is not greater than or equal to {data_iter_space_len}"
+        assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
+                f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
 
         # perform the pooling operation
+        last_dim =  tuple(-1 - np.arange(len(self.kernel_size)))
         match self.pool_type:
             case 'max':
-                return np.max(data, axis=-1)
+                return np.max(data, axis=last_dim)
             case 'avg':
-                return np.mean(data, axis=-1)
+                return np.mean(data, axis=last_dim)
             case _:
                 raise ValueError(f"Invalid pool type: {self.pool_type}")
 

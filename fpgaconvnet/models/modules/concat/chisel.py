@@ -79,8 +79,17 @@ class ConcatChisel(ModuleChiselBase):
         # check input dimensionality
         assert len(data) == self.ports, f"Not enough input ports ({len(data)} != {self.ports})"
 
+        # check input data shape
+        for i in range(self.ports):
+            data_iter_space_len = len(self.input_iter_space[i]) + len(self.input_simd_lanes[i])
+            data_iter_space = [*self.input_iter_space[i], *self.input_simd_lanes[i]]
+            assert(len(data[i].shape) >= data_iter_space_len), \
+                    f"{len(data[i].shape)} is not greater than or equal to {data_iter_space_len}"
+            assert(list(data[i].shape[-data_iter_space_len:]) == data_iter_space), \
+                    f"{list(data[i].shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
+
         # concatenate along the channel dimension
-        return np.concatenate(data, axis=-1)
+        return np.concatenate(data, axis=-2)
 
     def resource_parameters_heuristics(self) -> dict[str, list[int]]:
         return super().resource_parameters_heuristics({
