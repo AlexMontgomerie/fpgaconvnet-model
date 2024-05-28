@@ -2,7 +2,7 @@ numpy>=1.19.2
 wandb
 graphviz>=0.16
 networkx>=2.5
-onnx>=1.12.0
+onnx>=1.16.0
 onnxsim==0.4.28
 onnxruntime>=1.12.0
 onnxoptimizer>=0.3.8
