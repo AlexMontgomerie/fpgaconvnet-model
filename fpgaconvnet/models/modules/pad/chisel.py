@@ -113,9 +113,13 @@ class PadChisel(ModuleChiselBase):
         assert(list(data.shape[-data_iter_space_len:]) == data_iter_space), \
                 f"{list(data.shape[-data_iter_space_len:])} is not equal to {data_iter_space}"
 
+        # get the padding
+        pads = [(0,0)] * (len(data.shape) - 4)
+        pads += [(self.pad_top, self.pad_bottom), (self.pad_left, self.pad_right)]
+        pads += [(0,0), (0,0)]
+
         # get the output data from the functional model
-        return np.pad(data, ((self.pad_top, self.pad_bottom),
-            (self.pad_left, self.pad_right), (0,0), (0,0)), 'constant')
+        return np.pad(data, pads, 'constant')
 
 
 @eval_resource_model.register
