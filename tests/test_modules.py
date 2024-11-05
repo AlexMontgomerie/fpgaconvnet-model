@@ -37,7 +37,7 @@ def load_module_configs_db(name):
     database = client["fpgaconvnet"]
 
     # open the collection
-    collection = database["test-configurations-chisel"]
+    collection = database["chisel-latest"]
 
     # find all configurations for the given name
     configs = collection.find({"name": name})
